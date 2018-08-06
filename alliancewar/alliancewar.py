@@ -104,8 +104,8 @@ class AllianceWar:
         em.set_footer(icon_url=JPAGS+'/aw/images/app_icon.jpg',text='AllianceWar.com')
         return em
 
-    @commands.command()
-    async def mycom(self, ctx):
-        """This does stuff!"""
+    # @commands.command()
+    # async def mycom(self, ctx):
+        # """This does stuff!"""
         # Your code will go here
-        await ctx.send("I can do stuff!")
+        # await ctx.send("I can do stuff!")
