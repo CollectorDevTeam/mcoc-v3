@@ -44,7 +44,7 @@ class AllianceWar:
     async def alliancewar(self, ctx):
         ''' Commands [WIP]'''
 
-    @alliancewar.command(pass_context=True, hidden=True, name="node")
+    @alliancewar.command(pass_context=True, name="node")
     async def _node_info(self, ctx, nodeNumber, tier = 'expert'):
         '''Report Node information.'''
         season = 2
