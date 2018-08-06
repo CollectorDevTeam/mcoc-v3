@@ -1,9 +1,6 @@
 from discord.ext import commands
 import json, requests
 
-class AllianceWar:
-    """Collector integration for JPAGS' AllianceWar.com."""
-
 BASEPATH = 'https://raw.githubusercontent.com/JasonJW/mcoc-cogs/master/mcocMaps/data/'
 ICON_SDF = 'https://raw.githubusercontent.com/JasonJW/mcoc-cogs/master/mcoc/data/sdf_icon.png'
 COLLECTOR_ICON='https://raw.githubusercontent.com/JasonJW/mcoc-cogs/master/mcoc/data/cdt_icon.png'
@@ -14,29 +11,33 @@ BOOSURL = 'http://www.alliancewar.com/global/ui/js/boosts.json'
 BOOSTS = json.loads(requests.get(BOOSTURL).text)
 
 AW_MAP_PATHS={
-    'bosskill': {
-        'A':[1,2,19,25,46,49,50,53],
-        'B':[],
-        'C':[3,21,27,41,45,47,51],
-        'D':[11,17,22,28,34,36,48],
-        'E':[],
-        'F':[12,18,24,30,35,37,48],
-        'G':[4,7,13,14,31,38,42,52],
-        'H':[],
-        'I':[6,9,15,14,33,40,44,55]
-        },
+'bosskill': {
+    'A':[1,2,19,25,46,49,50,53],
+    'B':[],
+    'C':[3,21,27,41,45,47,51],
+    'D':[11,17,22,28,34,36,48],
+    'E':[],
+    'F':[12,18,24,30,35,37,48],
+    'G':[4,7,13,14,31,38,42,52],
+    'H':[],
+    'I':[6,9,15,14,33,40,44,55]
+    },
     'expert':{
-        'A':[1,19,25,46,49,50,53],
-        'B':[1,2,19,20,26,41,45,47],
-        'C':[3,21,27,41,45,47,51],
-        'D':[11,17,22,28,34,36,48],
-        'E':[10,16,23,29,48],
-        'F':[12,18,24,30,35,37,48],
-        'G':[4,7,13,14,31,38,42,52],
-        'H':[5,8,14,32,39,43,55],
-        'I':[6,9,15,14,33,40,44,55]
+    'A':[1,19,25,46,49,50,53],
+    'B':[1,2,19,20,26,41,45,47],
+    'C':[3,21,27,41,45,47,51],
+    'D':[11,17,22,28,34,36,48],
+    'E':[10,16,23,29,48],
+    'F':[12,18,24,30,35,37,48],
+    'G':[4,7,13,14,31,38,42,52],
+    'H':[5,8,14,32,39,43,55],
+    'I':[6,9,15,14,33,40,44,55]
     },
 }
+
+class AllianceWar:
+    """Collector integration for JPAGS' AllianceWar.com."""
+
 
     @commands.group(pass_context=True, aliases=['aw',])
     async def alliancewar(self, ctx):
