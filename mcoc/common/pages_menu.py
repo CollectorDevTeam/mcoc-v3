@@ -1,6 +1,6 @@
 import discord
 from discord.ext import commands
-from collections import namedtuple, OrderedDic
+from collections import namedtuple, OrderedDict
 
 class PagesMenu:
     '''CollectorDevTeam Pages Menu'''
