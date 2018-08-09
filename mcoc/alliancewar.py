@@ -101,7 +101,7 @@ class AllianceWar:
                 page_list.append(em)
 
             await self.pages_menu(ctx=ctx, embed_list=page_list, timeout=60, page=tracks[track]-1)
-                                        
+
         async def get_awnode_details(self, ctx, nodeNumber, tier, season):
             # boosts = json.loads(requests.get(boosturl).text)
             tiers = {
@@ -140,7 +140,7 @@ class AllianceWar:
                                         try:
                                             text = text.format(bump)
                                         except:  #wrote specifically for limber_percent
-                                        text = text.replace('}%}','}%').format(bump)  #wrote specifically for limber_percent
+                                            text = text.replace('}%}','}%').format(bump)  #wrote specifically for limber_percent
                                         print('nodename: {}\ntitle: {}\nbump: {}\ntext: {}'.format(nodename, BOOSTS[nodename]['title'], bump, BOOSTS[nodename]['text']))
                                     else:
                                         text = 'Description text is missing from alliancwar.com.  Report to @jpags#5202.'
