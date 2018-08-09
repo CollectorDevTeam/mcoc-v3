@@ -7,9 +7,8 @@ ICON_SDF = 'https://raw.githubusercontent.com/JasonJW/mcoc-cogs/master/mcoc/data
 COLLECTOR_ICON='https://raw.githubusercontent.com/JasonJW/mcoc-cogs/master/mcoc/data/cdt_icon.png'
 JPAGS = 'http://www.alliancewar.com'
 PATREON = 'https://patreon.com/collectorbot'
-BOOSTURL = 'http://www.alliancewar.com/global/ui/js/boosts.json'
-
-BOOSTS = json.loads(requests.get(BOOSTURL).text)
+BOOSTDATA = requests.get('http://www.alliancewar.com/global/ui/js/boosts.json').text()
+BOOSTS = json.loads(BOOSTDATA)
 
 AW_MAP_PATHS={
 'bosskill': {
