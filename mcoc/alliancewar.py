@@ -142,7 +142,7 @@ class AllianceWar:
                                     try:
                                         text = text.format(bump)
                                     except:  #wrote specifically for limber_percent
-                                    text = text.replace('}%}','}%').format(bump)  #wrote specifically for limber_percent
+                                        text = text.replace('}%}','}%').format(bump)  #wrote specifically for limber_percent
                                     print('nodename: {}\ntitle: {}\nbump: {}\ntext: {}'.format(nodename, BOOSTS[nodename]['title'], bump, BOOSTS[nodename]['text']))
                                 else:
                                     text = 'Description text is missing from alliancwar.com.  Report to @jpags#5202.'
