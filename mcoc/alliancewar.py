@@ -144,12 +144,12 @@ class AllianceWar:
                                         print('nodename: {}\ntitle: {}\nbump: {}\ntext: {}'.format(nodename, BOOSTS[nodename]['title'], bump, BOOSTS[nodename]['text']))
                                     else:
                                         text = 'Description text is missing from alliancwar.com.  Report to @jpags#5202.'
-                                    else:
-                                        title = 'Error: {}'.format(nodename)
-                                        value = 'Boost details for {} missing from alliancewar.com.  Report to @jpags#5202.'.format(nodename)
-                                        em.add_field(name=title, value=text, inline=False)
-                                        em.set_footer(icon_url=JPAGS+'/aw/images/app_icon.jpg',text='AllianceWar.com')
-                                        return em
+                                else:
+                                    title = 'Error: {}'.format(nodename)
+                                    value = 'Boost details for {} missing from alliancewar.com.  Report to @jpags#5202.'.format(nodename)
+                                    em.add_field(name=title, value=text, inline=False)
+                                    em.set_footer(icon_url=JPAGS+'/aw/images/app_icon.jpg',text='AllianceWar.com')
+                                    return em
     # @commands.command()
     # async def mycom(self, ctx):
         # """This does stuff!"""
