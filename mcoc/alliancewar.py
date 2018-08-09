@@ -74,8 +74,6 @@ class AllianceWar:
         em.set_footer(text='CollectorDevTeam',icon_url=self.COLLECTOR_ICON)
         await ctx.send(embed=em)
 
-
-
     @alliancewar.command(pass_context=True, hidden=True, name="path", aliases=('tracks','track','paths'))
     async def _path_info(self, ctx, track='A', tier = 'expert'):
         '''Report AW track information.'''
@@ -100,56 +98,60 @@ class AllianceWar:
                 em.set_footer(icon_url=JPAGS+'/aw/images/app_icon.jpg',text='AllianceWar.com')
                 page_list.append(em)
 
-            await self.pages_menu(ctx=ctx, embed_list=page_list, timeout=60, page=tracks[track]-1)
 
-        async def get_awnode_details(self, ctx, nodeNumber, tier, season):
-            # boosts = json.loads(requests.get(boosturl).text)
-            tiers = {
-            'expert':{ 'color' :discord.Color.gold(), 'minis': [27,28,29,30,31,48,51,52,53,55], 'boss':[54]},
-            'hard':{ 'color' :discord.Color.red(), 'minis': [48,51,52,53,55], 'boss':[54]},
-            'challenger':{ 'color' :discord.Color.orange(), 'minis': [27,28,29,30,31,48,51,52,53,55], 'boss':[54]},
-            'intermediate':{ 'color' :discord.Color.blue(), 'minis': [48,51,52,53,55], 'boss':[54]},
-            'advanced':{ 'color' :discord.Color.green(), 'minis': [], 'boss':[]}}
-            if tier not in tiers:
-                jpagstier = 'advanced'
+#####
+#
+# Utility functions for Alliance War
+#
+####
+    async def get_awnode_details(self, ctx, nodeNumber, tier, season):
+        # boosts = json.loads(requests.get(boosturl).text)
+        tiers = {
+        'expert':{ 'color' :discord.Color.gold(), 'minis': [27,28,29,30,31,48,51,52,53,55], 'boss':[54]},
+        'hard':{ 'color' :discord.Color.red(), 'minis': [48,51,52,53,55], 'boss':[54]},
+        'challenger':{ 'color' :discord.Color.orange(), 'minis': [27,28,29,30,31,48,51,52,53,55], 'boss':[54]},
+        'intermediate':{ 'color' :discord.Color.blue(), 'minis': [48,51,52,53,55], 'boss':[54]},
+        'advanced':{ 'color' :discord.Color.green(), 'minis': [], 'boss':[]}}
+        if tier not in tiers:
+            jpagstier = 'advanced'
+        else:
+            jpagstier = tier
+            pathurl = 'http://www.alliancewar.com/aw/js/aw_s{}_{}_9path.json'.format(season, jpagstier)
+            pathdata = json.loads(requests.get(pathurl).text)
+            if int(nodeNumber) in tiers[jpagstier]['minis']:
+                title='{} MINIBOSS Node {} Boosts'.format(tier.title(),nodeNumber)
+            elif int(nodeNumber) in tiers[jpagstier]['boss']:
+                title='{} BOSS Node {} Boosts'.format(tier.title(),nodeNumber)
             else:
-                jpagstier = tier
-                pathurl = 'http://www.alliancewar.com/aw/js/aw_s{}_{}_9path.json'.format(season, jpagstier)
-                pathdata = json.loads(requests.get(pathurl).text)
-                if int(nodeNumber) in tiers[jpagstier]['minis']:
-                    title='{} MINIBOSS Node {} Boosts'.format(tier.title(),nodeNumber)
-                elif int(nodeNumber) in tiers[jpagstier]['boss']:
-                    title='{} BOSS Node {} Boosts'.format(tier.title(),nodeNumber)
-                else:
-                    title='{} Node {} Boosts'.format(tier.title(),nodeNumber)
-                    em = discord.Embed(color=tiers[jpagstier]['color'], title=title, descritpion='', url=JPAGS)
-                    nodedetails = pathdata['boosts'][str(nodeNumber)]
-                    for n in nodedetails:
-                        title, text = '','No description. Report to @jpags#5202'
-                        if ':' in n:
-                            nodename, bump = n.split(':')
-                        else:
-                            nodename = n
-                            bump = 0
-                            if nodename in BOOSTS:
-                                title = BOOSTS[nodename]['title']
-                                if BOOSTS[nodename]['text'] is not '':
-                                    text = BOOSTS[nodename]['text']
-                                    print('nodename: {}\ntitle: {}\ntext: {}'.format(nodename, BOOSTS[nodename]['title'], BOOSTS[nodename]['text']))
-                                    if bump is not None:
-                                        try:
-                                            text = text.format(bump)
-                                        except:  #wrote specifically for limber_percent
-                                            text = text.replace('}%}','}%').format(bump)  #wrote specifically for limber_percent
-                                        print('nodename: {}\ntitle: {}\nbump: {}\ntext: {}'.format(nodename, BOOSTS[nodename]['title'], bump, BOOSTS[nodename]['text']))
-                                    else:
-                                        text = 'Description text is missing from alliancwar.com.  Report to @jpags#5202.'
+                title='{} Node {} Boosts'.format(tier.title(),nodeNumber)
+                em = discord.Embed(color=tiers[jpagstier]['color'], title=title, descritpion='', url=JPAGS)
+                nodedetails = pathdata['boosts'][str(nodeNumber)]
+                for n in nodedetails:
+                    title, text = '','No description. Report to @jpags#5202'
+                    if ':' in n:
+                        nodename, bump = n.split(':')
+                    else:
+                        nodename = n
+                        bump = 0
+                        if nodename in BOOSTS:
+                            title = BOOSTS[nodename]['title']
+                            if BOOSTS[nodename]['text'] is not '':
+                                text = BOOSTS[nodename]['text']
+                                print('nodename: {}\ntitle: {}\ntext: {}'.format(nodename, BOOSTS[nodename]['title'], BOOSTS[nodename]['text']))
+                                if bump is not None:
+                                    try:
+                                        text = text.format(bump)
+                                    except:  #wrote specifically for limber_percent
+                                    text = text.replace('}%}','}%').format(bump)  #wrote specifically for limber_percent
+                                    print('nodename: {}\ntitle: {}\nbump: {}\ntext: {}'.format(nodename, BOOSTS[nodename]['title'], bump, BOOSTS[nodename]['text']))
                                 else:
-                                    title = 'Error: {}'.format(nodename)
-                                    value = 'Boost details for {} missing from alliancewar.com.  Report to @jpags#5202.'.format(nodename)
-                                    em.add_field(name=title, value=text, inline=False)
-                                    em.set_footer(icon_url=JPAGS+'/aw/images/app_icon.jpg',text='AllianceWar.com')
-                                    return em
+                                    text = 'Description text is missing from alliancwar.com.  Report to @jpags#5202.'
+                            else:
+                                title = 'Error: {}'.format(nodename)
+                                value = 'Boost details for {} missing from alliancewar.com.  Report to @jpags#5202.'.format(nodename)
+                                em.add_field(name=title, value=text, inline=False)
+                                em.set_footer(icon_url=JPAGS+'/aw/images/app_icon.jpg',text='AllianceWar.com')
+                                return em
     # @commands.command()
     # async def mycom(self, ctx):
         # """This does stuff!"""
