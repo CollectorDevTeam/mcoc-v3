@@ -122,10 +122,10 @@ class AllianceWar:
         #     jpagstier = tier
             # pathurl = 'http://www.alliancewar.com/aw/js/aw_s{}_{}_9path.json'.format(season, jpagstier)
             # pathdata = json.loads(requests.get(pathurl).text)
-        pathdata = json.loads(PATHS['tier']['json'])
+        pathdata = json.loads(PATHS[tier]['json'])
         if int(nodeNumber) in PATHS[tier]]['minis']:
             title='{} Node {} MINIBOSS Boosts'.format(PATHS[tier][title],nodeNumber)
-        elif int(nodeNumber) in tiers[jpagstier]['boss']:
+        elif int(nodeNumber) in PATHS[tier]['boss']:
             title='{} Node {} BOSS Boosts'.format(PATHS[tier][title],nodeNumber)
         else:
             title='{} Node {} Boosts'.format(PATHS[tier][title],nodeNumber)
@@ -138,22 +138,22 @@ class AllianceWar:
             else:
                 nodename = n
                 bump = 0
-                if nodename in BOOSTS:
-                    title = BOOSTS[nodename]['title']
-                    if BOOSTS[nodename]['text'] is not '':
-                        text = BOOSTS[nodename]['text']
-                        print('nodename: {}\ntitle: {}\ntext: {}'.format(nodename, BOOSTS[nodename]['title'], BOOSTS[nodename]['text']))
-                        if bump is not None:
-                            try:
-                                text = text.format(bump)
-                            except:  #wrote specifically for limber_percent
-                                text = text.replace('}%}','}%').format(bump)  #wrote specifically for limber_percent
-                            print('nodename: {}\ntitle: {}\nbump: {}\ntext: {}'.format(nodename, BOOSTS[nodename]['title'], bump, BOOSTS[nodename]['text']))
-                        else:
-                            text = 'Description text is missing from alliancwar.com.  Report to @jpags#5202.'
+            if nodename in BOOSTS:
+                title = BOOSTS[nodename]['title']
+                if BOOSTS[nodename]['text'] is not '':
+                    text = BOOSTS[nodename]['text']
+                    print('nodename: {}\ntitle: {}\ntext: {}'.format(nodename, BOOSTS[nodename]['title'], BOOSTS[nodename]['text']))
+                    if bump is not None:
+                        try:
+                            text = text.format(bump)
+                        except:  #wrote specifically for limber_percent
+                            text = text.replace('}%}','}%').format(bump)  #wrote specifically for limber_percent
+                        print('nodename: {}\ntitle: {}\nbump: {}\ntext: {}'.format(nodename, BOOSTS[nodename]['title'], bump, BOOSTS[nodename]['text']))
                     else:
-                        title = 'Error: {}'.format(nodename)
-                        value = 'Boost details for {} missing from alliancewar.com.  Report to @jpags#5202.'.format(nodename)
-                        em.add_field(name=title, value=text, inline=False)
+                        text = 'Description text is missing from alliancwar.com.  Report to @jpags#5202.'
+                else:
+                    title = 'Error: {}'.format(nodename)
+                    text = 'Boost details for {} missing from alliancewar.com.  Report to @jpags#5202.'.format(nodename)
+            em.add_field(name=title, value=text, inline=False)
         em.set_footer(icon_url=JPAGS+'/aw/images/app_icon.jpg',text='AllianceWar.com')
         return em
