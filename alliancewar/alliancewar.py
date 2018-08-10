@@ -21,7 +21,7 @@ PATHS = {'expert':{ 'color' :discord.Color.gold(),'title':'Expert','map':'', 'js
 for p in PATHS.keys():
     pathdata = requests.get('http://www.alliancewar.com/aw/js/aw_s{}_{}_9path.json'.format(2, p))
     PATHS[p]['json'] = pathdata # json.loads(pathdata)
-    if p = 'normal' or p = 'easy':
+    if p == 'normal' or p == 'easy':
         PATHS[p]['map'] = '{}warmap_{}_{}.png'.format(BASEPATH, 3, 'advanced')
     else:
         PATHS[p]['map'] = '{}warmap_{}_{}.png'.format(BASEPATH, 3, p)
