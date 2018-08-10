@@ -2,7 +2,8 @@ import discord
 from discord.ext import commands
 import json
 import requests
-import mcoc.common.pages_menu
+import .pages_menu
+# import mcoc.common.pages_menu  /// it doesn't like that
 
 BASEPATH = 'https://raw.githubusercontent.com/JasonJW/mcoc-cogs/master/mcocMaps/data/'
 ICON_SDF = 'https://raw.githubusercontent.com/JasonJW/mcoc-cogs/master/mcoc/data/sdf_icon.png'

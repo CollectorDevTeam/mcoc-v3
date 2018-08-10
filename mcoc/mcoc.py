@@ -4,7 +4,7 @@ import json
 import requests
 from .common.pages_menu import PagesMenu as Menu
 
-class mcoc()
+class MCOC()
 
     def __init__(self, bot):
         self.bot = bot
