@@ -106,7 +106,7 @@ class AllianceWar:
         else:
             path = paths[tracks[track]]
         page_list = []
-        print('alliancewar _path_info debug: '+path)
+        print('alliancewar _path_info debug: {}'.format(path))
         title='{} Track {} Summary'.format(PATHS[tier]['title'],track)
         emSummary = discord.Embed(color=PATHS[tier]['color'], title=title, descritpion='', url=JPAGS)
         em.set_image(url=PATHS[tier]['map'])
@@ -137,7 +137,7 @@ class AllianceWar:
                     boostsvalues.append(BOOSTS[nodename]['title'])
 
             emSummary.add_field(name='Tile {}',value=boostvalues)
-        page_list.insert(0,emSummary)        
+        page_list.insert(0,emSummary)
         await PagesMenu.menu_start(em)
 
 
