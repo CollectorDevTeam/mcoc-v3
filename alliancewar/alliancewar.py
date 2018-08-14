@@ -100,7 +100,14 @@ class AllianceWar:
     async def _aw_set_officers(self, ctx, officers):
         '''Set default Alliance Officer role'''
         await self.config.guild(ctx.guild).officers.set(officers)
-        await ctx.send('Alliance Officer Role for this guild set to {}'.format(self.config.guild.officers().name))
+        await ctx.send('Alliance Officer Role for this guild set to {}'.format(self.config.guild.officers))
+
+    @_aw_set.command(pass_context=True, name='clear', manage_guild=True)
+    async def _aw_set_clear(self, ctx):
+        '''Clear Alliance settings'''
+        await self.config.guild(ctx.guild).clear_all()
+        await ctx.send('Alliance settings cleared')
+
 
     @alliancewar.command(pass_context=True, name='report')
     async def _report(self, ctx):
