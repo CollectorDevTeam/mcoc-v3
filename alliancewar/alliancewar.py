@@ -65,9 +65,45 @@ AW_PATHS={
 class AllianceWar:
     """Collector integration for JPAGS' AllianceWar.com."""
 
+    def __init__(self):
+        self.config = Config.get_conf(self, identifier=1234512345)
+        default_global = {
+        }
+
+        default_guild = {
+            'officerRole': None,
+            'bg1Role': None,
+            'bg2Role': None,
+            'bg3Role': None,
+            'tier': 'Expert'
+        }
+
+        self.config.register_global(**default_global)
+        self.config.register_guild(**default_guild)
+
     @commands.group(pass_context=True, aliases=['aw',])
     async def alliancewar(self, ctx):
         ''' Commands [WIP]'''
+
+    @alliancewar.group(pass_context=True, manage_guild=True, name='set') # assuming Officers are allowed to manage guild
+    async def _aw_set(self, ctx):
+        '''Alliance Settings'''
+
+    @_aw_set.command(pass_context=True, name='tier')
+    async def _aw_set_tier(self, ctx, tier):
+        '''Set default Alliance War Tier'''
+        if tier in PATHS.keys():
+            await self.config.guild(ctx.guild).tier.set(tier)
+            await ctx.send('Alliance War Tier for this guild set to {}'.format(tier))
+
+    @_aw_set.command(pass_context=True, name='tier')
+    async def _aw_set_officers(self, ctx, officiers: discord.role):
+        '''Set default Alliance Officer role'''
+        if officers in ctx.guild.roles:
+            await self.config.guild(ctx.guild).officers.set(officers)
+            await ctx.send('Alliance Officer Role for this guild set to {}'.format(officers))
+
+
 
     @alliancewar.command(pass_context=True, name="node")
     async def _node_info(self, ctx, nodeNumber, tier = 'expert'):
