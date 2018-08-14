@@ -120,10 +120,13 @@ class AllianceWar:
         tier = await guild.tier()
         em = discord.Embed(color=discord.Color.gold(), title='Alliance War Settings', url=PATREON)
         em.add_field(name='Tier', value=tier)
-        em.add_field(name='Officer role', value=(if isinstance(officers, discord.Role): officers.name else: officers))
-        em.add_field(name='BG1 role', value=(if isinstance(bg1, discord.Role): bg1.name else: bg1))
-        em.add_field(name='BG2 role', value=(if isinstance(bg2, discord.Role): bg2.name else: bg2))
-        em.add_field(name='BG3 role', value=(if isinstance(bg3, discord.Role): bg3.name else: bg3))
+        if isinstance(officers, discord.Role):
+            em.add_field(name='Officer role', value=officers.name)
+        else:
+            em.add_field(name='Officer role', value=officers)
+        # em.add_field(name='BG1 role', value=(if isinstance(bg1, discord.Role): bg1.name else: bg1))
+        # em.add_field(name='BG2 role', value=(if isinstance(bg2, discord.Role): bg2.name else: bg2))
+        # em.add_field(name='BG3 role', value=(if isinstance(bg3, discord.Role): bg3.name else: bg3))
         await ctx.send(embed=em)
 
 
