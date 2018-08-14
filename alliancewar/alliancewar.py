@@ -103,6 +103,13 @@ class AllianceWar:
             await self.config.guild(ctx.guild).officers.set(officers)
             await ctx.send('Alliance Officer Role for this guild set to {}'.format(officers))
 
+    @alliancewar.command(pass_context=True, name='report')
+    async def _report(self, ctx):
+        officers = self.config.guild.officerRole()
+        bg1 = self.config.guild.bg1Role()
+        bg2 = self.config.guild.bg2Role()
+        bg3 = self.config.guild.bg3Role()
+        ctx.send('```officer role: {}\nbg1 role:     {}\nbg2 role:     {}\nbg3 role:     {}\n```'.format(officers.name, bg1.name, bg2.name, bg3.name))
 
 
     @alliancewar.command(pass_context=True, name="node")
