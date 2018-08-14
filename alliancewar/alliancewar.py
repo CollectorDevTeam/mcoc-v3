@@ -140,6 +140,7 @@ class AllianceWar:
             em.add_field(name='BG3 role', value=bg3.name, inline=False)
         else:
             em.add_field(name='BG3 role', value=bg3, inline=False)
+        em.set_thumbnail(url=ctx.guild.icon_url)
         await ctx.send(embed=em)
 
 
