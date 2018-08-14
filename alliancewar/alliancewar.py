@@ -100,8 +100,7 @@ class AllianceWar:
     async def _aw_set_officers(self, ctx, officers):
         '''Set default Alliance Officer role'''
         await self.config.guild(ctx.guild).officers.set(officers)
-        officers = await self.config.guild(ctx.guild).officers()
-        await ctx.send('Alliance Officer Role for this guild set to {}'.format(self.config.guild(ctx.guild).officers()))
+        await ctx.send('Alliance Officer Role for this guild set to {}'.format(officers.name))
 
     @_aw_set.command(pass_context=True, name='clear', manage_guild=True)
     async def _aw_set_clear(self, ctx):
@@ -124,9 +123,20 @@ class AllianceWar:
             em.add_field(name='Officer role', value=officers.name)
         else:
             em.add_field(name='Officer role', value=officers)
-        # em.add_field(name='BG1 role', value=(if isinstance(bg1, discord.Role): bg1.name else: bg1))
-        # em.add_field(name='BG2 role', value=(if isinstance(bg2, discord.Role): bg2.name else: bg2))
-        # em.add_field(name='BG3 role', value=(if isinstance(bg3, discord.Role): bg3.name else: bg3))
+        if isinstance(bg1, discord.Role):
+            em.add_field(name='BG1 role', value=bg1.name)
+        else:
+            em.add_field(name='BG1 role', value=bg1)
+        if isinstance(bg2, discord.Role):
+            em.add_field(name='BG2 role', value=bg2.name)
+        else:
+            em.add_field(name='BG2 role', value=bg2)
+        if isinstance(bg3, discord.Role):
+            em.add_field(name='BG3 role', value=bg3.name)
+        else:
+            em.add_field(name='BG3 role', value=bg3)
+
+
         await ctx.send(embed=em)
 
 
