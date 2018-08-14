@@ -140,7 +140,7 @@ class AllianceWar:
 
             emSummary.add_field(name='Tile {}',value=', '.join(boostvalues))
         page_list.insert(0,emSummary)
-        await PagesMenu.menu_start(PagesMenu, page_list)
+        await *.menu_start(page_list)
 
 
 #####
