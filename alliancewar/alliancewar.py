@@ -71,10 +71,10 @@ class AllianceWar:
         }
 
         default_guild = {
-            'officerRole': None,
-            'bg1Role': None,
-            'bg2Role': None,
-            'bg3Role': None,
+            'officer': None,
+            'bg1': None,
+            'bg2': None,
+            'bg3': None,
             'tier': 'Expert'
         }
 
@@ -97,18 +97,20 @@ class AllianceWar:
             await ctx.send('Alliance War Tier for this guild set to {}'.format(tier))
 
     @_aw_set.command(pass_context=True, name='officers')
-    async def _aw_set_officers(self, ctx, officiers: discord.role):
+    async def _aw_set_officers(self, ctx, officers: discord.role):
         '''Set default Alliance Officer role'''
         if officers in ctx.guild.roles:
             await self.config.guild(ctx.guild).officers.set(officers)
-            await ctx.send('Alliance Officer Role for this guild set to {}'.format(officers))
+            await ctx.send('Alliance Officer Role for this guild set to {}'.format(self.config.guild.officers().name))
+        else:
+            await ctx.send('Role not found on this guild.')
 
     @alliancewar.command(pass_context=True, name='report')
     async def _report(self, ctx):
-        officers = self.config.guild.officerRole()
-        bg1 = self.config.guild.bg1Role()
-        bg2 = self.config.guild.bg2Role()
-        bg3 = self.config.guild.bg3Role()
+        officers = self.config.guild.officers()
+        bg1 = self.config.guild.bg1()
+        bg2 = self.config.guild.bg2()
+        bg3 = self.config.guild.bg3()
         ctx.send('```officer role: {}\nbg1 role:     {}\nbg2 role:     {}\nbg3 role:     {}\n```'.format(officers.name, bg1.name, bg2.name, bg3.name))
 
 
