@@ -103,13 +103,41 @@ class AllianceWar:
             paths = AW_PATHS['expert']
         if track in tracks:
             path = paths[track]
+        else:
+            path = paths[tracks[track]]
         page_list = []
-        print('alliancewar _path_info debug: '+nodes)
+        print('alliancewar _path_info debug: '+path)
+        title='{} Track {} Summary'.format(PATHS[tier]['title'],track)
+        emSummary = discord.Embed(color=PATHS[tier]['color'], title=title, descritpion='', url=JPAGS)
+        em.set_image(url=PATHS[tier]['map'])
+
+        pathdata = PATHS[tier]['json']
         for nodeNumber in path:
             em = await self.get_awnode_details(ctx = ctx, nodeNumber=nodeNumber,tier=tier) #, season=season)
             em.set_image(url=PATHS[tier]['map'])
             page_list.append(em)
+            #
+            # if int(nodeNumber) in PATHS[tier]['minis']:
+            #     title='{} Node {} MINIBOSS Boosts'.format(PATHS[tier]['title'],nodeNumber)
+            # elif int(nodeNumber) in PATHS[tier]['boss']:
+            #     title='{} Node {} BOSS Boosts'.format(PATHS[tier]['title'],nodeNumber)
+            # else:
+            #
 
+            nodedetails = pathdata['boosts'][str(nodeNumber)]
+            boostsvalues=[]
+            for n in nodedetails:
+                boosttitle, text = '','No description. Report to @jpags#5202'
+                if ':' in n:
+                    nodename, bump = n.split(':')
+                else:
+                    nodename = n
+                    bump = 0
+                if nodename in BOOSTS:
+                    boostsvalues.append(BOOSTS[nodename]['title'])
+
+            emSummary.add_field(name='Tile {}',value=boostvalues)
+        page_list.insert(0,emSummary)        
         await PagesMenu.menu_start(em)
 
 
