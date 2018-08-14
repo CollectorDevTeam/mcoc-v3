@@ -35,7 +35,7 @@ for p in PATHS.keys():
     else:
         print('INVALID URL: '+pathurl)
 
-AW_MAP_PATHS={
+AW_PATHS={
 'bosskill': {
     'A':[1,2,19,25,46,49,50,53],
     'B':[],
