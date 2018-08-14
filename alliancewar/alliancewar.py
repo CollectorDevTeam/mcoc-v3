@@ -80,7 +80,7 @@ class AllianceWar:
             mapTitle = 'Alliance War 3.0 {} Map'.format(PATHS[tier]['title'])
         em = discord.Embed(color=PATHS[tier]['color'],title=mapTitle,url=PATREON)
         em.set_image(url=PATHS[tier]['map'])
-        em.set_footer(text='CollectorDevTeam',icon_url=self.COLLECTOR_ICON)
+        em.set_footer(text='CollectorDevTeam',icon_url=COLLECTOR_ICON)
         await ctx.send(embed=em)
 
     # @alliancewar.command(pass_context=True, name="path", aliases=('tracks','track','paths'))
