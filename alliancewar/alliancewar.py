@@ -9,6 +9,7 @@ except:
     from .pages_menu import PagesMenu
     print('PagesMenu loaded from alliancewar')
 
+########### These constants should probably be stored in Config -- once I figure out how to safely do that
 BASEPATH = 'https://raw.githubusercontent.com/JasonJW/mcoc-cogs/master/mcocMaps/data/'
 ICON_SDF = 'https://raw.githubusercontent.com/JasonJW/mcoc-cogs/master/mcoc/data/sdf_icon.png'
 COLLECTOR_ICON='https://raw.githubusercontent.com/JasonJW/mcoc-cogs/master/mcoc/data/cdt_icon.png'
@@ -61,6 +62,7 @@ AW_PATHS={
         'I':[6,9,15,14,33,40,44,55]
     },
 }
+#################
 
 class AllianceWar:
     """Collector integration for JPAGS' AllianceWar.com."""
@@ -71,10 +73,10 @@ class AllianceWar:
         }
 
         default_guild = {
-            'officer': None,
-            'bg1': None,
-            'bg2': None,
-            'bg3': None,
+            'officer': {'id':'','name':''},
+            'bg1':  {'id':'','name':''},
+            'bg2':  {'id':'','name':''},
+            'bg3':  {'id':'','name':''},
             'tier': 'Expert'
         }
 
@@ -107,8 +109,9 @@ class AllianceWar:
         # if officerrole is not None:
         #     await ctx.send('Guild role detected. Proceeding.')
         #     guild = self.config.guild(ctx.guild)
-            await self.config.guild(ctx.guild).officers.set(officers.name)
-        #     await ctx.send('Alliance Officer Role for this guild set to {}'.format(officerrole.name)
+            await self.config.guild(ctx.guild).officers.name.set(officers.name)
+            await self.config.guild(ctx.guild).officers.id.set(officers.id)
+                    #     await ctx.send('Alliance Officer Role for this guild set to {}'.format(officerrole.name)
 
     @_aw_set.command(pass_context=True, name='clear', manage_guild=True)
     async def _aw_set_clear(self, ctx):
@@ -126,22 +129,10 @@ class AllianceWar:
         tier = await guild.tier()
         em = discord.Embed(color=discord.Color.gold(), title='Alliance War Settings', url=PATREON)
         em.add_field(name='Tier', value=tier)
-        if isinstance(officers, discord.Role):
-            em.add_field(name='Officer role', value=officers.name, inline=False)
-        else:
-            em.add_field(name='Officer role', value=officers, inline=False)
-        if isinstance(bg1, discord.Role):
-            em.add_field(name='BG1 role', value=bg1.name, inline=False)
-        else:
-            em.add_field(name='BG1 role', value=bg1, inline=False)
-        if isinstance(bg2, discord.Role):
-            em.add_field(name='BG2 role', value=bg2.name, inline=False)
-        else:
-            em.add_field(name='BG2 role', value=bg2, inline=False)
-        if isinstance(bg3, discord.Role):
-            em.add_field(name='BG3 role', value=bg3.name, inline=False)
-        else:
-            em.add_field(name='BG3 role', value=bg3, inline=False)
+        em.add_field(name='Officer role', value=officers['name'], inline=False)
+        em.add_field(name='BG1 role', value=bg1.name, inline=False)
+        em.add_field(name='BG2 role', value=bg2.name, inline=False)
+        em.add_field(name='BG3 role', value=bg3.name, inline=False)
         em.set_thumbnail(url=ctx.guild.icon_url)
         await ctx.send(embed=em)
 
