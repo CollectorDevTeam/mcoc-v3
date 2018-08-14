@@ -36,27 +36,27 @@ for p in PATHS.keys():
         print('INVALID URL: '+pathurl)
 
 AW_PATHS={
-'bosskill': {
-    'A':[1,2,19,25,46,49,50,53],
-    'B':[],
-    'C':[3,21,27,41,45,47,51],
-    'D':[11,17,22,28,34,36,48],
-    'E':[],
-    'F':[12,18,24,30,35,37,48],
-    'G':[4,7,13,14,31,38,42,52],
-    'H':[],
-    'I':[6,9,15,14,33,40,44,55]
+    'bosskill': {
+        'A':[1,2,19,25,46,49,50,53],
+        'B':[],
+        'C':[3,21,27,41,45,47,51],
+        'D':[11,17,22,28,34,36,48],
+        'E':[],
+        'F':[12,18,24,30,35,37,48],
+        'G':[4,7,13,14,31,38,42,52],
+        'H':[],
+        'I':[6,9,15,14,33,40,44,55]
     },
     'expert':{
-    'A':[1,19,25,46,49,50,53],
-    'B':[1,2,19,20,26,41,45,47],
-    'C':[3,21,27,41,45,47,51],
-    'D':[11,17,22,28,34,36,48],
-    'E':[10,16,23,29,48],
-    'F':[12,18,24,30,35,37,48],
-    'G':[4,7,13,14,31,38,42,52],
-    'H':[5,8,14,32,39,43,55],
-    'I':[6,9,15,14,33,40,44,55]
+        'A':[1,19,25,46,49,50,53],
+        'B':[1,2,19,20,26,41,45,47],
+        'C':[3,21,27,41,45,47,51],
+        'D':[11,17,22,28,34,36,48],
+        'E':[10,16,23,29,48],
+        'F':[12,18,24,30,35,37,48],
+        'G':[4,7,13,14,31,38,42,52],
+        'H':[5,8,14,32,39,43,55],
+        'I':[6,9,15,14,33,40,44,55]
     },
 }
 
@@ -95,15 +95,19 @@ class AllianceWar:
     async def _path_info(self, ctx, track='A', tier = 'expert'):
         '''Report AW track information.
         Tracks are labeled A - I from left to right.'''
-        tracks = {'A':1,'B':2,'C':3,'D':4,'E':5,'F':6,'G':7,'H':8,'I':9}
+        # tracks = {'A':1,'B':2,'C':3,'D':4,'E':5,'F':6,'G':7,'H':8,'I':9}
+        tracks = ['A','B','C','D','E','F','G','H','I']
         if tier in AW_PATHS:
-            nodes = AW_PATHS[tier]
+            paths = AW_PATHS[tier]
         else:
-            nodes = AW_PATHS['expert']
+            paths = AW_PATHS['expert']
+        if track in tracks:
+            path = paths[track]
         page_list = []
         print('alliancewar _path_info debug: '+nodes)
-        for nodeNumber in nodes:
+        for nodeNumber in path:
             em = await self.get_awnode_details(ctx = ctx, nodeNumber=nodeNumber,tier=tier) #, season=season)
+            em.set_image(url=PATHS[tier]['map'])
             page_list.append(em)
 
         await PagesMenu.menu_start(em)
