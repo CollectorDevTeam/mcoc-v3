@@ -100,7 +100,8 @@ class AllianceWar:
     async def _aw_set_officers(self, ctx, officers):
         '''Set default Alliance Officer role'''
         await self.config.guild(ctx.guild).officers.set(officers)
-        await ctx.send('Alliance Officer Role for this guild set to {}'.format(self.config.guild(ctx.guild).officers))
+        officers = await self.config.guild.officers()
+        await ctx.send('Alliance Officer Role for this guild set to {}'.format(self.config.guild.officers))
 
     @_aw_set.command(pass_context=True, name='clear', manage_guild=True)
     async def _aw_set_clear(self, ctx):
@@ -111,11 +112,12 @@ class AllianceWar:
 
     @alliancewar.command(pass_context=True, name='report')
     async def _report(self, ctx):
-        # officers = self.config.guild.officers()#.name
-        # bg1 = self.config.guild.bg1()#.name
-        # bg2 = self.config.guild.bg2()#.name
-        # bg3 = self.config.guild.bg3()#.name
-        tier = self.config.guild.tier()
+        guild = await self.config.guild()
+        # officers = await self.config.guild.officers()#.name
+        # bg1 = await self.config.guild.bg1()#.name
+        # bg2 = await self.config.guild.bg2()#.name
+        # bg3 = await self.config.guild.bg3()#.name
+        tier = await self.config.guild.tier()
         await ctx.send('Alliance Report\nTier: {}'.format(tier))
 
 
