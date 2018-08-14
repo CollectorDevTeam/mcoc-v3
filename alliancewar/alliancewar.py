@@ -23,10 +23,11 @@ for p in PATHS.keys():
     if p == 'normal' or p == 'easy':
         PATHS[p]['map'] = '{}warmap_{}_{}.png'.format(BASEPATH, 3, 'advanced')
         pathurl ='http://www.alliancewar.com/aw/js/aw_s{}_{}_9path.json'.format(2, 'advanced')
-        pathdata = requests.get()
+        pathdata = requests.get(pathurl)
     else:
         PATHS[p]['map'] = '{}warmap_{}_{}.png'.format(BASEPATH, 3, p)
-        pathdata = requests.get('http://www.alliancewar.com/aw/js/aw_s{}_{}_9path.json'.format(2, p)).text
+        pathurl ='http://www.alliancewar.com/aw/js/aw_s{}_{}_9path.json'.format(2, p)
+        pathdata = requests.get(pathurl)
     if pathdata.status_code==200:
         PATHS[p]['json'] = json.loads(pathdata.text)
     else:
