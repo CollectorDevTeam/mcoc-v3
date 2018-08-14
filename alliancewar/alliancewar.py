@@ -1,4 +1,4 @@
-from redbot.core import commands
+from redbot.core import commands, Config
 import discord
 import json
 import requests
