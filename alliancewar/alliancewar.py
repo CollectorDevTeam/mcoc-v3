@@ -97,9 +97,10 @@ class AllianceWar:
             await ctx.send('Alliance War Tier for this guild set to {}'.format(tier))
 
     @_aw_set.command(pass_context=True, name='officers')
-    async def _aw_set_officers(self, ctx, officers):
+    async def _aw_set_officers(self, ctx, officers : discord.Role):
         '''Set default Alliance Officer role'''
-        await self.config.guild(ctx.guild).officers.set(officers)
+        guild = self.config.guild(ctx.guild)
+        await guild.officers.set(officers)
         await ctx.send('Alliance Officer Role for this guild set to {}'.format(officers.name))
 
     @_aw_set.command(pass_context=True, name='clear', manage_guild=True)
