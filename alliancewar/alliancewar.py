@@ -111,11 +111,12 @@ class AllianceWar:
 
     @alliancewar.command(pass_context=True, name='report')
     async def _report(self, ctx):
-        officers = self.config.guild.officers()#.name
-        bg1 = self.config.guild.bg1()#.name
-        bg2 = self.config.guild.bg2()#.name
-        bg3 = self.config.guild.bg3()#.name
-        ctx.send('```officer role: {}```'.format(officers))#\nbg1 role:     {}\nbg2 role:     {}\nbg3 role:     {}\n```'.format(officers))#.name, bg1.name, bg2.name, bg3.name))
+        # officers = self.config.guild.officers()#.name
+        # bg1 = self.config.guild.bg1()#.name
+        # bg2 = self.config.guild.bg2()#.name
+        # bg3 = self.config.guild.bg3()#.name
+        # tier = self.config.guild.tier()
+        await ctx.send('Alliance Report\nTier: {}'.format(tier))
 
 
     @alliancewar.command(pass_context=True, name="node")
