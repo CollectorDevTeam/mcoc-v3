@@ -1,5 +1,5 @@
-from redbot.core import commands, Config
-import discord
+from redbot.core import commands, Config, Embed, Context, Role
+# import discord
 import json
 import requests
 try:
@@ -16,13 +16,13 @@ JPAGS = 'http://www.alliancewar.com'
 PATREON = 'https://patreon.com/collectorbot'
 BOOSTDATA = requests.get('http://www.alliancewar.com/global/ui/js/boosts.json').text
 BOOSTS = json.loads(BOOSTDATA)
-PATHS = {'expert':{ 'color' :discord.Color.gold(),'title':'Expert','map':'', 'json':'','minis': [27,28,29,30,31,48,51,52,53,55], 'boss':[54]},
-        'hard':{ 'color' :discord.Color.red(),'title':'Hard','map':'', 'json':'', 'minis': [48,51,52,53,55], 'boss':[54]},
-        'challenger':{ 'color' :discord.Color.orange(),'title':'Challenger','map':'', 'json':'', 'minis': [27,28,29,30,31,48,51,52,53,55], 'boss':[54]},
-        'intermediate':{ 'color' :discord.Color.blue(),'title':'Intermediate','map':'', 'json':'', 'minis': [48,51,52,53,55], 'boss':[54]},
-        'advanced':{ 'color' :discord.Color.green(),'title':'Normal','map':'', 'json':'', 'minis': [], 'boss':[]},
-        'normal':{ 'color' :discord.Color.green(),'title':'Normal','map':'', 'json':'', 'minis': [], 'boss':[]},
-        'easy':{ 'color' :discord.Color.green(),'title':'Easy','map':'', 'json':'', 'minis': [], 'boss':[]}}
+PATHS = {'expert':{ 'color' :Context.embed_colour(gold),'title':'Expert','map':'', 'json':'','minis': [27,28,29,30,31,48,51,52,53,55], 'boss':[54]},
+        'hard':{ 'color' :Context.embed_colour(red),'title':'Hard','map':'', 'json':'', 'minis': [48,51,52,53,55], 'boss':[54]},
+        'challenger':{ 'color' :Context.embed_colour(orange),'title':'Challenger','map':'', 'json':'', 'minis': [27,28,29,30,31,48,51,52,53,55], 'boss':[54]},
+        'intermediate':{ 'color' :Context.embed_colour(blue),'title':'Intermediate','map':'', 'json':'', 'minis': [48,51,52,53,55], 'boss':[54]},
+        'advanced':{ 'color' :Context.embed_colour(green),'title':'Normal','map':'', 'json':'', 'minis': [], 'boss':[]},
+        'normal':{ 'color' :Context.embed_colour(green),'title':'Normal','map':'', 'json':'', 'minis': [], 'boss':[]},
+        'easy':{ 'color' :Context.embed_colour(green),'title':'Easy','map':'', 'json':'', 'minis': [], 'boss':[]}}
 for p in PATHS.keys():
     if p == 'normal' or p == 'easy':
         PATHS[p]['map'] = '{}warmap_{}_{}.png'.format(BASEPATH, 3, 'advanced')
@@ -97,7 +97,7 @@ class AllianceWar:
             await ctx.send('Alliance War Tier for this guild set to {}'.format(tier))
 
     @_aw_set.command(pass_context=True, name='officers')
-    async def _aw_set_officers(self, ctx, officers : discord.Role):
+    async def _aw_set_officers(self, ctx, officers : Role):
         '''Set default Alliance Officer role'''
         await self.config.guild(ctx.guild).officers.set(officers)
         await ctx.send('Alliance Officer Role for this guild set to {}'.format(officers.name))
@@ -119,21 +119,21 @@ class AllianceWar:
         bg2 = await guild.bg2()
         bg3 = await guild.bg3()
         tier = await guild.tier()
-        em = discord.Embed(color=discord.Color.gold(), title='Alliance War Settings', url=PATREON)
+        em = Embed(color=embed_colour(gold), title='Alliance War Settings', url=PATREON)
         em.add_field(name='Tier', value=tier)
-        if isinstance(officers, discord.Role):
+        if isinstance(officers, Role):
             em.add_field(name='Officer role', value=officers.name, inline=False)
         else:
             em.add_field(name='Officer role', value=officers, inline=False)
-        if isinstance(bg1, discord.Role):
+        if isinstance(bg1, Role):
             em.add_field(name='BG1 role', value=bg1.name, inline=False)
         else:
             em.add_field(name='BG1 role', value=bg1, inline=False)
-        if isinstance(bg2, discord.Role):
+        if isinstance(bg2, Role):
             em.add_field(name='BG2 role', value=bg2.name, inline=False)
         else:
             em.add_field(name='BG2 role', value=bg2, inline=False)
-        if isinstance(bg3, discord.Role):
+        if isinstance(bg3, Role):
             em.add_field(name='BG3 role', value=bg3.name, inline=False)
         else:
             em.add_field(name='BG3 role', value=bg3, inline=False)
@@ -164,7 +164,7 @@ class AllianceWar:
         else:
             tier = 'expert'
             mapTitle = 'Alliance War 3.0 {} Map'.format(PATHS[tier]['title'])
-        em = discord.Embed(color=PATHS[tier]['color'],title=mapTitle,url=PATREON)
+        em = Embed(color=PATHS[tier]['color'],title=mapTitle,url=PATREON)
         em.set_image(url=PATHS[tier]['map'])
         em.set_footer(text='CollectorDevTeam',icon_url=COLLECTOR_ICON)
         await ctx.send(embed=em)
@@ -186,7 +186,7 @@ class AllianceWar:
         page_list = []
         print('alliancewar _path_info debug: {}'.format(path))
         title='{} Track {} Summary'.format(PATHS[tier]['title'],track)
-        emSummary = discord.Embed(color=PATHS[tier]['color'], title=title, descritpion='', url=JPAGS)
+        emSummary = Embed(color=PATHS[tier]['color'], title=title, descritpion='', url=JPAGS)
         emSummary.set_image(url=PATHS[tier]['map'])
 
         pathdata = PATHS[tier]['json']
@@ -234,7 +234,7 @@ class AllianceWar:
             title='{} Node {} BOSS Boosts'.format(PATHS[tier]['title'],nodeNumber)
         else:
             title='{} Node {} Boosts'.format(PATHS[tier]['title'],nodeNumber)
-        em = discord.Embed(color=PATHS[tier]['color'], title=title, descritpion='', url=JPAGS)
+        em = Embed(color=PATHS[tier]['color'], title=title, descritpion='', url=JPAGS)
         nodedetails = pathdata['boosts'][str(nodeNumber)]
         for n in nodedetails:
             title, text = '','No description. Report to @jpags#5202'
