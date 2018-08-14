@@ -109,7 +109,7 @@ class AllianceWar:
         print('alliancewar _path_info debug: {}'.format(path))
         title='{} Track {} Summary'.format(PATHS[tier]['title'],track)
         emSummary = discord.Embed(color=PATHS[tier]['color'], title=title, descritpion='', url=JPAGS)
-        em.set_image(url=PATHS[tier]['map'])
+        emSummary.set_image(url=PATHS[tier]['map'])
 
         pathdata = PATHS[tier]['json']
         for nodeNumber in path:
