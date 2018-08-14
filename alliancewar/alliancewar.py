@@ -20,7 +20,7 @@ PATHS = {'expert':{ 'color' :discord.Color.gold(),'title':'Expert','map':'', 'js
         'normal':{ 'color' :discord.Color.green(),'title':'Normal','map':'', 'json':'', 'minis': [], 'boss':[]},
         'easy':{ 'color' :discord.Color.green(),'title':'Easy','map':'', 'json':'', 'minis': [], 'boss':[]}}
 for p in PATHS.keys():
-    pathdata = requests.get('http://www.alliancewar.com/aw/js/aw_s{}_{}_9path.json'.format(2, p))
+    pathdata = requests.get('http://www.alliancewar.com/aw/js/aw_s{}_{}_9path.json'.format(2, p)).text
     PATHS[p]['json'] = json.loads(pathdata)
     if p == 'normal' or p == 'easy':
         PATHS[p]['map'] = '{}warmap_{}_{}.png'.format(BASEPATH, 3, 'advanced')
@@ -123,8 +123,8 @@ class AllianceWar:
         #     jpagstier = tier
             # pathurl = 'http://www.alliancewar.com/aw/js/aw_s{}_{}_9path.json'.format(season, jpagstier)
             # pathdata = json.loads(requests.get(pathurl).text)
-        # pathdata = json.loads(PATHS[tier]['json'])
-        pathdata = PATHS[tier]['json']
+        pathdata = json.loads(PATHS[tier]['json'])
+        # pathdata = PATHS[tier]['json']
         if int(nodeNumber) in PATHS[tier]['minis']:
             title='{} Node {} MINIBOSS Boosts'.format(PATHS[tier][title],nodeNumber)
         elif int(nodeNumber) in PATHS[tier]['boss']:
