@@ -115,7 +115,7 @@ class AllianceWar:
         # bg1 = self.config.guild.bg1()#.name
         # bg2 = self.config.guild.bg2()#.name
         # bg3 = self.config.guild.bg3()#.name
-        tier = self.config.guild(ctx.guild).tier()
+        tier = self.config.guild.tier()
         await ctx.send('Alliance Report\nTier: {}'.format(tier))
 
 
