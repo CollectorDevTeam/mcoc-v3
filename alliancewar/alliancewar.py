@@ -110,15 +110,25 @@ class AllianceWar:
         await ctx.send('Alliance settings cleared')
 
 
-    @alliancewar.command(pass_context=True, name='report')
-    async def _report(self, ctx):
+    @alliancewar.command(pass_context=True, name='settings')
+    async def _settings(self, ctx):
         guild = self.config.guild(ctx.guild)
-        # officers = await self.config.guild.officers()#.name
-        # bg1 = await self.config.guild.bg1()#.name
-        # bg2 = await self.config.guild.bg2()#.name
-        # bg3 = await self.config.guild.bg3()#.name
+        officers = await guild.officers()
+        bg1 = await guild.bg1()
+        bg2 = await guild.bg2()
+        bg3 = await guild.bg3()
         tier = await guild.tier()
-        await ctx.send('Alliance Report\nTier: {}'.format(tier))
+        em = discord.Embed(color=discord.Color.gold(), title='Alliance War Settings', url=PATREON)
+        em.add_field(name='Tier', value=tier)
+        em.add_field(name='Officer role', value=officers.name)
+        em.add_field(name='BG1 role', value=bg1.name)
+        em.add_field(name='BG2 role', value=bg2.name)
+        em.add_field(name='BG3 role', value=bg3.name)
+        await ctx.send(embed=em)
+
+
+        # await ctx.send('Alliance Report\nTier: {}'.format(tier))
+
 
 
     @alliancewar.command(pass_context=True, name="node")
