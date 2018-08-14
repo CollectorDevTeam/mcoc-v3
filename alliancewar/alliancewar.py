@@ -1,5 +1,5 @@
+redbot.core import commands
 import discord
-from discord.ext import commands
 import json
 import requests
 from .pages_menu import PagesMenu
