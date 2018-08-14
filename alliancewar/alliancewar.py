@@ -106,7 +106,7 @@ class AllianceWar:
     async def _aw_set_clear(self, ctx):
         '''Clear Alliance settings'''
         guild = await self.config.guild(ctx.guild)
-        await guild.clear_all()
+        guild.clear_all()
         await ctx.send('Alliance settings cleared')
 
 
