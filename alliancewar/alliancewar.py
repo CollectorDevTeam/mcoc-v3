@@ -108,7 +108,7 @@ class AllianceWar:
         guild = self.config.guild(ctx.guild)
         await guild.clear_all_custom()
         message = await ctx.send('Alliance settings cleared')
-        await ctx.add_reaction(message, '🆗')
+        await self.bot.add_reaction(message, '🆗')
 
 
     @alliancewar.command(pass_context=True, name='settings')
