@@ -125,7 +125,7 @@ class AllianceWar:
             #
 
             nodedetails = pathdata['boosts'][str(nodeNumber)]
-            boostsvalues=[]
+            boostvalues=[]
             for n in nodedetails:
                 boosttitle, text = '','No description. Report to @jpags#5202'
                 if ':' in n:
@@ -134,9 +134,9 @@ class AllianceWar:
                     nodename = n
                     bump = 0
                 if nodename in BOOSTS:
-                    boostsvalues.append(BOOSTS[nodename]['title'])
+                    boostvalues.append(BOOSTS[nodename]['title'])
 
-            emSummary.add_field(name='Tile {}',value=boostvalues)
+            emSummary.add_field(name='Tile {}',value=', '.join(boostvalues))
         page_list.insert(0,emSummary)
         await PagesMenu.menu_start(em)
 
