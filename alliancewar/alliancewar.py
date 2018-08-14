@@ -1,4 +1,4 @@
-from redbot.core import commands, Config
+from redbot.core import commands, config
 import discord.ext
 import json
 import requests
@@ -93,14 +93,18 @@ class AllianceWar:
     async def _aw_set_tier(self, ctx, tier):
         '''Set default Alliance War Tier'''
         if tier in PATHS.keys():
-            await self.config.guild(ctx.guild).tier.set(tier)
-            await ctx.send('Alliance War Tier for this guild set to {}'.format(tier))
+            guild = self.config.guild(ctx.guild)
+            await guild.tier.set(tier)
+            await ctx.send('Alliance War Tier for this guild set to {}'.format(guild.tier()))
 
     @_aw_set.command(pass_context=True, name='officers')
     async def _aw_set_officers(self, ctx, officers : discord.Role):
         '''Set default Alliance Officer role'''
-        await self.config.guild(ctx.guild).officers.set(officers)
-        await ctx.send('Alliance Officer Role for this guild set to {}'.format(officers.name))
+        if isinstance(officers, discord.Role):
+            await ctx.send('Guild role detected. Proceeding.')
+            guild = self.config.guild(ctx.guild)
+            await guild.officers.set(officers)
+            await ctx.send('Alliance Officer Role for this guild set to {}'.format(guild.officers().name))
 
     @_aw_set.command(pass_context=True, name='clear', manage_guild=True)
     async def _aw_set_clear(self, ctx):
