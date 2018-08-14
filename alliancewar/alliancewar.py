@@ -59,14 +59,14 @@ class AllianceWar:
     async def alliancewar(self, ctx):
         ''' Commands [WIP]'''
 
-    # @alliancewar.command(pass_context=True, name="node")
-    # async def _node_info(self, ctx, nodeNumber, tier = 'expert'):
-    #     '''Report Alliance War node information.'''
-    #     if tier in {'expert','hard','challenger','intermediate','normal','easy'}:
-    #         em = await self.get_awnode_details(ctx = ctx, nodeNumber=nodeNumber,tier=tier) #, season=season)
-    #         await ctx.send(embed=em)
-    #     else:
-    #         await ctx.send('Valid tiers include: advanced, intermediate, challenger, hard, expert')
+    @alliancewar.command(pass_context=True, name="node")
+    async def _node_info(self, ctx, nodeNumber, tier = 'expert'):
+        '''Report Alliance War node information.'''
+        if tier in {'expert','hard','challenger','intermediate','normal','easy'}:
+            em = await self.get_awnode_details(ctx = ctx, nodeNumber=nodeNumber,tier=tier) #, season=season)
+            await ctx.send(embed=em)
+        else:
+            await ctx.send('Valid tiers include: advanced, intermediate, challenger, hard, expert')
 
     @alliancewar.command(pass_context=True, name="map")
     async def _map(self, ctx, tier = 'expert'):
@@ -74,7 +74,7 @@ class AllianceWar:
         if tier.lower() in PATHS.keys():
             if tier.lower()=='advanced' or tier.lower()=='easy':
                 tier ='normal'
-                mapTitle = 'Alliance War 3.0 Normal Map'.format(tier.title())
+            mapTitle = 'Alliance War 3.0 Normal Map'.format(tier.title())
         else:
             tier = 'expert'
             mapTitle = 'Alliance War 3.0 {} Map'.format(PATHS[tier]['title'])
