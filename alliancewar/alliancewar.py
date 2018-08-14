@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands
 import json
 import requests
-import pages_menu
+from .pages_menu import PagesMenu
 # import mcoc.common.pages_menu  /// it doesn't like that
 
 BASEPATH = 'https://raw.githubusercontent.com/JasonJW/mcoc-cogs/master/mcocMaps/data/'
