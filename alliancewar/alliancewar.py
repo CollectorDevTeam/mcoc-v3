@@ -112,12 +112,12 @@ class AllianceWar:
 
     @alliancewar.command(pass_context=True, name='report')
     async def _report(self, ctx):
-        guild = await self.config.guild(ctx.guild)
+        guild = self.config.guild(ctx.guild)
         # officers = await self.config.guild.officers()#.name
         # bg1 = await self.config.guild.bg1()#.name
         # bg2 = await self.config.guild.bg2()#.name
         # bg3 = await self.config.guild.bg3()#.name
-        tier = guild.tier()
+        tier = await guild.tier()
         await ctx.send('Alliance Report\nTier: {}'.format(tier))
 
 
