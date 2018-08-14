@@ -99,15 +99,18 @@ class AllianceWar:
     @_aw_set.command(pass_context=True, name='officers')
     async def _aw_set_officers(self, ctx, officers : discord.Role):
         '''Set default Alliance Officer role'''
-        guild = self.config.guild(ctx.guild)
-        await guild.officers.set(officers)
-        await ctx.send('Alliance Officer Role for this guild set to {}'.format(officers.name))
+        if isinstance(officers, discord.Role):
+            guild = self.config.guild(ctx.guild)
+            await guild.officers.set(officers)
+            await ctx.send('Alliance Officer Role for this guild set to {}'.format(officers.name))
+        else:
+            await ctx.send('Role required.')
 
     @_aw_set.command(pass_context=True, name='clear', manage_guild=True)
     async def _aw_set_clear(self, ctx):
         '''Clear Alliance settings'''
         guild = self.config.guild(ctx.guild)
-        await guild.clear_all()
+        await guild.clear_all_custom()
         await ctx.send('Alliance settings cleared')
 
 
@@ -122,23 +125,21 @@ class AllianceWar:
         em = discord.Embed(color=discord.Color.gold(), title='Alliance War Settings', url=PATREON)
         em.add_field(name='Tier', value=tier)
         if isinstance(officers, discord.Role):
-            em.add_field(name='Officer role', value=officers.name)
+            em.add_field(name='Officer role', value=officers.name, inline=False)
         else:
-            em.add_field(name='Officer role', value=officers)
+            em.add_field(name='Officer role', value=officers, inline=False)
         if isinstance(bg1, discord.Role):
-            em.add_field(name='BG1 role', value=bg1.name)
+            em.add_field(name='BG1 role', value=bg1.name, inline=False)
         else:
-            em.add_field(name='BG1 role', value=bg1)
+            em.add_field(name='BG1 role', value=bg1, inline=False)
         if isinstance(bg2, discord.Role):
-            em.add_field(name='BG2 role', value=bg2.name)
+            em.add_field(name='BG2 role', value=bg2.name, inline=False)
         else:
-            em.add_field(name='BG2 role', value=bg2)
+            em.add_field(name='BG2 role', value=bg2, inline=False)
         if isinstance(bg3, discord.Role):
-            em.add_field(name='BG3 role', value=bg3.name)
+            em.add_field(name='BG3 role', value=bg3.name, inline=False)
         else:
-            em.add_field(name='BG3 role', value=bg3)
-
-
+            em.add_field(name='BG3 role', value=bg3, inline=False)
         await ctx.send(embed=em)
 
 
