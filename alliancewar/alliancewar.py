@@ -107,7 +107,7 @@ class AllianceWar:
         # if officerrole is not None:
         #     await ctx.send('Guild role detected. Proceeding.')
         #     guild = self.config.guild(ctx.guild)
-        #     await guild.officers.set(officerrole)
+            await self.config.guild(ctx.guild).officers.set(officers)
         #     await ctx.send('Alliance Officer Role for this guild set to {}'.format(officerrole.name)
 
     @_aw_set.command(pass_context=True, name='clear', manage_guild=True)
