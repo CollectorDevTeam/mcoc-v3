@@ -97,9 +97,9 @@ class AllianceWar:
         Tracks are labeled A - I from left to right.'''
         tracks = {'A':1,'B':2,'C':3,'D':4,'E':5,'F':6,'G':7,'H':8,'I':9}
         if tier in AW_PATHS:
-            nodes = AW_PATHS[tier]
+            nodes = AW_PATHS[tier][0]
         else:
-            nodes = AW_PATHS['expert']
+            nodes = AW_PATHS['expert'][0]
         page_list = []
         for nodeNumber in nodes:
             em = await self.get_awnode_details(ctx = ctx, nodeNumber=nodeNumber,tier=tier) #, season=season)
