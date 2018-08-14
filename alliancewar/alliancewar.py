@@ -123,8 +123,8 @@ class AllianceWar:
         #     jpagstier = tier
             # pathurl = 'http://www.alliancewar.com/aw/js/aw_s{}_{}_9path.json'.format(season, jpagstier)
             # pathdata = json.loads(requests.get(pathurl).text)
-        pathdata = json.loads(PATHS[tier]['json'])
-        # pathdata = PATHS[tier]['json']
+        # pathdata = json.loads(PATHS[tier]['json'])
+        pathdata = PATHS[tier]['json']
         if int(nodeNumber) in PATHS[tier]['minis']:
             title='{} Node {} MINIBOSS Boosts'.format(PATHS[tier][title],nodeNumber)
         elif int(nodeNumber) in PATHS[tier]['boss']:
