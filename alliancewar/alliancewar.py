@@ -2,8 +2,10 @@ from redbot.core import commands
 import discord
 import json
 import requests
-from .mcoc.common.pages_menu import PagesMenu
-# from .pages_menu import PagesMenu
+try:
+    from .mcoc.common.pages_menu import PagesMenu
+except:
+    from .pages_menu import PagesMenu
 
 BASEPATH = 'https://raw.githubusercontent.com/JasonJW/mcoc-cogs/master/mcocMaps/data/'
 ICON_SDF = 'https://raw.githubusercontent.com/JasonJW/mcoc-cogs/master/mcoc/data/sdf_icon.png'
@@ -99,9 +101,9 @@ class AllianceWar:
         else:
             nodes = AW_PATHS['expert']
         page_list = []
-            for nodeNumber in nodes:
-                em = await self.get_awnode_details(ctx = ctx, nodeNumber=nodeNumber,tier=tier) #, season=season)
-                page_list.append(em)
+        for nodeNumber in nodes:
+            em = await self.get_awnode_details(ctx = ctx, nodeNumber=nodeNumber,tier=tier) #, season=season)
+            page_list.append(em)
 
         await PagesMenu.menu_start(em)
 
