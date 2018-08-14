@@ -4,8 +4,10 @@ import json
 import requests
 try:
     from .mcoc.common.pages_menu import PagesMenu
+    print('PagesMenu loaded from mcoc Common')
 except:
     from .pages_menu import PagesMenu
+    print('PagesMenu loaded from alliancewar')
 
 BASEPATH = 'https://raw.githubusercontent.com/JasonJW/mcoc-cogs/master/mcocMaps/data/'
 ICON_SDF = 'https://raw.githubusercontent.com/JasonJW/mcoc-cogs/master/mcoc/data/sdf_icon.png'
@@ -138,7 +140,7 @@ class AllianceWar:
 
             emSummary.add_field(name='Tile {}',value=', '.join(boostvalues))
         page_list.insert(0,emSummary)
-        await self.PagesMenu.menu_start(page_list)
+        await PagesMenu.menu_start(self, page_list)
 
 
 #####
