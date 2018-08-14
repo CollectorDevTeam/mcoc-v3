@@ -2,8 +2,8 @@ from redbot.core import commands
 import discord
 import json
 import requests
-from .pages_menu import PagesMenu
-# import mcoc.common.pages_menu  /// it doesn't like that
+from .mcoc.common.pages_menu import PagesMenu
+# from .pages_menu import PagesMenu
 
 BASEPATH = 'https://raw.githubusercontent.com/JasonJW/mcoc-cogs/master/mcocMaps/data/'
 ICON_SDF = 'https://raw.githubusercontent.com/JasonJW/mcoc-cogs/master/mcoc/data/sdf_icon.png'
@@ -89,25 +89,21 @@ class AllianceWar:
         em.set_footer(text='CollectorDevTeam',icon_url=COLLECTOR_ICON)
         await ctx.send(embed=em)
 
-    # @alliancewar.command(pass_context=True, name="path", aliases=('tracks','track','paths'))
-    # async def _path_info(self, ctx, track='A', tier = 'expert'):
-    #     '''Report AW track information.'''
-    #     season = 2
-    #     tiers = {'expert':discord.Color.gold(),'hard':discord.Color.red(),'challenger':discord.Color.orange(),'intermediate':discord.Color.blue(),'advanced':discord.Color.green()}
-    #     tracks = {'A':1,'B':2,'C':3,'D':4,'E':5,'F':6,'G':7,'H':8,'I':9}
-    #     if tier in tiers:
-    #         pathurl = 'http://www.alliancewar.com/aw/js/aw_s{}_{}_9path.json'.format(season, tier)
-    #         pathdata = json.loads(requests.get(pathurl).text)
-    #         page_list = []
-    #         for t in tracks:
-    #             em = discord.Embed(color=tiers[tier], title='{} Alliance War Path {}'.format(tier.title(), track), descritpion='', url=JPAGS)
-    #             em.add_field(name='node placeholder',value='boosts placeholders')
-    #             em.add_field(name='node placeholder',value='boosts placeholders')
-    #             em.add_field(name='node placeholder',value='boosts placeholders')
-    #             mapurl = '{}warmap_3_{}.png'.format(self.basepath,tier.lower())
-    #             em.set_image(url=mapurl)
-    #             em.set_footer(icon_url=JPAGS+'/aw/images/app_icon.jpg',text='AllianceWar.com')
-    #             page_list.append(em)
+    @alliancewar.command(pass_context=True, name="path", aliases=('tracks','track','paths'))
+    async def _path_info(self, ctx, track='A', tier = 'expert'):
+        '''Report AW track information.
+        Tracks are labeled A - I from left to right.'''
+        tracks = {'A':1,'B':2,'C':3,'D':4,'E':5,'F':6,'G':7,'H':8,'I':9}
+        if tier in AW_PATHS:
+            nodes = AW_PATHS[tier]
+        else:
+            nodes = AW_PATHS['expert']
+        page_list = []
+            for nodeNumber in nodes:
+                em = await self.get_awnode_details(ctx = ctx, nodeNumber=nodeNumber,tier=tier) #, season=season)
+                page_list.append(em)
+
+        await PagesMenu.menu_start(em)
 
 
 #####
@@ -116,20 +112,6 @@ class AllianceWar:
 #
 ####
     async def get_awnode_details(self, ctx, nodeNumber, tier): #, season):
-        # boosts = json.loads(requests.get(boosturl).text)
-        # tiers = {
-        # 'expert':{ 'color' :discord.Color.gold(), 'minis': [27,28,29,30,31,48,51,52,53,55], 'boss':[54]},
-        # 'hard':{ 'color' :discord.Color.red(), 'minis': [48,51,52,53,55], 'boss':[54]},
-        # 'challenger':{ 'color' :discord.Color.orange(), 'minis': [27,28,29,30,31,48,51,52,53,55], 'boss':[54]},
-        # 'intermediate':{ 'color' :discord.Color.blue(), 'minis': [48,51,52,53,55], 'boss':[54]},
-        # 'advanced':{ 'color' :discord.Color.green(), 'minis': [], 'boss':[]}}
-        # if tier not in PATHS.keys():
-        #     jpagstier = 'advanced'
-        # else:
-        #     jpagstier = tier
-            # pathurl = 'http://www.alliancewar.com/aw/js/aw_s{}_{}_9path.json'.format(season, jpagstier)
-            # pathdata = json.loads(requests.get(pathurl).text)
-        # pathdata = json.loads(PATHS[tier]['json'])
         pathdata = PATHS[tier]['json']
         if int(nodeNumber) in PATHS[tier]['minis']:
             title='{} Node {} MINIBOSS Boosts'.format(PATHS[tier]['title'],nodeNumber)
