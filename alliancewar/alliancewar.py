@@ -132,11 +132,11 @@ class AllianceWar:
         # pathdata = json.loads(PATHS[tier]['json'])
         pathdata = PATHS[tier]['json']
         if int(nodeNumber) in PATHS[tier]['minis']:
-            title='{} Node {} MINIBOSS Boosts'.format(PATHS[tier][title],nodeNumber)
+            title='{} Node {} MINIBOSS Boosts'.format(PATHS[tier]['title'],nodeNumber)
         elif int(nodeNumber) in PATHS[tier]['boss']:
-            title='{} Node {} BOSS Boosts'.format(PATHS[tier][title],nodeNumber)
+            title='{} Node {} BOSS Boosts'.format(PATHS[tier]['title'],nodeNumber)
         else:
-            title='{} Node {} Boosts'.format(PATHS[tier][title],nodeNumber)
+            title='{} Node {} Boosts'.format(PATHS[tier]['title'],nodeNumber)
         em = discord.Embed(color=PATHS[tier]['color'], title=title, descritpion='', url=JPAGS)
         nodedetails = pathdata['boosts'][str(nodeNumber)]
         for n in nodedetails:
