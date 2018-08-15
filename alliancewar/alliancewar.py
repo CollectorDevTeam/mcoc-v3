@@ -103,10 +103,10 @@ class AllianceWar:
     async def _aw_set_setup(self, ctx):
         '''Set default Alliance role'''
         guild = self.config.guild(ctx.guild)
-        for n in (officers, bg1, bg2, bg3):
+        for n in (officer, bg1, bg2, bg3):
             n2 = discord.utils.get(guild.roles, name=str(n), type=discord.roles)
             await guild.set.n(n2)
-        await ctx.send('Setting officers role as: {}'.format(guild.officers()))
+            await ctx.send('Role found: {}'.format(n2.name))
 
     @_aw_set.command(pass_context=True, name='officers')
     async def _aw_set_officers(self, ctx, officers: discord.Role):
