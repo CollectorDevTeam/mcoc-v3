@@ -102,18 +102,10 @@ class AllianceWar:
     @_aw_set.command(pass_context=True, name='officers')
     async def _aw_set_officers(self, ctx, officers: discord.Role):
         '''Set default Alliance Officer role'''
+        guild = self.config.guild(ctx.guild)
+        await guild.officers.set(officers.id)
 
-        if isinstance(officers, discord.Role):
-            await ctx.send('At least it is a role.')
-        # officerole = discord.utils.get(ctx.server.roles, name=officers)
-        # if officerrole is not None:
-        #     await ctx.send('Guild role detected. Proceeding.')
-            guild = self.config.guild(ctx.guild)
-            await guild.officers.name.set(officers.id)
-
-            await ctx.send('Setting officers role as: {}'.format(officers))
-            # await self.config.guild(ctx.guild).officers.id.set(officers.id)
-                    #     await ctx.send('Alliance Officer Role for this guild set to {}'.format(officerrole.name)
+        await ctx.send('Setting officers role as: {}'.format(guild.officers()))
 
     @_aw_set.command(pass_context=True, name='clear', manage_guild=True)
     async def _aw_set_clear(self, ctx):
