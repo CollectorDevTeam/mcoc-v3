@@ -129,7 +129,7 @@ class AllianceWar:
         tier = await guild.tier()
         em = discord.Embed(color=discord.Color.gold(), title='Alliance War Settings', url=PATREON)
         em.add_field(name='Tier', value=tier)
-        em.add_field(name='Officer role', value=officers['name'], inline=False)
+        em.add_field(name='Officer role', value=officers.name, inline=False)
         em.add_field(name='BG1 role', value=bg1.name, inline=False)
         em.add_field(name='BG2 role', value=bg2.name, inline=False)
         em.add_field(name='BG3 role', value=bg3.name, inline=False)
