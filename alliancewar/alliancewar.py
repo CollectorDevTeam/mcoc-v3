@@ -104,16 +104,14 @@ class AllianceWar:
         '''Set default Alliance Officer role'''
         guild = self.config.guild(ctx.guild)
         await guild.officers.set(officers.id)
-
         await ctx.send('Setting officers role as: {}'.format(guild.officers()))
 
     @_aw_set.command(pass_context=True, name='clear', manage_guild=True)
     async def _aw_set_clear(self, ctx):
         '''Clear Alliance settings'''
-        await self.config.guild(ctx.guild).clear_all()
-        message = await ctx.send('Alliance settings cleared')
         guild = self.config.guild(ctx.guild)
-        print(guild)
+        await guild(ctx.guild).clear_all()
+        message = await ctx.send('Alliance settings cleared')
 
     @alliancewar.command(pass_context=True, name='settings')
     async def _settings(self, ctx):
@@ -125,6 +123,8 @@ class AllianceWar:
         tier = await guild.tier()
         em = discord.Embed(color=discord.Color.gold(), title='Alliance War Settings', url=PATREON)
         em.add_field(name='Tier', value=tier)
+        for n in (officers, bg1, bg2, bg3):
+            n = discord.utils.find(lambda m: m.id=n, ctx.guild.roles)
         em.add_field(name='Officer role', value=officers, inline=False)
         em.add_field(name='BG1 role', value=bg1, inline=False)
         em.add_field(name='BG2 role', value=bg2, inline=False)
@@ -254,3 +254,9 @@ class AllianceWar:
             em.add_field(name=title, value=text, inline=False)
         em.set_footer(icon_url=JPAGS+'/aw/images/app_icon.jpg',text='AllianceWar.com')
         return em
+
+    async def get_guild_role(self, ctx, id):
+        if id is None:
+            return None
+        try:
+            return discord.utils.find(lambda m: m.id=id, ctx.guild.roles)
