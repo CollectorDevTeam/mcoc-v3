@@ -107,7 +107,7 @@ class AllianceWar:
         message = ctx.send('Searching for known alliance roles')
         for r in roles:
             for n in ('officers', 'bg1', 'bg2', 'bg3'):
-                if r.name = n:
+                if r.name == n:
                     await guild.set.n(r.id)
                     await ctx.send('{} Role found: {}'.format(n, r.name))
         ctx.delete_message(message)
