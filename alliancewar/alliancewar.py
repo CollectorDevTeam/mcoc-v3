@@ -104,7 +104,7 @@ class AllianceWar:
         '''Set default Alliance role'''
         guild = self.config.guild(ctx.guild)
         for n in (officers, bg1, bg2, bg3):
-            n2 = discord.utils.find(lambda m: m.name=str(n), ctx.guild.roles)
+            n2 = discord.utils.get(guild.roles, name=str(n), type=discord.roles)
             await guild.set.n(n2)
         await ctx.send('Setting officers role as: {}'.format(guild.officers()))
 
@@ -133,7 +133,7 @@ class AllianceWar:
         em = discord.Embed(color=discord.Color.gold(), title='Alliance War Settings', url=PATREON)
         em.add_field(name='Tier', value=tier)
         for n in (officers, bg1, bg2, bg3):
-            n = discord.utils.find(lambda m: m.id=n, ctx.guild.roles)
+            n = discord.utils.get(guild.roles, name=str(n), type=discord.roles)
         em.add_field(name='Officer role', value=officers, inline=False)
         em.add_field(name='BG1 role', value=bg1, inline=False)
         em.add_field(name='BG2 role', value=bg2, inline=False)
