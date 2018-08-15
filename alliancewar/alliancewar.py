@@ -99,6 +99,15 @@ class AllianceWar:
             await guild.tier.set(tier)
             await ctx.send('Alliance War Tier for this guild set to {}'.format(guild.tier()))
 
+    @_aw_set.command(pass_context=True, name='setup')
+    async def _aw_set_setup(self, ctx):
+        '''Set default Alliance role'''
+        guild = self.config.guild(ctx.guild)
+        for n in (officers, bg1, bg2, bg3):
+            n2 = discord.utils.find(lambda m: m.name=str(n), ctx.guild.roles)
+            await guild.set.n(n2)
+        await ctx.send('Setting officers role as: {}'.format(guild.officers()))
+
     @_aw_set.command(pass_context=True, name='officers')
     async def _aw_set_officers(self, ctx, officers: discord.Role):
         '''Set default Alliance Officer role'''
@@ -254,9 +263,3 @@ class AllianceWar:
             em.add_field(name=title, value=text, inline=False)
         em.set_footer(icon_url=JPAGS+'/aw/images/app_icon.jpg',text='AllianceWar.com')
         return em
-
-    async def get_guild_role(self, ctx, id):
-        if id is None:
-            return None
-        try:
-            return discord.utils.find(lambda m: m.id=id, ctx.guild.roles)
