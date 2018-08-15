@@ -73,11 +73,11 @@ class AllianceWar:
         }
 
         default_guild = {
-            'officer': {'id':'','name':''},
-            'bg1':  {'id':'','name':''},
-            'bg2':  {'id':'','name':''},
-            'bg3':  {'id':'','name':''},
-            'tier': 'Expert'
+            'officer': '',
+            'bg1':  '',
+            'bg2':  '',
+            'bg3':  '',
+            'tier': ''
         }
 
         self.config.register_global(**default_global)
@@ -108,9 +108,12 @@ class AllianceWar:
         # officerole = discord.utils.get(ctx.server.roles, name=officers)
         # if officerrole is not None:
         #     await ctx.send('Guild role detected. Proceeding.')
-        #     guild = self.config.guild(ctx.guild)
-            await self.config.guild(ctx.guild).officers.name.set(officers.name)
-            await self.config.guild(ctx.guild).officers.id.set(officers.id)
+            guild = self.config.guild(ctx.guild)
+            # await self.config.guild(ctx.guild).officers.name.set(officers.name)
+            async with guild.officers() as officers
+            checkofficers = await guild.officers()
+            await ctx.send('Setting officers role as: {}'.format(checkofficers.name))
+            # await self.config.guild(ctx.guild).officers.id.set(officers.id)
                     #     await ctx.send('Alliance Officer Role for this guild set to {}'.format(officerrole.name)
 
     @_aw_set.command(pass_context=True, name='clear', manage_guild=True)
@@ -118,6 +121,8 @@ class AllianceWar:
         '''Clear Alliance settings'''
         await self.config.guild(ctx.guild).clear_all()
         message = await ctx.send('Alliance settings cleared')
+        settings = await self.config.guild(ctx.guild)
+        print(settings)
 
     @alliancewar.command(pass_context=True, name='settings')
     async def _settings(self, ctx):
