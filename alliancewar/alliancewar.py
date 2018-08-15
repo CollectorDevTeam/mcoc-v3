@@ -73,11 +73,11 @@ class AllianceWar:
         }
 
         default_guild = {
-            'officer': '',
-            'bg1':  '',
-            'bg2':  '',
-            'bg3':  '',
-            'tier': ''
+            'officer': None,
+            'bg1':  None,
+            'bg2':  None,
+            'bg3':  None,
+            'tier': None
         }
 
         self.config.register_global(**default_global)
@@ -109,10 +109,9 @@ class AllianceWar:
         # if officerrole is not None:
         #     await ctx.send('Guild role detected. Proceeding.')
             guild = self.config.guild(ctx.guild)
-            # await self.config.guild(ctx.guild).officers.name.set(officers.name)
-            async with guild.officers() as officers
-            checkofficers = await guild.officers()
-            await ctx.send('Setting officers role as: {}'.format(checkofficers.name))
+            await guild.officers.name.set(officers)
+
+            await ctx.send('Setting officers role as: {}'.format(officers.name))
             # await self.config.guild(ctx.guild).officers.id.set(officers.id)
                     #     await ctx.send('Alliance Officer Role for this guild set to {}'.format(officerrole.name)
 
