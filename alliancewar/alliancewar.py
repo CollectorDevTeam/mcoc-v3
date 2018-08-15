@@ -109,7 +109,7 @@ class AllianceWar:
         # if officerrole is not None:
         #     await ctx.send('Guild role detected. Proceeding.')
             guild = self.config.guild(ctx.guild)
-            await guild.officers.name.set(officers.name)
+            await guild.officers.name.set(officers.id)
 
             await ctx.send('Setting officers role as: {}'.format(officers))
             # await self.config.guild(ctx.guild).officers.id.set(officers.id)
@@ -120,8 +120,8 @@ class AllianceWar:
         '''Clear Alliance settings'''
         await self.config.guild(ctx.guild).clear_all()
         message = await ctx.send('Alliance settings cleared')
-        settings = await self.config.guild(ctx.guild)
-        print(settings)
+        guild = self.config.guild(ctx.guild)
+        print(guild)
 
     @alliancewar.command(pass_context=True, name='settings')
     async def _settings(self, ctx):
