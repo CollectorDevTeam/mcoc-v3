@@ -109,9 +109,9 @@ class AllianceWar:
         # if officerrole is not None:
         #     await ctx.send('Guild role detected. Proceeding.')
             guild = self.config.guild(ctx.guild)
-            await guild.officers.name.set(officers)
+            await guild.officers.name.set(officers.name)
 
-            await ctx.send('Setting officers role as: {}'.format(officers.name))
+            await ctx.send('Setting officers role as: {}'.format(officers))
             # await self.config.guild(ctx.guild).officers.id.set(officers.id)
                     #     await ctx.send('Alliance Officer Role for this guild set to {}'.format(officerrole.name)
 
@@ -133,10 +133,10 @@ class AllianceWar:
         tier = await guild.tier()
         em = discord.Embed(color=discord.Color.gold(), title='Alliance War Settings', url=PATREON)
         em.add_field(name='Tier', value=tier)
-        em.add_field(name='Officer role', value=officers.name, inline=False)
-        em.add_field(name='BG1 role', value=bg1.name, inline=False)
-        em.add_field(name='BG2 role', value=bg2.name, inline=False)
-        em.add_field(name='BG3 role', value=bg3.name, inline=False)
+        em.add_field(name='Officer role', value=officers, inline=False)
+        em.add_field(name='BG1 role', value=bg1, inline=False)
+        em.add_field(name='BG2 role', value=bg2, inline=False)
+        em.add_field(name='BG3 role', value=bg3, inline=False)
         em.set_thumbnail(url=ctx.guild.icon_url)
         await ctx.send(embed=em)
 
