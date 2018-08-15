@@ -104,7 +104,7 @@ class AllianceWar:
         '''Set default Alliance role'''
         guild = self.config.guild(ctx.guild)
         for n in ('officers', 'bg1', 'bg2', 'bg3'):
-            n2 = discord.utils.get(guild.roles, name=n, type=discord.roles)
+            n2 = discord.utils.get(guild.roles, name=n, type=discord.Role)
             await guild.set.n(n2)
             await ctx.send('Role found: {}'.format(n2.name))
 
