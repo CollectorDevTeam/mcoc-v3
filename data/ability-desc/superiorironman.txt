@@ -1,0 +1,18 @@
+All stats based on 4 Star, Rank 5, Level 50 sig 99
+
+Basic Abilities: Armor, Armor Break
+
+When Attacked - Armor Rating
+```• 17% chance to Armor Up, increasing Armor Armor Rating by 500 for 6 seconds.```
+
+Special 1 - Repulsor Ray
+Iron Man sends his opponents flying with the reliable Repulsor Ray.
+```• 70% chance to Armor Break, removing an enemy Armor Up and applying 2255.32 Armor Rating reduction for 8 seconds.```
+Special 2 - Uni-Beam
+Iron Man takes flight and activates his chest-mounted Uni-Beam Projectile Gun.
+```• 100% chance to Armor Break, removing an enemy Armor Up and applying 2761.91 Armor Rating reduction for 9 seconds.```
+Special 3 - Billion-Dollar Punch
+A rocket-boosted uppercut sends his opponent airborne, where they're subjected to an array of Iron Man's weaponry.
+```• 100% chance to Armor Break, removing an enemy Armor Up and applying 3882.35 Armor Rating reduction for 10 seconds.```
+
+updated 6/27/2018 - suprmatt

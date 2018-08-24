@@ -1,0 +1,24 @@
+All stats based on 4 Star, Rank 5, Level 50 sig 99
+
+Basic Abilities: Bleed, Regeneration
+
+Critical Hits
+```• Critical Hits lacerate opponents with a 80% chance, inflicting 994.65 Bleed damage over 5 seconds.```
+When Attacked
+```• 14% chance to Regenerate up to 1058.16 Health over 4 seconds based on stored Power.```
+All Attacks
+```• 14% chance to Regenerate up to 1058.16 Health over 4 seconds based on stored Power.```
+
+Special 1 - X-Slash
+Wolverine delivers a signature slash with unbreakable Adamantium claws.
+Special 2 - Primal Rage
+No words, just teeth and claws.
+Special 3 - Kill-Frenzy
+Only two things are certain in life, an' this ain't taxes.
+```• 100% chance to inflict Bleed, dealing 994.65 Direct Damage over 5 seconds.```
+
+Cellular Regeneration
+Passive
+```• Wolverine's natural healing factor accelerates, granting cumulative Regeneration with a fixed 8% chance to recover up to 3092.54 Health based on current Power Levels.```
+
+updated 6/26/2018 - suprmatt

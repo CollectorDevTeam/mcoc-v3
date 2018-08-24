@@ -1,0 +1,17 @@
+All stats based on 4 Star, Rank 5, Level 50, Signature Level 99
+
+Special 1 - E.M.P Arrow
+Hawkeye knocks the opponent back, then shoots them with an electromagnetic pulse. Please taze me, Bro.
+```• 100% chance to inflict Bleed, dealing 2884.08 Direct Damage over 5 seconds.
+• Depletes up to 40% of the target's max Power```
+Special 2 - Incendiary Arrow
+Hawkeye shows off by launching an explosive thermal-tipped arrow while upsidedown.
+```• 100% chance to inflict Bleed, dealing 3037.74 Direct Damage over 4 seconds.```
+Special 3 - Explosive Barrage
+He didn't miss. You might think he did, but he didn't.
+
+Signature Ability - HEMORRHAGE
+```Special Attacks
+Arrow strikes have a 25% chance to Hemorrhage the opponent, causing a massive Bleed that deals 14212.4 direct damage over 60 seconds. This can only occur once per fight.```
+
+6/26/2018 - jjw

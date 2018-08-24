@@ -1,0 +1,68 @@
+All stats based on 5-Star, Rank 5, Level 65, Signature Level 200
+
+Basic Abilities: Bleed, Stun, Fury, Kinetic Potential
+
+Passive - Kinetic Potential
+• Captain America’s vibranium vambraces can store up to 5 Kinetic Potential charges. He will not generate any new Kinetic Potential charges while at this limit.
+• 15% Chance when Struck to gain 1 Kinetic Potential.
+• 50% Chance when Blocking to gain +1 Kinetic Potential. This chance increases to 100% on a Well Timed Block.
+• 100% Chance to gain +1 Kinetic Potential when Stunned.
+• Kinetic Potential falls off over time, falling off faster the longer its been since it last increased.
+Developer Note: Captain America gains the Kinetic Potential when Stunned after the Stun applies, so he doesn’t auto shrug off all Stuns when combined with his Signature Ability.
+
+Passive - Kinetically Charged
+• As long as Captain America has at least 1 Kinetic Potential, he’s is considered to be Kinetically Charged, and gains the following bonuses as Passive effects:
+• +574 Attack
+• +666 Physical Resist
+• +666 Energy Resist
+• +30% chance to cause opponent’s attacks to Glance. Glancing Hits cannot be Critical, deal 50% reduced damage, and suffer -100% Offensive Ability Accuracy. This chance increases by 100% against Mystic Champions.
+• 100% chance to Nullify Unstoppable Buffs on hit.
+Developer Note: These abilities don’t stack, they just turn on as long as Captain America has at least 1 Kinetic Potential charge.
+
+Passive - Heavy Attacks
+• Beginning to charge a Heavy Attack grants a Passive Fury granting +574 Attack per Kinetic Potential, lasting for 5 seconds.
+Developer Note: While this Fury effect is quite short, it triggers as soon as you enter the Heavy Attack animation which means you can cancel the animation into a Special Attack before you land a hit. With good timing, this effectively doubles the attack bonus granted by the Special 2 Attack.
+
+Special Attacks
+• After any Special Attack, Captain America consumes all Kinetic Potential.
+
+Special 1 - My Ally’s Claws
+Cap shows his new vibranium hardware is good for offence as well as defence.
+• 100% chance to inflict Bleed, dealing 287 Direct Damage over 3.5 seconds.
+• Reduces Opponent’s Defensive Ability Accuracy by 100% if Kinetically Charged.
+Developer Note - This Ability Accuracy Reduction applies only to the hits of this Special Attack. Try and use it to push the opponent over specific ability triggers, like Magik’s Limbo.
+
+Special 2 - Kinetic Discharge
+Smashing together his vambraces Cap unleashes a wave of kinetic energy.
+• 100% chance to Stun for 1 second.
+• Each Kinetic Potential charge grants +574 Attack and +0.50 second(s) Stun Duration.
+
+Special 3 - Lead from the Front
+Cap leads by example, sending his enemy crashing to the mat!
+• If Kinetically Charged gain +1148 Attack for each different Class on Cap’s team, not including himself, up to 2 Classes.
+• Gain 1 Non-Consumable Kinetic Potential charge which lasts 30 seconds.
+Developer Note - This allows Cap to have an effective 6 Kinetic Potential charges.
+
+Signature Ability - LEADERSHIP
+An excellent leader, Captain America learns from his teammates gaining a unique effect, while Kinetically Charged, for each class represented on his team, excluding himself.
+• Mutant: 100% chance on triggering a Special Attack to gain +1 Kinetic Potential.
+• Skill: 100% chance whenever a Debuff is gained, consume 1 Kinetic Potential to Purify it.
+• Science: 100% chance on a Well-Timed Block to place a 10% Weakness Debuff of the Opponent for 10 seconds.
+• Mystic: 100% chance to gain 1 Kinetic Potential each time a Buff Expires or is Nullified on the Opponent.
+• Cosmic: 100% chance on a Well Timed Block to place an Armor Break Debuff on the Opponent, reducing their Armor by 222 for 10 seconds.
+• Tech: 100% chance on a Well Timed Block to place a 25% Petrify Debuff on the Opponent for 10 seconds.
+
+Recommended Masteries
+Inequity: With his Signature Ability and the right teammates, Cap is capable of putting a lot of Debuffs on his opponent, allowing him to make great use of this mastery.
+Despair: Combining Despair with his natural ability to place Petrify Debuffs on his opponent can make for a powerful combination.
+Petrify: Cap can do a lot of Stunning, both through Well Timed Blocks, and through his Special 2 Attack. This let’s Cap keep the Petrify effect active for much of the fight.
+
+Strong Match-Ups
+Dormammu: Dormammu is a good matchup for Cap, who doesn’t trigger any Buffs naturally, and his Science Experiment Synergy will reduce the damage he takes from Dormammu’s Degeneration if it does trigger.
+Juggernaut: As long as Cap can remain Kinetically Charged, he will remove Juggernaut’s unstoppable effects simple by attacking into him.
+Magik: Cap’s Petrify Debuffs will help counter both Limbo and Mystic Dispersion. Combine this with his Special 1 Attack’s Ability Accuracy reduction to help prevent Limbo from even triggering in the first place.
+
+Weak Match-Ups
+Crossbones: Crossbones’ ability to convert Debuffs into Fury effects, as well as reduce Defensive Ability Accuracy, makes him well equipped to deal with Cap’s Debuffs, reduce the chance of him gaining Kinetic Potential, and triggering his Glance.
+Taskmaster: Taskmaster’s ability to resist Debuffs, as well as his Concussions and bonus damage based on Debuffs let him bypass many of Cap’s abilities.
+Rogue: Rogue’s ability to quickly shrug off Debuffs keeps Captain America from being able to build up multiple stacks of them, and her ability to control when she steals Health or Power let’s her avoid the reduction of Cap’s Petrifies.

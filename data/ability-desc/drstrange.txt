@@ -1,0 +1,25 @@
+All stats based on 4-Star, Rank 5, Level 50, Signature Level 99
+
+Basic Abilities: Evocation, Fate Seal
+
+Passive
+```• Doctor Stephen Strange invokes three Vishanti blessings to aid him in batte, each lasting 9 seconds.
+• Oshtur's Refuge grants increased Armor and Block Proficiency for 9 seconds.
+• Agamotto's Insight grants increased Attack and Critical Hit Rate for 9 seconds.
+• Hoggoth's Wisdom grants 16% Power Gain and 200.69 Life Steal for 9 seconds.```
+Passive
+```• Doctor Strange receives 100% less Power from Attacking and Defending, but gains 33% Power every 9 seconds.```
+
+Special 1 - Magic Missile
+A humble beginning to any wizard's duel.
+```• This attack may deal up to 100% additional damage and recover up to 100% Power at random.```
+Special 2 - Faltinian Triplicate
+Doctor Strange orchestrates three Flames of the Faltines in a fiery symphony.
+```• While under Oshtur's Refuge, these flames have a 50% chance to inflict Weakness, decreasing the target's Attack by 15% for 10 seconds.
+• While under Agamotto's Insight, these flames have a 50% chance to Armor Break, applying 857.14 Armor Rating reduction for 10 seconds.
+• While under Hoggoth's Wisdom, these flames have a 50% chance to Nullify, removing 1 positive status effect from the opponent.```
+Special 3 - The Prestige
+For his final act, Dr. Stephen Strange demonstrates sorcery supremacy - making his opponent disappear.
+```• 100% chance to seal the target's fate, preventing them from gaining Buff effects for 5 seconds.```
+
+updated 7/2/2018 - lmxn

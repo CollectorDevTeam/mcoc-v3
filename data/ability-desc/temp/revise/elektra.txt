@@ -1,0 +1,35 @@
+Originally Posted 10-07-2015
+
+*All stats based on 4 Star, Rank 5, Level 50, Signature Level 99
+
+Special 1 - Shuriken Jutsu
+65% chance to inflict Bleed, dealing 122% of your Attack as direct damage over 6 seconds.
+This attack has two potential Bleed triggers.
+This attack has 100% Critical Hit Chance against bleeding targets.
+
+Special 2 - Sai Assault
+60% chance to inflict Bleed, dealing 122% of your Attack as direct damage over 7 seconds.
+This attack has two potential Bleed triggers.
+
+Special 3 - Strikes of the Shinobi
+90% chance to inflict Bleed, dealing 200% of your Attack as direct damage over 9 seconds.
+
+Signature Ability - No Loose Ends
+Elektra takes care of opponents below 20% Health with 100% Critical Rate and (5% - 100%) Critical Damage, leaving no one to tell the tale.
+Whenever Elektra strikes an opponent below 20% Health, the attack has 100% Critical Hit Rate.
+Additionally, Elektra gains bonus Critical Hit Damage as her Signature ability scales up, starting at 5% and finishing at 100%.
+
+Recommended Masteries
+Cruelty: With Elektra’s 100% Critical Hit rate vs. Bleeding opponents on her Special 1 and 100% Critical Hit Rate vs. opponents at low health, increasing Elektra’s Critical Damage is immensely helpful.
+Pure Skill: As Elektra has two abilities which grant 100% Critical Hit rate, allowing her Critical Hits to pierce enemy Armor can be very helpful against heavily armored opponents such as Iron Man and Iron Patriot.
+Glass Cannon & Recoil: Elektra is a purely offensive champion, with most of her damage coming from Special Attacks. As such, effects that boost attack or Special Attack are extremely effective for her, as they also increase her Bleed Damage during Special Attacks.
+
+Strengths
+Elektra’s damage primarily comes from her powerful Bleed effects, which allow her to bypass the Armor of Tech Champions such as Iron Man, Iron Patriot and Hulk-Buster.
+Elektra’s signature ability allows her to quickly finish off champions that are reliant on last minute burst effects such as Deadpool, Iron Man, Superior Iron Man, and War Machine.
+Elektra also excels at finishing off very tough bosses and mini-bosses in Alliance Quests. Once a Boss is below that 20% threshold, Elektra can be brought in and strike with 100% Critical Hit Rate to finish off the opponent.
+Elektra rewards timing more than anything else. Players can capitalize on the 100% Critical Hit rate of her Shuriken Jutsu (Special 1) by building up the Power Meter to just before a Special 3 and letting multiple special attacks loose in a row. Additionally, having her Romance synergy active allows Elektra to build back up to her Special 1 quicker and ensure the enemy is still bleeding in time for the 100% Critical Hit Rate.
+
+Weaknesses
+Elektra is extremely reliant on her Bleed effects to deal damage and as a result, performs poorly against Bleed immune champions such as Colossus and Vision.
+Elektra’s damage primarily comes from her special attacks and enemies that can drain her Power meter or deny her special attacks such as Vision or Yellow Jacket are especially effective against her.

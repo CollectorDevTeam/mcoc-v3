@@ -1,0 +1,42 @@
+All stats based on 4 Star, Rank 5, Level 50, Signature Level 99
+
+Special 1: Blast Barrage
+59% chance to inflict Bleed, dealing 38% of your Attack as direct damage over 5 Seconds
+This has 5 potential triggers during the attack, allowing up to 5 stacks of Bleed
+
+Special 2: Shoulder Artillery
+100% chance to Armor Break, removing enemy Armor and applying 52% Armor reduction for 12 seconds.
+
+Special 3: Heavy Ordnance
+100% chance to Armor Break, removing enemy Armor and applying 52% Armor reduction for 12 seconds.78% chance to inflict Bleed, dealing 38% of your Attack as direct damage over 5 Seconds.
+This has 3 potential triggers during the attack, allowing up to 3 stacks of Bleed
+
+Armor Up - When Struck
+8% chance to Armor Up, reducing damage from attacks by 54% for 6 seconds.
+
+Signature Ability - Empty the Clip
+
+War Machine readies all remaining ordnance if Health drops below 20%, granting up to 90% increased Armor and 161.6% increased Attack for the next 12 hits.
+War Machine gains 12 instances of Armor Up and Fury. Each instance is 1/12 of the total bonus. Each time War Machine is struck by an opponent, he loses one instance of Armor Up and each time War Machine hits an opponent he loses one instance of Fury.
+
+
+Recommended Masteries
+• Enhanced Fury: The bonus from this mastery applies to each instance of Fury, so it will apply 12 times when War Machine triggers his Empty the Clip ability
+• Courage: War Machine receives a massive boost to attack when he’s low on health, and Courage adds more damage on top of that for a massive boost. Additionally, the extra armor keeps him alive longer to extend the time he's in that low-hp "Courage" zone.
+• Greater Vitality & Block Proficiency: Empty the Clip triggers when War Machine is below 20% health, and having more health and block proficiency allows him to stay in that “sweet spot” longer and get more use out of his abilities before dying.
+• Pierce: Pierce allows War Machine to more easily defeat heavily Armored champions when combined with his powerful Armor Break effects – this is particularly helpful against targets immune to War Machine's Bleed.
+
+Strengths
+• War Machine’s frequent Bleed effects from Blast Barrage (Special 1) allow him to deal with Armored champions easily, such as Iron Man, Superior Iron Man, Hulkbuster and Juggernaut.
+• Armor Break from Shoulder Artillery (Special 2) allows War Machine to also deal with enemies that do not bleed, such as Colossus. Avoiding Blast Barrage in favor of Shoulder Artillery is recommended for opponents that shrug off Bleed effects.
+• Pairing the burst of Attack from Empty the Clip with a Class Bonus and the high damage of Special 2 or Special 3 can drop regenerating mutant Champions with a quick spike of damage.
+• Frequent bleed effects and powerful armor breaks make War Machine a more offensive version of the classic Iron Man.
+
+Weaknesses
+• War Machine deals low base Special damage, relying instead on his Armor Break and Bleed effects to help him amp up his damage output with their stacking effects. This makes him weak to champions that can remove these effects, such as Scarlet Witch or Vision.
+• War Machine’s Armor Up ability trigger less often than Iron Man’s and is inherently weaker, making him more susceptible to attacks throughout the fight.
+• Reliance on Armor exposes War Machine to the True Damage and class bonuses wielded by many Cosmic Champions.
+• Multi-hit special attacks quickly burn through War Machine’s Empty the Clip Armor stacks.
+
+originally posted 08-13-2015
+updated 6/26/18 - jjw

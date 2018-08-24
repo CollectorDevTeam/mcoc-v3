@@ -1,0 +1,46 @@
+All stats based on 4 Star, Rank 5, Level 50, Signature Level 99
+
+Basic Abilities: Power Drain, Power Burn, Nullify, Power Lock
+
+Passive – Bleed Immunity
+```• Dormammu lacks blood and is therefore, immune to Bleed effects.
+Passive – Poison Immunity
+```• As a being of pure mystical energy, Dormammu, is immune to all known poisons of the Battlerealm.```
+Passive – Dark Energy
+``• Gain Dark Energy Charges each time your opponent spends power.
+• When the Charge reaches 100, Dormammu will consume all Dark Energy to Imbue the next ability he uses with additional effects.
+• Gain 50 Dark Energy Charges for each Buff Nullified.```
+Heavy Attacks
+```• If there is no Soul Bond on the target, place one on it.
+• While a Soul Bond is active, each Dark Energy Charge you receive also adds charges to the Soul Bond – up to 100.
+• Detonate an active Soul Bond dealing up to 4% of Attack as Direct Damage, per Soul Bond charge.```
+Finish a Combo with a Medium Attack
+```• The target doesn’t gain Power from this Hit.
+• Depletes up to 7.5% of the Target’s Max Power.
+• Imbued: Causes Direct Damage equal to 400% of Power Drained from the opponent by this attack.```
+
+Special 1 - Soul Fire
+A wave of power from the Dark Dimension burns through his opponent’s very soul, burning out any sources of power it may find.
+```• 100% Chance to Nullify 1 enemy Buff.
+• Imbued: 100% Chance to Nullify all enemy Buffs.```
+Special 2 - Dimensional Blasts
+Dormammu opens rifts to the Dark Dimension, drawing forth bolts of raw power.
+```• 100% Chance to Power Lock opponent for 5 seconds.
+• Imbued: Drain 15% of the target’s Max Power per hit.```
+Special 3 - Lord of the Dark Dimension
+Dormammu brings his opponent into the Dark Dimension for a demonstration of his true potential.
+```• Gain a Dimensional Link buff causing Dormammu to continually gain Dark Energy for 16 seconds.
+• Imbued: Gain an Empowered Dimensional Link buff. While it is active Dormammu Regenerate 20% of Damage done by the Soul Bond detonation as Health.```
+
+Recommended Masteries
+```Mystic Dispersion: Dormammu has a Nullify ability on his Special 1, allowing him to trigger Mystic Dispersion a lot.  This only improves with an Imbued Special 1 allowing him to Nullify all his opponent’s Buffs.
+Assassin: The Assassin Mastery pairs very well with Dormammu’s Soul Bond. The very high ratio on a fully charged Soul Bond gives great returns from this mastery, and since the Soul Bond will take some time to fully charge, it’s likely to be ready when this Mastery kicks in.
+Liquid Courage and Double Edge: I’m going to lump these two in together, since in this case they’re both doing pretty much the same thing: giving a large Attack boost, while Dormammu’s natural immunities prevent him from receiving their negative effects.```
+Strengths
+```Hyperion: A lot of Hyperion’s power comes from his repeated Power Gains, and Dormammu has several ways to deal with them. Also, the True Damage from both Soul Bond and Soul Leech allows him to bypass Hyperion’s high resistances.
+Doctor Strange: Ahh the good Doctor, Dormammu’s long time nemesis. Now, this isn’t a super hard counter, but Dormammu is well equipped for this fight. He doesn’t rely on Buffs limiting the effect of Counterspell. He has a Nullify of his own to take down Doctor Strange’s period buffs, and once his Signature is unlocked he has a chance to Degenerate Doctor Strange each time he switches Buffs.
+Cable: When stepping into the ring with Cable, Dormammu’s going to want to play the shutdown game. Cable can really get rolling when he triggers Power Gains, which in turn gives him more chances to trigger Regenerations, and more Power Gains. Dormammu has a couple of options to deal with this, either Nullifying them directly, or Power Locking and Draining him to prevent them having a chance to trigger.```
+Weaknesses
+```Electro: Electro is a tough contender for Dormammu, especially once he has access to his Signature Ability. Electro is happy to just sit on a full Power Bar for extra Critical Hits, never giving Dormammu a chance to build his Dark Energy, and hold Class Advantage for even more damage.
+Captain America: Captain America is a great counter to Dormammu. He doesn’t have any Buffs to trigger, avoiding Soul Leech. Weakness provides a window in which Dormammu really doesn’t want to trigger the Soul Bond, and Class Advantage offsets Cap’s lower damage output.
+Cyclops (Blue Team and New Xavier School): Cyclops has big Special Damage at his disposal, and doesn’t mind saving up for his Special 3, especially if he can get his combo up for the additional damage. Again, by saving up his Special Bar he can deny Dormammu much of his Dark Energy charge, and no buffs to trigger keep him safe from Soul Leech.```

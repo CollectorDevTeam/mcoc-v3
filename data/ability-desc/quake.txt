@@ -1,0 +1,36 @@
+All stats based on 4 Star, Rank 5, Level 50, Signature Level 99
+
+While Heavy Attack Charging
+```• Quake generates powerful waves of vibrations that causes an Earthquake, dealing 152.8 Physical Damage per second.
+• Inflicts Concussion, reducing the opponent’s Ability Accuracy by 100%
+• While Quake is generating an Earthquake through this attack, the Aftershock Scale goes up by 1 every 0.48 seconds.```
+Aftershock
+```• An Aftershock hits 10 seconds after an Earthquake. For every point in the Scale, Aftershock deals 430.98 Physical Damage.
+• 10% chance to Stun the opponent for 1.5 seconds. This effect cannot interrupt Special Attacks.
+• Aftershock Stun Duration and Accuracy goes up by 10% for every point in the Aftershock Scale.
+• Inflicts Concussion, reducing the opponent’s Ability Accuracy by 100% for 5 seconds when the Aftershock Scale is higher than 4 points.```
+Passive - Evade
+```• Evades all Basic Attacks against opponents with a Concussion.```
+
+Special 1 - Compression Wave
+*Quake quickly compresses the ground, launching a wave of earth towards the opponent.*
+```• Adds 2 points to the Aftershock Scale.```
+
+Special 2 - Propulsion Pulse
+*Quake targets the ground with her vibrations to launch herself into the air and land a powerful punch.*
+```• Adds 3 points to the Aftershock Scale.
+• 100% chance to inflict Concussion, reducing the opponent’s Ability Accuracy by 100% for 5 seconds.```
+
+Special 3 - Epicenter
+*Quake generates a powerful earthquake, opening the ground and trapping the opponent before she deals her final vibration pulse attack.*
+```• Adds 6 points to the Aftershock Scale.
+• 100% chance to Stun for 3 seconds.```
+
+Recommended Masteries
+```Petrify, Stupefy & Pacify: Quake’s Aftershock ability Stuns opponents. Plus, reducing the opponent’s ability triggers with masteries, synergizes really well with her Concussion effect.
+Courage, Glass Cannon & Greater Strength: All of Quake’s Aftershock and Earthquake effects are powerful and based on her attack rating. Therefore, increasing this attribute will give a greater advantage in fights. If you are skilled enough, Glass Cannon will also be effective because if the opponent is under the Concussion effect, their basic attacks are going to be Evaded.```
+Strengths
+```Power Gain Nodes: Skilled players are going to be able to take advantage of her Heavy Attack custom charging effect. She can charge her Heavy Attacks for as long as she wants and while charging, the opponent’s first Basic Attack are going to be Evaded because of the Concussion. This is great against Power nodes in AvA!
+Ultron, Iron Man: Her Concussion effect has a pretty good chance to stop abilities from activating. If those two Champions are about to Regenerate, Special 2 will give them a Concussion!```
+Weaknesses
+```Black Widow, Elektra, Falcon: All those Champions can bypass her Evade ability while the Concussion effect is active.```

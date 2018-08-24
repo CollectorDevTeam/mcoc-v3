@@ -1,0 +1,48 @@
+All stats based on 4 Star, Rank 5, Level 50, Signature Level 99
+
+Basic Abilities: Resist Physical, Fury, Armor Break
+
+Passive – Spirits of the Dead
+• Hela controls the Spirits of the Dead, using them to power her Fury Buffs, giving them infinite duration as long as she has Spirits.
+• Each Fury Buff active on her drains her Spirits over time, but each strike of her summoned swords empowers them.
+• If her Spirits are exhausted, her Fury Buffs begin to expire 1 at a time.
+
+Buff – Tough as Hel
+• After taking more than 8% of her Base Health in damage from a single strike, Hela gains a Buff granting +666.67 Physical Resistance, that lasts until she is struck by a Heavy Attack.
+• This attack does not stack, instead if triggered multiple times, its effect increases by +666.67.
+
+Buff – Heavy Attacks
+• While charging her Heavy Attack, Hela continually gains Fury Buffs granting 596.5 Attack.
+
+Special 1 - Fury of the Dead
+Hela stabs for the heart of her opponent.
+• 100% chance to trigger a Fury Buff granting +596.5 Attack.
+
+Special 2 - Soul Breaker
+Twin blades, followed by an axe hurled with immense force.
+• This attack places an Armor Break on the Opponent reducing their Armor by 857.14 for each Fury currently active, lasting for 10 seconds.
+
+Special 3 - Hand of Glory
+Summoning a whirlwind of weapons, Hela unleashes a torrent of blades.
+• This attack deals bonus Physical Damage up to 7% of the Target’s missing health, based on the number of Fury Buffs active on Hela. Max Damage at: 5
+
+Signature Ability - GODDESS OF DEATH
+As the Asgardian Goddess of Death, Hela in all but invincible, and is able to draw strength from her fallen comrades.
+Passive - Goddess of Death
+• At the start of the fight each Champion on Hela’s team that is knocked out grants her +25 Spirits.
+• This first time Hela would be knocked out in each fight, she gains an Indestructible Buff, that lasts for 5 seconds.
+
+Recommended Masteries
+Enhanced Fury: Hela is all about stacking up Fury Buffs so increasing their effectiveness is definitely good for her!
+Assassin: Hela’s Special 3 Attack makes her a great finisher. Assassin will improve her effectiveness in this closer role.
+Glass Cannon: Free Attack, and Hela’s Tough as Hel, Physical Resistance Buffs are triggered by her taking a percentage of her Base Health in a single hit, so the extra Damage taken can sometimes actually work out in her favor.
+
+Strengths
+Star-Lord: Offensively, Hela gets a Class Advantage and should have little problem ruining Star-Lord’s day. Defensively as Star-Lord’s damage builds up, he’ll find himself triggering her Physical Resist again and again.
+Black Panther (Civil War): The all but guaranteed Armor Break off of Hela’s Special 2 Attack can be a life saver when facing everyone’s favorite Stun reflector!
+Spider-Man (Stark Enhanced): Being a Cosmic Champion, Hela will disable Stark Spidey’s AI simply by landing hits against him.  If he does build up his Poise charges against her, she’ll start triggering Physical Resistance Buffs against him, which he’ll have no way to clear other than with his Heavy attack.
+
+Weaknesses
+Dr Strange: Doctor Strange is a nearly perfect counter to Hela. His Counterspell will get in tons of work in, and his Basic and Special Attacks both do Energy Damage so he couldn’t care less about the Physical Resistance Buffs, even if they do trigger.
+Rogue: Rogue’s Special 1 Attack can work wonders here. There will almost always be a Fury to duplicate, and as long as she can keep it copied, Hela can’t trigger any more of them.
+Ronan: An awakened Ronan is a terror to Hela. She stacks Furies which raises an Awakened Ronan’s Attack (this Bonus is even greater on his Special 2 Attack), and increases the Duration of his Stuns. Also, his Special Attacks will convert Furies into Weaknesses.

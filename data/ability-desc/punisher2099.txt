@@ -1,0 +1,50 @@
+All stats based on 4 Star, Rank 5, Level 50, Signature Level 99
+
+Nano-Tech – Charging
+• The Nano-Tech Battery begins the fight with 25% of its max charge.
+• Every 5 seconds, the Battery triggers a recharge.
+• If the opponent has 0 Buffs, the Battery recharges 6%
+• If the opponent has 1 Buff, the Battery recharges 4%
+• If the opponent has 2 or more Buffs, the Battery recharges 3%
+
+Nano-Tech – Automatic Effects
+• Opponent activates a Regeneration Buff – 20% of the Battery is drained to infect the opponent with nano-inhibitors and Heal Block them for 8 seconds. This Debuff automatically reapplies itself if a Regeneration Buff is still active when it expires.
+• Punisher 2099 drops below 10% Health – the Battery is drained entirely, allowing Punisher 2099 to Regenerate 29.8 Health over 10 seconds for each percent drained.
+• Punisher 2099 lands a Heavy Attack – 15% of the Battery is drained to Stun the opponent for 1.5 seconds.
+
+Nano-Tech – Overdrive
+• When the Battery hits 100%, it immediately goes into Overdrive and continually drains. It also cannot recharge until it is drained entirely and switches back to recharge mode.
+• While in Overdrive: Punisher 2099 gains 17.31 additional Attack Rating for each remaining percent in the Battery and his attacks cause his opponent to gain 90% less Power.
+
+Special 1 - Excessive Force
+A vicious pistol whip followed by a barrage of hot lead shows why Jake still relies on good old fashioned gun-powder.
+• Punisher 2099 momentarily switches his battery into Overcharge mode, gaining 16% charge over 8 seconds.
+
+Special 2 - Crowd Control
+A burst of fire from his assault rifle and a grenade to the face will disperse any target.
+• 20% of the Battery is drained to activate Auto-Targeting. Auto-Target attacks cannot trigger a Passive Evade and gain 857 additional Critical Rating.
+• Grenade Launcher - 100% chance to Armor Break, removing 2000 Armor Rating for 10 seconds. If the Battery has at least 10% charge, it expends that amount to double the duration of the Armor Break Debuff.
+
+Special 3 - Final Deletion
+You have been found guilty of assaulting the Minister of Punishment. Your sentence: Disintegration.
+• 50% of the Battery is drained to Disintegrate the opponent, dealing 2308 Direct Damage over 10 seconds and reducing their Power Gain Rate by 90%.
+
+Signature Ability - RETRIBUTION 2099
+• A last-minute upgrade to Punisher 2099’s arsenal allows him to begin each fight with an additional 15% charge in his Nano-Tech Battery and also gains a new Nano-Tech Automatic Effect.
+• Opponent hits max Power Meter – 50% of the Battery is drained to drain 5% of the opponent’s Power and Power Lock them for 8 seconds.
+
+Recommended Masteries
+Cruelty: For increased damage output, Punisher 2099 is best off using his Special 2 or Special 3. Because of the large boost to Critical Rating provided by his Special 2 Auto Target, Punisher 2099 gains a large damage boost by investing in this Mastery.
+Collar Tech: Combining the effects of Collar Tech with Punisher 2099’s Overdrive or Disintegration effects can effectively keep the opponent Power Locked throughout a large portion of the fight and reduce the need to bait out the opponent’s special attacks.
+
+Strategies, Tips, and Design
+The largest boost to damage that Punisher 2099 receives is from his Overdrive mode. While at 100% Battery, the total Attack boost is around 150%, making it one of the largest single attack boosts in The Contest.
+Careful use of Punisher’s three special attacks is key to maximizing his damage and utility.
+
+Against opponents where you might need to use the Battery a lot for Heal Block or Power Lock, use the Special 1 buff to keep your battery charge high throughout the fight. If your Battery starts getting too high and you don’t want to risk going into Overdrive, simply use a Parry and a Heavy Attack to reduce your charge quickly.
+
+Against opponents that Evade a lot, try using a special 3 right as you cross over into Overdrive. The massive damage boost will remain through the entire special attack and will even boost the damage dealt by the disintegration effect. Additionally, because you are in Overdrive, the opponent will gain very little power from receiving a Special 3.
+
+Using a Special 2 while in Overdrive is good, but not as good as using a Special 3. Because the cost to activate Auto-Target happens immediately, you’ll lose 20 Battery before the first attack has a chance to deal damage. Instead, use Special 2 as a means to finish off an opponent that has an Evade or powerful Armor Up ability.
+
+Punisher’s Regeneration when he is low on health is not meant to be a powerful Arc Overload type effect. It is meant to provide Punisher with a small survivability if he drops too low on health. At max Battery, this ability provides around 20% of Punisher’s max health. As you get low on health, try activating more Special 1 attacks to keep your Battery up. This will guarantee you gain more health if you drop too low, and will also ensure you have enough power to use your Signature Ability if things go wrong.

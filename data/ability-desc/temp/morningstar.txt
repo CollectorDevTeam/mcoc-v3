@@ -1,0 +1,55 @@
+All stats based on 4 Star, Rank 5, Level 50, Signature Level 99
+
+Passive - Bleed Immunity
+• A lack of blood provides full immunity to Bleeding.
+
+Passive - Captured Souls
+• Over the course of a quest, Morningstar’s weapon captures Souls and stored up to 5 of them, empowering both her and itself. Captured Souls travel with them from fight-to-fight.
+1 Soul: When struck with a Physical Contact attack, Morningstar has a 50% chance to cause her opponent to Bleed for 574 damage over 5 seconds.
+2 Souls: Special 1 Triggers Unstoppable for 2.5 Seconds
+3 Souls: Special 2 becomes Unblockable
+4 Souls: Gain 574 Energy Resist, and 50% Perfect Block Chance.
+5 Souls: 20% chance on Hit to Life Steal 50% of the Damage done to the Opponent.
+
+Heavy Attacks
+• 100% Chance to trigger a Power Gain granting 5% of Max Power per Captured Soul over 15 seconds. Max: 1 Stack
+
+Special 1 - Strength of Languria
+Morningstar strikes with her weapon, as it glows with the power of the souls contained within.
+• Each hit of this attack deal 315 Bonus Energy Damage per Captured Soul. This Damage increases with Critical Hits.
+
+Special 2 - Maiden’s Furnace
+Morningstar channels her pain, rage, and hatred into a beam of pure power.
+• Each hit of this attack deals 861 Bonus Energy Damage per Buff active on the Opponent, when the attack is triggered.
+• 100% Chance to Nullify all Buffs
+
+Special 3 - Soul Chains
+Morningstar lets her weapon taste the soul of her enemy.
+• Morningstar begins to pull her opponent’s soul from their body, place a counter on herself.
+• Damage to the opponent increases the counter, Damage to Morningstar reduces it.
+• If the counter reaches 100, she captures the Soul. If it reaches 0, her opponent reclaims their soul.
+• Morningstar can capture only 1 Soul per fight.
+
+Signature Ability - SOUL LINK
+Morningstar’s weapon grants her a link to her Opponent’s soul, allowing her to feed on its power, strengthening herself, while weakening them.
+• If Morningstar has less than 1 Captured Soul at the start of a fight, she gains 1.
+
+Morningstar’s Weapon grants her a link to her Opponent’s Soul, allowing her to siphon away a portion of the power from any Fury, Power Gain, or Regeneration Buffs they trigger, reducing their potency by 50%, and granting her own Buff.
+Fury: +631 Attack for 15 Seconds.
+Regeneration: +1974 Health over 15 Seconds.
+Power Gain: +22.5% Power over 15 Seconds.
+
+Recommended Masteries
+Critical Rating: A lot of Morningstar’s consistent damage comes from building her Souls and then throwing lots of Special 1 Attacks. The Bonus Energy Damage that comes from her Special 1 increases when she lands a critical hit.
+Glass Cannon: While Morningstar does need to stay alive to get to 5 Souls, once she does her Lifesteal, it will help keep her topped off to mitigate the Health Reduction and bonus damage is also bonus lifesteal!
+Double Edge: A bit of a gimme here, but with her Bleed Immunity she get’s all the upsides of Double Edge with none of the drawbacks!
+
+Strengths
+Hyperion: Once she has her Signature Ability unlocked, Morningstar becomes an excellent Hyperion counter. His consistent Power Gains have a reduced effectiveness against her, and she’ll trigger her own Power Gain, and Fury to match his.
+Wolverine: What Morningstar’s Signature Ability can do to Hyperion’s Power Gain, it does just as well to Wolverine’s Regeneration. Also, she’s Bleed Immune to cut down on Wolverine’s damage potential so she shouldn’t have any trouble.
+Mordo: With sufficient Souls, Morningstar’s Special 2 Attack becomes Unblockable, punching right through that block Mordo loves to hide behind. Her Signature Ability also gives her a Power Gain of her own. You get the picture.
+
+Weaknesses
+Quake: Well right off the top, the Class Advantage gives a nice damage boost. Next stacking up Concussions on Morningstar will help Quake land hits without triggering the reflected Bleed. Quake also doesn’t have any Buffs for Morningstar to leech off of, and has lots of Stuns which Morningstar just has to tank through like anyone else.
+Cyclops (Blue Team): Cyclops is a solid answer to Morningstar. His additional power gain below Special 1 comes from a Passive ability, so it doesn’t trigger Morningstar’s Signature Ability, and that Special 1 is both a Projectile and Energy Damage, so it doesn’t trigger the Bleed.
+Ultron: Morningstar can struggle against Ultron. He’s Bleed Immune, but so is she, so they’re both missing their Bleed abilities. Ultron, however, Regenerates a portion of the Energy Damage he takes, and most of Morningstar’s big damage comes in Energy form, so she’ll find she doesn’t inflict as much Damage as she’s used to.

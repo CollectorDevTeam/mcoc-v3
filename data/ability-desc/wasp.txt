@@ -1,0 +1,32 @@
+All stats based on 4 Star, Rank 5, Level 50
+
+
+Passive - Class Advantage (unverified)
+```• When Wasp has Class Advantage, all of her abilities that are based on the Combo Meter receive an additional bonus equivalent to 40 more hits on her Combo Meter.```
+Wasp Counter Attack Recharge (unverified)
+```• Wasp must wait before being able to shrink and Counter Attack when attacked by the opponent.```
+
+Heavy Attacks - Stun
+```• When Wasp charges a Heavy Attack while hitting with a Basic Attack Combo, the opponent loses sight of her and passively gets Stunned for 0.6 seconds.```
+Heavy Attacks - Weakness
+```• Inflicts Weakness for 10 seconds if this attack was chained while hitting with a Basic Attack Combo, reducing the opponent’s Attack Rating by 30%.```
+Passive - Attack Rating
+```• Whenever Wasp shrinks down, her next 2 hits will be critical, with +{1} Attack Rating for each Debuff active on the opponent. Additionally, Counter Attack is disabled for 10 seconds.```
+When Attacked
+```• Wasp has a 8% chance to shrug off all Damaging Debuffs other than Bleed, then shrink to Counter Attack, Evading the opponent’s attack and inflicting Shock, dealing {1} Energy Damage over 8 seconds.```
+
+Special 1 - Insect Size
+Wasp shrinks down to the size of an insect, knocking down the opponent with a flurry of attacks.
+```• 40% chance to Stun for 2 seconds.
+• Concussion, reducing the opponent’s Ability Accuracy by 1% for each hit on her Combo Meter for 8 seconds.
+```
+Special 2 - Quick Sting
+Losing sight of Wasp even for a moment will result in a series of painful stings.
+```• Stings the opponent for {2} seconds. An opponent with sting takes {1} damage when activating a special attack.
+• Sting will Petrify opponents after lasting its full duration, reducing the effectiveness of Power Gain and Regeneration by {1}% for each hit on Wasp’s Combo Meter for 12 seconds.
+```
+Special 3 - Titanic Treat
+Wasp uses her Pym Particle Disks to blow up a bubble gum package to the size of a car, crushing opponents upon impact.
+```• +{1} Attack Rating for each hit on her Combo Meter.```
+
+updated 7/3/2018 jjw

@@ -1,0 +1,38 @@
+All stats based on 4-Star, Rank 5, Level 50, Signature Level 99
+
+Basic Abilities: Bleed, Genetic Memory, Replicate
+
+All Attacks - Bleed
+```• 7% chance to inflict Bleed, dealing 547.2 Direct Damage over 5 seconds.```
+Passive - Genetic Memory
+```• Once every 10 seconds, the symbiote known as Venom calls upon its collective hive mind and grants its host a permanent Buff effect from its genetic memory pool. Venom can only host 5 effects at a time.
+• Symbiote Durability: 247.19 increased Physical Resistance.
+• Symbiote Shield: 150.54 increased Armor Rating.
+• Symbiote Cruelty: 237.14 increased Critical Damage Rating.
+• Symbiote Frenzy: 469.14 increased Critical Rating.
+• Symbiote Rage: 247.19 increased Attack.```
+
+Special 1 - Constituent Lash
+Morphing his arm into a whip of constituent-matter, Venom lashes his target thrice.
+```• The symbiote attempts to replicate the opponent’s Buff effects, with a 45% chance to copy up to 1 effect(s).```
+Special 2 - Constituent Carnage
+Eight repeated strikes tear at opponents with tendril and claw.
+```• The symbiote attempts to replicate the opponent’s Buff effects, with a 75% chance to copy up to 1 effect(s).```
+Special 3 - Hide-And-Seek
+Venom's body writhes and mutates into a creature of nightmares as he plays a twisted game of hide-and-go-seek with his prey.
+```• The symbiote attempts to replicate the opponent’s Buff effects, with a 100% chance to copy up to 2 effect(s).```
+
+Recommended Masteries
+```• Enhanced Fury: Each Symbiote Rage effect counts as a Fury and Enhanced Fury will increase all of those effects. Since these effects last the entire fight, gaining the extra damage output and extra Bleed damage can be very punishing.
+• Cruelty: With the increased Critical Hit Rate from Genetic Memory and Bloodlust, Venom can land fairly reliable Critical Hits while his enemy is bleeding. Increasing his Critical Damage can turn these moments into devastating attack opportunities.
+• Physical Resistance / Perfect Block: These masteries, as well as the ones that lead up to them, help increase Venom’s overall endurance in order to ensure he lasts longer in the fight and has more of a chance to build up his Genetic Memory triggers.```
+
+Strengths
+```• Venom performs his best when the fight has gone on long enough for him to stack up multiple effects from Genetic Memory and as a result, favors players who can hold back long enough to trigger multiple effects to gain the best results.
+• Venom’s ability to copy his opponent’s beneficial effects is extremely powerful when used against champions with predictable effects, such as Ultron, Iron Man or Deadpool. Copying a powerful Regeneration effect can allow Venom to heal up a massive amount of Health while his Genetic Memory protects him from further harm. Holding back a Special 3 until just the right moment can allow a clever player to copy these effects for maximum use.
+• Venom is best used in an aggressive manner while the opponent is bleeding. Holding back during these times is not as advised as the large boost to Critical Hit Rate and Critical Damage can allow Venom to put out a large amount of damage from a single combo.```
+
+Weaknesses
+```• Like many Cosmic champions, Venom is very reliant on his beneficial effects to see him to victory. As a result, he performs poorly against Mystic champions that can strip away these effects reliably such as an awakened Dr. Strange or Magik.```
+
+updated 7/30/2018 - lmxn

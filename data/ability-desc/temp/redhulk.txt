@@ -1,0 +1,66 @@
+Red Hulk - Originally Posted 04-27-2016
+
+Bio
+General Thaddeus “Thunderbolt” Ross has done the unthinkable in his unending mission to hunt down and destroy the Incredible Hulk. Using a combination of radiations, Ross has turned himself into what he hated for so long: a walking weapon of mass destruction. Now, equipped with super strength, durability and the ability to absorb radiation and energy, Thunderbolt Ross struggles with his desire to end the Hulk without succumbing to his own monstrous impulses.
+
+Base Stats & Abilities
+*All stats based on 4 Star, Rank 5, Level 50
+
+Class: Science
+
+Health: 16,876
+Attack: 1199
+Max PI:
+3477 - Without Signature Ability
+4257 - With Signature Level 99
+
+Special 1: Blistering Assault
+Excess heat from this attack causes Red Hulk to gain 2 additional Heat Charges.
+
+Special 2: Scorched Earth
+Red Hulk expends one Heat Charge to Incinerate his opponent, dealing 92% of his Attack as Energy Damage over 10 seconds. This effect also removes Perfect Block Chance and reduces Block Proficiency by 50% while it’s active.
+
+Special 3: Necessary Measures
+Red Hulk expends one Heat Charge to Incinerate his opponent, dealing 98% of his Attack as Energy Damage over 8 seconds. This effect also removes Perfect Block Chance and reduces Block Proficiency by 50% while it’s active.
+
+Passive - Scorch
+At the start of the fight and each time Red Hulk loses 10% of his Max Health, he gains 1 Heat Charge. For each Heat Charge he has, his attacks deal an additional 9% of the damage dealt as a burst of Energy Damage.
+If Red Hulk ever has 7 or more Heat Charges, he loses all Heat Charges and becomes Overheated. While he is Overheated, he is unable to gain new Heat Charges for 5 seconds.
+The amount of bonus Energy Damage is per charge. Meaning if you have 5 charges and launch an attack, each attack is doing a bonus 45% Energy Damage.
+This damage is also dealt when the opponent is Blocking.
+
+Passive - Poison Immunity
+Whenever Red Hulk would become Poisoned, his altered state removes the Poison and has a 78% chance to convert it to a Heat Charge.
+Whether Red Hulk gains the Heat Charge or not, he still removes the Poison effect.
+
+Blocking - Charge Conversion
+Blocking has a 52% chance to convert an Energy Attacks into Heat Charges
+This is only triggered by attacks that are Energy Damage at the base. This will not trigger in a Red Hulk mirror match as Red Hulk’s base attacks are Physical. This will, however, work against Special Attacks that deal base Energy Damage, such as Iron Man’s beams.
+
+Signature Ability - Second Strike
+General Ross prepares to cross the line in the sand, beginning the fight with 2 Heat Charge(s) ready. Additionally, for every 2 Heat Charges he has, he gains an additional (6 - 23%) Physical Resistance.
+
+Synergy Bonuses
+Elektra & Agent Venom - Thunderbolts: All Champions take 10% less Special Damage
+Abomination - Enemy: All Champions gain +6% Crit Rate
+Hulk - Nemesis: All Champions gain +6% Attack
+X23 - Teammates: All Champions gain +5% Perfect Block Chance
+
+Recommended Masteries
+
+Liquid Courage
+As Red Hulk automatically shrugs off Poison effects, he gains the Attack boost without the damage. Additionally, his Scorch ability has a chance to convert that Poison effect into a free Heat Charge to get his damage output higher at the start of the fight.
+
+Energy Resistance & Serum Science
+Red Hulk can have some of the highest Physical Resistance in the game. However, he has little in the way of defense when it comes to Energy Damage. While is conversion can generate Heat Charges, the actual damage still goes through. Grabbing these two Masteries will allow Red Hulk to soak up that damage and keep his Heat Charges going.
+
+Strong Match Ups
+This is a list of who this champions performs strongly against.
+Dr. Strange, Magneto - As both of these champions deal Energy Damage with their base attacks, Red Hulk will be able to get his Heat Charges building very rapidly for massive damage output.
+Luke Cage, Rhino - Red Hulk’s Energy Damage from Scorch bypasses the Physical Resistance of these champions.
+Abomination, Ant-Man - Red Hulk’s ability to convert Poison into Heat Charges turns away much of the attack power of these champions.
+Captain America, Daredevil - Incinerate allows Red Hulk to reduce these champions’ strong defensive capabilities.
+
+Poor Match Ups
+This is a list of who this champion performs poorly against.
+Black Panther, Hawkeye - In addition to the class disadvantage, these champions have strong Bleed effects that ignore Physical Resistance and do not deal Energy Damage that Red Hulk can absorb.

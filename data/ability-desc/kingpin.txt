@@ -1,0 +1,49 @@
+All stats based on 4 Star, Rank 5, Level 50, Signature Level 99
+
+Basic Abilities: Rage, Overpower, Unstoppable
+
+Passive – Rage
+• Whenever Kingpin gains a Debuff he has a 50% chance to convert it into a permanent Rage which has no effect.
+• Each Debuff and Rage on Kingpin only strengthens his resolve, increasing his Attack by 292.75 and Power Gain Rate by 5%.
+• Whenever the Opponent Evades one of Kingpin’s attacks, he gains a Rage. Cooldown: 1.5 seconds.
+
+Buff – Overpower
+• If Kingpin’s Debuffs and Rages combine to equal 8, he converts them into an Overpower Buff, lasting 12 seconds and increases his attack by 2927.5.
+• While in Overpower mode, Kingpin’s Special Attacks become Unblockable and he cannot gain Rage.
+
+Heavy Attacks
+• While charging a Heavy Attack, Kingpin becomes Unstoppable for 0.8 seconds and has 1333.33 additional Physical Resistance.
+• If Kingpin lands 3 Heavy Attacks within 2.5 seconds of each other he gains Fury, increasing his Attack by 878.25 for 10 seconds.
+• While Kingpin has this Fury Buff, he cannot become Unstoppable.
+
+Special 1 - Dirty Deeds
+Nothing’s illegal in The Contest. Especially not a concentrated dose of toxic Black ISO-8.
+• Infects the opponent with Black ISO-8, dealing 1756.5 direct damage over 12 seconds. Opponents under Black ISO-8 suffer 45% reduced Defensive Ability Accuracy and Attack.
+
+Special 2 - Eliminate the Competition
+It’s nothing personal…it’s just good business.
+• 100% chance to gain an Unstoppable Buff which lasts for 6.50 seconds.
+• While Unstoppable, each hit landed on Kingpin has a 100% chance to grant a Rage.
+
+Special 3 - Self Made Man
+Such disrespect and insolence towards the Kingpin of crime. It’s time Fisk got his hands dirty…
+• Kingpin gains 2 Rage. If he’s in Overpower mode, he instead refreshes the duration of Overpower mode.
+
+Signature Ability - TRUE NATURE
+Fisk sets his ill intent upon the Contest, beginning the fight with Rage Debuffs already active on himself. He also gains the ability to recover some Rage after finishing his Overpower mode.
+• Kingpin begins the fight with 2 Rages.
+• When exiting Overpower mode, Kingpin has a chance to gain up to 4 Rages, each having a 82.44% chance to active.
+
+Recommended Masteries
+Extended/Enhanced Fury: Kingpin’s Overpower Buff counts as a Fury and as such, it benefits from these Masteries. It’s also rather a large bonus so there are benefits of improving it.
+Willpower: Kingpin has the ability to convert Debuffs into Rage. Willpower allows him to benefit from those that he doesn’t convert, as well as giving him a way to recover some health to offset any damage he takes while being Unstoppable.
+Liquid Courage/Double Edge: Again coming back to Kingpin’s ability to convert Debuffs to Rage, while not the guarantee of an immunity, he has a 50% chance to gain all the benefits with none of the penalties.
+
+Strengths
+Electro: Kingpin makes a good answer to Electro. His large health pool allows him to soak up some of that Static Shock Damage without too much worry. Then his Special 1 includes a projectile attack allowing him to avoid some of the damage all together, and the Ability Accuracy reduction from that same Special 1 allows him to avoid even more. Finally, sprinkle a little class advantage on top and away you go.
+Spider-Man (Stark Enhanced): Starker-man’s AI assisted Evade is serious business. It’s usually somewhere between difficult and suicidal to throw a Heavy Attack at him, making it tough to turn it off if you’re not a Cosmic Champion. Kingpin’s Unstoppable Heavy Attack let’s him turn off that AI in relative safety, unlocking his Special 1 to get the Ability Accuracy Reduction into the fight to keep him down!
+
+Weaknesses
+Angela: Angela has no Debuffs to place on Kingpin, taking his Rage also completely out of the picture.  Also as a Skill Champion with only his Black ISO Ability Accuracy reduction to combat her Buff stacking, Kingpin will find himself facing an uphill battle..
+Doctor Strange: With Counterspell and Nullify to remove Unstoppable and Fury, Mystic Dispersion to benefit from those removals, and Energy Damage basic attacks to counter Kingpin’s Physical Resistance, Doctor Strange is a tough matchup.
+Rogue: Rogue’s Powersteal and Lifesteal abilities are unaffected by Kingpin’s Rage, and she can steal a Fury of her own from Overpower. Her ability to reduce Debuff durations lowers the effect of Black ISO-8, and she has Class Advantage to make sure she hurts even more than usual.

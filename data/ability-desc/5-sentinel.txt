@@ -1,0 +1,70 @@
+All stats based on 5-Star, Rank 5, Level 65, Signature Level 200
+
+Base Abilities: Robotics, Heal Block, Incinerate, Armor, Armor Break
+
+Passive - Robotics
+• Advanced robotics provides full immunity to Poison and Bleed effects.
+
+Passive - Target Analysis
+• Sentinel monitors the target, when they repeat the same action consecutively, Sentinel gains 4 Analysis Charges. Actions include Light Attacks, Medium Attacks, Heavy Attacks, Dashing, Dodging, and Blocking an attack. Analysis Charges stack up to 100 max.
+-- Example 1) A Skill Champion facing against Sentinel performs Med, Light, Light, Light, Med Combo results in 8 Analysis Charges. Two activations on Light, Light, Light.
+-- Example 2) A Cosmic Champion facing against Sentinel performs Med, Med, Light, Light, Dodge results in 4 Analysis Charges. Two activations on Med, Med and Light, Light (halved when facing a Cosmic Champion).
+-- Example 3)  A Mutant Champion facing against Sentinel performs Med, Light, Med, Light, Dodge, Dodge, Dodge results in 16 Analysis Charges. Two activations on the Dodge, Dodge, Dodge (double when facing a Mutant Champion).
+•  Designed to hunt Mutants, Sentinel gains double Analysis Charges when facing a target of the Mutant Class. Unable to register Cosmic beings, Sentinel gains half the amount of Analysis Charges when facing a target of the Cosmic Class.
+• Special Attacks cost 0.25% less per Analysis Charge.
+-- 25% at max Analysis Charges
+• Armor Rating increases by 12.07 per Analysis Charge.
+-- 1207 at max Analysis Charges
+• Critical Resistance increases by 16.13 per Analysis Charge.
+-- 1613 at max Analysis Charges
+• Attack Rating increases by 12.16 per Analysis Charge.
+-- 1216 at max Analysis Charges
+
+Passive - Analysis Complete
+• At max Analysis Charges, Sentinel gains the following abilities:
+-- Once Sentinel has gained Analysis Charges or reached Analysis Complete, both are permanent effects that cannot be reduced or removed.
+• Special 1 and Special 2 effects trigger on the target’s Block.
+-- Only applies to Sentinel’s own Abilities (Heal Block, Armor Break, and Incinerate). Does not include additional effects from other sources such as Masteries or Synergy Bonuses.
+• While charging a Heavy Attack, Sentinel becomes Unstoppable for 0.8 seconds. While the target is Shocked, Sentinel cannot become Unstoppable.
+• When Sentinel inflicts a Shock, Incinerate, Heal Block, or Armor Break, it’s duration is increased by 100%.
+
+Heavy Attacks
+• Shock the target, dealing 1216 Energy damage over 3 seconds.
+
+Special 1 - ISO Fusion
+REGULATION: when superheated ISO exceeds safety regulations, disperse towards aggressors.
+• Initial hit inflicts Heal Block, preventing the target from recovering Health for 6 seconds.
+• Successive hits have a 50% chance to Armor Break, removing an Armor Up from the target and reducing their Armor Rating by 500 for 6 seconds.
+• There’s a chance to activate Armor Break on each hit after the first.
+
+Special 2 - ISO Barrage
+PACIFICATION: Sacrifice extremities. Saturate tactical short-range missiles with excess ISO and bombard target. Fabricate new extremities.
+• Each hit inflicts Incinerate, dealing 608 Energy Damage over 3 seconds. This also removes the target’s Perfect Block Chance and reduces their Block Proficiency by 50%.
+
+Special 3 - ISO Detonation
+SOLUTION: ISO temperature exceeded. Central AI assuming direct control. Replacing faulty unit with more adaptable model.
+• Gain a permanent Armor Up passive, increasing Armor Rating by 1333.33. The Armor Up passive can be removed by Armor Break.
+• If Sentinel already has an Armor Up passive, consume the Armor Up passive and instantly regenerate up to 4743.6 based on lost Health.
+
+Signature Ability - ANALYSIS UPGRADE
+Directives: Upgrade Power depletion firewall and sensor module. Outcomes: resistance to Power depletion and improved analysis of Special Attacks.
+• When the target activates a Special Attack, and it matches the previously activated Special Attack, Sentinel gains 20 Analysis Charges.
+-- Example 1) A Skill target activates a Special 1 Attack then fights enough to have two bars of Power and activates a Special 2 Attack. The result from activating the Specials is 0 Analysis Charges.
+-- Example 2) A Mutant target activates a Special 2 Attack then fights enough to have two bars of Power and activates a Special 2 Attack. The result from activating the Specials is 40 Analysis Charges.
+• Abilities that cause Sentinel to lose Power are 0.3% – 0.7% less effective per Analysis Charge.
+--30% – 70% at max Analysis Charges
+
+Recommended Masteries
+Despair: Sentinel’s Special 1 and 2 Attack are both multi-hit attacks that each inflict many Debuffs.
+Collar Tech: Many Champion’s utility and damage output comes from Special Attacks. By reducing opponent’s Special Attack usage, it can prolong the fight for Sentinel which it benefits greatly from.
+Energy/Physical Resistance: Anything to provide Sentinel with increased passive defenses will help ensure that Sentinel reaches max Analysis Charges.
+
+Strengths
+Mutants: Most Mutants have high Critical Rating, Bleed, and/or Regeneration abilities, all of which Sentinel has answers for. Many of Sentinel’s abilities scale off its Analysis Charges, which passively build up significantly faster when facing Mutant Champions.
+Power Drain/Burn: Sentinel’s Signature Ability provides protection against Power depletion effects such as Vision’s Power Burn. In addition, when paired with Ultron, Yondu, or Green Goblin, that protection is increased even further when facing Tech Champions.
+Magik/Dormammu: When paired with Hood, Morningstar, or Mordo, Sentinel gains a Synergy Bonus that turns Power Lock abilities in its favor when facing Mystic Champions. Power depletion abilities are also reduced against Sentinel.
+
+Weaknesses
+Armor Break: Sentinel is a tank-like Champion that build up defenses through Armor Up and Critical Resistance. Once the Armor Up is taken out of the equation, Sentinel is left to be torn apart.
+Cosmic Champions: Cosmic Champions have Class Advantage and passively reduce the amount that Sentinel’s build Analysis Charges. Since many of its abilities scale off Analysis Charges, this is a significant hit to Sentinel’s kit.
+Medusa: Armor Break? Check. Cosmic? Check. Abilities that are effective against Robots? CHECK. Not much else to say.

@@ -1,0 +1,1208 @@
+{
+    "meta": {
+        "language": "en",
+        "hash": "local",
+        "format": "sparx",
+        "ts": 1522777450,
+        "tagged": [
+            "dungeons",
+            "client"
+        ],
+        "string_count": 236
+    },
+    "strings": [
+        {
+            "k": "ID_DUNGEON_LOBBY_MATCHMATCHING_CANCEL_INVITES_DESC",
+            "v": "We can find a partner for you, but it will cancel your invitations.",
+            "vn": "18"
+        },
+        {
+            "k": "ID_DUNGEON_LOBBY_MATCHMATCHING_CANCEL_INVITES_TITLE",
+            "v": "YOU HAVE PENDING INVITES",
+            "vn": "18"
+        },
+        {
+            "k": "ID_DUNGEON_LOBBY_MATCHMATCHING_EVENT_ENDED_DESC",
+            "v": "A previous Dungeon event has ended and a new one has begun. You are being returned to the lobby with your team unlocked.",
+            "vn": "18"
+        },
+        {
+            "k": "ID_DUNGEON_LOBBY_MATCHMATCHING_EVENT_ENDED_TITLE",
+            "v": "A NEW EVENT HAS STARTED",
+            "vn": "18"
+        },
+        {
+            "k": "ID_DUNGEON_LOBBY_MATCHMATCHING_LOCKED",
+            "v": "Matchmaking coming soon!  Invite someone to play with.",
+            "vn": "18"
+        },
+        {
+            "k": "ID_TUT_DUNGEON_EDIT_TEAM_DESC",
+            "v": "All opponents in the Dungeon will be one of these two classes. Build a team with this in mind, but beware — the classes will change each day!",
+            "vn": "18"
+        },
+        {
+            "k": "ID_TUT_DUNGEON_INTRO_DESC",
+            "v": "Team up with another Summoner and descend into a Dungeon. Push your luck through increasing challenges of courage and cooperation!",
+            "vn": "18"
+        },
+        {
+            "k": "ID_TUT_DUNGEON_INTRO_TITLE",
+            "v": "INFINITY DUNGEONS UNLOCKED!",
+            "vn": "18"
+        },
+        {
+            "k": "ID_TUT_DUNGEON_LOBBY_INVITE_DESC",
+            "v": "Invite an Alliance member or friend to enter the Dungeon with.",
+            "vn": "18"
+        },
+        {
+            "k": "ID_TUT_DUNGEON_LOBBY_MATCH_FOUND",
+            "v": "MATCH FOUND!",
+            "vn": "18"
+        },
+        {
+            "k": "ID_TUT_DUNGEON_LOBBY_SELECT_TEAM_DESC",
+            "v": "Before entering a Dungeon, you have to select a team, a partner and a difficulty.",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_CHAT_DUNGEONS_CTA",
+            "v": "Your Dungeon Party needs you!",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEONS_ALL_REWARDS_EARNED",
+            "v": "ALL REWARDS EARNED!",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEONS_HELP_ADV1_1",
+            "v": "Available dungeon difficulties are based on your party's lowest team rating",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEONS_HELP_ADV1_2",
+            "v": "Champions used in a dungeon will need to recharge before they can be used in another dungeon",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEONS_HELP_ADV1_3",
+            "v": "Matchmade with a great player? Add them to your Friends List and invite them to another dungeon!",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEONS_HELP_ADV2_1",
+            "v": "Complete a room by defeating the final boss before time runs out",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEONS_HELP_ADV2_2",
+            "v": "Your first opponents in a room are providing powerful buffs to your partner's next fight. You can only remove one buff each so communicate to succeed!",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEONS_HELP_ADV2_3",
+            "v": "Once both sub-bosses are defeated, the final boss will become a valuable chance to get some health back! Which Champion needs it most for the next room?",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEONS_HELP_ADV3_1",
+            "v": "Complete every room you attempt and receive a large bonus multiplier to your final score! Be careful though, starting a room and failing to defeat it's final boss will forfeit this bonus.",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEONS_HELP_ADV3_2",
+            "v": "Remaining Champion health is persistent from room to room. Both party members must agree to either play it safe and exit the Dungeon or push their luck towards greater glory in the next room.",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEONS_HELP_ADV4_1",
+            "v": "All points are awarded once your current Dungeon run has concluded.",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEONS_HELP_ADV4_2",
+            "v": "Any unclaimed milestone rewards are sent to your stash when the dungeon event ends",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEONS_HELP_DESCRIPTION1",
+            "v": "Play in a team of two with your alliance members, existing friends or make new friends with matchmaking!",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEONS_HELP_DESCRIPTION2",
+            "v": "Make co-operative decisions to advance simultaneously through a dungeon of infinite challenges!",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEONS_HELP_DESCRIPTION3",
+            "v": "Every room of the dungeon increases in difficulty, but so do the rewards! Can your party handle the challenge or will you cash out while you still can?",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEONS_HELP_DESCRIPTION4",
+            "v": "Clear rooms in a Dungeon to earn as many points as you can. Redeem your milestone rewards for a greatly increased chance at specific Champions and Rarities!",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEONS_HELP_TITLE1",
+            "v": "PARTY UP",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEONS_HELP_TITLE2",
+            "v": "WORK TOGETHER",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEONS_HELP_TITLE3",
+            "v": "PUSH YOUR LUCK",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEONS_HELP_TITLE4",
+            "v": "REWARDS",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEONS_HOW_TO_PLAY",
+            "v": "HOW TO PLAY INFINITY DUNGEONS",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_ACCEPT",
+            "v": "INVITATION ACCEPTED!",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_ALL_REWARDS_CLAIMED",
+            "v": "ALL REWARDS CLAIMED",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_BATTLEGROUP_HEADER",
+            "v": "DUNGEON PARTY",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_BEGUN_TEXT_MILESTONE_FORMAT",
+            "v": "Score {0} to reach your next milestone!",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_BEGUN_TEXT_TITLE",
+            "v": "ENTERING DUNGEON",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_CALCULATING_RESULTS",
+            "v": "CALCULATING RESULTS",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_CHAT",
+            "v": "DUNGEON",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_CLAIM_REWARDS_BUTTON",
+            "v": "CLAIM REWARDS",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_CONCLUDE",
+            "v": "DUNGEON WILL NOW CONCLUDE",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_CONCLUSION_HEADER",
+            "v": "{0} CONCLUDED!",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_CONCLUSION_ROOMS_COMPLETED",
+            "v": "ROOMS COMPLETED:",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_CREATE_PARTY",
+            "v": "CREATE PARTY",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_CRYSTALS_CTA",
+            "v": "Go to Crystals for top Champions!",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_DECISION_ALERT_DESC",
+            "v": "You must make a decision first before you can leave this screen.",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_DECISION_ALERT_TITLE",
+            "v": "DECISION NEEDED",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_DECISION_DIFFICULTY",
+            "v": "DIFFICULTY",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_DECLINED",
+            "v": "INVITATIONS DECLINED",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_DIFFICULTY_NO_RATING",
+            "v": "—",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_DIFFICULTY_NO_TEAM_SELECTED",
+            "v": "Both players need to pick and lock their teams before you can set a difficulty.",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_DIFFICULTY_NO_TEAM_SELECTED_MATCHMAKING",
+            "v": "You need to select a team before you can set a difficulty.",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_DIFFICULTY_PREVIEW",
+            "v": "Only the Party Leader can select a difficulty.",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_DIFFICULTY_PTS_FORMAT",
+            "v": "{0} PTS",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_DIFFICULTY_TEAM_RATING_RANGE_FORMAT",
+            "v": "{0} - {1}",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_DIFFICULTY_TOOLTIP",
+            "v": "A Party Leader can select from up to 3 difficulty levels, based on team rating.\n\nWhen inviting players, both players have to confirm their teams to select a difficulty. The available levels are based on the lowest team rating of your party.",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_DUNGEON_SCORE",
+            "v": "DUNGEON SCORE",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_ENTER",
+            "v": "ENTER DUNGEON",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_EXIT_BUTTON",
+            "v": "LEAVE PARTY",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_FINDING_PARTNER",
+            "v": "FINDING A PARTNER",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_FORCE_RETURN_BODY",
+            "v": "Return to the Lobby to complete your Dungeon Party creation, or leave the party.",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_FORCE_RETURN_TITLE",
+            "v": "YOU WERE IN A DUNGEON PARTY",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_FULL_SCREEN_NON_RE_ROLLABLE_DESC",
+            "v": "ENEMIES ON THIS MAP HAVE RANDOMLY GENERATED BUFFS!",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_FULL_SCREEN_RANDOM_TITLE",
+            "v": "RANDOM BUFFS DETECTED!",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_FULL_SCREEN_RE_ROLLABLE_DESC",
+            "v": "ENEMIES ON THIS MAP HAVE RANDOMLY GENERATED BUFFS THAT CAN BE REROLLED!",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_GET_READY",
+            "v": "GET READY TO BATTLE...",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_HOST_LEFT_DESC",
+            "v": "You are now the party leader",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_HOST_LEFT_TITLE",
+            "v": "THE LEADER HAS LEFT",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_INFO_DESC",
+            "v": "Work with your teammate to defeat enemies in each room! The further you get, the more points you'll earn!",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_INTRO_DESCRIPTION",
+            "v": "Strategize and work together to complete as many rooms as you can!",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_INTRO_ROOM_REWARDS_DESC",
+            "v": "Room Rewards are based on your Team Rating, and the difficulty level you select. Edit your team to preview different difficulties and rewards!",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_INTRO_TITLE",
+            "v": "YOUR DUNGEON PARTY",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_INVITATIONS_PENDING_FORMAT",
+            "v": "{0} INVITATION(S) PENDING",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_INVITE",
+            "v": "INVITE",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_INVITE_ADD",
+            "v": "ADD INVITES",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_INVITE_BUTTON",
+            "v": "INVITE TO DUNGEON",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_INVITE_CANCEL",
+            "v": "CANCEL INVITES",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_INVITE_DECLINE_ALL_CONFIRMATION_BODY",
+            "v": "You will decline all Dungeon Party invitations.",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_INVITE_EXISTING_PARTY_WARNING",
+            "v": "You must leave your current Dungeon Party to accept new invitations.",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_INVITE_NONE",
+            "v": "There are currently no Dungeon Party invites.",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_INVITE_NONE_LOCK_FORMAT",
+            "v": "Reach Level {0} to unlock Infinity Dungeons and play cooperatively with your friends and other players!",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_INVITE_REJECT_WARNING",
+            "v": "Are you sure you want to reject this Dungeon Party invitation?",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_LEAVE",
+            "v": "LEAVE",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_LEAVE_QUESTBOARD",
+            "v": "Be sure to come back and help {0} out before the room timer expires!",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_LEAVE_QUESTBOARD_TITLE",
+            "v": "LEAVE DUNGEON ROOM?",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_LEAVE_ROOM",
+            "v": "LEAVE ROOM",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_LEFT",
+            "v": "PLAYER HAS LEFT",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_LOBBY_MILESTONE_POINTS_FORMAT",
+            "v": "{0}[FFFFFF88]/{1} PTS[-]",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_LOBBY_TITLE",
+            "v": "INFINITY DUNGEONS",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_MATCHMAKE",
+            "v": "FIND A PARTNER",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_MILESTONE_ACHIEVED_FORMAT",
+            "v": "MILESTONE {0} ACHIEVED",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_MILESTONE_DESC",
+            "v": "Milestones achieved are calculated when you conclude the Dungeon.  MIlestone progress resets when the event ends.  Any unclaimed milestone rewards are sent to the stash when the event ends.",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_MULTIPLIER_FORMAT",
+            "local": true,
+            "v": "+{0}",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_NEW_PARTY_BUTTON",
+            "v": "RETURN TO LOBBY",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_NEXT_MILESTONE",
+            "v": "NEXT MILESTONE:",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_NEXT_ROOM",
+            "v": "NEXT ROOM WILL BEGIN!",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_NO_DUNGEON_EVENT_WARNING",
+            "v": "There is no dungeon event running right now!",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_NR_BUFFS_POPUP_SUBTITLE",
+            "v": "This opponent has random buffs!",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_NUMBER_FORMAT",
+            "v": "DUNGEON {0}",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_OR",
+            "v": "OR",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_PANEL_CURRENT_DUNGEON",
+            "v": "CURRENT DUNGEON",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_PANEL_CURRENT_ROOM_FORMAT",
+            "v": "CURRENT ROOM : {0}",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_PANEL_DESCRIPTION",
+            "v": "Team up with another Summoner to overcome the shifting challenges of each room!",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_PANEL_DETAILS",
+            "v": "Delve into Dungeons every day to earn Dark Artifacts, which can be used to obtain unique Champion Crystals!",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_PANEL_TITLE",
+            "v": "INFINITY DUNGEONS",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_PARTY_INVITE_FULL_BODY",
+            "v": "Your party is already full.",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_PARTY_INVITE_FULL_TITLE",
+            "v": "FULL",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_PARTY_MEMBER_REWARDS_HEADING",
+            "v": "FOR EACH PARTY MEMBER",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_PLAYED_WITH",
+            "v": "PLAYED WITH:",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_POINTS_MAXED_FORMAT",
+            "v": "{0} PTS+",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_PTS_FORMAT",
+            "v": "{0} PTS",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_QUESTBOARD_REOPEN_BUTTON",
+            "v": "CHANGE DECISION",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_QUESTBOARD_REOPEN_FOOTER",
+            "v": "START NEXT ROOM?",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_QUESTBOARD_REOPEN_HEADER",
+            "v": "ROOM COMPLETED",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_QUESTBOARD_REOPEN_YOUR_DECISION",
+            "v": "YOUR DECISION: {0}",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_QUIT_WARNING_BODY",
+            "v": "By leaving the lobby, your current Dungeon party will be disbanded.",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_QUIT_WARNING_TITLE",
+            "v": "LEAVE LOBBY?",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_READY",
+            "v": "READY!",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_RECOMMENDED",
+            "v": "RECOMMENDED",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_REWARD_PER_ROOM",
+            "v": "Reward per room",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_ROOM_1",
+            "v": "ROOM 1",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_ROOM_COMPLETED",
+            "v": "ROOM {0} COMPLETED!",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_ROOM_COMPLETED_BLURB",
+            "v": "TIME TO MAKE A DECISION...",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_ROOM_COMPLETED_TITLE",
+            "v": "ROOM COMPLETED!",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_ROOM_COMPLETION_BONUS",
+            "v": "ROOM COMPLETION BONUS",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_ROOM_CONCLUSION_BONUS",
+            "v": "ROOM {0} CONCLUSION BONUS",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_ROOM_CONCLUSION_BONUS_DESC_FORMAT",
+            "v": "A {0}x bonus is automatically applied to your dungeon score if you complete each room you attempt by defeating the final boss.  Complete all rooms you play or lose your bonus!",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_ROOM_FORMAT",
+            "v": "ROOM {0}",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_ROOM_NUMBER_FORMAT",
+            "v": "ROOM {0}",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_ROOM_REWARDS",
+            "v": "ROOM REWARDS",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_ROOM_REWARDS_DESC",
+            "v": "Fight your way through the map and collect the room rewards!",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_ROOM_REWARDS_HEADING",
+            "v": "ROOM REWARDS",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_ROOM_REWARDS_TITLE",
+            "v": "UP FOR GRABS",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_ROOM_TOOL_TIP",
+            "v": "Guaranteed points if you are unable to complete the next room.",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_SCORE_LABEL",
+            "v": "DUNGEON SCORE:",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_SET_DIFFICULTY",
+            "v": "SET DIFFICULTY",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_SOCIAL_HUB_BUTTON",
+            "v": "DUNGEON INVITES",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_STATUS_CONFIRM_TEAM",
+            "v": "CONFIRM YOUR TEAM\nYou cannot edit your team after confirmation.",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_STATUS_EDIT_LOCK_TEAM",
+            "v": "EDIT YOUR TEAMS\nThe difficulty levels available will be based on the lower team rating.",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_STATUS_HOST_SET_DIFFICULTY",
+            "v": "WAITING FOR PARTY LEADER\n to set difficulty and enter dungeon.",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_STATUS_PARTNER_EDIT_TEAM",
+            "v": "WAITING FOR PARTNER TO EDIT TEAM",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_STATUS_PARTNER_LOCK_TEAM",
+            "v": "WAITING FOR PARTNER TO CONFIRM TEAM",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_TEAMMATE_CHOICE",
+            "v": "[3F8BD6FF][{0}][-] {1} wants to {2}",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_TEAMMATE_CHOICE_NO_TAG",
+            "v": "{0} [FFFFFF88]wants to {1}[-]",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_TEAM_DIFFICULTY",
+            "v": "RECOMMENDED: [00D03EFF]{0} - {1}[-]",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_TEAM_DIFFICULTY_EMPTY",
+            "v": "DIFFICULTY: [00D03EFF]—[-]",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_TEAM_PREVIEW_ONLY",
+            "v": "PREVIEW ONLY",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_TEAM_RATING",
+            "v": "TEAM RATING",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_TEAM_RATING_FORMAT",
+            "v": "[FFFFFF80]TEAM RATING[-] {0}",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_TEAM_RATING_RANGE",
+            "v": "[FFFFFF80]RANGE:[-] {0} - {1}",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_TEAM_SELECT_RATING",
+            "v": "TEAM RATING: [00D03EFF]{0}[-]",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_TEA_SELECT_RATING",
+            "v": "TEAM RATING: [0E8314FF]{0}[-]",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_TIMES_UP",
+            "v": "TIME'S UP!",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_TIMES_UP_BLURB",
+            "v": "THE DUNGEON WILL NOW CONCLUDE...",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_TIME_UP",
+            "v": "TIME'S UP!",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_TOP_MILESTONE_ACHIEVED_FORMAT",
+            "v": "TOP MILESTONE {0} ACHIEVED",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_WAITING_FOR_RESPONSE",
+            "v": "[FFFFFF88]Waiting for response from[-] [3F8BD6FF][{0}][-] {1}",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_WAITING_FOR_RESPONSE_NO_TAG",
+            "v": "[FFFFFF88]Waiting for response from[-] {0}",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_WHITE_FORMAT",
+            "v": "[FFFFFFFF]{0}[-]",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_GO_TO_DUNGEONS",
+            "v": "GO TO DUNGEONS",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_INFOTIP_DER_DESC",
+            "v": "Earn Dark Artifacts by participating in Infinity Dungeons. Use Dark Artifacts to purchase Dungeon Crystals and exclusive items in the Store.",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_INFOTIP_DER_TITLE",
+            "v": "DARK ARTIFACTS",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_INFOTIP_DUST_DESC",
+            "v": "Earn Infinity Dust by participating in Special Events. Infinity Dust can also be used to purchase various items in the Infinity Dust Store.",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_INFOTIP_DUST_TITLE",
+            "v": "INFINITY DUST",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_INVITES_MANAGEMENT_AVAILABLE_FORMAT",
+            "v": "[4bb4fe]{0}[-]/{1} AVAILABLE",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_INVITES_MANAGEMENT_AVAILABLE_FORMAT_NONE",
+            "v": "[d20000]{0}[-]/{1} AVAILABLE",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_INVITES_MANAGEMENT_INVITE_PLAYERS",
+            "v": "INVITE PLAYERS",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_INVITES_MANAGEMENT_NO_FRIENDS_ALLIANCE",
+            "v": "Add friends or join an Alliance to invite them to play Dungeons!\n\nTap on another summoner's portrait in Chat or Search to send them a friend request.",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_INVITES_MANAGEMENT_ONLINE_FORMAT",
+            "v": "{0}/{1} ONLINE",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_INVITES_MANAGEMENT_ONLINE_TOOLTIP",
+            "v": "Online status may not update immediately. Check back in a bit to see if a player's status has changed.",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_INVITES_MANAGEMENT_SELECT_MAX",
+            "v": "SELECT ALL",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_INVITES_MANAGEMENT_STATUS_INVITED",
+            "v": "INVITED",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_NSF_DER",
+            "v": "Earn Dark Artifacts by participating in Infinity Dungeons!",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_NSF_DUST",
+            "v": "Not enough INFINITY DUST.",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_NSF_DUST_LOCATION",
+            "v": "Participate in Quests and Dungeons to earn Infinity Dust!",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_OFFLINE_USERS",
+            "v": "OFFLINE PLAYERS",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_OFFLINE_USERS_DESC",
+            "v": "Add more friends by tapping on another player’s portrait in Chat or Search, and sending them a Friend Request.",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_PTVESTAMINA_CURRENTLY_TIMEOUT_FORMAT",
+            "v": "RECHARGING\n[FF0000FF]{0}[-]",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_QC_DC_AGAIN",
+            "v": "Let's play again",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_QC_DC_BYE",
+            "v": "Gotta go, thanks!",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_QC_DC_BYE_2",
+            "v": "See ya!",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_QC_DC_FRIEND",
+            "v": "Friend invite?",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_QC_DC_GOOD",
+            "v": "Good work!",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_QC_DC_THANKS",
+            "v": "Thanks!",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_QC_DC_YAY",
+            "v": "That was great!",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_QC_L_COMPLIMENT",
+            "v": "Nice champions",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_QC_L_DIFFICULTY",
+            "v": "Which difficulty do you want?",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_QC_L_GO",
+            "v": "Let's do this!",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_QC_L_GOOD_LUCK",
+            "v": "Good luck!",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_QC_L_HELLO",
+            "v": "Hello",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_QC_L_OK",
+            "v": "Okay",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_QC_L_READY",
+            "v": "I'm Ready!",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_QC_L_WAIT",
+            "v": "One second...",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_QC_Q_BOSS_ME",
+            "v": "I'll take the Boss",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_QC_Q_BOSS_YOU",
+            "v": "You take the Boss",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_QC_Q_DONE",
+            "v": "I can't go on",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_QC_Q_GOOD_TO_GO",
+            "v": "You're good to go!",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_QC_Q_GOOD_WORK",
+            "v": "Good work!",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_QC_Q_HURRY",
+            "v": "Let's go!",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_QC_Q_LEFT",
+            "v": "I'll take the left side",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_QC_Q_NO",
+            "v": "Nah",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_QC_Q_NODE_1",
+            "v": "Take down Node 1",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_QC_Q_NODE_2",
+            "v": "Take down Node 2",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_QC_Q_NODE_3",
+            "v": "Take down Node 3",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_QC_Q_NODE_4",
+            "v": "Take down Node 4",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_QC_Q_NO_GOOD",
+            "v": "No good",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_QC_Q_RIGHT",
+            "v": "I'll take the right side",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_QC_Q_SORRY",
+            "v": "My bad...",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_QC_Q_WAIT",
+            "v": "Hold on for a second",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_QC_Q_WHICH_NODE",
+            "v": "Which node should I take down?",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_QC_Q_YES",
+            "v": "Okay",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_QC_RC_ADD_FRIEND",
+            "v": "Friend invite?",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_QC_RC_BYE",
+            "v": "See ya!",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_QC_RC_BYE_2",
+            "v": "See ya!",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_QC_RC_DIFFICULT",
+            "v": "That was tough",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_QC_RC_EASY",
+            "v": "That was easy!",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_QC_RC_GO",
+            "v": "Let's do this!",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_QC_RC_GOOD",
+            "v": "Good work!",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_QC_RC_GOOD_WORK",
+            "v": "Good work!",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_QC_RC_GOTTA_GO",
+            "v": "Gotta go, thanks!",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_QC_RC_NEXT",
+            "v": "Next room?",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_QC_RC_NEXT_ROOM",
+            "v": "Next room?",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_QC_RC_NO",
+            "v": "Nah",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_QC_RC_NO_GOOD",
+            "v": "No good",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_QC_RC_STOP",
+            "v": "Let's stop here",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_QC_RC_WAIT",
+            "v": "One second...",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_QC_RC_YES",
+            "v": "Okay",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_QUICKCHAT_TITLE",
+            "v": "QUICK CHAT",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_SOCIAL",
+            "v": "SOCIAL",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_SOCIAL_ALLIANCE_MEMBERS",
+            "v": "ALLIANCE MEMBERS",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_SOCIAL_ALLIANCE_MEMBERS_FORMAT",
+            "v": "{0}/{1} MEMBERS",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_SOCIAL_DECLINE_ALL",
+            "v": "DECLINE ALL",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_SOCIAL_PARTY_MODE",
+            "v": "PARTY MODE",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_SOCIAL_TAB_DUNGEON",
+            "v": "DUNGEON",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_TOAST_DUNGEON_INVITE_BODY_FORMAT",
+            "v": "You have received a Dungeon Invitation!\n{0} - {1}",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_TOAST_DUNGEON_INVITE_BODY_MULTI",
+            "v": "You have multiple pending Dungeon Invitations!",
+            "vn": "18"
+        },
+        {
+            "k": "ID_UI_DUNGEON_LOBBY_NO_EVENT_DESC",
+            "local": true,
+            "v": "The Dungeon event you were in has ended. Return to the fight landing screen to play other modes.",
+            "vn": "18.0"
+        },
+        {
+            "k": "ID_UI_DUNGEON_EVENT_ENDED",
+            "local": true,
+            "v": "EVENT HAS ENDED",
+            "vn": "18.0"
+        }
+    ]
+}

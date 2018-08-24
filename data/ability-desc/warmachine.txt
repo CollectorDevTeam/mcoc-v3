@@ -1,0 +1,19 @@
+All stats based on 4-Star, Rank 5, Level 50, Signature Level 99
+
+Basic Abilties: Armor, Armor Break, Bleed
+
+When Attacked - Armor Up
+```• 9% chance to Armor Up, increasing Armor Rating by 3000 for 6 seconds.```
+
+Special 1 - Blast Barrage
+Firing his wrist-mounted minigun, War Machine bombards his opponent with over 250 rounds in less than 2 seconds.
+```• 63% chance to inflict Bleed, dealing 493.64 Direct Damage over 5 seconds.```
+Special 2 - Shoulder Artillery
+War Machine launches a Stark Industries heavy artillery shell from his trusted shoulder cannon.
+```• 100% chance to Armor Break, removing an enemy Armor Up and applying 2444.45 Armor Rating reduction for 12 seconds.```
+Special 3 - Heavy Ordnance
+War Machine lets fly everything he has, punishing his opponent with a massive barrage of .50 rounds, iron-clad punches, and a single high-explosive bunker buster artillery shell.
+```• 82% chance to inflict Bleed, dealing 505.12 Direct Damage over 6 seconds.
+• 100% chance to Armor Break, removing an enemy Armor Up and applying 3000 Armor Rating reduction for 12 seconds.```
+
+updated 7/2/2018 - lmxn

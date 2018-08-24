@@ -1,0 +1,40 @@
+All stats based on 4-Star, Rank 5, Level 50, Signature Level 99
+
+Basic Abilities: Gambler's Ruin, Bleed, Stun, Poison Immunity
+
+Passive
+```• At the beginning of the fight and whenever he lands a Heavy attack, Joe gains a random poker suit and lets loose a different aspect of the gamma irradiated gangster he is.
+• An enhanced immune system provides full immunity to the Poisons of the Battlerealm.```
+Passive - Gambler's Ruin
+```• ♥: Joe triggers his accelerated healing ability, granting 2531.4 health recovery per minute.
+• ♠: Mr. Fixit is morally ambiguous at best and knows how to make his punches hurt. Each attack has a 14% chance to Weaken or Fatigue the opponent, reducing attack by 10% and Critical Rating by 105.26.
+• ♣: Joe isn’t some dumb brute and he’s smart enough to take advantage of anyone who thinks he is, granting 40.82 Critical Rating for each hit of his combo meter.
+• ♦: He may not be as big as the Hulk, but you still won’t like him when he’s angry. Joe gains up to 468.4 Attack based on lost health.```
+
+Special 1 - Place Your Bets
+First Mr. Fixit introduces you to his forehead, then he introduces you to one of his Chicago Typewriters. What a nice fellow.
+```• 60% chance to inflict Bleed, dealing 421.56 Direct Damage over 4 seconds.```
+Special 2 - Shorten the Odds
+With a stomp of his foot and a slap of his hands, Mr. Fixit sends two boulders slamming into his opponent's head at high speed.
+```• 100% chance to Stun for 3.40 seconds.```
+Special 3 - The House Always Wins
+Joe Fixit lets loose a massive barrage from his twin Tommy Guns, then beats his opponent to a messy pulp with them. Never bet against the house.
+```• 100% chance to inflict Bleed, dealing 3103.15 Direct Damage over 3 seconds.```
+
+Recommended Masteries
+```Parry: Joe Fixit needs to land Heavy Attacks in order to gain full advantage of Gambler’s Ruin and Double Down and Parry helps him do this. By landing that block and Stunning the opponent, Joe can quickly follow up with a Heavy Attack and reroll Gambler’s Ruin against tougher AI opponents.
+Recovery - ♥: As his Hearts ability allows constant Regeneration, Recovery increases the amount of health regained by a sizable portion, allowing Joe to stick around in the fight longer.
+Courage - ♦: As Mr. Fixit gains Attack when he at lower Health, Courage allows him to increase his Damage output even more and stack on from the Diamond’s effect.
+Inequity - ♠: With the high chance to trigger Weakness and Fatigue, Inequity will trigger frequently and allow Joe more survivability against very tough opponents in Alliance Quests.
+Cruelty - ♣: As Joe builds up his combo meter, his base Critical Hit chance increases with it. As a result, increasing Critical Hit Damage has a much larger effect for Joe, especially if his combo meter can be reliably maintained.```
+
+Strengths
+```Mr. Fixit has a wide variety of effects that cannot be nullified, allowing him to maintain very powerful effects for the duration of the fight.
+Gambler’s Ruin allows Joe to have an answer to many different type of enemies that can be encountered. If an enemy showcases that they have the Willpower mastery, Joe can reroll and get a different effect to bypass it. If Joe starts a fight at low Health during an Alliance Quest, he can reroll until he hits Hearts to heal up a small amount during easier fights before a boss or mini-boss.
+Joe’s frequent and powerful Bleed effects on his Special 1 and 3 allow him to bypass Armor reliant opponents such as the Iron Men and Rhino.
+With a guaranteed Stun effect on his Special 2, Joe can take advantage of this scenario and land a needed Heavy Attack to re-roll on Gambler’s Ruin in order to switch up his abilities at a needed time.```
+
+Weaknesses
+```Mr. Fixit is a gambling man, and sometimes the tables turn against him. His largely random effects can sometimes leave Joe in a tight spot, getting effects that aren’t right for the situation. As an example, getting Diamonds early on in a fight when Joe is still at high health won’t do nearly as much as Spades or Clubs would do at that same time.```
+
+updated 6/28/2018 - lmxn

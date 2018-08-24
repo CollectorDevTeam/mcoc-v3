@@ -1,0 +1,39 @@
+All stats based on 4 Star, Rank 5, Level 50, Signature Level 99
+
+Heavy Attacks - Heal Block
+```• 100% chance to inflict Heal Block, preventing the target from recovering Health for 5 seconds.```
+Special Attacks - Heal Block
+```• If the opponent is under the effect of a Heal Block Debuff, that Heal Block is replaced with a 10 second Heal Block.
+• 2 Armor Up Buff(s) are consumed to create one permanent Armor Up Buff, increasing Armor Rating by 352.94```
+When Attacked - Reduce Offensive Ability Accuracy
+```• For each Armor Up effect active, Civil Warrior's advanced Stark Tech protects him further, reducing enemy Offensive Ability Accuracy by 15% per Armor Up charge.```
+Blocking - Armor Up
+```• 20% chance to Armor Up, increasing Armor Rating by 173.91 for 7 seconds.```
+All Attacks - Armor Up
+```• 8% chance to Armor Up, increaseing Armor Rating by 173.91 for 7 seconds.```
+Passive
+```• Civil Warrior's Mk. II suit grants him 15% Poison and Bleed damage resistance for each stack of Armor Up active. This does not function while fighting Cosmic champions.```
+
+Special 1: Arc Blast
+“I have seen this war.”
+```• Civil Warrior triggers his advanced Stark Tech, gaining 4 Armor Up charges, each increasing Armor Rating by 352.94 for 7 seconds.```
+Special 2: Repulsor Rush
+“I have fought this fight.”
+```• Depletes up to 60% of the target’s max Power.```
+Special 3: Overload
+“I must end it at any cost.”
+```• 100% chance to Power Drain, depleting up to 55% of the target’s max Power. If the target is reduced to zero Power from this attack, they also become Power Locked for 6 seconds.```
+
+Signature Ability – ARC SHIELD
+```• An upgrade to Civil Warrior’s Arc Shield grants him 2 Armor Up charges at the start of the fight, each increasing Armor Rating by 352.94 for 2 seconds. Additionally, he receives 20.02% Special Damage resistance while Blocking. +30% when fighting Mutant Champions```
+
+Recommended Masteries
+```Parry: One of Civil Warrior’s greatest strengths is his ability to apply a Heal Block with his Heavy attack. By triggering Parry then going into a Heavy Attack, Civil Warrior can keep these short Heal Block effects active throughout the fight.
+Collar Tech: Civil Warrior’s ability to block his opponent’s incoming Special Damage, both from his Armor Up effects and his signature ability, allows him a great deal of survivability against opponents that rely on special damage. Grabbing this mastery further enhances this advantage by lowering the opponent’s Power Gain and reducing the number of Special Attacks overall.```
+Strengths
+```Deadpool, Wolverine, Wolverine (X-23), Ultron Prime: Civil Warrior’s ability to keep frequent Heal Block effects active allows him to deny these Champions their much needed Regeneration effects.
+Cyclops, Storm: In addition to a class advantage, Civil Warrior’s ability to perform strong Power Drain effects denies these Champions their ability to perform their much needed special attacks. Additionally, his ability to reduce enemy Offensive Ability Accuracy means that these Champions cannot trigger their Armor Break and Stun effects.```
+Weaknesses
+```Iron Fist, Spider-Man (Symbiote), Ms. Marvel (Kamala Khan): These Champions have a reliable way to strip away Civil Warrior’s Armor Up effects and do not rely on Offensive Ability Accuracy for their damage output as much as other Champions.```
+
+update 6/26/2018 - jjw

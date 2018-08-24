@@ -1,0 +1,43 @@
+Originally Posted 09-24-2015
+
+*All stats based on 4 Star, Rank 5, Level 50, Signature Level 99
+
+Passive
+Withheld from Death herself by the Egyptian Moon-god Khonshu, Marc Spector’s power ebbs and flows based on the phase of the Moon.
+
+Under the light of the Full Moon, Critical Hits have a chance to Stun.
+As the Moon wanes, there’s a chance to gain Fury. The chance increases nearer to the New Moon.
+In the darkness of a New Moon, there’s a chance to evade attacks.
+
+As the Moon waxes, there’s a chance to boost Critical Rate. The chance increases nearer to the Full Moon.
+
+Critical Hits have a chance to Bleed during any lunar phase; however, Moon Knight’s base Critical Rate drops to zero during the New Moon.
+
+Special 1 - Waxing Crescents
+Throws two Crescent Darts, each with a +20% Critical Hit Chance.
+
+Special 2 - Divine Justice
+If this attack would inflict Bleed, that Bleed lasts 50% longer.
+
+Special 3 - Knight of Vengeance
+
+Signature Ability - Synodic Tide
+Power Gain in both Champions is influenced by the position of the Moon.
+Either Moon Knight’s Power Gain is increased, or the opponent’s is decreased.
+At least one of the effects is always active.
+Which effect is active switches every six hours.
+
+Recommended Masteries
+Precision & Cruelty (Waxing, Waning, Full): With a Critical Hit Rate that scales with Moon phases and a Bleed triggering off those critical hits, any boost they can get goes a long way. During the New Moon, when base Critical Hit Rate drops to zero, the boost from Precision is still effective; in fact, it’ll be the only Critical Chance Moon Knight will have, ensuring he’s still able to trigger a Bleed. In the lucky event that a Precision-boosted Critical Hit causes Bleed, that Bleed will also receive the benefits of the powerful New Moon Fury.
+Extended Fury (Waxing, Waning, New): The Waning and Waxing phases are at their peak when both Fury and Precision effects align. Extending that Fury during the appropriate phases increases the likelihood of alignment. No effect during the Full Moon.
+Stupefy, Petrify & Pacify (Full Moon): Under the light of the Full Moon, Spector gains the ability to Stun his target with his Critical Hits. Empower this Stun with a longer duration and more penalizing effects with the Stun-supporting Utility Masteries.
+
+Strengths
+Moon Knight under the New Moon is currently the only Champion to all but dismiss Critical Hits altogether, instead relying on Fury-boosted raw Attack power. This can be devastating against other Champions taking advantage of those critical hits, such as Scarlet Witch. Her Veil of Chaos simply won’t be triggering.
+The Waning and Waxing phases help against Bleed-immune targets like Colossus, since Moon Knight players can opt for hard-hitting special damage by aligning the Precision and Fury bonuses.
+Moon Knight is arguably the most powerful during the Full Moon, where he combines frequent Critical Hits, Bleed effects, and Stun. Enemies reliant on Armor or Physical Resistance won’t be able to stop the high amounts of direct damage.
+
+When his Synodic Tide affects himself, he’ll be able to issue frequent Stuns (under the Full Moon) and dish out a lot of damage with the increased frequency of Special Attacks (any phase). When Synodic Tide affects the enemy, he’ll deal less damage overall but also take less, especially if the enemy is a much higher rank and level. Slowing the Power Gain of a boss-tier opponent like Ultron can save Spector a lot of hurt.
+
+Weaknesses
+Just as alignment works in Moon Knight’s favor, it also works against him. Scarlet Witch may be easily handled in the New Moon, but the tables turn under the Full Moon, when Spector’s high Critical Hit rate is turned against him. Players will need to familiarize themselves with Spector’s timings to capitalize on their effectiveness in the right moments, otherwise his full potential will be lost.

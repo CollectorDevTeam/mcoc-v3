@@ -1,0 +1,47 @@
+All stats based on 5-Star, Rank 5, Level 65, Signature Level 200
+
+Basic Abilities: Persistent Power, Energy Absorption, Energy Damage, Prowess
+
+Persistent Power Meter
+```• Bishop’s mastery over energy and time enables him to enter a fight with 100% of the Power he finished his previous fight in the same Quest with.```
+Passive - Energy Transference
+```-- +3882 Energy Resistance at all times.
+• Energy Attacks against Bishop generate 70% more Power plus 1 stack of Prowess.
+• Energy Damage abilities against Bishop have up to a 40% chance with each tick to generate 2% Power plus 1 stack of Prowess. This chance is slightly reduced for each Prowess currently active on Bishop. No effect against the abilities of Tech Champions.
+• Absorb the kinetic energy of a well-timed Block to generate 5% Power plus 3 stacks of Prowess. Prowess gained in this way is doubled against Skill Champions and tripled against Energy-based Special Attacks. No effect against the attacks of Tech Champions.```
+Blocking
+```• Steadily consume Prowess to Regenerate 97 Health per Prowess consumed.
+• Each Prowess consumed has a 100% chance to Purify 1 Bleed Debuff(s).```
+Special Attacks
+```• Consume all Prowess and gain +10% Special Damage per stack consumed.```
+
+Special 1 - Steady Release
+A twin gun assault where Bishop unloads frequent energy bursts.
+```• Up to 80% of Basic Attack damage is replaced with bursts of Energy Damage for 15 seconds, allowing Bishop to mitigate Armor and abilities that reflect attack damage.
+• This bonus Energy Damage increases by 6% for each Prowess consumed by Special 1.
+• Up to 40% of this Energy Damage penetrates the enemy Block.```
+Special 2 - Burst Release
+Bishop’s stored energy is amplified and then released in a single burst.
+```• +50% damage if activated within the first 12 seconds of a fight.```
+Special 3 - Diffusion Wave
+As Bishop approaches his limit, he unleashes all stored energy at once in every direction.
+```• +30% damage against enemies above 85% Health or below 15% Health.
+• This increases to +70% damage against enemies at full Health.```
+
+Warning: Power Overload!
+```• 81 Health per second is lost for each Prowess above a stack of 30.
+• If Bishop stays at full Power for more than 9 seconds, he begins to overload and lose 97 Health per second until that Power is spent. The longer he stays at full Power, the more Health is lost.
+• Activate any Special Attack to expel stored energy and avoid unnecessary damage!```
+
+Recommended Masteries
+```Block Proficiency, Perfect Block, and Stand Your Ground: Blocking – especially the well-timed variety – are core to Bishop’s kit, as he absorbs the energy to gain Power and Prowess. This reliance on Blocking means you’ll want to amp up your Block as much as possible.
+Glass Cannon, Recoil, and Double Edge: The ability to start the fight with full bars of Power is enough reason alone to warrant the extra damage from these “suicide” Masteries, since the fight will often be over before the enemy has a chance to do any real harm – this is especially true when starting with just under 3 bars of Power to gain the Incinerate bonus from the Signature Ability, and then opening with a Parry to Stun the opponent and fill Bishop to Special 3. Bishop will open the fight with more up-front damage than any other Champion in the game, and suffer little to no self-harm in the process. Bishop also has the ability to recover Health and remove Bleed, which more than makes up for any self-harm.```
+
+Strengths
+```Enemies that deal Energy Damage, especially over time.
+Iceman: Iceman epitomizes the ideal matchup for Bishop. Abilities like Coldsnap or Magik’s Limbo deal Energy Damage over time, which is passively absorbed by Bishop so he takes heavily reduced damage and generates both Power and Prowess. This is also true for more common abilities like Incinerate and Shock. Energy-based Special attacks are also juicy targets for a well-timed Block from Bishop.
+Enemies that reflect attack damage: Killmonger’s Reverberation or Electro’s Electrostatic is mostly harmless against Bishop’s Steady Release ability from Special 1, since the reduction in Bishops attack damage means a reduction in the amount of damage reflected; however, the added bursts of Energy Damage means Bishop isn’t sacrificing any overall damage in the process.```
+
+Weaknesses
+```Enemies that have no source of Energy Damage.
+Bulky physical damage-dealing opponents like Hulk force Bishop to rely solely on well-timed Blocks to generate Power and Prowess. A naturally low Physical Resistance attribute also means Bishop takes extra damage from physical attacks. He’s virtually powerless in a fight where Energy Damage isn’t powering him up.```

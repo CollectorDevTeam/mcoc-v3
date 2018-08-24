@@ -1,0 +1,20 @@
+All stats based on 4 Star, Rank 5, Level 50
+
+All Attacks
+```• 10% chance to increase Critical Damage Rating by 1333.33 for 7 seconds.```
+Special Attacks
+```• 90% chance to inflict Bleed, dealing 2736 Direct Damage over 5 seconds.```
+
+Special 1 - Vital Strike
+One strike at the opponents' vitals from the most dangerous woman in the galaxy.
+```• This attack has 100% Critical Hit Chance.
+• 90% chance to inflict Bleed, dealing 2736 Direct Damage over 5 seconds.```
+Special 2 - The Jade Assassin
+A spinning sword attack slices twice at anything in Gamora's way.
+```• This attack has 100% Critical Hit Chance.
+• 90% chance to inflict Bleed, dealing 2736 Direct Damage over 5 seconds.```
+Special 3 - Godslayer
+Gamora's Godslayer blade tears her opponent apart in an acrobatic combination attack.
+```• 90% chance to inflict Bleed, dealing 2736 Direct Damage over 5 seconds.```
+
+updated 6/26/18 - jjw

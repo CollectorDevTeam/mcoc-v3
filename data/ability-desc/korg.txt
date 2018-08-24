@@ -1,0 +1,43 @@
+All stats based on 4 Star, Rank 5, Level 50
+
+
+Easter Eggs
+```• PISS OFF GHOST!
+• FOR DOUG!!```
+
+Crowd Excitement
+```• Eventually grants Korg Unstoppable. Can be consumed through the Heavy Attack in order to inflict Armor Break.
+• Eventually grants Korg Unstoppable and Unblockable. Can be consumed through the Heavy Attack in order to inflict Armor Break.```
+Rock Anatomy
+```• Rock anatomy provides Korg immunity to Bleed, Shock and additional Critical Resistance but decreases his Energy Resistance by 20%.```
+Crowd Excitement
+```• The crowd goes crazy when Miek makes an appearance while Korg is blocking an attack, increasing Crowd Excitement by 1 for {2} seconds. +{0} on Well Timed Blocks. Only {1} Crowd Excitement charges can be gained through this ability.
+• When Crowd Excitement reaches {0} or more, Korg becomes Unstoppable and Unblockable for {2} seconds.
+• When Crowd Excitement reaches {0} or more, Korg becomes Unstoppable for {2} seconds.
+• Miek expels fluids on opponents when hitting with a Heavy Attack, creeping out the crowd and consuming all Crowd Excitement to inflict Armor Break, reducing their Armor Rating by {1} for each Crowd Excitement charge for {2} seconds.
+• The crowd dislikes cowards, cheering for Korg when opponents Evade or Dexterity his Basic Attacks, increasing Crowd Excitement by {1} for {2} seconds. Only {0} Crowd Excitement charges can be gained through this ability.```
+
+Rock Shield
+```• While Rock Shield is active, powerful enemy attacks cannot deal more than {1}% of the opponent's Attack Rating in a single hit. Special 3 Attacks cannot deal more than 120% of the opponent's Attack instead.
+• While Rock Shield is active, Korg has a {0}% chance to shrug off Debuffs and gain one Rock Shield charge for each Debuff shrugged off this way.
+• When all charges are consumed, Rock Shield is shattered and it takes between {2} and {0} seconds to reform. Each time Rock Shield reforms it starts with 1 less charge.
+• Korg begins the fight with {1} Rock Shield charges which are removed each time he is struck. An additional charge is removed when Korg’s Dash Attack is interrupted by a Light Attack and if Struck by a Special Attack 3, all Rock Shield charges are removed instead.
+• Prevents opponents from inflicting huge amounts damage on a single hit and shrugs off Debuffs.```
+Thorns
+```• When above {2}% Health, Korg activates Thorns when hit by a Physical Attack, inflicting {1} Physical Damage.
+• Opponents with an active Regeneration Buff or Passive are able to instantly recover {1}% of the damage taken by Thorns and if the opponent’s hit deals Energy Damage through an ability, Thorns does not activate.```
+
+Special 1 - Hey, take it easy man!
+*Oh man, is that what this thing does? I thought it was just going to like, shoot some net or something. I oughta be careful this thing.*
+```• Inflicts Incinerate, dealing {1} Energy Damage over {2} seconds. When the opponent is suffering from an Armor Break, double Incinerate stacks are inflicted.
+• Opponents cannot Evade this attack.
+This attack is Unblockable if Crowd Excitement is greater than 1.```
+Special 2 - Rocknado
+*When I was a kid, I said I wanted to be a tornado in class one day and all the other kids laughed at me. But now my dream came true!*
+```• +{1} Attack Rating for {2} seconds if Korg is Unblockable.```
+Special 3 - Friendly Fire
+*Miek said he wanted to help, but his legs are too small so I have to throw him and stuff. Don’t worry, his shell is quite resilient. I reckon he’ll be okay.*
+```• Crowd Excitement goes up by {1} for {2} seconds.```
+
+updated 7/30/2018
+~jjw

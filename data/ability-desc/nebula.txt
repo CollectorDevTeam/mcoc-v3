@@ -1,0 +1,46 @@
+All stats based on 4 Star, Rank 5, Level 50, Signature Level 99
+
+Passive - Self-Repair
+• Nebula starts the fight with 2 Self-Repair charges that activate when the opponent deals more than 110% of their Attack in a single hit, repairing the damage over 5 seconds. If Stunned during her Self-Repair, the Repair stops.
+
+Passive - Electroshock
+• Ability Accuracy of Robots is reduced by 20% per active Electroshock Charge.
+
+Passive - Robotics
+• Advanced Robotics provides full immunity to Poison and Bleed effects.
+
+Hold Block
+• Charges her weapon, generating a passive Electroshock charge every 0.9 seconds.
+
+Well-Timed Block
+• Nebula spends all Electroshock charges to Shock her opponent, dealing 486.4 Energy Damage over 6 seconds.
+
+Heavy Attacks
+• Shocks her opponent, dealing 486.4 Energy Damage over 6 seconds.
+
+Special 1 - Electric Encore
+Striking first with her electroshock batons, Nebula then forms them into a staff for a devastating second strike.
+• Inflicts Power Lock, severing the targets flow of Power for 1 second per active Shock Debuff on the opponent.
+• Inflicts Power Drain, depleting up to 3.5% of the target’s max Power per Shock Debuff on the opponent.
+
+Special 2 - Shock and Awe
+Nebula puts some space between her and her opponent before unleashing a concentrated burst of electricity.
+• Doubles the amount of Shock Debuffs on the opponent, dealing 972.8 Energy Damage per Shock Debuff over 6 seconds.
+
+Special 3 - Galaxy-Class Killer
+Death by a thousand cuts, faster than you can bat an eye.
+• Nebula overcharges her power generator for 10 seconds, inflicting Shock when in contact with the opponent, dealing 486.4 Energy Damage over 3 seconds.
+
+Signature Ability – CYBERNETIC ENHANCEMENTS
+• When Nebula is out of Self-Repair charges, she tries to recalibrate her implants, granting her a 80.18% chance to regain a charge every 10 seconds.
+
+Recommended Masteries
+Recovery: While the Salve Mastery requirement won’t work on Nebula as she is classified as a Robot, the Recovery Mastery will increase the Potency of Nebula’s Self-Repair charges, giving her some much needed survivability.
+Parry: The effects of Parry and Nebula’s Electroshock transfer ability stack together and have similar activation windows. Adding this Mastery can help train anyone who’s unfamiliar with the timing of a well-timed block.
+
+Strengths
+Wolverine, Wolverine (X-23), Deadpool: In addition to a class advantage, Nebula is also immune to the Bleed effects of these Champions. Additionally, these Champions are reliant on their Power meter to charge their Regeneration effects. With Power Lock and Power Drain on Special 1, Nebula can keep their Power levels low and their Regeneration effects weak.
+Ultron & Vision: Nebula can reduce the Ability Accuracy of these Champions with her unique ability, as long as she keeps up the Shock charges on them. These Champions also do not possess any strong Energy Resistance or the ability to get rid of the Debuffs.
+
+Weaknesses
+Thor (Jane Foster) & Agent Venom: Jane Foster has a large amount of Energy Resistance which helps her resist any of Nebula’s Shock effects. In addition, Jane Foster has access to a Stun ability or Stagger to interrupt Nebula’s Self-Repair. Agent Venom, meanwhile, has a very good chance to shrug off Nebula’s Shocks and deny her Power Drain and Power Lock effects.

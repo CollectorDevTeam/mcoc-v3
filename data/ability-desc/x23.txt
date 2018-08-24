@@ -1,0 +1,33 @@
+All stats based on 4 Star, Rank 5, Level 50
+
+Basic Abilities: Regeneration, Bleed, Cruelty
+
+All Attacks - Regeneration
+```• 15% chance to Regenerate up to 1094.67 Health over 4 seconds based on stored Power.```
+Critical Hits - Bleed or Cruelty
+```• Critical Hits lacerate opponents with a 80% chance, inflicting 1281.1 Bleed damage over 5 seconds.
+• Against Naturally Bleed Immune Champions: Wolverine changes her fighting style, gaining Cruelty Buffs in place of her Bleed effects, increasing Critical Damage by 145.92 for 7.75 seconds.```
+All Attacks - Critical Rating
+```• 139.04 increased Critical Hit Rating against Bleeding targets, or while under the effects of a Cruelty Buff.```
+All Special Attacks
+```• Any Bleed or Cruelty effect triggered lasts 27% longer than normal and has 27% increased Potency.```
+Heavy Attacks - Critical Rating
+```• Strikes multiple times. Each hit has an additional 173.91 Critical Rating.```
+
+Special 1: Arterial Strike
+One swift strike to disorient. One more to open veins and arteries.
+Special 2: Triplicate Slash
+Open the arteries. Go for the throat.
+Special 3: Finish the Mission
+Trigger scent activated. Time to end this.
+
+Recommended Masteries
+```Precision: As Wolverine’s Cruelty and Bleed effects are both tied to Critical Hits, increasing her Critical Hit Rate via the Precision mastery is extremely important to stack up these effects.
+Recovery: Wolverine is very dependent on her Regeneration to keep her alive, as she has very little defense or Armor outside of it. Increasing her Regen Rate will give her longevity for more difficult fights.```
+
+Strengths
+```Wolverine boasts one of the highest Critical Hit Rates in the entire Contest, granting her large burst damage and the ability to bypass strong Armor on opponents.
+Wolverine’s consistent, powerful Bleed and Cruelty effects allow her to quickly take down enemies in timed fights. X23 is one of the most aggressive champions in the game, allowing her to finish fights quickly when necessary, such as when under the effect of a Bleed or Degeneration node.```
+
+Weaknesses
+```Wolverine has small defenses outside of her Regeneration, and as such performs poorly against enemies that can frequently place Heal Blocks.```

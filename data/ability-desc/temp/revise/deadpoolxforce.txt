@@ -1,0 +1,37 @@
+Originally Posted 09-17-2015
+
+*All stats based on 4 Star, Rank 5, Level 50, Signature Level 99
+
+Passive
+• Dropping below 32% Health grants a burst of 62% Power.
+• When Deadpool drops below his health threshold, he gains a massive burst of Power, allowing him a chance to spam his Special Attacks before the fight ends.
+
+Special 1: Spinnin' Groin Punch
+
+Special 2: Spinny Sword Attack
+• 100% chance to inflict Bleed, dealing 284% of your attack as direct damage over 4 seconds.
+
+Special 3: Hold Up
+• 100% chance to inflict Bleed, dealing 245% of your attack as direct damage over 3 seconds.
+
+Signature Ability - Duodenum Poke
+• Permanently bleeding the opponent was granted after poking enemies right in the duodenum, guaranteed to cause Bleed for 50% Attack over 4 seconds.
+• That’s right, guaranteed Bleed. Just keeping poking throughout the fight.
+• The Bleed is quite weak, but since it is guaranteed, it essentially remains on the opponent throughout the entire fight.
+• As you gain Signature levels, the amount of damage increases.
+
+Recommended Masteries
+Mutagenesis: This version of Deadpool isn’t as defensive and instead relies on offensive capabilities. As such, he can’t rely on his Healing Factor to fight off damage over time effects like Bleed. Mutagenesis keeps him in the fight longer.
+Greater Strength: The majority of Deadpool’s offensive capabilities come from his Bleed effects, either on Special Attacks or from his Duodenum Poke. Increasing his attack stat also increases the amount of damage dealt by his Bleed effects.
+Glass Cannon Skills: Deadpool is already an offensive force. Adding these skills increase his attack by massive amounts, and allow him to deal huge Bleed effects throughout the fight.
+Courage: When Deadpool drops low enough on his Health Bar to trigger his Power Gain, he will also trigger Courage, allowing him a massive Special Attack.
+
+Strengths
+Deadpool’s consistent and powerful Bleed effects allow him to quickly tear through heavily armored enemies such as Rhino, Juggernaut and Superior Iron Man.
+The massive burst of Power that Deadpool receives when close to death allows him to turn the tables on an otherwise close fight, allowing him a chance to hit the opponent with a powerful attack at the last minute.
+The consistent Bleed effects allow Deadpool to deal with harmful Science champions such as Electro or Abomination. Simple poke throughout the fight and don't worry as much about constantly touch them.
+
+Weaknesses
+This version of Deadpool lacks regeneration, making him more fragile.
+Deadpool is very reliant on Bleed effects and performs very poorly against opponents who do not Bleed, such as Colossus and Ultron.
+The Bleed effect on Duodenum Poke falls off quickly, requiring you to keep poking the enemies throughout the fight to ensure maximum use of the ability.

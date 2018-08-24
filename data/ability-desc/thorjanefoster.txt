@@ -1,0 +1,22 @@
+All stats based on 4-Star, Rank 5, Level 50, Signature Level 99
+
+Basic Abilities: Lightning Arc, Stun, Energy Resist
+
+All Attacks - Stun
+```• Striking an opponent that has been Shocked has a 21% chance to Stun them for 2.10 seconds.```
+Passive - Energy Resistance
+```• Mystical influences grant this Champion 1703.7 increased Energy Resistance.```
+Heavy Attacks - Stagger
+```• 85% chance to Stagger the enemy for 8 seconds up to 2 times. A Staggered enemy cannot gain their next Buff effect.```
+
+Special 1 - Mjölnir's Rage
+Striking the earth with all her fury, Thor sends out a wave of summoned lightning through the ground.
+```• 100% chance to Shock your opponent, dealing 1549.8 Energy Damage over 8 seconds.```
+Special 2 - Fury of Asgard
+With blinding speed and immense strength, Thor strikes her foe, then follows it up with a crushing blow from a lightning charged Mjölnir.
+```• 100% chance to Shock your opponent, dealing 1607.2 Energy Damage over 8.50 seconds.```
+Special 3 - Freyja's Wrath
+Thor unleashes the ferocity and anger of a God upon her foe, striking with devastating blows and fierce strikes of lightning and thunder.
+```• 100% chance to Shock your opponent, dealing 3042.2 Energy Damage over 9 seconds.```
+
+updated 8/1/2018 - lmxn

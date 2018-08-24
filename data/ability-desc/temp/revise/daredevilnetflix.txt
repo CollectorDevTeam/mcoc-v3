@@ -1,0 +1,47 @@
+Originally Posted 11-18-2015
+
+*All stats based on 4 Star, Rank 5, Level 50, Signature Level 99
+
+Special Attacks - Stun
+• Critical Hits have a 100% chance to Stun opponents for 2.5 seconds.
+• Each individual attack during a special attack has a chance to Crit and therefore a chance to Stun.
+
+Passive - Physical Resistance
+• The fantastic suit crafted by Mr. Potter can turn aside knives and gunfire, granting Daredevil 5% Physical Resistance against all attacks.
+
+Passive - Critical Hit Rate
+• 10% increased base Critical Hit Rate
+
+Passive - Perfect Block
+• 33% chance that a Block reduces all damage.
+
+Passive - Evade
+• Daredevil’s enhanced senses grant him a 15% chance to dodge projectile attacks
+
+Medium & Heavy Attacks - Armor Break
+• Striking with honed precision, Daredevil has a 85% chance to Armor Break stunned opponents with Heavy and Medium attacks, reducing their Armor by 11% for 15 seconds. Heavy attacks result in longer Armor Breaks.
+• This effect stacks infinitely.
+
+Special 1 - Condemn
+
+Special 2 - Swift Justice
+
+Special 3 - Deliverance
+
+Signature Ability - World on Fire
+The son of Battlin’ Jack Murdock only becomes more determined as he takes punishment, granting him (15% - 40%) increased Critical Hit Rate for 6 seconds each time the opponent places a detrimental effect on him.
+The Critical Hit Rate buff does not stack with itself.
+
+Recommended Masteries
+
+Precision: As Daredevil’s Stun chance is tied to his Critical Hits, increasing his Critical Hit Chance will result in more Stuns to the enemy, which in turn can be used to create more Armor Break effects.
+Willpower: Daredevil’s World on Fire grants him a fairly large Critical Hit Rate boost whenever the opponent places a detrimental effect on him. This works alongside Willpower to ensure that Daredevil becomes a defensive and offensive force to any opponent trying to use detrimental effects.
+Stupefy: Increasing the Stun duration for Daredevil can allow for more attacks, which in turn allows for more Armor Breaks, which can cause a massive increase in damage output if used and timed correctly.
+
+Strengths
+Daredevil has many tools to deal with many types of opponents. If an opponent is shown to have Willpower, a smart player can avoid using Special 1 & 2 in favor of a Special 3, since Special 3 attacks can’t score Critical Hits and therefor can’t Stun.
+Consistent Perfect Blocks combined with constant Physical Resistance gives Daredevil a good level of survivability for most fights, in addition to his offensive abilities.
+Mixing up attack combos when an opponent is Stunned can increase damage output for further combos and also tear apart enemy Armor Up effects. If an opponent is Stunned, try doing two Medium attacks in a row instead of a standard combo.
+
+Weaknesses
+As Daredevil’s power comes from his Stun effects, enemies that are immune to Stun (such as various Story Quest bosses) and champions that have the limber mastery can be difficult to deal with.

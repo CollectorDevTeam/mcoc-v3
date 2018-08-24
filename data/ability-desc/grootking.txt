@@ -1,0 +1,37 @@
+All stats based on 4 Star, Rank 5, Level 50, Signature Level 99
+
+Passive – Fury
+• King Groot begins each fight with 2 Fury Buffs, each increasing his Attack by 241 for 12 seconds.
+• Each time King Groot receives a Debuff, he shrugs it off after 0.5 seconds at the cost of 1 Fury Buff.
+• When King Groot loses his last Fury Buff, he enters a Cool Down state for 16 seconds. While in Cool Down, each attack thrown or suffered has a 9% chance to cause King Groot to store 1 Fury charge.
+• When King Groot’s Cool Down ends, he immediately gains 2 Fury Buffs, plus any additional charges he gained from throwing or receiving attacks during his Cool Down state.
+
+Passive – Bleed Immunity
+• A lack of blood provides full immunity to Bleeding.
+
+Special 1 - Floral Ferocity
+The monarch of Planet X smashes his opponent into the unforgiving Earth with two mighty slams.
+• 90% chance to Armor Break the target, reducing Armor by 272 for 8 seconds. If King Groot has a Fury Buff, he consumes it to make the Armor Break permanent. [Max - 9 Stacks]
+
+Special 2 - Internal Toxicity
+King Groot pours forth a toxic wave of plant-based venoms.
+• 100% chance to Poison the opponent, dealing 1666 direct damage over 8 seconds. If King Groot has a Fury Buff, he consumes it to apply an additional Poison effect.
+
+Special 3 - Savagery Unleashed
+King Groot sends out his plant material to envelope his opponent and crush them.
+• King Groot overloads his floral cells to gain a Regeneration Buff, recovering 1991 Health over 3 seconds. If King Groot has a Fury Buff, he consumes it to increase the duration of the Regeneration by 50%.
+
+Signature Ability – Unyielding Might
+• Whenever King Groot falls into Cool Down, he immediately begins to focus on rapidly repairing his cellular damage, granting him a Regeneration Buff and recovering 2439 Health over the duration of the Cool Down.
+
+Recommended Masteries
+Recovery & Enhanced Fury: King Groot is constantly triggering Fury and Regeneration Buffs throughout the fight. He will almost always have one or the other if he’s awakened. Grabbing these two masteries will empower both of these effects, allowing King Groot to put in some extra hurt and recover more lost health.
+Inequity: Through the use of his permanent Armor Break effects, King Groot can make good use of the inequity Mastery, especially for longer fights. By launching several Armor Breaks, King Groot can not only increase his damage output, but he can also weaken his opponent and give himself more time in the fight to use his regeneration effects.
+
+Strong Match-Ups
+Iron Man, Iron Patriot: In addition to a class advantage, King Groot has access to frequent Armor Break effects to counter these Champions’ Armor Up Buffs. Through careful timing, King Groot can also plant 2 poison effects on these Champions as they’re about to hit their Arc Overload, thus weakening their regeneration effects.
+Black Panther, Deadpool (X-Force), Wolverine: These Champions are very reliant on consistent Bleed effects for their damage output, which King Groot is immune to. They also lack the ability to deal with either King Groot’s Fury or Regeneration Buffs, giving him the advantage the longer the fight goes on.
+Daredevil, Captain America (WWII): These Champions rely on very few but strong Debuffs during combat, which King Groot can easily shrug off. Additionally, these Champions lack any means of protecting themselves from King Groot’s Armor Break and Poison Debuffs.
+
+Weak Match-Ups
+Strange, The Hood, Dormammu: In addition to a class advantage, these Champions have reliable and powerful nullifying effects, allowing them to rip down King Groot’s Fury and Regeneration Buffs and deny him the majority of his strength.

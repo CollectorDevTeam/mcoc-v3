@@ -1,0 +1,31 @@
+All stats based on 4 Star, Rank 5, Level 50
+
+Passive - Symbiote Stealth
+```• The Venom Symbiote works with Flash’s training to reduce enemy Evasion chance by 50%.```
+Special Attacks - Bleed
+```• 67% chance to inflict Bleed, dealing 225% of your Attack as direct damage over 3.5 seconds.
+• Each Special Attack can only trigger one stack of Bleed, occurring on the final hit of the Attack.```
+Passive - Tenacity
+```• Flash’s intense military background, coupled with the alien symbiotic enhancement, grants him a 70% chance to shrug off any Debuff, including Stun.```
+
+Special 1 -Suppressive Fire
+```• This attack reduces enemy Evasion chance by 30%.
+• This stacks with the effect from Symbiote Stealth and applies to all attacks during the animation.```
+Special 2 -Thermite Breach
+```• This attack Incinerates the enemy, dealing 92% of your Attack as Energy Damage over 8.5 seconds. This effect also removes Perfect Block Chance and reduces Block Proficiency by 50% while it’s active.
+• This effect has 100% trigger chance and can only be triggered once per Special Attack.```
+Special 3 -Shock & Awe
+```• Any Bleed effect has an additional 21% chance to trigger.```
+
+Recommended Masteries
+```Dexterity: In order to keep the large damage output from Klyntar Rage, you’ll have to dodge and block just right to avoid incoming attacks. Picking up this mastery will help avoid those incoming attacks entirely and keep up Klyntar Rage longer.
+Precision: As Klyntar Rage boosts Critical Damage while it’s active, picking up this Mastery to boost Agent Venom’s Critical Hit Rate will make the most of this ability and increase his damage output even further while the effect is active.```
+Strengths
+```Spider-Man, Miles Morales, Spider-Gwen: Agent Venom’s ability to ignore a large portion of Evasion allows him a much stronger chance to deal with these opponents.
+Captain America, Cap. America WW2, Daredevil: With his new Incinerate ability, Agent Venom can strip away these champions’ ability to block his attacks effectively, denying them much of their defensive capabilities.
+Rhino, Hulk-Buster, Iron-Man: With his strong Bleed and Incinerate effects, Agent Venom can bypass the Armor and Physical Resistance of these champions to take them down quickly.```
+Weaknesses
+```Colossus, Ultron, Vision: These Bleed Immune champions deny Agent Venom much of his damage, and don’t generally rely on Debuff effects that Flash can shrug off with his Tenacity effect.```
+
+Originally Posted 04-13-2016
+Updated 6-26-2018 - jjw

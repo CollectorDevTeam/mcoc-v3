@@ -1,0 +1,55 @@
+Jane Foster - Originally Posted 12-09-2015
+
+Born a mortal on Midgard, Dr. Jane Foster - a frequent ally of Thor and consulting physician for Tony Stark - has proven herself worthy of wielding the mighty hammer Mjölnir. Taking up the mantle of Thor, Jane now fights to protect the realms from all who would seek to destroy them.
+
+Base Stats & Abilities
+*All stats based on 4 Star, Rank 5, Level 50, Signature Level 99
+
+Class: Mystic
+
+Health: 16,116
+Attack: 1,148
+Max PI: 3,342 - Without Masteries or Signature Ability
+
+Special 1: Mjölnir's Rage
+79% chance to Shock your opponent, dealing 122% of your attack as Energy damage over 9 seconds. Shocks ignore Physical Resistance but not Armor.
+
+Special 2: Fury of Asgard
+81% chance to Shock your opponent, dealing 122% of your attack as Energy damage over 9 seconds. Shocks ignore Physical Resistance but not Armor.
+
+Special 3: Freyja's Wrath
+89% chance to Shock your opponent, dealing 200% of your attack as Energy damage over 9 seconds. Shocks ignore Physical Resistance but not Armor.
+
+All Attacks - Stun
+Striking an opponent that has been Shocked has a 19% chance to Stun them for 2.1 seconds.
+
+Heavy Attacks - Stagger
+85% chance to Stagger the enemy for 9 seconds. A Staggered enemy cannot gain their next beneficial effect.
+
+Signature Ability - All-Mother’s Blessing
+With Freyja's guidance and Mjölnir's power, Thor lets loose "That Which Smashes", dealing guaranteed Critical Hits and dealing (17% - 170%) Critical Damage against stunned opponents.
+The effect counts as 100% Critical Hit Rate and can still be altered by effects like Fatigue and Ant-Man’s Glancing Hit.
+This effect will work for any Stun effect, not just Stuns gained from Lightning Arc.
+
+Synergy Bonuses
+Black Widow - Friends +6% Armor
+Thor - Romance: +5% Power Gain
+Vision - Teammates: +5% Perfect Block Chance
+
+Recommended Masteries
+
+Parry
+As Jane Foster gains the massive Critical Damage boost whenever the opponent is Stunned, Parry can drastically increase her damage output.
+
+Stupefy
+Since Jane Foster’s damage output largely comes from Stunning her opponents during combat, Stupefy increases the window and grants more time for large damage bursts.
+
+Mystic Dispersion
+As Stagger removes the opponent’s effect a fraction of second after it activates, it will trigger Mystic Dispersion, allowing large bursts of Power Gain each time it can be used, which allows for more triggers of Lightning Arc and Stun.
+
+Strengths
+Jane’s extremely high damage output while the opponent is Stunned or Shocked allows aggressive players to take down strong opponent’s quickly as long as the pace is kept up.
+Shock deals a fair amount of damage, and can get around Bleed and Poison immunity, allowing Jane to deal chip damage to any opposing Champion.
+
+Weaknesses
+Jane relies heavily on aggressive play to get the most out of her abilities. Players used to holding back or only trying to get a few hits in during specific windows won’t be able to trigger Stun and Jane’s damage boosting signature very often.

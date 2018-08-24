@@ -1,0 +1,24 @@
+All stats based on 4 Star, Rank 5, Level 50 sig 99
+
+Basic Abilities: Fury, Ammo Stockpile, Bleed, Incinerate
+
+All Attacks - Fury
+```• 11% chance for Fury, increasing your Attack by 574 for 7 seconds.```
+Passive - Ammo Stockpile
+```• Winter Soldier begins the fight with one type of Ammo loaded into all his guns. Each time he launches a Special Attack he automatically switches to the next Ammo Type. Winter Soldier can also Dash back and hold Block for 1.50 seconds to manually swith ammo types.```
+Special Attacks - Incinerate, Bleed
+```• Armor Piercing - Winter Soldier ignores all of the opponent's Armor Rating.
+• Incendiary - Winter Soldier Incinerates the opponent, dealing 1090.6 Energy Damage over 6.50 seconds. This also removes Perfect Block Chance and reduces Block Proficiency by 50%.
+• Hollow Point - Any Bleed effect triggered during the attack has its Duration increased by 50%.```
+
+Special 1 - Deuces are Wild
+After a flurry of attacks, the Winter Soldier finishes off his opponent with a little help from his friends.
+```• 55% chance to inflict Bleed, dealing 1090.6 Direct Damage over 4 seconds.```
+Special 2 - 1945
+The Winter Soldier demonstrates a few tricks he learned from his days as Captain America's partner.
+```• 85% chance to inflict Bleed, dealing 1320.2 Direct Damage over 4 seconds.```
+Special 3 - Fist of the Red Army
+The Winter Soldier was once the greatest assassin the Red Army ever produced. Let him show you why.
+```• 100% chance to inflict Bleed, dealing 2640.4 Direct Damage over 3.50 seconds.```
+
+updated 6/27/2018 - suprmatt

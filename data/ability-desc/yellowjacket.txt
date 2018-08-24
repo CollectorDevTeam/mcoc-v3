@@ -1,0 +1,22 @@
+All stats based on 4-Star, Rank 5, Level 50, Signature Level 99
+
+Basic Abilities: Power Sting, Precision
+
+All Attacks - Critical Rate
+```• 8% chance to boost Critical Rating by 1076.92 for 6 seconds.```
+
+Special 1 - Biosting Blast
+Sending extra power to the suit, Yellowjacket lets loose with a massive biosting energy blast.
+```• 90% chance to Sting the opponent for 8 seconds. An opponent with sting takes 1337.6 Direct Damage when activating a Special Attack.```
+Special 2 - Power Sting
+Yellowjacket delivers a pair of heavy strikes to his opponent, then follows it up with a focused biosting blast.
+```• 90% chance to Sting the opponent for 8 seconds. An opponent with sting takes 1337.6 Direct Damage when activating a Special Attack.```
+Special 3 - Biosting Barrage
+With a blast of Pym Particles, Yellowjacket flies around his opponent at micro size, delivering a series of concentrated biostings.
+```• 100% chance to Sting the opponent for 16 seconds. An opponent with sting takes 1337.6 Direct Damage when activating a Special Attack.```
+
+Signature Ability - BIOSTING 2.0
+Passive
+```• Power Stings stun their victims with a bio-electric shock for 2.38 seconds(s) after lasting their full duration.```
+
+updated 6/27/2018 - lmxn

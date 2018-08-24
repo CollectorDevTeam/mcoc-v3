@@ -1,0 +1,50 @@
+All stats based on 4 Star, Rank 5, Level 50, Signature Level 99
+
+Basic Abilities: Fury, Armor Up, Precision, Regeneration
+
+Passive - Regeneration
+```• For each 10% of Max Health taken in damage, immediately gain a Resilience counter.
+• When below 100% Max Health without an active Regeneration Buff, convert a Resilience counter into a Regeneration Buff, recovering 691.75 Health over 10 seconds.```
+
+Passive
+• Angela gains a Buff based on her current Power level.
+• Each time Angela lands a Critical Hit she duplicates the Buff she’s being granted by her current Power level. This Buff has a Duration of 15 seconds, and a maximum of 1 stack(s) of each Buff can be Duplicated.
+• Less than Special 1: Armor Up increasing Armor Rating by 666.67
+• Special 1: Fury increasing Attack by 899.25
+• Special 2: Precision increasing Critical Rating by 2000
+• Special 3 : Aptitude increasing the effect of all Fury, Armor, and Precision Buffs by 50%.
+
+Heavy Attacks
+• This attack receives 2000 additional Critical Rating.
+
+Special 1 - Sword of the Stars
+Angela unleashes a powerful series of strikes with her sword Xiphos.
+• 100% chance for Fury, increasing your Attack by 899.25 for 5 seconds.
+• If there is already a Fury active on Angela, this effects lasts for 20 seconds instead.
+
+Special 2 - Blades of Ichor
+Angela dashes forward to employ the Blades separated, before combining them to strike again.
+• 100% chance to Armor Up, increasing Armor Rating by 666.67 for 5 seconds.
+• If there is already an Armor Up active on Angela, this effects lasts for 20 seconds instead.
+
+Special 3 - Martial Mastery
+Angela strikes with the Sword of the Stars forcing her opponent back, before drawing the Blades of Ichor to finish them.
+• Angela’s Attack is increased by 599.5 for each Buff active on her during this attack.
+
+Signature Ability - Battle Focus
+• As Angela enters combat she gains greater and greater focus, allowing each Buff active on her to reduce all Nullify abilities chance to trigger against her by 25%.
+
+Recommended Masteries
+```Recovery: Angela’s Resilience ability allows her to Regenerate a portion of the damage she’s taken this fight. Recovery enhances this Regeneration keeping her in the fight longer.
+Enhanced Fury: Angela can stack several Furies at the same time, and then increase their effectiveness even further with her Aptitude buffs. Doing so will raise her damage output immensely!
+Cruelty: Angela has the ability to stack several Precision Buffs. This greatly increases her Critical Hit rate, which makes the return for increasing her Critical Damage Rating very high.```
+
+Strong Match-Ups
+```Civil Warrior: Angela matches up quite well against Civil Warrior. She doesn’t suffer much from reduced Offensive Ability Accuracy, and while the Heal Block can be annoying, she gains much more from the Attack bonus due to Class Advantage.
+Ultron: Angela gets up and personal with her opponents. Her damage output is all Physical so she doesn’t have to worry about Ultron’s Absorption, and he can’t do anything about her stacking up Buffs.
+Ant-Man: Angela’s control over which Buffs she holds allows her to stack most of her damage behind Furies, which allows her to hit hard in spite of Ant-Man’s Pym Gas Control Signature Ability, and Fatigue Debuffs.```
+
+Weak Match-Ups
+```The Hood: While Angela has very few ranged abilities to worry about Invisibility, it’s The Hood’s Fate Seal she’ll want to avoid. Unlike a regular Nullify ability, her Signature Ability won’t protect her from it.
+Ronan: Ronan loves attacking Buffed targets, and Angela almost can’t do anything but stack Buffs. If she’s hit by a well timed Ronan Special Attack, she will find herself Stunned for quite some time.
+Juggernaut: With no way to prematurely remove Juggernaut’s Unstoppable Buffs, combined with his Class Advantage, Angela can find herself with her back against the wall. To make matters worse, her Signature Ability only triggers against straight up Nullifies, which is no help against Stagger.```

@@ -1,0 +1,27 @@
+All stats based on 4 Star, Rank 5, Level 50 sig 99
+
+Basic Abilities: Fury, Direct Damage, Stun
+
+All Attacks
+```• 10% chance for Fury, increasing your Attack by 433.3 for 6.50 seconds.```
+Passive
+```• The chance to trigger a Fury Buff increases by 50% for every 30 seconds that have passed in the fight. Maximum 150% increase.
+• For each Fury Buff active, this Champion gains 105.26 additional Armor Penetration.```
+
+Special 1 - Call Lightning
+Bridging the heavens and Earth, Thor redirects a mighty bolt of lightning towards his opponent.
+```•This attack deals True Damage, ignoring all of the opponent's Armor.
+• 70% chance to Stun for 3 seconds.```
+Special 2 - Mjölnir's Fury
+Nobody can outrun the mystical hammer Mjölnir.
+```• 85% chance to Stun for 4 seconds.```
+Special 3 - Odin's Wrath
+Thor channels the powers of a God and strikes with Mjölnir using the strength of a thunderstorm.
+```• 100% chance to Stun for 4.50 seconds.```
+
+Ragnarok
+Passive
+```• Stunning the Thunder God infuriates him and grants him Fury, increasing his Attack by 247.6 for 4.50 seconds.
+• When Thor Stuns his opponent, he tears apart their Armor reducing it by 3160.7 for 7.50 seconds.```
+
+updated 6/26/2018 - suprmatt

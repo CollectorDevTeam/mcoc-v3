@@ -1,0 +1,38 @@
+Originally Posted 01-20-2016
+
+*All stats based on 4 Star, Rank 5, Level 50
+
+Precision - Special Attacks
+• 75% chance to boost Critical Hit Rate by 37% for 6 seconds.
+
+Power Gain - Passive
+With precise control over inter-dimensional energies, Cyclops gains Power faster at low Power levels.
+• The lower Cyclops’ Power Levels are, the faster he gains Power, both from attacking and defending. This allows him to fire off Special 1 and Special 2 more often than other champions.
+
+Special 1 -Optic Blast
+• 48% chance to Armor Break, removing enemy Armor and applying 39% Armor reduction for 9 seconds.
+• This attack has three potential triggers for Armor Break, all of which stack.
+
+Special 2 -Vigilance
+• 54% chance to Armor Break, removing enemy Armor and applying 44% Armor reduction for 10 seconds.
+• This attack has three potential triggers for Armor Break, all of which stack.
+
+Special 3 -Gigawatt Blast
+• 100% chance to Armor Break, removing enemy Armor and applying 51% Armor reduction for 14 seconds.
+• This attack has one potential trigger for Armor Break.
+
+Signature Ability - Expertise
+• Beams are calibrated for up to (45% - 190%) increased Critical Hit Damage. As long as a Combo of 10 or more hits is maintained, Cyclops’ Armor Break effects have 20% increased Duration and as long as a Combo of 20 or more hits is maintained Beam Attacks break through an enemy’s Block.
+• The benefit gained from a Combo of 20+ forces the enemy out of their Block, also allowing Cyclops to gain his Armor Break effect.
+
+Recommended Masteries
+Recoil: The vast majority of Cyclops’ damage output comes from his powerful special attacks. Working to amp up that damage can allow him to blast away opponent’s quickly, when combined with his power gain ability.
+Precision: As Cyclops gains a massive Critical Damage boost during Special Attacks courtesy of his Expertise ability, increasing his chance to utilize this damage boost can give him even more damage output during his already powerful Special Attacks.
+Dexterity: Keeping Cyclops’ combo meter is paramount to maintaining high damage output and usability of Special Attacks. Being able to evade enemy attacks is therefore very important.
+
+Strengths
+Cyclops has some of the highest Special Damage output in the entire Contest, and his ability to build up to his lower level Special Attacks quickly allows him to keep up the damage output throughout the fight to bring down tough opponents quickly.
+With his powerful signature ability, Cyclops is extremely rewarding to players that can maintain a high combo meter with well timed blocks and dodges.
+
+Weaknesses
+Cyclops is very reliant on his Special Attacks for damage output, as he lacks strong abilities to increase his attack throughout regular combat. As such, he is more vulnerable than other champions to frequent Power Drain and Power Burn effects.

@@ -1,0 +1,53 @@
+All stats based on 4 Star, Rank 5, Level 50, Signature Level 99
+
+Basic Abilities: Resist Physical, Precision, Fury, Cruelty, Bleed
+
+Passive
+• The Carnage Symbiote changes form creating weapons and armor providing Passive bonuses based on Carnage’s current needs.
+-- Struck: +998.5 Physical Resistance
+-- Block: +998.5 Block Proficiency
+-- Light Attack: +998.5 Critical Rate
+-- Medium Attack: +391.6 Attack
+-- Heavy Attack: +1508.77 Critical Damage Rate
+
+Special Attacks
+• Each time Carnage activates a Special Attack he begins to Mutate for 10 seconds.
+• Once his mutation ends, he copies his current Symbiotic Creation as a Permanent Buff.
+• He can have a Maximum of 5 Permanent Buffs.
+
+Critical Hits
+• If the target is already Bleeding, gain a 80% Chance to Bleed dealing 44.06 damage over 0.5 seconds.
+
+Heavy Attacks
+• 100% Chance to Bleed dealing 538.45 damage over 10 seconds.
+
+Special 1 - Frenzied Assault
+Carnage hurls himself at his opponent, rending with limbs and tentacles alike.
+• This attack receives +998.5 additional Critical Rate.
+
+Special 2 - Rabid Onslaught
+Carnage uses his tentacles to suddenly propel himself towards his target while he strikes with his claws.
+• This attack receives +1529.33 Critical Damage Rating.
+
+Special 3 - Aberrant Soul
+Carnage uses his tentacles to pin his opponent in place, allowing him take the time to revel in the carnage he creates.
+• 100% chance to cause the Opponent to Bleed, dealing 3671.25 direct damage over 20 seconds.
+
+Signature Ability - BLOODLUST
+The sight and smell of blood triggers Carnage’s bloodlust, granting him up to +19.99% increased Power Gain, while his Opponent is Bleeding.
+• The longer the Opponent has been continuously Bleeding the greater the bonus, reaching the maximum after 20 seconds.
+
+Recommended Masteries
+Deep Wounds: Carnage has the ability to trigger additional short duration Bleeds when he lands a Critical Hit on an Opponent who is already Bleeding. This is really potent when combined with Deep Wounds, as the flat Duration increase results in a lot more damage from short Bleeds. It does even more damage when you factor in the percent Health damage, and the fact that his Special 1, not only boosts Critical Rating, but also hits up to 7 times!
+Block Proficiency: Carnage’s base stats look pretty low and that’s because they are. However, his Passive mutation converts to a useful type whatever the situation is which helps compensate, even before you start converting to permanent Buffs. But if you’re planning to build his Buffs all offensively, bringing along some extra Block Proficiency will help keep the Parry chip damage down.
+Willpower: Willpower helps keep Carnage viable over several fights. His HP is on the lower end, and he a takes a little while to build a few Buffs and really get rolling, though his Signature Ability helps with this. The Willpower healing helps him keep rolling after taking some chip damage at the beginning of fights, before he gets his Block Proficiency high enough to Parry without taking damage.
+
+Strong Match-Ups
+Howard the Duck: Howard’s defenses are based heavily around his Armor Up effects, and Carnage’s Bleeds don’t care about that armor at all! And if Howard survives long enough for his Armor Ups begin to fall off, Carnage will be gaining more and more Buffs.
+Black Widow: Ironically in this matchup, Black Widow’s Signature Ability can actually benefit Carnage, as its Ability Accuracy Reduction can prevent him from swapping his passives. This makes it easier to avoid swapping to a defensive Passive effect, just before converting to a permanent Buff.
+Electro: Carnage focuses on doing big damage with his Bleed effects. Since Electro does damage back based on your hits to him, Carnage can minimize the amount of damage returned to him due to the Bleed.
+
+Weak Match-Ups
+Doctor Strange: Doctor Strange has all sorts of Nullify to ruin Carnage’s day. Counterspell has a chance to remove Carnage’s permanent Buffs as they are applied, and his Special 2 can remove them after they’ve been applied as well.
+Ronan: Ronan loves to go up against Champions who have a lot of Buffs and guess what Carnage has? There’s pretty much two ways to play this match-up. Either go all in, build up your Buffs and don’t get hit, or limit your Buffs by limiting your Special Attacks, focus on building to Special 3, and ride that Bleed.
+Doctor Voodoo: There are so many ways for Doctor Voodoo to be dangerous to Carnage. If damage is his goal, his Special 1 can convert all those Buffs to Poison; so suppress a powerful Carnage his Signature Ability has a chance to prevent the Passive from converting to a Buff, or he can just Power Drain Carnage to prevent him from throwing enough Special Attacks to stack many Buffs.

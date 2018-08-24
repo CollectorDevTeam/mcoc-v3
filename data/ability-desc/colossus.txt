@@ -1,0 +1,23 @@
+All stats based on 4 Star, Rank 5, Level 50 sig 99
+
+Basic Abilities: Armor, Bleed Immunity
+
+Passive - Armor Rating
+```• A layer of Armor provides an additional 409.64 Armor Rating.
+• Impenetrable armor provides full immunity to Bleeding.```
+When Attacked - Armor Rating
+```• 10% chance to Armor Up, increasing Armor Rating by 941.18 for 6.50 seconds.```
+All Attacks - Armor Rating
+```• 10% chance to Armor Up, increasing Armor Rating by 941.18 for 6.50 seconds.```
+
+Special 1 - Dropkick
+A classic wrestling move used to knock down any opponent.
+```• Damage for this attack is based on current Armor levels. Damage increases by up to 130% based on overall Armor. This attack also deals reduced damage while under the effect of Armor Reduction.```
+Special 2 - Unstoppable
+Colossus demonstrates hand to hand combat with enough superhuman strength to careen 100 tons.
+```• Damage for this attack is based on current Armor levels. Damage increases by up to 130% based on overall Armor. This attack also deals reduced damage while under the effect of Armor Reduction.```
+Special 3 - Unbreakable
+In flesh form he is a man; in steel form he is a hero, increasing his damage based on his current Armor level.
+```• Damage for this attack is based on current Armor levels. Damage increases by up to 130% based on overall Armor. This attack also deals reduced damage while under the effect of Armor Reduction.```
+
+updated 6/27/2018 - suprmatt

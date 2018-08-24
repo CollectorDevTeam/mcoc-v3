@@ -1,0 +1,39 @@
+All stats based on 4 Star, Rank 5, Level 50, Signature Level 99
+
+Basic Abilities: Buff Steal, Curse, Overpower, Stun
+
+Basic Attacks
+• While the opponent is Cursed, Loki has a 17.5% chance to Stun the opponent for 1 second.
+
+Heavy Attack
+• While the opponent is Cursed, this attack has 100% Critical Hit Chance. Additionally, it has a 100% chance to reset the duration of Curse.
+
+Special 1 - Curse of Agony
+Loki slashes the opponent with his scepter, and then finishes them with a dark energy blast.
+• Steals all of the opponent’s Buffs. Stolen Buffs last for 6.3 seconds.
+• 65% chance to reset the duration of Curse
+
+Special 2 - Cryokinesis
+Loki taps into his Frost Giant lineage to overpower opponents with a surge of ice.
+• If Loki has more Health points than his opponent, he has a 100% chance of subtracting 5.4% of their max Health instantly.
+• This attack is Unblockable.
+
+Special 3 - Mayhem
+Loki manipulates the opponent into attacking his illusions until he is ready to deal the final blow.
+• Loki Curses the opponent, dealing 113% of your Attack as Energy Damage and allowing him to steal any of the opponent’s Buffs for 7.5 seconds. Stolen Buffs last for 7 seconds.
+
+Signature Ability – ASCENDANT
+• Perhaps the most powerful sorcerer in all Asgard, Loki passively generates additional Power over time while he has less than one Power Bar.
+• Rising in power through sorcery and subterfuge, Loki generates an additional 5.5% Power per second as long as he is below 1 bar.
+
+Recommended Masteries
+Petrify & Pacify: When going for his Special 3, Loki Curses the opponent and deals damage over time while also stealing their Buffs. When the opponent is Cursed, basic attacks have a chance to inflict Stun and heavy attacks renews the duration of the Curse. So if you are skilled enough, you can keep the enemy cursed for the entire duration of the fight.
+Despair: Curse is a Debuff, add in Despair mastery to crush opponents even more by reducing their Regeneration effects.
+Courage & Greater Strength: Loki’s Special 2 and Special 3 deals additional ability damage, maximizing your attack is a clear and simple choice.
+
+Strengths
+Ultron, Venom or Thor: Opponents that heavily rely on Buffs are going to get hard-countered by Loki.
+Doctor Strange or Magneto: Loki’s resistance to Energy attacks is pretty strong, making him a strong competitor when going against opponents that rely on it.
+
+Weaknesses
+Hulk or Black Panther: Opponents that rely on pure attack stats and debuffs to deal damage are going to excel against Loki. He is weaker against physical attacks, despite still having a lot of health.

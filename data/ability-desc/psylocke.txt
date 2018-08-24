@@ -1,0 +1,54 @@
+All stats based on 4 Star, Rank 5, Level 50, Signature Level 99
+
+Basic Abilities: Power Drain, Power Lock, Power Burn, Stun
+
+Passive
+• Gain 25% less Power from striking your opponent.
+
+Passive
+• Gain up to 1333 bonus Critical Damage Rating the lower your opponent’s current Power.
+
+Psi-Charges
+• Your opponent doesn’t gain Power when struck if they have 0 Power, and Psylocke has at least 1 Psi-Charge.
+• Every 5 hits Psylocke lands on an Opponent with 0 Power, she gains a Psi-Charge.
+• Each time her opponent fills a bar of Power, Psylocke gains a Psi-Charge.
+• Each time Psylocke is struck by an opponent they consume a Psi-Charge instantly gaining up to 50% additional Power.
+
+Heavy Attacks
+• This attack consumes all Psi-Charges, dealing 869 Energy Damage per charge consumed.
+
+Special 1 - Telekinetic Blade
+Psylocke manifests a telekinetic blade, using it in tandem with her Katana.
+• Depletes up to 25% of the Target’s Max Power.
+• If this attack causes your opponent’s Power to be reduced over a Special Attack bar threshold, Psylocke will Gain Power until she reaches 1 Bar of Power over 0.25 seconds.
+
+Special 2 - Psionic Blast
+Psylocke unleashes her Telepathic abilities in a blast of raw psionic energy.
+• 100% Chance to Power Lock your opponent for 6 seconds.
+• If this attack hits, Psylocke has a 100% chance to consume 1 Psi-Charge, and gain 34% Power over 0.25 seconds.
+
+Special 3 - Psionic Knife Strike
+Psylocke focuses all of her power into a single psychic blade, plunging it into her opponent’s brain.
+• Consumes all Psi-Charges
+• 100% chance to Power Lock your opponent for 10 seconds.
+• Burns 20% of your Target’s Power for each Psi-Charge consumed, causing direct damage based on the amount burned.
+• If this attack reduces your opponent to 0 Power, it Stuns them for 4.5 seconds.
+
+Signature Ability - Psi-Feedback
+• Psylocke’s psionically empowered strikes can disrupt her opponent’s nervous system reducing their Defensive Ability Accuracy by 65% when they have 0 Power.
+• Gain up to 857 bonus Critical Damage Rating the lower your opponent’s current Power.
+
+Recommended Masteries:
+Glass Cannon: Psylocke gets in trouble quickly if she starts taking hits while carrying lots of Psi-Charges. Glass Cannon doesn’t actually make things worse for her, as she needs to be in control of the fight anyway. However, she benefits a lot by increasing her attack as it gets multiplied by her big Critical Damage Rating.
+Pierce: Psylocke gets most of her damage from Critical Hits, so increasing the effectiveness of this is good. She also lacks a way to remove powerful Armor effects, so bypassing a portion of that Armor can be very beneficial.
+Precision: Psylocke brings lots of natural Critical Damage Rating, but her chance to land that critical hit in the first place is only average. Anything that can be done to increase the number of critical hits she lands, will work out well for her.
+
+Strengths
+Wolverine/ Wolverine (X-23): When facing Wolverine and X-23, most of the same challenges present themselves and Psylocke is well equipped to deal with them. She wants to keep her opponent’s Power as low as possible (ideally 0) which drastically reduces the amount of health that Wolverine regains per Regeneration triggered.  Also, once her Signature Ability is unlocked, she reduces the chance to trigger a Regeneration in the first place.
+Captain Marvel: Somewhat similar to Wolverine and X-23, Captain (and Ms.) Marvel want to build lots of Power to maximize their Signature bonus. Psylocke directly combats this with all sorts of Power Lock/Drain/Burn, keeping them from hitting too hard.
+Magik: Magik is tough on defense in a big part because of Limbo. Limbo is most effective when triggered by an attack that pushes her across a Power threshold, and Psylocke is great at keeping this from happening. If she can get her locked in at 0 Power, she has the potential to take Limbo out of the fight completely.
+
+Weaknesses
+Vision/Hyperion: Vision’s Signature Ability, and Hyperion’s Cosmic Charges are both examples of abilities that Psylocke will have to be careful around. While her ability to attack without granting Power can be very powerful, it is vulnerable to Power Gains as it turns off as soon as one triggers.
+Civil Warrior: Civil Warrior’s ability to lower Offensive Ability Accuracy can disrupt Psylocke’s ability to strike without granting Power, and it only takes one hit without that ability to start giving the Opponent Power.
+Spider-Man: It’s all about that Evade with Spider-Man isn’t it? Psylocke has to be extra careful around Evading Champions, as her ability to deny Power is one directional. If Spider-Man Evades an attack and Psylocke doesn’t react quickly enough, he’ll land a hit, and she’ll have to get him setup back at 0 Power all over again. This swings more in Psylocke’s favor once her Signature Ability is unlocked, but it still only takes one slip up.

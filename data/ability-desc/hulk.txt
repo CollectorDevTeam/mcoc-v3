@@ -1,0 +1,25 @@
+All stats based on 4-Star, Rank 5, Level 50, Signature Level 99
+
+Basic Abilities: Fury, Stun, Poison Immunity
+
+When Attacked & When Attacking - Fury
+```• 12% chance for Fury, increasing your Attack by 490.8 for 6 seconds.```
+Passive
+```• As Health is lost, the chance to trigger Fury effects increases by up to 50%.
+• An enhanced immune system provides full immunity to the Poisons of the Battlerealm.```
+Special Attacks - Stun
+```• 85% chance to Stun the opponent for 2 seconds. The duration of the Stun increases by 1 second(s) for each Fury effect the Champion has.```
+Passive - Fury
+```• When dropping below 25% Health, Hulk gets ready to smash his opponent into the ground, gaining a massive Fury for 8 seconds which increases his Attack by 1349.7.```
+
+Special 1 - Groundswell
+Hulk Smash!
+```• 85% chance to Stun the opponent for 2 seconds. The duration of the Stun increases by 1 second(s) for each Fury effect the Champion has.```
+Special 2 - Thunderclap
+Hulk...SMASH!
+```• 85% chance to Stun the opponent for 2 seconds. The duration of the Stun increases by 1 second(s) for each Fury effect the Champion has.```
+Special 3 - Worldbreaker
+HULK! SMASH!
+```• 85% chance to Stun the opponent for 2 seconds. The duration of the Stun increases by 1 second(s) for each Fury effect the Champion has.```
+
+updated 6/27/2018 - lmxn

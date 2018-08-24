@@ -1,0 +1,22 @@
+All stats based on 4 Star, Rank 5, Level 50
+
+Basic Abilities: Perfect Block, Stun, Bleed
+
+Blocking
+```• 30% chance that a Block reduces all damage.```
+
+Special 1 - Shield Bash
+Cap puts his weight behind a hefty shield bash.
+```• 35% chance to Stun for 2.50 seconds.```
+Special 2 - Shield Toss
+A staple of the Cap repertoire, his shield strikes true and through.
+```• 100% chance to inflict Bleed, dealing 3250.8 Direct Damage over 4 seconds.```
+Special 3 - American Justice
+An up-close and personal view of Cap's shield. Don't blink or you'll miss it.
+```• 45% chance to Stun for 3 seconds.```
+
+Signature Ability - Safeguard
+Passive
+```• The chance to Perfectly Block all damage increases by up to 51.36% while opponents are under Buff effects.```
+
+updated 6/26/2018

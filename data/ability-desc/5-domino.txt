@@ -1,0 +1,73 @@
+All stats based on 5-Star, Rank 5, Level 65, Signature Level 200
+
+Basic Abilities: Luck, Critical Bleed, Critical Damage
+
+Passive - Probability Field
+```• At the start of the fight, opponents lose 222 Critical Rating and Domino gains the same amount.
+• At the start of the fight, opponents lose 15% Ability Accuracy. Whenever one of Domino’s abilities fails to trigger, she gains +10% Ability Accuracy for 8 seconds.
+• Domino’s Bleed abilities tend to strike vital points and have a chance to benefit from her Critical Damage bonuses equal to her Critical Chance.
+• Opponents’ Bleed abilities tend to graze and have a 50% chance to expire after only 1 second(s). Whenever a Bleed expires prematurely, Domino is inspired and gains 10% of her maximum Power instantly.```
+All Attacks
+```• Benefit from up to +502 Attack Rating selected at random.
+• Benefit from up to +1333 Critical Damage selected at random.
+• A Critical Hit with a maximum roll in both Attack and Critical Damage Ratings results in a Perfect Critical Hit that inflicts Stun for 1 to 3 second(s).```
+Heavy Attacks
+```• If the opponent is Stunned, Attack Rating is increased by +1255 for this attack.```
+Blocking
+```• Benefit from up to +1333 Block Proficiency selected at random.
+• A Block with 5407 Block Proficiency or higher results in a Perfect Block, reducing incoming attack damage to zero and granting 10% maximum Power instantly.```
+
+When Filling a Bar of Power
+```• 30% chance for Domino to gain a Lucky Passive. 25% of Domino’s current Combo Meter count is added to this chance.
+• 30% chance for opponents to suffer an Unlucky Passive. 25% of the opponents’ current Combo Meter count is added to this chance.
+• Lucky and Unlucky effects last for a random duration between 1 and 5 seconds plus 1.5 additional second(s) for each full Bar of Power at the time of activation.
+• Skill Champions are always Unlucky.
+• Tech Champions are never Unlucky.```
+Passive - Lucky
+```• +273 Critical Rating.
+• +381 Critical Damage Rating.
+• +15% Ability Accuracy.
+• +353 Block Proficiency.
+• 10% chance to Evade attacks.
+• Stun expires 35% faster.
+• Domino is more likely to earn a higher roll when selecting Attack Rating, Critical Damage Rating, and Block Proficiency bonuses at random.```
+Passive - Unlucky
+```• -273 Critical Rating.
+• -276 Critical Damage Rating.
+• -222 Critical Resistance.
+• -35% Ability Accuracy.
+• -353 Block Proficiency.
+• 100% chance for Evade or the Dexterity Mastery to fail.
+• Bleed abilities deal 50% less damage.```
+
+Special 1 - Stroke of Luck
+Domino fires a bullet that strikes a grenade at exactly the right angle to maximize damage.
+```• Each hit has a 25% chance to inflict Bleed, dealing 1381 damage over 7 seconds.
+• If Domino is Lucky, this attack refreshes all Stun and Bleed effects on the opponent.
+• If the opponent is Unlucky, this attack has +251 Attack Rating for each second that passed since the last time Domino hit with a Special Attack.```
+Special 2 - Auspicious Onslaught
+Domino fires four shots in style while upside down and airborne.
+```• Each hit has a 25% chance to inflict Bleed, dealing 3012 damage over 7 seconds.
+• If Domino is Lucky, this attack has +1255 Attack Rating if Domino suffered from Bleed at least once this fight.
+• If the opponent is Unlucky, they’re Taunted by this flashy attack. Taunted opponents have their Attack reduced by 251 and have a 70% higher chance to activate a Special Attack.```
+Special 3 - Soldier of Fortune
+After two shots, Domino kicks her pistol at the opponent then unleashes a larger weapon.
+```• 74% chance to inflict Bleed, dealing 3012 damage over 7 seconds.
+• If Domino is Lucky, this attack has +38 Attack Rating for every Critical Hit that occurred this fight by either Domino or her opponent (Max: 100 Critical Hits).
+• If the opponent is Unlucky, this attack inflicts Armor Break, removing one Armor Up and reducing Armor by 564 for 4 seconds.```
+
+Signature Ability - CRITICAL FAILURE
+```• Opponents take 753 Energy Damage over 1.5 second(s) whenever their abilities have a chance to trigger but don’t. Potency decreases temporarily for consecutive triggers.```
+
+Recommended Masteries
+Offensively, the big numbers come from maximizing Critical Rate, Critical Damage, and Bleed damage. There are several Crit Masteries to choose from – all are great for Domino – and Deep Wounds to boost her Bleed damage. Stacking Attack Rating with Critical Rate and Critical Damage has a compounding effect on her Bleed damage, since her Bleeds have a chance to Crit as well. A Critical Bleed deals bonus Bleed damage equal to her Critical Damage at the time of the Bleed trigger.
+It’s worth mentioning the benefits of Double Edge. The self-inflicted Bleed will end early and grant a bit of bonus Power in 50% of her fights. In every fight, it guarantees she’ll benefit from the damage bonus applied to Special 2 while Lucky.
+Defensively – and don’t let the high damage potential fool you, she’s a highly effective defender as well – you’ll want to focus on Health, Block Proficiency, and Perfect Block Chance. The longer she’s alive, the more iterations through Lucky or Unlucky she’ll go through, and the more opportunities she’ll have to harm her opponent. It’s really that simple; however, fights against Domino aren’t ever over until the very end, as her Special 1 and 3 attacks both have the potential to accrue massive damage over the course of longer fights and surprise opponents with a last-ditch attack for high damage.
+Coagulate and Willpower will also add even more anti-Bleed (and general all-around longevity) to grant Domino pseudo Bleed Immunity. In many cases – especially against Champion’s with more frequent, weaker Bleeds – Domino will profit with either Health, Power, or both when Bleed is inflicted upon her, making this pseudo-immunity better than actual immunity.
+
+Strengths
+She’s great when Bleed is present. Whether attacking or defending, if the enemy triggers Bleed, she’ll be in a good place. Conveniently, a lot of notorious Skill Champions rely on stacking Bleeds. Blade comes to mind.
+Opponents that trigger abilities frequently, such as on every hit, will have a chance to fail on each of those events, and therefore trigger her Signature Critical Failure Ability often.
+
+Weaknesses
+Tech opponents, opponents that don’t Bleed or don’t inflict Bleed, and opponents with few abilities or reliably (100% trigger rates) abilities can walk all over Domino. Vision captures all three of these aspects.

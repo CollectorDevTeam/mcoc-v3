@@ -1,0 +1,46 @@
+All stats based on 5-Star, Rank 5, Level 65, Signature Level 200
+
+Passive
+• This Champion has additional Critical Resistance in its Base Attributes.
+• At the start of the fight, Vibranium Armor provides 667 Armor Rating and Killmonger gains 15% of his missing Power each time a Debuff is inflicted against him. Vibranium Armor is disabled if he is suffering from an Armor Break effect.
+
+All Attacks
+• Hitting opponents that are recovering from a Special Attack grants Killmonger True Strike for 16 seconds. This allows him to ignore Armor, Resistances, and Evasion.
+
+Critical Hits
+• 80% chance to inflict Bleed, dealing 459 Direct Damage over 1.5 seconds.
+
+Special 1 - Merchant of Death
+Killmonger stays true to his name, offering a 2-for-1 special on knives to the chest and a bonus leaping kick to the face.
+• Killmonger gains 2 permanent Counterpunch Charges that last for 15 seconds. A charge is spent to shrug off the impact of enemy attacks for 0.75 seconds when Killmonger is blocking, allowing him to immediately counter-attack.
+
+Special 2 - Leopard Strike
+Leaping into the air for a height advantage, Killmonger lands with his ceremonial blades, striking deep wounds in his target.
+• Vibranium Armor activates 3 Indestructible Charges. A charge is spent to ignore all the incoming damage from an attack.
+
+Special 3 - Claws Out
+Killmonger’s black-ops training becomes painfully realized as he uses his Vibranium claws to lacerate his Opponent.
+• If Killmonger inflicted 15 or more Bleed Debuffs in his fight, he inflicts a Bleed stack for every Bleed he inflicted. Each Bleed deals 746 Direct Damage over 6 seconds. This effect can activate once a fight.
+
+Signature Ability - REVERBERATION
+Vibranium Armor reverberates incoming damage back to the opponent.
+• Vibranium Armor activates Reverberation for 8 seconds, dealing damage back to the opponent when Killmonger is Struck or Blocks an attack. Damage is based on Killmonger’s stored Power at the time of activation, inflicting up to 60-140% of the incoming damage as Physical Damage. Reverberation has a 8 second cooldown timer after expiring.
+• When both Reverberation and True Strike are active, Killmonger gains 172-1262 Attack Rating when hitting opponents.
+
+Killmonger: If Vibranium Armor is active, Killmonger has a 35% chance to Purify a Debuff after a 0.5 second delay and then instantly Regenerate 4% Health per Debuff.
+Void: Regenerates 1% Health when inflicting his Intimidating Debuffs.
+
+Recommended Masteries
+Deep Wounds: Killmonger’s Bleed effects are powerful and last for a short duration, perfectly matching with Deep Wounds at level 5.
+Precision: Enhancing Killmonger’s Critical Rating will allow him to inflict more Bleed Debuffs.
+Block Proficiency and Stand your Ground: Killmonger needs to Block in order to use his Counterpunch charges, investing in any masteries that enhance his Block will allow him to take less damage and also eventually resist a block breaking attack.
+
+Strengths
+Hyperion, Mordo: Killmonger is able to take no damage from Special 3 Attacks if he has at least one Indestructible Charge. Activate his Special 2 Attack in order to get those charges and you won’t have to worry about Champions who have a very fast Power Gain effect like Hyperion or Mordo.
+Spider-Man: Killmonger has True Strike and he can keep the ability active for a very long time when paired with Winter Soldier. This will make him a really great option against Champions that rely on Evade, such as Spider-Man.
+Alliance Wars Defense: Killmonger is able to get a lot of Power when opponents inflict a Debuff effect, including the Stun inflicted by the Parry Mastery. That ability paired with his Reverberation signature ability and his Counterpunch charges makes Killmonger a great option for Alliance Wars Defense.
+Stun Immunity: Counterpunch charges can be very useful when going against a Champion that is benefiting from Stun Immunity. Killmonger is able to shrug off the impact of attacks when he is blocking, opening an attack window, which allows him to counter attack right away.
+
+Weaknesses
+Medusa, King Groot, Iron Fist: Killmonger is extremely vulnerable to Armor Break abilities. When suffering from an Armor Break, his Vibranium Armor is turned off for the duration of the Armor Break effect.
+Vision, Iceman: Killmonger doesn’t do really well against opponents that are Bleed Immune, since one of his primary tools to inflict damage is through his Bleed ability on Critical Hits and his Special 3 Attack.

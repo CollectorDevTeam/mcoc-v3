@@ -1,0 +1,42 @@
+All stats based on 4 Star, Rank 5, Level 50, Signature Level 99
+
+Passive – Freestyle Combat
+• When starting the battle with more than 50% Health, Beast employs a Freestyle form of combat; Critical hits have a 56% chance to inflict Bleed damage for 65% of your Attack over 4 seconds.
+
+Passive – Acrobatic Combat
+• When starting the battle with less than 50% health, Beast is more careful and employs an Acrobatic combat style. This gives him a 85% chance to reduce their Critical Damage by 85%. Additionally, the opponent gets 45% less Power when getting hit by Beast.
+
+Passive – Thick Hide
+• Beast’s thick hide makes him resistant to Bleed effects, decreasing their Potency and Duration by 65%
+
+Special 1 - Freestyle Combat
+Beast uses a freestyle form of combat, striking the opponent with multiple kicks.
+• Beast analyses the situation and employs a Freestyle form of combat.
+• 55% chance to Stun for 1.5 seconds.
+
+Special 2 - Acrobatic Kicks
+Making full use of his great strength and agility, Beast performs a series of acrobatic kicks to knockdown the opponent.
+• Using his impressive power of deductive reasoning, Beast decides that employing an Acrobatic combat style is essential to his survival.
+• 80% chance to Stun for 2.25 seconds.
+
+Special 3 - Animalistic Instincts
+Beast taps into his animalistic instincts and temporarily unleashes a savage attack on unsuspecting opponents
+• Increases Attack by 3% per hit in the combo meter, up to a maximum of 150% Attack.
+
+Signature Ability – CHAIN COMBO
+Beast is able to execute different chain combos based on his current combat form.
+• While in Freestyle combat form, performing a Medium hit followed by a Light, Light, Light and Medium combo inflicts Direct damage per blow for up to 33.1% of your Attack based on Signature level. Successfully completing the combo increases Beast’s Critical chance by 25% for 5 seconds.
+• While in Acrobatic combat form, Blocking an attack followed by a Medium, Light, Light, Medium combo Regenerates up to 1.8% of Beast’s maximum Health per move, based on Signature level. Additionally on Combo Success, opponents get 50% less Power when getting hit and attacking for 5 seconds.
+• When unsuccessfully performing a combo, there will be a 5 second delay before you can start a new combo.
+
+Recommended Masteries
+Recovery: With Beast’s Signature Ability, while in the Acrobatic mode, he is able to Regenerate health when successfully doing a chain combo move, synergizing perfectly with Recovery.
+Precision: Beast doing Bleed damage on Critical hits, together with his signature ability and Precision, makes him one of the strongest Bleed dealers in the game.
+Petrify & Pacify: By dealing Stuns on his Special Attacks, Beast is able to start a combo right away. Reducing the opponent’s Power gain and preventing the activation enemy abilities synergizes really well with this ability.
+
+Strong Match-Ups
+Crossbones, Black Panther: Because of their Physical Resistance and Armor Ups, those champions are really hard to defeat, but with Beast’s Signature Ability and the Freestyle mode, he can bypass those defenses with his Bleed effects on Critical hits.
+Power Nodes in Quests, PvP: Beast is able to drastically reduce opponent’s Power gain while fighting with his Acrobatic combat form, making him one of the best options when going against champions on those nodes.
+
+Weak Match-Ups
+Doctor Strange, Magneto: Beast does not handle Energy Damage very well, therefore any champions that constantly deals Energy based attacks have an advantage against him.

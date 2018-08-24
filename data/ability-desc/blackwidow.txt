@@ -1,0 +1,19 @@
+All stats based on 4 Star, Rank 5, Level 50
+
+When Attacked - Evade
+```• 3% chance to automatically dodge incoming attacks.```
+Special attacks
+```• 100% chance to boost Critical Rating by 500 for 8 seconds.
+• 100% chance to increase Critical Damage by 1125 for 8 seconds.```
+
+Special 1 -
+Agent Romanova delivers a tactical series of strikes she first learned at the Black Widow Ops program.
+
+Special 2 -
+Black Widow displays the agility and grace of a ballerina, with the precision and devastation of a ninja.
+
+Special 3 - Widow's Bite
+She may look harmless enough, but this Black Widow has a shocking bite.
+```• 70% chance to Stun for 3.50 seconds.```
+
+updated 6/26/2018

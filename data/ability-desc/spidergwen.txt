@@ -1,0 +1,38 @@
+All stats based on 4 Star, Rank 5, Level 50, Signature Level 99
+
+Passive - Sensory Weave
+```• Spider-Gwen enters the fight in Hunter Spider mode and may switch combat modes by dashing back and holding Block for 1.50 seconds.```
+All Attacks
+```• While in Hunter Spider Mode, Gwen focuses her senses to strike at enemy weak points, allowing her attacks a 16% chance to Armor Break foes, lowering their Armor by 500 for 7.5 seconds.```
+Heavy Attacks
+```• While in Trap Spider Mode, Gwen readies herself to ensnare enemies. While charging her Heavy attack, she ignores the first attack and Weakens her opponent on a successful hit, reducing their Attack by 25% for 8.5 seconds.
+• This attack has 500 additional Critical Hit Rating.```
+
+Special 1 - Spider Senses, Tingling
+With a graceful, acrobatic display, Spider Gwen backflips away from her foe, focusing her Spider Sense in the process.
+```• Spider-Gwen gains a short burst of enhanced Spider Sense, granting 25% Evasion and 666.67 increased Critical Hit Rating for 10 seconds.```
+Special 2 - Whiplash Web Kick
+One backflip kick, two well placed web shots, and suddenly Spider Gwen's foot is rocketing towards her opponent's face.
+```• If Spider-Gwen is in Hunter Spider mode, she has a 80% chance to Stun the opponent for 2.4 seconds.
+• If Spider-Gwen is in Trap Spider mode, she has a 80% chance to Fatigue the opponent, lowering their Critical Rating by 1174.6 for 15 seconds.```
+Special 3 - Web-Slinging Fun
+Gwen trips up her opponent, swings them around, and introduces them to the wall at an alarming speed. Fun for everyone.
+```• If Spider-Gwen is in Hunter Spider mode, she has a 80% chance to Stun the opponent for 2.4 seconds.
+• If Spider-Gwen is in Trap Spider mode, she has a 80% chance to Fatigue the opponent, lowering their Critical Rating by 1174.6 for 15 seconds.```
+
+Signature Ability - Enhanced Weave
+```While in Hunter Spider Mode, Gwen’s critical hits have a 42.52% chance to deal double damage. While in Trap Spider Mode, Gwen’s critical hits have a 42.52% chance to Weaken foes, lowering their attack by 20% for 7 seconds.```
+The Weakness effect does not stack.
+
+Recommended Masteries
+```Precision: As Spider-Gwen’s signature abilities relies on scoring Critical Hits, increasing her Critical Hit Chance allows her to gain these powerful effects more often.```
+```Cruelty: Players who can get the timing down for Trap Spider mode will score frequent Critical Hits, and increasing her Critical Damage allows her Traps to score massive damage.```
+```Petrify / Pacify: Spider-Gwen deals frequent Stun effects while in Hunter Spider Mode, and these masteries allow her to deny her opponents both Power gains and triggered abilities such as Armor Up and Regeneration.```
+Strengths
+```• Spider-Gwen in Trap Spider Mode rewards players who can time their attacks well with large boosts to Critical Hit Rate, learning the timing window for her Heavy Attack can allow skilled players to land frequent and strong Critical Hits.
+• Gwen’s Hunter Spider Mode allows players to fight in a more simple manner, by stacking Armor Break effects and staying aggressive.
+• Using Gwen’s Special 1 to gain the Evasion buff allows her much more survivability as the Evade chance is quite high for the full 7 seconds.```
+Weaknesses
+```• Gwen’s low health leaves her more vulnerable to attacks while her Evasion buff is down, and players who cannot dodge or block effectively will lose the fight more quickly.```
+Originally Posted 11-11-2015
+Updated 6-26-2018 - jjw

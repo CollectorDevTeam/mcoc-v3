@@ -1,0 +1,32 @@
+All stats based on 5 Star, Rank 4, Level 55, Signature Level 47
+
+Basic Abilities: Evade, Bleed, Cauterize, Stun, Armor, Self-Repair, Robotics
+
+Passive - Evade
+```• function Evade(every 7 seconds)```
+Passive - Self-Repair
+```• Once per fight, when dropping below 50% Health, Ultron activates Self-Repair, recovering 4143 Health over 10 seconds. If Stunned during his Self-Repair, Ultron Loses Connection and the Repair stops.
+• Once per fight, when dropping below 25% Health, Ultron activates Self-Repair, recovering 4143 Health over 10 seconds. If Stunned during his Self-Repair, Ultron Loses Connection and the Repair stops.```
+Passive - Robotics
+```• Advanced robotics provides full immunity to Poison and Bleed effects.```
+Basic Attacks - Bleeds
+```• function Bleed(19% chance, 405.65 Direct Damage, 4.50 seconds)```
+Basic Attacks - Critical Rate
+```• function Critical(100% chance, every 5 attacks)```
+Special attacks
+```• function Stun(40% chance, 3 seconds)```
+Blocking
+```• function Armor(25% chance, 105.26 rating increase, 15 seconds)```
+
+Special 1 - Encephalo-Ray
+A powerful blast to knock back any opponent foolish enough to be in its way.
+```• function Stun(40% chance, 3 seconds)```
+Special 2 - Attack Routine 11010100
+You don't need advanced algorithms to understand what Ultron is communicating here.
+```• function Stun(40% chance, 3 seconds)```
+Special 3 - Eradication
+Ultron believes that peace can only be achieved by eradicating humanity.
+```• function Stun(40% chance, 3 seconds)```
+
+Signature Ability: ABSORBTION
+```• Energy-based attacks only serve Ultron, who converts 65.95% of the damage into both Power and Health. Does not work against Damage Over Time effects..```

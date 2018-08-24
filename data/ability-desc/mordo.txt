@@ -1,0 +1,41 @@
+All stats based on 4 Star, Rank 5, Level 50, Signature Level 99
+
+Basic Abilities: Degeneration, Mirror Dimension, Soul Barb
+
+Passive
+```• Mordo’s astral form ensures that every ability properly activates, resisting against Ability Accuracy effects.
+• Mordo gets one bar of Power over 5 seconds, every 8 seconds. Opponents can interrupt the Power Gain when landing a hit on Mordo.```
+While Stunned
+```• Even while Stunned, Mordo’s astral form senses incoming non-special attacks and quickly counter-attacks, inflicting Degeneration for 75% of your attack as direct damage over 2.5 seconds.```
+Heavy Attacks
+```• Mordo gains 16.6% of max power per second while below 1 power bar.
+• Exponentially gains up to 10 Fury stacks while charging a Heavy Attack, each charge increases his Attack by 15% for 12 seconds.```
+Blocking
+```• After holding Block for 0.5 seconds, Mordo can block unblockable special attacks.```
+
+Special 1 - Energy Blast
+Mordo launches an energy blast designed to use the attacker’s energy against themselves.
+```• 30% Chance to Stun for 3 seconds.
+• Causes Degeneration, inflicting 75% of your Attack as Direct Damage over 2.5 seconds. If the opponent has a Buff, Degeneration will activate even after a successful Block.```
+Special 2 - Astral Strike
+Combining martial arts and black magic, Mordo strikes his opponent, causing them to momentarily have an out of body experience.
+```• Opponents suffer from Mordo’s Soul Barb spell for 14 seconds, 10% of your Attack per opponent Buff as Energy Damage. Additionally, Soul Barb reduces Health Recovery by 70%.```
+Special 3 - Mirror Realm
+Upon entering the Mirror Realm, Mordo is able to access all of his powers, shaping reality and catching the opponent off-guard right before the tendrils of an unidentified transdimensional beast drags them into a nightmare.
+```• Gains 3 stacks of Fury, each increasing his Attack by 43% for 12 seconds.
+• Up to 40% chance based on Health lost to Regen instead of gaining a Fury stack, Recovering 14% Health over 6 seconds.```
+
+Signature Ability – MYSTICAL BARRIER
+```• By conjuring a magical barrier, Mordo Resists 80% of any Energy Damage attacks and debuffs.```
+
+Recommended Masteries
+```Enhanced & Extended Fury: Mordo relies on his Fury effects on his Heavy Attacks and Special 3 to do a lot of damage. Fury and attack enhancing masteries are a clear win for this Champion.
+Recovery: His Special 3 has the chance to trigger Regeneration Buffs. Enhance it for maximum potential.
+Parry & Stupefy: Players need to charge Heavy Attacks in order to get Fury stacks and Power. Stunning the opponent makes it an easier task.```
+
+Strengths
+```Magik, Magneto, Doctor Strange: Mystical Barrier Signature Ability allows him to drastically reduce incoming Energy Damage while he is Blocking. Champions that rely on Energy Debuffs or Attacks are going to have a hard time against Mordo.
+Black Widow: Mordo’s astral form ensures that every ability properly activates, meaning you can use Parry against Black Widow in Alliance Wars.```
+
+Weaknesses
+```Stun immunity nodes: Mordo relies on Stuns to be able to charge Heavy Attacks to get Power and Fury stacks. Not being able to use Parry or his Special 1 to stun is a big disadvantage.```

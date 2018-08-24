@@ -1,0 +1,22 @@
+All stats based on 4-Star, Rank 5, Level 50, Signature Level 99
+
+Basic Abilities: Evade, Enfeeble
+
+When Attacked - Evade
+```• Miles' begins the fight with 5 Spider-Sense charges. Each charge grants him a Passive 6.50% chance to Evade incoming attacks at the cost of 1 charge.```
+Passive
+```• Whenever an opponent uses a Special Attack, Miles gains 2 charges of Spider-Sense to help him better avoid imminent danger.```
+
+Special Attack 1 - Triple Web Shot
+Three well placed shots from a borrowed set of fantastic web shooters.
+```• 59.00% chance to inflict Weakness, decreasing the target's Attack by 35% for 7 seconds.```
+Special Attack 2 - Pow! Thwack! Sizzle!
+One punch, one roundhouse kick, one backflip kick, then a double dose of Venom Blast.
+```• Miles' unpredictable Venom Blast has varying effects based on Champion Class. The chance to activate a Venom Blast is increased by up to 12% the smaller the target is.
+• Science & Cosmic Champions: 65% chance to Stun the opponent for 2.50 seconds.
+• Tech & Skill Champions: 60% chance to Power Drain the opponent, removing 28% of the opponent's Max Power.
+• Mystic & Mutant Champions: 70% chance to Fatigue the opponent, reducing Critical Rating by 439.02 for 7 seconds.```
+Special Attack 3 - Flurry of Blows
+With a barrage of strikes, Morales does his best to earn the Spider-Man mantle.
+
+updated 6/28/2018 - lmxn

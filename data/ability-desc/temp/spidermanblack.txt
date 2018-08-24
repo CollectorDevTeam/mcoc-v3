@@ -1,0 +1,58 @@
+Black Suit Spider-Man - Originally Posted 09-10-2015
+
+One of Peter Parker’s most famous and notorious costumes enters The Contest to unleash its alien powers. Cosmic in origins, this dark version of Spidey’s suit has a mind of its own.
+
+Base Stats & Abilities
+*All stats based on 4 Star, Rank 5, Level 50, Signature Level 99
+
+Class: Cosmic
+
+Health: 12,771
+Attack: 1317
+
+Special 1: Web-Slinger
+
+Special 2: Swingin'
+This attack has 100% Critical Hit Rate
+
+Special 3: Thwip, Thwip, Pow!
+
+Critical Hits
+71% Chance to boost Critical Hit Rate by 34% for 7.5 seconds.
+That’s right, increased Critical Hit rate caused by Critical Hits. Landing a Critical Hit that triggers this ability allows you to more easily maintain the effect throughout the fight and keep the Critical Hits rolling.
+31% Chance to inflict Weakness, decreasing the target’s Attack by 38% for 6 seconds.
+
+Heavy Attacks
+100% chance to Armor Break, removing enemy Armor and applying 9% Armor reduction for 80 seconds.
+You read that right. 100% chance for 80 seconds. And the effects stack. So, any time you can land a Heavy Attack you should try and hit it as the effect will most likely last for the full duration of the fight.
+
+Signature Ability - Spider Sense
+Increased agility coupled with small stature and a sixth sense for imminent danger make Spider-Man 40% more elusive.
+This altered version of Spider Sense triggers whenever a Special Attack is activated.
+The effect lasts for 8 seconds each time it is activated.
+Because the effect isn’t always on, it is at a higher rate than classic Spider-Man’s
+
+
+Synergy Bonuses
+Storm - Friends: +5% Armor
+Electro - Enemies: +5% Critical Hit Chance
+
+Recommended Masteries
+
+
+Parry
+If you're able to time the Stun effect from Parry, it gives you a window of opportunity to nail a Heavy Attack for that long-lasting Armor Break.
+
+Dexterity
+The extra evasiveness adds much needed survivability, and the bonus to Critical Hits improves the chances of starting a Precision chain and of inflicting Weakness on the target.
+
+Precision
+Any bonuses to Critical Hit Rate are worth snagging up, as they improve the chance of starting a Precision chain and triggering Weakness.
+
+Strengths
+With high Attack, boosted Critical Hit Rate, and a stacking Armor Break effect, this Spider-man is able to wreak plenty of havok on any target.
+Most Champions rely on either a percent chance to activate Armor Break or on their Special Attacks. This Spider-man's Heavy Attack is guaranteed to trigger, ripping off enemy Armor Up effects in the process.
+
+Weaknesses
+Like some other Cosmic Champions, this Spider-man wields several powerful effects that are prone to removal by Champions with Nullify.
+Because of his low Health Spider-Man must depend on keeping Weakness on the target if he wants any chance at surviving more powerful attacks.

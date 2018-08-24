@@ -1,0 +1,25 @@
+All stats based on 4 Star, Rank 5, Level 50
+
+Passive - Armor
+```• A layer of Armor provides an additional 378.92 Armor Rating.```
+Passive - Bleed Immunity
+```• Impenetrable armor provides full immunity to Bleeding.```
+When Attacked - Armor Up
+```• 10$ chance to Armor Up, increasing Armor Rating by 870.59 for 6.50 seconds.```
+All Attacks - Armor Up
+```• 10% chance to Armor Up, increasing Armor Rating by 870.59 for 6.50 seconds.```
+Special Attacks
+```• Damage for this attack is based on current Armor levels. Damage increases by up to 130$ based on overall Armor. This attack also deals reduced damage while under the effect of Armor Reduction.```
+
+Special 1 - Dropkick
+A classic wrestling move used to knock down any opponent.
+```• Damage for this attack is based on current Armor levels. Damage increases by up to 130$ based on overall Armor. This attack also deals reduced damage while under the effect of Armor Reduction.```
+Special 2 - Unstoppable
+Colossus demonstrates hand to hand combat with enough superhuman strength to careen 100 tons.
+```• Damage for this attack is based on current Armor levels. Damage increases by up to 130$ based on overall Armor. This attack also deals reduced damage while under the effect of Armor Reduction.```
+Special 3 - Unbreakable
+In flesh form he is a man; in steel form he is a hero, increasing his damage based on his current Armor level.
+```• Damage for this attack is based on current Armor levels. Damage increases by up to 130$ based on overall Armor. This attack also deals reduced damage while under the effect of Armor Reduction.```
+
+updated 6/26/2018
+- these are 3 star colossus values.

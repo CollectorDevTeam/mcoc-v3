@@ -1,0 +1,43 @@
+All stats based on 4 Star, Rank 5, Level 50, Signature Level 99
+
+When Attacked and Attacking - Quack Fu
+• As Howard takes and deals damage, his temper builds, increasing his Attack and Critical Damage by 10% per stack. These stacks are lost over time as Howard eventually cools off.
+
+Passive - Armor
+• The ISO-Loader begins the fight with 8 stacks of Armor Up active, each increasing Armor by 7%. Each time the Loader is struck, there’s a 13% chance for a piece of Armor to fall off.
+
+Special 1 - Unarmed Attack
+“Let me introduce you to my fist!”
+• The ISO-Loader’s specialized metal punches out a portion of the opponent’s ISO-8, reducing Armor, Attack, Block Proficiency, Regeneration Rate, Physical Resistance and Critical Chance by 6% for the remainder of the fight.
+• The is a Passive effect that has an infinite duration. This effect can be stacked up to 4 times.
+
+Special 2 - B.F.G Surprise
+Smack your opponent around, then fire everything!
+• The super-charged B.F.G. fires out a barrage of strange bullets to cause different effects. Each effect has a 30% chance to activate.
+• Possible Effects: Heal Block, Power Drain, Poison, Armor Break, Power Lock, Shock
+
+Special 3 - Junkyard Smackdown
+Eat this! Erm…maybe this!? Uhh…ramming speed!
+• The suit’s Catalyst Absorber fires off, granting Howard a temporary Buff for 9 seconds based on the opponent’s Class. While the Buff is active, Howard’s Critical Hits also gain a bonus effect.
+-- Cosmic – Fury Buff + Critical Hits ignore Armor
+-- Tech – Armor Up + Chance to Heal Block on Critical Hits
+-- Mutant – Regeneration + Chance to Armor Break on Critical Hits
+-- Skill – Precision Buff + Chance to Bleed on Critical Hits
+-- Science – Evasion buff + Chance to Poison on Critical Hits
+-- Mystic – Power Gain + Chance to Nullify on Critical Hits
+
+Signature Ability – MASH ALL THE BUTTONS!
+• When Howard is brought below 60% and 30% Max Health, he frantically mashes buttons on the Loader console. This has a (38 – 87%) chance to trigger a Self Repair, healing 20% Max Health, or a Thunderquack, dealing 135% of his Attack as Energy Damage. Both effects last 7 seconds and are interrupted if Howard is Stunned.
+
+Recommended Masteries
+Resonate: For long duration fights, Howard has the ability to launch multiple Special 1 attacks and reduce his opponent’s attack by 24%. Combine this with the Weakness effect caused by Resonate and Howard gains much higher survivability.
+Precision: While using the Catalyst Absorber on his Special 3, Howard gains powerful effects on his Critical Hits. Grabbing this Mastery will allow Howard to trigger these effects more often for added benefit.
+
+Strengths
+Wolverine, Wolverine (X-23), Deadpool: In addition to a class advantage, Howard can permanently reduce these Champions’ Regeneration Rate with his Special 1 or gain his own Regeneration effect with his Special 3.
+Hulk, Captain America, Colossus: These Champions rely on raw damage to take down opponents and do not have access to Armor Break. Howard’s high Armor Rating protects him very well against this type of opponent.
+Doctor Strange, Loki: These Champions have low Physical Resistance and Howard’s consistent Fury effects from Quack  Fu allows his basic attacks to easily overpower these Champions.
+
+Weaknesses
+Ronan: Ronan’s ability to convert Armor Up into Armor Breaks, combined with his increased Stun duration against buffed opponents allows him to quickly bring Howard down.
+Iron Fist, Spider-Man (Symbiote): These Champions can regularly apply Armor Break effects to bring down the ISO-Loader’s Armor effects and leave Howard with little in the way of defenses.

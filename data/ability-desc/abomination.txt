@@ -1,0 +1,21 @@
+All stats based on 4 Star, Rank 5, Level 50 sig 99
+
+Basic Abilities: Poison, Fury, Poison Immunity
+
+Passive
+```• Whenever Abomination bleeds, his irradiated blood has a 95% chance to Posion the enemy for 979.5 Direct Damage over 10 seconds.```
+All Attacks
+```• 12% chance for Fury, increasing your Attack by 653 for 6 seconds.```
+Passive
+```• An enhanced immune system provides full immunity to the Poisons of the Battlerealm.```
+
+Special 1 - Skull Bash
+The Abomination uses his head...literally.
+
+Special 2 - Overwhelm
+Abomination lets loose his rage and unleashes a savage beatdown on his opponent.
+
+Special 3 - Gamma Bomb
+What the Abomination hits into the air, the Abomination hits back down.
+
+updated 6/26/2018 - suprmatt

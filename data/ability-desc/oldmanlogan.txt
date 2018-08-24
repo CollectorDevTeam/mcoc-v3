@@ -1,0 +1,24 @@
+All stats based on 4-Star, Rank 5, Level 50, Signature Level 99
+
+Basic Abilities: Pacifism, Regeneration, Bleed
+
+Passive
+```• Each time Logan loses 10% of his max health, or the opponent uses a Special Attack against him, he gains a charge of Pacifism and has a 10% chance per charge to snap and go Berserk.
+• When Logan goes Berserk, for each Pacifism charge he had, he gains one Fury and Cruelty effect.
+• Fury Buffs increase Attack by 219.87.
+• Cruelty Buffs increase Critical Damage Rating by 87.68.```
+Passive - Regeneration
+```• Logan's advanced age has altered his Healing Factor, allowing him to recover 26.15 Health twice per second. Additionally, any time he Bleeds, his Healing Factor closes the wound 85% faster.```
+
+Special 1 - X-Slash
+Wolverine delivers a signature slash with unbreakable Adamantium claws.
+```• This attack pierces 100% of the target's Armor.```
+Special 2 - Primal Rage
+No words, just teeth and claws.
+```• 32% chance to inflict Bleed, dealing 1916.01 Direct Damage over 5 seconds.```
+Special 3 - Kill-Frenzy
+Only two things are certain in life, an' this ain't taxes.
+```• Using this attack causes Logan to snap and go Berserk at the cost of one Pacifism charge.
+• 100% chance to inflict Bleed, dealing 1067.94 Direct Damage over 5 seconds.```
+
+updated 7/30/2018 - lmxn

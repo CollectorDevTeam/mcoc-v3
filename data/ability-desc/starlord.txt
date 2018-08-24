@@ -1,0 +1,28 @@
+All stats based on 4 Star, Rank 5, Level 50 sig 99
+
+Basic Abilities: Fury, Element Gun
+
+All Attacks - Fury
+```• 11% chance for Fury, increasing your Attack by 516.6 for 6.50 seconds.```
+Element Gun effects
+```• FIRE: Breaks the opponent's Armor, reducing Armor Rating by 1278.69 for 8 seconds.
+• AIR: Shocks the opponent, dealing 2192.68 Energy Damage over 6 seconds.
+• WATER: Drains up to 50% of the opponent's Max Power.
+• EARTH: Places a Heal Block on the opponent, stopping all healing effects for 11 seconds.```
+
+Special 1 - Rocket Kick
+What makes a kick to the face better? Rockets, and a little pelvic sorcery.
+```• Deals 20% bonus damage when striking a charging enemy.```
+Special 2 - Element Gun
+Star-Lord fires a shot from his Element Gun, but not before smacking his opponent in the face.
+```• Star-Lord's Element Gun selects one element at random each time it fires. Each element has a different effect when it strikes the opponent.```
+Special 3 - Heroic Blast
+With heroism like this, soon everyone in the galaxy will know the name "Star-Lord".
+```• Star-Lord's Element Gun selects one element at random each time it fires. Each element has a different effect when it strikes the opponent.```
+
+Signature Ability - TACTICIAN
+All Attacks
+```• As blows are exchanged, Star-Lord familiarizes with opponent's techniques, increasing Attack by 4778 for each hit of the Combo Meter to maximum of 400 hits.
+• Star-Lord gains 83.81 Block Proficiency for every hit of his opponent's Combo Meter.```
+
+updated 6/26/2018 - jjw

@@ -1,0 +1,28 @@
+All stats based on 4 Star, Rank 5, Level 50
+
+Basic abilities: Fury, Bleed
+
+All Attacks - Fury
+```• 12% chance for Fury, increasing your attack by 579.5 for 6.50 seconds.```
+Critical Hits - Bleed
+```• Critical Hits lacerate opponents with a 40% chance, inflicting 1159 Bleed damage over 5 seconds.```
+Special Attacks
+```• 100% chance for Fury, increasing your attack by 347.7 for 8 seconds.```
+
+Special 1 - Skull Crack
+A savage headbutt from Drax, sure to crack some skulls.
+```• 100% chance for Fury, increasing your attack by 347.7 for 8 seconds.```
+Special 2 - Twin Blades
+Drax demonstrates mastery of Dwi Theet martial arts with dual knives. Hope you like a close shave.
+```• 40% chance to inflict Bleed, dealing 1854.4 Direct Damage over 4 seconds.
+• 100% chance for Fury, increasing your attack by 347.7 for 8 seconds.```
+Special 3 -The Destroyer
+Rage consumes Drax, as he slices and kicks with unmatched power.
+```• 100% chance to inflict Bleed, dealing 2549.8 Direct Damage over 5.50 seconds.
+• 100% chance for Fury, increasing your attack by 347.7 for 8 seconds.```
+
+Signature Ability - ENTHRALL
+All Attacks - Attack
+```• Fury fascinates The Destroyer, granting a fixed 12% chance to cumulatively increase Attack by 541.96 for 6 seconds with each activation.```
+
+updated 6/26/2018 - jjw

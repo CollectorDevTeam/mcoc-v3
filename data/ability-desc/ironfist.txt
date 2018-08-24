@@ -1,0 +1,19 @@
+All stats based on 4 Star, Rank 5, Level 50
+
+Basic Abilities: Armor Break, Precision, Chi Strike
+
+Critical Hits
+```• The sheer force of a Critical Hit has a 55% chance to break the target's Armor and apply 439.02 Armor Rating reduction for 5 seconds.```
+All Attacks
+```• 8% chance to boost Critical Rating by 1076.92 for 6 seconds.```
+Heavy Attacks
+The Iron Fist delivers a powerful Chi strike, disrupting the flow of energy and Nullifying 1 Cruelty, Fury, and Precision Buff.
+
+Special 1 - Good Fortune Thunder Kick
+A powerful kick mastered from the teaching of Lei-Kung, the Thunderer
+Special 2 - Shattering Golden Star Blow
+Danny Rand learned this powerful technique while training with the Immortal Weapons of the Seven Cities.
+Special 3 - Shou-Lau the Undying
+BY focusing his Chi, Danny Rand unleashes the full power of the Iron Fist in a flurry of punches.
+
+updated 6/27/2018 - jjw

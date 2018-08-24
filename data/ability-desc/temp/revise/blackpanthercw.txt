@@ -1,0 +1,38 @@
+All stats based on 4 Star, Rank 5, Level 50, Signature Level 99
+
+When Attacked
+• 60% chance to Armor Up, reducing damage from attacks by 8.75% for 6.5 seconds.
+• Each time Black Panther gains an Armor Up effect he has a 6.5% chance to enter a Reflective state for 5 seconds, storing 90% of the damage taken. While in the Reflective state, his suit cannot trigger Armor Up.
+• For every 300 damage stored, Black Panther gains a Reflect charge. When successfully hitting the opponent, Black Panther consumes all charges to deal the equivalent damage back to the opponent. Charges lasts for 7 seconds.
+
+When Stunned
+• Black Panther’s Vibranium Armor consumes an Armor Up effect to reflect physical Stun effects back to enemies. 100% chance to Stun opponents for 2 seconds.
+
+Special 1 - King’s Strength
+The King of Wakanda proves his might to all that might disbelieve his strength.
+• 100% chance to inflict Bleed, dealing 80% of your Attack as direct damage over 4 seconds.
+
+Special 2 - Power of Ancestors
+Calling upon the spirits of his ancestors grants strength for swift and powerful blows.
+• Damage increases by up to 90% based on lost Health.
+
+Special 3 - Wakandan Assault
+Pinpoint strikes weaken his foes, then T’Challa strikes hard to bring down the enemy of Wakanda.
+• 75% chance to Stun for 3.25 seconds.
+
+Signature Ability - Panther Habit
+• Black Panther begins the fight with his Reflective state active. Additionally, Black Panther’s Armor passively has a 15-39.1% chance to absorb heavy attack impacts by consuming 1 Armor Up effect.
+
+Recommended Masteries
+Stand Your Ground: As Black Panther’s powerful signature ability can shrug off enemy heavy attacks, snapping up this mastery can allow him to become even more powerful in the defense.
+Vitality & Greater Vitality: Having a lot of health maximizes the potential of Black Panther’s Reflective Armor, enabling him to withstand more damage and reflect it back to the enemy.
+Pacify & Stupefy: Black Panther is able to Stun enemies when performing a Special 3 Attack as well as able to reflect physical Stun effects, including Parry, back to the opponent. Leveling up those two masteries can make those Stun effects even more impactful.
+
+Strong Match-Ups
+Luke Cage, Daredevil, Joe Fixit, Captain America: While his Armor Up effects are active, Black Panther is able to reflect physical stuns back to those opponents, turning their abilities against them.
+Rhino, Hulk, Captain America: Black Panther is able to trigger multiple Armor Up effects when getting hit by the enemy, making him strong against Champions that rely on physical damage.
+Star-Lord, Rocket Raccoon, Iron Fist, Electro: Black Panther’s Reflective Armor ability enables him to deal damage taken back to opponents, making him strong against high attack but low defense type of Champions.
+
+Weak Match-Ups
+Storm, Thor: Their Stun effects are Energy and projectile based, as a result, Black Panther is not able to Reflect their Stuns.
+Gamora, Guillotine: These Champions can bypass Black Panther’s Armor Up effects by taking advantage of their strong Bleed effects.

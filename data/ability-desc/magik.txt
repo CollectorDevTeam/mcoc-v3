@@ -1,0 +1,23 @@
+All stats based on 4 Star, Rank 5, Level 50 sig 99
+
+Basic Abilities: Nullify, Power Lock, Power Steal
+
+Special Attacks
+```• Opponents do not generate Power from these attacks.```
+Limbo
+```• Deals 289.75 Energy Damage per second. Any damage Magik takes during this period is rewound when the effect expires.```
+
+Special 1 - Soul Strike
+Magik's Soulsword is forged from her own life force. One strike disrupts even the most powerful magic.
+```• 100% chance to Nullify. If a Buff is removed in this way, an additional 695.4 Energy Damage is dealt.
+•100% chance to enter a state of Limbo for the duration of these attacks.```
+Special 2 - Severence
+Appearing and disappearing by her will, the ethereal Soulsword severs the flow of Power within its target.
+```• 100% chance to enter a state of Limbo for the duration of these attacks.
+• 85% chance to Power Lock severing the Target's flow of Power for 9 seconds.
+• 100% chance to Power Steal, taking 33% enemy Power as your own.```
+Special 3 - Singularity
+The Darkchilde's power mixes black and white magic, granting Illyana the power to transcend reality.
+```• 100% chance to Nullify, removing all Buffs and increasing your Attack by 753.35 for each Buff removed.```
+
+updated 6/27/2018 - suprmatt

@@ -1,0 +1,18 @@
+All stats based on 4 Star, Rank 5, Level 50 sig 99
+
+Basic Abilities: Nullify, Precision
+
+Critical Hits - Nullify
+```• Critical hits have a 90% chance to Nullify, removing 1 Buff(s) from the opponent.```
+
+Special 1 - Hex Sphere
+A concentrated sphere of Chaos Magic blasts Scarlet Witch's opponents.
+```• This attack receives 1333.33 additional Critical Rating.```
+Special 2 - Hex Bolt
+Scarlet Witch sends her opponents flying with a bolt of Chaos Magic.
+```• This attack receives 2444.45 additional Critical Rating.```
+Special 3 - Chaotic Bombardment
+Scarlet Witch cuffs her foe into helplessness before crushing them with a bombardment of Hex Bolts.
+```• 100% chance to Nullify, removing all positive status effects from opponents.```
+
+updated 6/27/2018 - suprmatt

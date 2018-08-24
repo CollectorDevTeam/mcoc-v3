@@ -1,0 +1,51 @@
+All stats based on 4 Star, Rank 5, Level 50, Signature Level 99
+
+Passive – Combat Mode
+• By Dodging back and holding Block for 2 seconds, Nightcrawler can shift his tactics and switch his Combat Mode.
+
+When Attacked – Evade
+• While in Neyaphem Mode, Nightcrawler focuses on teleportation and dexterity, granting him a 18% chance to Evade incoming attacks.
+• The chance to Evade attacks is increased by 15% against attacks that would deal Physical Damage.
+
+Attacking – Precision
+• While in Swashbuckling Mode, Nightcrawler focuses on aggression and quick attack bursts. This grants him periodic Precision Buffs, increasing his Critical Hit chance by 25% for 4 seconds.
+
+Passive – Bamf
+• While Dodging back, Nightcrawler cannot be struck by attacks. Additionally, whenever he successfully dodges an attack this way, he gains +37% Critical Damage until his next Critical Hit.
+• This effect stacks up to 5 times.
+
+Critical Hits – Bleed (Deep Wound)
+• Nightcrawler’s cutlass has a 67% chance to strike a Deep Wound, dealing 48% of his Attack as Bleed damage instantly.
+• The chance to score a Deep Wound increases by up to 10% based on how low the opponent’s Armor is.
+
+Special 1 - Displacement Strikes
+Slash! Bamf! Kick!
+• Using this attack increases Nightcrawler’s chance to Evade by 29% for 10 seconds if in Neyaphem Mode.
+• Using this attack increases Nightcrawler’s Critical Damage by 37% for 10 seconds if in Swashbuckling Mode.
+
+Special 2 - Unglaublich Acrobatics
+Let’s see what the amazing Nightcrawler learned during his time in the circus.
+• This attack reduces enemy Block Proficiency by 37% while in Neyaphem Mode.
+• The chance to score a Deep Wound with this attack is increased by 28% while in Swashbuckling Mode.
+• These abilities are instantaneous and do not linger as a Debuff.
+
+Special 3 - Bamf! Bamf! Bamf!
+He’s coming in from every direction. Lieber Gott!
+• This attack disorients the opponent, granting Nightcrawler a permanent 23% increased chance to score a Deep Wound.
+• This effect stacks infinitely, increasing the chance to score a Deep Wound each time a Special 3 is activated.
+
+Signature Ability – NEYAPHEM HERITAGE
+• Nightcrawler’s unique heritage, coupled with his X-Men training, allows him to switch his combat mode 0.3 seconds faster. Additionally, anytime he strikes a Deep Wound, he gains (15 – 35%) increased Attack for 7 seconds.
+• This effect stacks up to 3 times.
+
+Recommended Masteries
+Precision: As Nightcrawler’s Deep Wound, and by extension his Signature Ability, rely on striking with consistent Critical Hits, grabbing this mastery can increase his damage output by a large amount.
+Cruelty: While in his Swashbuckling Mode, Nightcrawler gets a fairly large boost to his Critical Hit Chance. Increasing his Critical Damage can allow this Mode to grant even larger damage boosts.
+Mutagenesis / Block Proficiency: Outside of his ability to Evade incoming damage, either through his passive Neyaphem Mode or through his Bamf skill, Nightcrawler has poor defenses. Grabbing these masteries can increase his survivability for the rare occasions when he gets struck.
+
+Strong Match-Ups
+Daredevil, Punisher, Black Panther, Crossbones: In addition to a class advantage, Nightcrawler will have an easier time Evading these Champions’ attacks as they primarily deal Physical Damage.
+Superior Iron Man, Rhino, Agent Venom: Nightcrawler’s Deep Wound ability can bypass the Armor, Physical Resist and Tenacity of these Champions to deal extra bursts of damage throughout the fight.
+
+Weak Match-Ups
+Vision, Vision (Age of Ultron), Ultron: In addition to a class advantage, these Champions are immune to Bleed and Deep Wound, denying Nightcrawler much of his damage output.

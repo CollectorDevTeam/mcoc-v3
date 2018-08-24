@@ -1,0 +1,46 @@
+All stats based on 4 Star, Rank 5, Level 50, Signature Level 99
+
+Base Abilities: Fury, Armor Break, Regeneration
+
+Passive - Reality Warp
+• At the start of a fight and after every 40 Hits in a Combo, Sentry gains a Reality Warp. Reality Warps stack up to 5 max. Reality Warps are used as a multiplier for his abilities.
+
+Passive - State of Mind
+• Sentry starts the fight in Unyielding Fortitude and changes to the next State for every 10 Hits in a Combo. When Sentry loses his Combo, he reverts to Unyielding Fortitude.
+• Unyielding Fortitude: 100% chance on entering this State, Sentry cannot lose his Combo. Remains until Sentry changes States.
+• Overpowering Light: 30% chance on entering this State, Sentry’s Special 1 Attack Damage is increased by 842.8 per Reality Warp and is Unblockable. Remains until Sentry changes States.
+• Steadfast Approach: 30% chance on entering this State, Sentry’s Heavy Attack Damage is increased by 842.8 per Reality Warp. In addition, he gains 100% chance to Perfect Block. Remains until Sentry changes States.
+• Absolute Strength: 30% chance on entering this State, Sentry’s Special 2 Attack Damage is increased by 842.8 per Reality Warp and is Unblockable. Remains until Sentry changes States.
+• After Absolute Strength, Sentry restarts State of Mind, entering Unyielding Fortitude.
+
+Special 1 - Light Blast
+Sentry punches his opponent before unleashing a Light-based Energy blast.
+• 70% chance for Fury, increasing your Attack by 301 for 20 seconds.
+
+Special 2 - Soaring Strike
+Sentry leads with an uppercut then loops around for a flying double punch.
+• 70% chance to Armor Break, removing an enemy Armor Up and applying 666.67 Armor Rating reduction for 20 seconds.
+
+Special 3 - Channel the Void
+Sentry transforms into the Void, creating a black hole that consumes the opponent.
+• When Health is below 50%, Sentry consumes one Reality Warp to Heal 1566 over 3 seconds.
+
+Signature Ability - MOLECULAR REFORMATION
+Reality Warps persist from fight to fight and Sentry has a chance to gain Indestructible when he loses a Combo.
+• When Sentry loses his Combo, he has a 100% chance to become Indestructible for 0.3 seconds per Reality Warp. Indestructible doesn’t trigger if Sentry is afflicted with a Debuff.
+• At the start of a fight, if Health is above 0%, Reality Warps persist with Sentry from the previous fight.
+
+Recommended Masteries
+Recoil: Most of Sentry’s abilities are based around his Special Attacks and how they impact his damage output. Recoil is a good option to further increase his damage. In addition, his situational Regeneration on Special 3 will help mitigate damage taken from Recoil.
+Extended/Enhanced Fury: When using Sentry, you’ll want to maintain the long-lasting Fury Buff gained from his Special 1 Attack. By keeping the Fury active and enhanced, Sentry will have a consistent boost to damage.
+Glass Cannon: Sentry is all about increasing his Attack through his abilities. Glass Cannon is another way to boost Attack, and with his Signature Ability, he has some defenses to back the damage up.
+
+Strengths
+Dormammu: When entering into a long fight against Dormammu, Sentry is provided time to build up his damage. He’s able to gain Reality Warps, apply Fury, inflict Armor Breaks, and cycle through his different States to inflict a chunk of damage.
+Magik: Sentry is able to deal large bursts of damage when his abilities align. This can be used to play around Magik’s Limbo. Sentry’s Special 3 Regeneration helps mitigate damage taken from Limbo.
+M.O.D.O.K.: Sentry’s different States provide him with powerful Unblockable Attacks which help overcome M.O.D.O.K. and his auto-block ability.
+
+Weaknesses
+Green Goblin: All of Green Goblin’s ability are not good for Sentry. Sentry relies on Special Attacks, his Signature defense is disabled by Debuffs, and his focus is all about having high Attack. Green Goblin can counter all of Sentry’s abilities through his Special and Heavy Attacks, which all apply Power Drain, Poison, Incinerate, and Weakness.
+Hela: Most of Sentry’s attacks are Physical based and Hela has a Passive that boosts her Physical Resistance. Sentry relies on maintaining a combo which is challenging when facing Hela’s Special Attacks.
+Taskmaster: Taskmaster can reduce opponent’s Ability Accuracy which affects the overall damage output of Sentry. His Fury, Armor Break, and Signature Indestructible are all affected by the reduced Ability Accuracy.

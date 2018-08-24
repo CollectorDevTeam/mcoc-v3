@@ -1,0 +1,23 @@
+All stats based on 4 Star, Rank 5, Level 50
+
+Passive - Armor
+```• Cyttorak grants Juggernaut 702.7 increased Armor Rating. Additionally, at the beginning of the fight, he becomes Unstoppable and shrugs off all attacks for 3.30 seconds.```
+When Attacked - Fury
+```• 11% chance for Fury, increasing your Attack by 585.5 for 6.50 seconds.```
+Heavy Attacks - Stagger
+```• 90% chance to Stagger the enemy for 8 seconds. A Staggered enemy cannot gain their next Buff effect.```
+
+Special 1 - Tremor
+Juggernaut smashes the ground, sending the opponent flying.
+
+Special 2 - Aftershock
+Juggernaut's devastating headbutt ripples through his opponent, shattering the ground below them.
+
+Special 3 - Avatar of Cyttorak
+Juggernaut uses the environment in more ways than one, with devastating results for opponents.
+
+Signature Ability - UNSTOPPABLE
+Special Attacks
+```• Juggernaut becomes Unstoppable for 4.00 seconds, shrugging off enemy attacks. Once Juggernaut starts moving, nothing can stop him.```
+
+updated 6/26/2018 - jjw

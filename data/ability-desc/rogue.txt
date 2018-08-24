@@ -1,0 +1,33 @@
+All stats based on 4-Star, Rank 5, Level 50, Signature Level 99
+
+Basic Abilities: Kree Physiology, Replicate, Power Steal
+
+Passive - Decreased Debuff Duration
+```• After absorbing the power of Carol Danvers, the original Ms. Marvel, Rogue possessed an amalgamated mutant/Kree physiology, decreasing the duration of Debuffs by 70%.```
+
+Special 1 - Skin-to-Skin
+Rogue removes her gloves to absorb life energy, even against Blocking opponents.
+```• Replicates 5 of the opponent’s active Buffs. Opponents cannot activate those Buffs as long as Rogue holds them. Rogue’s Replicate effect does not work on opponents of the Tech Class, or Unstoppable Buffs.
+• Replicated Buffs stay active as long as Rogue keeps touching the opponent, after which all Replicated Buffs on her will be Nullified.
+• Life Steal deals 680.96 Energy Damage.
+• Rogue is healed for 100% of the Life Stolen.```
+Special 2 - Face Punch
+With the incredible physical strength absorbed from Ms. Marvel, Rogue aims three powerful punches at the enemies’ face.
+```• 100% chance per hit to Power Steal, taking 9% of their Power as your own.```
+Special 3 - Lethal Kiss
+Rogue initiates the attack by throwing the opponent into the air followed by aerial punches and a grand finale with her blowing a kiss towards the opponent.
+```• 100% chance to Power Steal, taking 27% of their Power as your own.
+• Activates 1 Buff per type that was Replicated during the fight. Buffs stay active as long as Rogue keeps touching the opponent. Opponents can not activate those Buffs as long as Rogue holds them.```
+
+Recommended Masteries
+```Lesser Cruelty & Cruelty: Rogue’s signature ability “Psyche Absorption” takes Critical Damage into consideration, so the more you have, the stronger the Power and Life Steal you will get!
+Recovery: Rogue has Life Steal on her Special 1, Recovery will maximize how much health you get.
+Parry: With her ability to Replicate Buffs and keep those Buffs active while hitting the opponent, you will want to constantly be on the offensive side of things. Parry will help you achieve this goal.```
+
+Strengths
+```Wolverine, Black Panther (Civil War): Rogue is absolutely the best choice against Champions that rely on Buff because she replicates those and opponents can not trigger them while she has the specific Buff active.```
+
+Weaknesses
+```Iron Man, Ultron, Tech Class Champions: Rogue can not steal their Buffs, a very big weakness on top of the class disadvantage when fighting against the Tech Class.```
+
+updated 6/28/2018 - lmxn

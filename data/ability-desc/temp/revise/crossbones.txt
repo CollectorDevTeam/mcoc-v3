@@ -1,0 +1,42 @@
+All stats based on 4 Star, Rank 5, Level 50, Signature Level 99
+
+Passive – Fury
+• Crossbones’ hydraulic gauntlets allow him to overpower his enemies. Whenever he would strike with a Critical Hit, he instead gains Fury, increasing his Attack by 45% for 8.5 seconds.
+• The Potency of Crossbones’ Fury effects are increased by up to 20% based on his Critical Damage. As his Critical Damage climbs, his Fury effects becomes more powerful.
+• For each Fury effect active, Crossbones overpowers his opponent, decreasing their Defensive Ability Accuracy by 23% per Fury.
+• Crossbones’ Fury effects stack infinitely.
+
+Overrun
+• To begin Overrun, Dodge back and hold Block for 2 seconds. Once activated, Overrun lasts 8 seconds before it must cool down.
+• When Crossbones enters Overrun, he gains 3 Fury effects and suffers 50% reduced Armor and Block Proficiency for the duration of the Overrun.
+• While Crossbones is in Overrun, his Offensive Power Gain increases by 40% and his Defensive Power Gain decreases by the same amount.
+• Offensive Power Gain is the amount of Power gained from striking the opponent.
+• Defensive Power Gain is the amount of Power gained while being struck or while blocking.
+
+Special 1 - Rout
+Strike with overwhelming power.
+• 100% chance for Fury, increasing your Attack by 45% for 8.5 seconds.
+
+Special 2 - Incendiary Assault
+With a special mix of White Phosphorus rounds, let them burn.
+• This attack Incinerates the enemy, dealing 107% of your Attack as Energy Damage over 10 seconds. This effect also removes Perfect Block Chance and reduces Block Proficiency by 50% while it’s active.
+
+Special 3 - Eye for an Eye
+It’s time to make them pay for what they’ve done.
+• This attack instantly refreshes the cooldown timer on Overrun.
+
+Signature Ability - HYDRA TRAINING
+• Whenever Brock Rumlow gets a Debuff, his brutal HYDRA training kicks in and allows him a (15 – 25%) chance to shrug it off and convert it into a Fury effect. The chance is increased by 15% when fighting Science Champions, and decreased by 15% when fighting Mutant Champions.
+
+Recommended Masteries
+Precision & Cruelty: As Crossbones’ powerful Fury effects are tied to his Critical Rate and his Critical Damage, snapping up these two masteries can allow him to trigger his Fury more often, and ensure they’re even more powerful.
+Extended Fury & Enhanced Fury: Crossbones has some of the most powerful Fury effects in the entire Contest. Grabbing these two masteries will keep those effects around longer and give them more impact.
+
+Strong Match-Ups
+Spider-Man, Electro, Spider-Man (Symbiote):  While he has his Fury effects active, Crossbones reduces the enemy’s Defensive Ability Accuracy, denying them their ability triggers such as Evade and Static Shock.
+Luke Cage, Captain America & WW2, Daredevil:  Crossbones’ ability to shrug off these Champions’ debuffs, coupled with his Incinerate to deal Energy Damage and remove Perfect Block, makes for a strong match-up.
+Scarlet Witch, Black Bolt, Groot, Tech Symbioid (Heal Block):  As Crossbones does not actually strike with Critical Hits, instead gaining his large Fury effects, he does not trigger the powerful effects these Champions rely on. Scarlet Witch and Black Bolt won’t trigger their signature abilities, Groot won’t trigger part of his Pacifism, and the Tech Symbioid won’t trigger its Heal Block.
+
+Poor Match-Ups
+Magneto & Magneto Marvel Now:  In addition to the class disadvantage, Crossbones is also a Metal Champion and as a result will have a much harder time triggering his much needed Fury effects.
+Hulk-Buster, Dr. Strange:  These Champions can regularly counter Crossbones’ Fury effects, with Hulk-Buster gaining an Armor Up each time Crossbones gains a Fury, and Dr. Strange’s Counterspell removing the effects.

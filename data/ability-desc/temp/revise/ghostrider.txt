@@ -1,0 +1,50 @@
+All stats based on 4 Star, Rank 5, Level 50, Signature Level 99
+
+Passive - Evil’s Bane
+• Against Villain opponents, Ghost Rider’s chance to place a Judgment is increased by 20%. Additionally, his Armor and Critical Chance are increased by 16.5%
+
+Passive - Bleed Immunity
+• A lack of Blood provides full immunity to Bleed effects.
+
+Judgments
+• Ghost Rider can see his opponent’s transgressions and place Judgments upon them. Each Judgment can only be applied once and lasts indefinitely.
+• The Duration of each Judgment’s Secondary Effect is increased by 75% for each Judgment already active.
+• This duration increase stacks for each Judgment effect active. If the opponent has 4 Judgments on them, then each Judgment’s Secondary effect will have its Duration increased by 300%. More Judgments = longer secondary effects.
+
+Finish a 5 Hit Combo with a Light Attack
+• Judgment of Spite: 70% Chance
+• Secondary: Inflicts Bleed, dealing 104% of your Attack as Direct Damage over 3.5 seconds.
+
+Heavy Attacks
+• Judgment of Malice: 80% Chance
+• Secondary: Gain a Life Steal Passive effect for 6.5 seconds, allowing Ghost Rider to steal 34.5% Health with each attack.
+
+Special 1 - Retribution
+• Judgment of Pride: 70% Chance.
+• Secondary: Fate Seals the opponent, Nullifying all Buffs for 5.1 seconds.
+
+Special 2 - Hellfire Blast
+• Judgment of Anger: 80% Chance
+• Secondary: Drains 17% of the opponent’s Power over 2 seconds.
+
+Special 3 - Penance Stare
+• Judgment of Guilt: 100% Chance
+• Secondary: Inflicts Damnation upon the opponent through the Penance Stare for 3.5 seconds, dealing 40% of Ghost Rider’s Attack as Direct Damage. Opponents under Damnation are also Power Locked, Heal Blocked and Fate Sealed.
+• When Damnation ends, all Judgments are removed from the opponent and can be applied again.
+
+Signature Ability – SPIRIT OF VENGEANCE
+Finish a 5 Hit Combo with a Medium Attack
+• Judgment of Corruption: 65% Chance
+• Secondary: Ghost Rider gains a burst of  (25 – 100%) Attack for 7.5 seconds.
+
+Recommended Masteries
+Parry: Landing a Heavy Attack is paramount to gaining Ghost Rider’s Life Steal effect. Grabbing this Mastery will allow you to Stun your opponent long enough to land a Heavy Attack.
+Mystic Dispersion: Ghost Rider’s Fate Seal on Special 1, when timed correctly, can allow him to strip away the opponent’s Buff effects and gain a large burst of power. This can allow him to quickly build up to multiple Judgment effects before hitting the big Damnation to finish the fight.
+
+Strong Match-Ups
+Gamora, Drax:  Ghost Rider’s Bleed Immunity and class advantage puts him over these Champions easily.
+Kang, Wolverine, Wolverine (X-23):  These Champions rely heavily on their power meter, which Ghost Rider can strip away with his Special 2 Judgment. Additionally, his Damnation power locks and Heal Blocks these Champions, giving him a strong upper hand.
+Groot, Black Panther (Civil War), Venom:  These Champions rely on their Buff effects to do well in any given fight. With Ghost Rider’s Fate Seal on his Special 1 Judgment, and Damnation to Fate Seal them, he can lock down these Champions very well.
+
+Weak Match-Ups
+Red Hulk, Captain America:  In addition to a class advantage over Ghost Rider, these Champions do not rely on Buff effects for their damage output and are not hit as strongly by Damnation or Fate Seal.

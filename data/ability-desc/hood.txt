@@ -1,0 +1,40 @@
+All stats based on 4-Star, Rank 5, Level 50, Signature Level 99
+
+Basic Abilities: Invisibility, Stagger, Lightning Arc, Hex Magic, Bleed
+
+Dash Back and Hold Block for 1.5 Seconds - Invisibility
+```• The Hood gains Invisibility for 8 seconds. While Invisible, incoming attacks have a 45% chance to miss. Non-Contact attacks have double this chance.
+• While Invisible, the Hood deals 564.1 increased Critical Damage Rating and his attacks ignore 75% Armor and Block Proficiency.```
+Critical Hits - Stagger
+```• 88% chance to Stagger the opponent, preventing them from gaining their next Buff for 7.50 seconds. When the Stagger expires, 172.2 points of the opponent’s Health is siphoned to the Hood.```
+Heavy Attack
+```• Refreshes any Shock, Hex, Stagger or Bleed the Hood has placed on the opponent.```
+
+Special 1 - Eldritch Arc
+Reaching deep into his granted power, the Hood casts out an arc of chaotic lightning.
+```• Shocks the opponent, dealing 1722 Energy Damage over 7.50 seconds. When the Shock expires, the opponent is Stunned for 0.75 seconds. This effect cannot interrupt Special Attacks.```
+Special 2 - Occult Onslaught
+Calling forth his supernatural handguns, the Hood creates a bit of distance and empties the clips into his target.
+```• Hexes the opponent, reducing Ability Accuracy by 65% and Fate Sealing them for 6.50 seconds. When the Hex expires, it deals a burst of 975.8 Energy Damage.
+• This attack instantly triggers Invisibility.```
+Special 3 - Dark Pact
+Overwhelmed by the dark power inside him, Parker begins to transform into something else entirely.
+```• This attack deals 75% increased damage for each full bar of power the opponent has at time of impact.
+• 100% chance to inflict Bleed, dealing 1722 Direct Damage over 6 seconds.```
+
+Recommended Masteries
+```Mystic Dispersion: The Hood’s Fate Seal on his Special 2 allows him to trigger Mystic Dispersion multiple times with a single ability. Combine it with Stagger for even more triggers. Once his Signature Ability has been unlocked and he gains Power Steal, he’ll be rolling in Power!
+Stupify: The Stun at the end of the Hood’s Shock Debuff is quite short, and you have to almost be dashing in before the shock ends to successfully land a hit. Stupify nearly doubles the window to land that critical first hit of your combo.
+Glass Cannon: The Hood’s Invisibility is great at prevent him from taking hits. Glass Cannon dovetails beautifully with this, allowing the Hood to take full advantage of the Attack bonus, while ignoring much of the penalty.```
+
+Strong Match-Ups
+```Storm: Storm has a lot of damage available to her, a lot which is in her Special Attacks, which also have strong Stun effects attached to them. However, The Hood has the ability to simply avoid being hit with Invisibility, and once his Signature Ability is unlocked, he’s immune to the Stun effects, if he does get hit while his Invisibility is on cooldown.
+Hyperion: One of the toughest parts of fighting Hyperion are his repeated Power Gains. Between his Stagger, his Fate Seal, and his Power Steal The Hood counters this very effectively, on top of the obvious class advantage.
+Scarlet Witch: Ah Scarlet Witch, you never really know what you’re going to get against her, unless of course she spends the entire fight Hexed, Fate Sealed, and Staggered. Fate Seal and Stagger to Nullify any Buffs Scarlet Witch triggers, and the Ability Accuracy reduction from Hex Magic to lower the chance that Chaos Magic triggers at all.```
+
+Weak Match-Ups
+```Black Panther (Civil War): Black Panther (Civil War) can be a tricky matchup for the Hood. All of Black Panther’s attack are contact attacks minimizing the effect of Invisibility. Also Black Panther’s ability to reflect Stuns, makes using the Hood’s Special 1 a risk, as while it may have been safe when the attack was triggered, there’s no way to un-trigger if it becomes clear the Stun will reflect.
+Ant-Man: Ant-Man doesn’t trigger any Buffs, making the Hood’s Stagger and Fate Seal abilities pretty underwhelming, combining this with being at a Class Advantage, and his Pym Gas Control to counter Critical Hits, makes Ant-Man a tough fight.
+Rhino: Rhino’s an in your face Champion, pushing his opponent’s back against the edge of the arena. His chance to go Unblockable while dashing in makes the dash back and block trigger for Invisibility an iffy proposition halving the up-time on this powerful effect.```
+
+updated 6/28/2018 - lmxn

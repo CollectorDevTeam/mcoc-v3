@@ -1,0 +1,20 @@
+All stats based on 4 Star, Rank 5, Level 50 sig 99
+
+Basic Abilities: Bleed, Heal Block, Armor Break, Magnetism
+
+Special Attacks
+```• 55% chance to inflict Bleed, dealing 2293.2 Direct Damage over 10 seconds.```
+Passive
+```• Enemies reliant on metal suffer 40% reduced Ability Accuracy.```
+
+Special 1 - Shrapnel
+Sharp metal fragments are pulled from the surrounding environment and propelled across the arena.
+Special 2 - Fracture
+Magneto expands his magnetic grasp deep under the arena, impaling his opponent with metal from below.
+```• 100% chance to inflict Heal Block, preventing the target from recovering Health for 10 seconds.```
+Special 3 - Cold-Blooded Fusion
+Encased in a metal prison, Magneto's target implodes. Peace was never an option.
+```• 100% chance to Armor Break, removing an enemy Armor Up and applying 1333.33 Armor Rating reduction for 8 seconds.
+• 100% chance to inflict Heal Block, preventing the target from recovering Health for 10 seconds```
+
+updated 6/26/2018 - suprmatt

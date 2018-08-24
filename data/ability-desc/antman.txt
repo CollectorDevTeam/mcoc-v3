@@ -1,0 +1,16 @@
+All stats based on 4 Star, Rank 5, Level 50 sig 99
+
+Basic Abilities: Fatigue, Poison
+
+Light Attacks - Fatigue
+```• 20% chance to Fatigue the opponent for 15 seconds, lowering their Critical Rating by 105.26.```
+
+Special 1 - Pym Punch
+With the help of his Pym Particles, Ant-Man delivers a micro-sized uppercut punch.
+Special 2 - Ant Swarm
+Ant-Man launches a swarm of angry bullet ants to eat away at his opponent. Millions of tiny ants leads to millions of tiny stings.
+```• Ants feast on the target's Fatigue, replacing it with Poison that deals 886.5 Direct Damage over 18 seconds.```
+Special 3 - Ant-Sized Knockout
+With an extra potent dose of Pym Particles, Ant-Man delivers a combo of miniature knockout punches.
+
+updated 6/27/2018 - suprmatt

@@ -1,0 +1,22 @@
+All stats based on 4-Star, Rank 5, Level 50, Signature Level 99
+
+Basic Abilities: Armor, Reflective Armor, Reflect Stun, Bleed, Stun
+
+When Attacked - Armor Up, Reflective Armor
+```• 60% chance to Armor Up, increasing Armor Rating by 285.71 for 7.50 seconds.
+• Each time Black Panther gains an Armor Up effect he has a 6.50% chance to enter a Reflective state for 7 seconds, storing 1.2% of the damage taken. While in the Reflective state, his suit cannot trigger Armor Up.
+• For every 174.84 damage stored, Black Panther gains a Reflect charge. When successfully hitting the opponent, Black Panther consumes all charges to deal the equivalent damage back to the opponent. Charges lasts for 7 seconds.```
+When Stunned - Reflect Stun
+```• Black Panther's Vibranium armor consumes an Armor Up effect to reflect physical Stun effects back to his enemy. This has a 100% chance to Stun the opponent for 2.50 seconds and cannot interrupt Special Attacks.```
+
+Special 1 - King's Strength
+The King of Wakanda proves his strength to all that might disbelieve his power.
+```• 100% chance to inflict Bleed, dealing 918.4 Direct Damage over 4 seconds.```
+Special 2 - Power of Ancestors
+Calling upon the spirits of his ancestors grants strength for swift and powerful blows.
+```• Attack increases by up to 1033.2 based on lost Health.```
+Special 3 - Wakandan Assault
+Pinpoint strikes weaken his foes, then T'Challa, strikes hard to bring down the enemy of Wakanda.
+```• 75% chance to Stun for 3.25 seconds.```
+
+updated 7/30/2018 - lmxn

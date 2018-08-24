@@ -1,0 +1,51 @@
+All stats based on 4 Star, Rank 5, Level 50, Signature Level 99
+
+Basic Abilities: Bleed, Poison, Neurotoxin, Stun
+
+Passive - Raptor’s Senses
+```• Archangel’s Ability Accuracy cannot be decreased by his opponent’s abilities```
+Passive - Neurotoxin
+```• Each time Archangel triggers a Bleed effect on an opponent with an active Poison effect that he caused, they are combined, converting into a Neurotoxin charge lasting 15 seconds.
+• Neurotoxins are a Passive effect, and therefore do not count as either a Debuff, or a Poison.
+• Neurotoxins do 3444 damage over their duration.
+• On expiry, Neurotoxins have a 100% Chance to Stun their target for 1.5 seconds. This effect will not interrupt a Special Attack.```
+Critical Strikes - Razor Claws
+```• Critical Hits lacerate opponents with a 40% chance, inflicting 1435 Bleed damage over 15 seconds.```
+Heavy Attacks
+```• 50% chance to cause your opponent to Bleed for 1435 Direct Damage over 15 seconds.
+```• Only the first Bleed effect triggered by this attack will consume a Poison effect, though all Bleeds triggered by it will convert to Neurotoxins as long as a Poison was consumed during the attack.
+Passive - Blood Transmission Vector
+```• Each Bleed Debuff on your opponent increases the chance of any Poison triggering by a flat 25%, and reduces the chance that opponent’s Tenacity abilities will trigger by the same.```
+Block - Poison Wings
+```• 0% chance to Poison the target, reducing their Health recovery by 30% and dealing 1435 Direct Damage over 15 seconds.```
+
+Special 1 - Bladed Pinions
+Archangel fires several of his razor edged metallic feathers, coated with his potent neurotoxin.
+```• 20% Chance to cause your opponent to Bleed for 1435 Direct Damage over 15 seconds.
+• 0% Chance to Poison your opponent for 1435 Direct Damage over 15 seconds.```
+
+Special 2 - Razor Winged Strike
+Archangel uses all six of his limbs in a flurry of razor sharp blows.
+```• 50% Chance to cause your opponent to Bleed for 1435 Direct Damage over 15 seconds.
+• -40% Chance to Poison your opponent for 1435 Direct Damage over 15 seconds.```
+
+Special 3 - Hypersonic Scream
+Archangel emits an intense high pitched shriek, stunning his opponent, creating an opening for a series of high speed strikes!
+```• 100% Chance to poison your opponent for 1435 Direct Damage over 15 seconds.
+• 100% Chance to cause your opponent to Bleed for 1435 Direct Damage over 15 seconds.
+• 100% Chance to Stun your opponent for 4 seconds.```
+
+Recommended Masteries
+```Deep Wounds: In addition to the extra damage, the extended duration increases Archangel’s window to trigger his Poisons which in turn, increases the chance to get a Neurotoxin.
+Stupify: Neurotoxins have a very short stun at the end. Combining this with Stupify allows for a much larger window to dash in and take advantage at their moment of weakness.
+Precision: One of the ways Archangel triggers his Bleeds is by landing Critical HIts, so increasing the number of Critical Hits will increase the number of Bleeds. This is also the only way for Archangel to trigger Bleeds that doesn’t either cost Special Power, or need a window to land a heavy attack.```
+Strong Match-Ups
+```Agent Venom: This can be a bit of a battle of wills at first. Archangel trying to stack Bleeds, Agent Venom trying to Tenacity them away. But just by landing the first Bleed, Archangel nearly halves Agent Venom’s Tenacity chance, and it only goes downhill from there. Man it feels good to be able to Parry this guy for once!
+Spider-Man: Archangel’s Neurotoxin, once Awakened, allows him to start suppressing the friendly neighborhood Evade machine! Once you get that first Neurotoxin in place it will be much easier to land a second one, and the third!
+The Hood: The Hood can be a tough contender. His Invisibility makes him dangerous to even attack but he Bleeds and Poisons just as easily as any mere human.  This makes him perfectly susceptible to Neurotoxins, and it does feel good to watch him throw his second Special Attack, only to remain perfectly visible!```
+Weak Match-Ups
+```Vision: Vision is kind of the poster boy, err machine, for Archangel to avoid. His immunity to both Poison and Bleed effects will mean Archangel will have difficulty using his abilities to any great effect.
+Cable: Cable’s Degeneration is going to be up 24/7, his Poison reduction passive will quickly get to full charge giving him a  Special Attack Damage bonus, while leaving no window to convert Neurotoxins. All in all, bad day for Archangel!
+Yellowjacket: Archangel needs to use his Special Attacks to apply Poisons aggressively, otherwise he has to wait for his opponent to hit him. Meanwhile Yellowjacket loves when his opponents are reliant on their Specials!```
+
+updated 6/27/18 - jjw

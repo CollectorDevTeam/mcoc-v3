@@ -1,0 +1,21 @@
+All stats based on 4 Star, Rank 5, Level 50 sig 99
+
+Basic Abilities: Heal Block, Power Burn, Robotics
+
+Special Attacks - Power Burn, Heal Block
+```• Converts 5.74% of the Power burnt into direct damage.
+• If this attack reduces the enemy to zero Power Meter, the opponent gains a Heal Block Debuff for 7 seconds.```
+Passive
+```• Advanced robotics provides full immunity to Poison and Bleed effects.```
+
+Special 1 - Microwave Radiation
+The Mind Gem in Vision's forehead discharges a burst of powerful energy.
+```• Burns up to 39% of the target's max Power and inflicts Direct Damage proportionate to the amount lost.```
+Special 2 - Power Punch
+Vision increases the density of his fist, then smashes his opponent with full force, turning their own Power level against them.
+```• Burns up to 100% of the target's max Power and inflicts Direct Damage proportionate to the amount lost.```
+Special 3 - Physical Disruption
+Vision phases through the ground to deliver a surprise uppercut, followed by a close-range microwave burst of solar energy.
+```• Burns up to 15% of the target's max Power and inflicts Direct Damage proportionate to the amount lost.```
+
+updated 7/10/2018 - suprmatt

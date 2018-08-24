@@ -1,0 +1,24 @@
+All stats based on 4 Star, Rank 5, Level 50 sig 99
+
+Basic Abilities: Armor, Armor Break
+
+When Attacked
+```• 10% chance to Armor Up, increasing Armor Rating by 3714.29 for 6 seconds.```
+
+Special 1 - Freedom Ray
+Blast the opponent with a powerful patriotic beam.
+```• 70% chance to Armor Break, removing an enemy Armor Up and applying 2255.32 Armor Rating reduction for 8 seconds.```
+Special 2 - Power Spin
+Iron Patriot sets a twisting collision course with his opponent.
+```• 54% chance to Armor Break, removing an enemy Armor Up and applying 739.73 Armor Rating reduction for 9 seconds.
+• 74% chance to Stun for 4 seconds.```
+Special 3 - Air Strike
+The best defense, is a good... air strike! Overboard? Perhaps. Effective? Definitely!
+```• 100% chance to Stun for 4.75 seconds.```
+
+Arc Overload
+Passive
+```• Norman Osborn overloads the Arc Reactor in his chest if Health drops below 15%, gaining 6717.19 Regeneration, and 50% Power Gain. After that, his shuit burns out and cannot trigger Armor Up, Armor Break or Stun and loses all base Armor.
+• While under Arc Overload Iron Patriot also gains an Armor Up, increasing Armor Rating by 1847.97.```
+
+updated 6/26/2018 - suprmatt

@@ -1,0 +1,42 @@
+Originally posted 10-22-2015
+
+*All stats based on 4 Star, Rank 5, Level 50, Signature Level 99
+
+Special 1: La Force d'Ancêtres
+
+Special 2: Coup De Massue
+• Guillotine’s ancestral sword consumes 2 Souls to place a phantasm on the opponent, reversing all active Healing effects for 10 seconds.
+• This effect reverses any Healing effects on the opponent. If the opponent is healing 10 health per second, they will instead take 10 damage per second. This can be extremely powerful against foes with predictable healing effects such as Deadpool, Ultron or Iron Man.
+
+Special 3: Coup De Grâce
+• La Fleur du Mal consumes all available Souls and deals 2% of the opponent’s health in direct damage.
+• This attack deals direct damage, ignoring all Armor and Resistances the opponent has. Additionally, per soul that is consumed, it deals 2% of the target’s maximum health.
+
+Passive - Soul Harvest
+• For every 6% of maximum health that Guillotine removes from her opponent during combat, she feeds her ancestral blade and gains 1 Soul. Souls expire every 10 seconds and grant Guillotine 13% Critical Damage per Soul.
+• Souls can only be gained once per 6% health taken away. In other words, if an opponent heals above that threshold, you will not be rewarded for bringing him back down.
+• You only lose one soul per 10 seconds.
+
+Passive - Armor
+• A layer of Armor reduces an additional 9% incoming attack damage.
+
+Passive - Bleed (All Attacks)
+• 47% chance to inflict Bleed, dealing 21.6% of your Attack as direct damage over 4 seconds.
+
+Signature Ability - Ancestor's Strength
+• The Souls of her ancestor’s empower Guillotine further, granting a 10% chance to steal (16.8% - 50%) Health for every 4 Souls she possesses.
+• This effect has a chance to activate with each strike.
+• The amount of health stolen is tied to how much damage is dealt by the strike.
+
+Recommended Masteries
+Recovery: With her Signature Ability unlocked, Guillotine has access to a Life Steal effect at all times. Increasing the amount of life stolen can be a huge boost to her defenses survivability in long Quests or Alliance Quests.
+Precision & Cruelty: Guillotine relies on being aggressive and dealing consistent damage to feed her blade and gain extra souls. Increasing Critical Hit Rate and Critical Damage helps accomplish this. Additionally, because her Souls grant her increased Critical Hit Damage by themselves, increasing her Critical Hit Rate is extremely powerful.
+Glass Cannon: By increasing her attack by as much as possible, Guillotine powers up most of her abilities from Soul Harvest to Life Steal. The reduced health from Glass Cannon can also be offset by consistent Life Steal.
+
+Strengths
+Guillotine performs at her best when fighting foes that are stronger than herself. Her percentage based damage on her Special 3 allow her to cut down foes that are much stronger than herself. However, because she must damage her foe in order to build up souls, she does not flourish as well when she is heavily outclassed and cannot keep the damage output high.
+Guillotine’s Heal Reversal effect on her Special 2 can be used to devastating effect on enemies with reliable Regeneration effects. Timing a Special 2 just as Ultron starts his Self Repair can cut him down extremely quickly.
+Guillotine has one of the longest reaches in the game, allowing her to strike foes before they can close the gap in a charge. Additionally, her Heavy Attack has the longest reach in the game, allowing her more opportunities to break blocking foes.
+
+Weaknesses
+Guillotine relies on constant damage output to build up Souls. If she is facing off against a foe that largely outclasses her, she cannot keep up the damage fast enough for her souls to stick around and provide their bonus.
