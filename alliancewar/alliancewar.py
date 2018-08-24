@@ -99,18 +99,26 @@ class AllianceWar:
             await guild.tier.set(tier)
             await ctx.send('Alliance War Tier for this guild set to {}'.format(guild.tier()))
 
-    @_aw_set.command(pass_context=True, name='setup')
-    async def _aw_set_setup(self, ctx):
-        '''Set default Alliance role'''
+    # @_aw_set.command(pass_context=True, name='setup')
+    # async def _aw_set_setup(self, ctx):
+    #     '''Set default Alliance role'''
+    #     guild = self.config.guild(ctx.guild)
+    #     roles = ctx.guild.roles
+    #     message = ctx.send('Searching for known alliance roles')
+    #
+    #     for r in roles:
+    #         for n in ('officers', 'bg1', 'bg2', 'bg3'):
+    #             if r.name == n:
+    #                 await guild.set.n(r.id)
+    #                 await ctx.send('{} Role found: {}'.format(n, r.name))
+    #     ctx.delete_message(message)
+
+    @_aw_set.command(pass_context=True, name='officers')
+    async def _aw_set_officers(self, ctx, officers: discord.Role):
+        '''Set default Alliance Officer role'''
         guild = self.config.guild(ctx.guild)
-        roles = ctx.guild.roles
-        message = ctx.send('Searching for known alliance roles')
-        for r in roles:
-            for n in ('officers', 'bg1', 'bg2', 'bg3'):
-                if r.name == n:
-                    await guild.set.n(r.id)
-                    await ctx.send('{} Role found: {}'.format(n, r.name))
-        ctx.delete_message(message)
+        await guild.officers.set(officers.id)
+        await ctx.send('Setting officers role as: {}'.format(guild.officers()))
 
     @_aw_set.command(pass_context=True, name='officers')
     async def _aw_set_officers(self, ctx, officers: discord.Role):
@@ -137,11 +145,13 @@ class AllianceWar:
         em = discord.Embed(color=discord.Color.gold(), title='Alliance War Settings', url=PATREON)
         em.add_field(name='Tier', value=tier)
         for n in (officers, bg1, bg2, bg3):
-            n = discord.utils.get(guild.roles, name=str(n), type=discord.roles)
-        em.add_field(name='Officer role', value=officers, inline=False)
-        em.add_field(name='BG1 role', value=bg1, inline=False)
-        em.add_field(name='BG2 role', value=bg2, inline=False)
-        em.add_field(name='BG3 role', value=bg3, inline=False)
+            n2 = discord.utils.get(ctx.guild.roles, id=n)
+            if n2 is not None:
+                em.add_field(name='{} role'.format(n), value=n2.name)
+        # em.add_field(name='Officer role', value=officers, inline=False)
+        # em.add_field(name='BG1 role', value=bg1, inline=False)
+        # em.add_field(name='BG2 role', value=bg2, inline=False)
+        # em.add_field(name='BG3 role', value=bg3, inline=False)
         em.set_thumbnail(url=ctx.guild.icon_url)
         await ctx.send(embed=em)
 
