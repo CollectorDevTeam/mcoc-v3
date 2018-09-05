@@ -10,9 +10,9 @@ except:
     print('PagesMenu loaded from alliancewar')
 
 ########### These constants should probably be stored in Config -- once I figure out how to safely do that
-BASEPATH = 'https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/'
-ICON_SDF = BASEPATH+'sdf_icon.png'
-COLLECTOR_ICON = BASEPATH+'cdt_icon.png'
+BASEPATH = 'https://raw.githubusercontent.com/JasonJW/mcoc-cogs/master/mcocMaps/data/'
+ICON_SDF = 'https://raw.githubusercontent.com/JasonJW/mcoc-cogs/master/mcoc/data/sdf_icon.png'
+COLLECTOR_ICON='https://raw.githubusercontent.com/JasonJW/mcoc-cogs/master/mcoc/data/cdt_icon.png'
 JPAGS = 'http://www.alliancewar.com'
 PATREON = 'https://patreon.com/collectorbot'
 BOOSTDATA = requests.get('http://www.alliancewar.com/global/ui/js/boosts.json').text
@@ -120,6 +120,13 @@ class AllianceWar:
         await guild.officers.set(officers.id)
         await ctx.send('Setting officers role as: {}'.format(guild.officers()))
 
+    @_aw_set.command(pass_context=True, name='officers')
+    async def _aw_set_officers(self, ctx, officers: discord.Role):
+        '''Set default Alliance Officer role'''
+        guild = self.config.guild(ctx.guild)
+        await guild.officers.set(officers.id)
+        await ctx.send('Setting officers role as: {}'.format(guild.officers()))
+
     @_aw_set.command(pass_context=True, name='clear', manage_guild=True)
     async def _aw_set_clear(self, ctx):
         '''Clear Alliance settings'''
@@ -150,6 +157,8 @@ class AllianceWar:
 
 
         # await ctx.send('Alliance Report\nTier: {}'.format(tier))
+
+
 
     @alliancewar.command(pass_context=True, name="node")
     async def _node_info(self, ctx, nodeNumber, tier = 'expert'):
