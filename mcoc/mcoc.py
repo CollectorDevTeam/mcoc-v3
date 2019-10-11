@@ -1,7 +1,5 @@
-import discord
-from discord.ext import commands
-import json
-import requests
+from redbot.core import commands
+from redbot.core import Config
 from .common.pages_menu import PagesMenu as Menu
 
 class MCOC()
