@@ -79,7 +79,7 @@ class CDTDATA():
         # IF TRUE, store cdt_versions locally
         # Load local data to config.global.cdt_version
 
-        
+
 
             self.cdt_data = cdt_data
             self.cdt_versions = cdt_versions
