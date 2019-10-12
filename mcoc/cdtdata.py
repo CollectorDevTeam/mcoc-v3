@@ -11,7 +11,7 @@ GOOGLECREDENTIALS = ''
 class CDTDATA():
     def __init__(self, bot):
         self.bot = bot
-        self.config = Config.get_conf(self, identifier=cdtdata2019)
+        self.config = Config.get_conf(self, identifier=324631601344544778001)
         default_global = {
             "prestige": {
                 "info": "Champion Prestige"
