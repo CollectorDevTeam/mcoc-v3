@@ -8,8 +8,7 @@ remote_data_basepath = "https://raw.githubusercontent.com/CollectorDevTeam/asset
 GOOGLECREDENTIALS = ''
 
 class CDTDATA():
-    def __init__(self, bot):
-        self.bot = bot
+    def __init__(self):
         self.config = Config.get_conf(self, identifier=324631601344544778001)
         default_global = {
             "prestige": {
