@@ -1,5 +1,5 @@
 from redbot.core import Config
-from discord.ext import commands
+from redbot.core import commands
 from .common.pages_menu import PagesMenu as Menu
 ##
 import aiohttp

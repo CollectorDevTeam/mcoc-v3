@@ -7,31 +7,34 @@ try:
     print('PagesMenu loaded from mcoc Common')
 except:
     from .pages_menu import PagesMenu
-    print('PagesMenu loaded from alliancewar')
+    print('PagesMenu loaded from alliancequest')
 
 ########### These constants should probably be stored in Config -- once I figure out how to safely do that
-BASEPATH = 'https://raw.githubusercontent.com/JasonJW/mcoc-cogs/master/mcocMaps/data/'
-ICON_SDF = 'https://raw.githubusercontent.com/JasonJW/mcoc-cogs/master/mcoc/data/sdf_icon.png'
-COLLECTOR_ICON='https://raw.githubusercontent.com/JasonJW/mcoc-cogs/master/mcoc/data/cdt_icon.png'
-JPAGS = 'http://www.alliancewar.com'
+BASEPATH = 'https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/'
+ICON_SDF = BASEPATH + 'sdf_icon.png'
+COLLECTOR_ICON = BASEPATH + 'cdt_icon.png'
+JPAGS = 'http://www.alliancequest.com'
 PATREON = 'https://patreon.com/collectorbot'
-BOOSTDATA = requests.get('http://www.alliancewar.com/global/ui/js/boosts.json').text
+BOOSTDATA = requests.get('http://www.alliancequest.com/global/ui/js/boosts.json').text
 BOOSTS = json.loads(BOOSTDATA)
-PATHS = {'expert':{ 'color' :discord.Color.gold(),'title':'Expert','map':'', 'json':'','minis': [27,28,29,30,31,48,51,52,53,55], 'boss':[54]},
-        'hard':{ 'color' :discord.Color.red(),'title':'Hard','map':'', 'json':'', 'minis': [48,51,52,53,55], 'boss':[54]},
-        'challenger':{ 'color' :discord.Color.orange(),'title':'Challenger','map':'', 'json':'', 'minis': [27,28,29,30,31,48,51,52,53,55], 'boss':[54]},
-        'intermediate':{ 'color' :discord.Color.blue(),'title':'Intermediate','map':'', 'json':'', 'minis': [48,51,52,53,55], 'boss':[54]},
-        'advanced':{ 'color' :discord.Color.green(),'title':'Normal','map':'', 'json':'', 'minis': [], 'boss':[]},
-        'normal':{ 'color' :discord.Color.green(),'title':'Normal','map':'', 'json':'', 'minis': [], 'boss':[]},
-        'easy':{ 'color' :discord.Color.green(),'title':'Easy','map':'', 'json':'', 'minis': [], 'boss':[]}}
+MAP_URL = BASEPATH+'images/maps/s5aq{}.png'
+MAPS = {6:{},
+    6.1:{},
+    6.2:{},
+    6.3:{},
+    5:{},
+    5.1:{},
+    5.2:{},
+    5.3:{}
+    }
 for p in PATHS.keys():
     if p == 'normal' or p == 'easy':
         PATHS[p]['map'] = '{}warmap_{}_{}.png'.format(BASEPATH, 3, 'advanced')
-        pathurl ='http://www.alliancewar.com/aw/js/aw_s{}_{}_9path.json'.format(2, 'advanced')
+        pathurl ='http://www.alliancequest.com/aw/js/aw_s{}_{}_9path.json'.format(2, 'advanced')
         pathdata = requests.get(pathurl)
     else:
         PATHS[p]['map'] = '{}warmap_{}_{}.png'.format(BASEPATH, 3, p)
-        pathurl ='http://www.alliancewar.com/aw/js/aw_s{}_{}_9path.json'.format(2, p)
+        pathurl ='http://www.alliancequest.com/aw/js/aw_s{}_{}_9path.json'.format(2, p)
         pathdata = requests.get(pathurl)
     if pathdata.status_code==200:
         PATHS[p]['json'] = json.loads(pathdata.text)
@@ -64,8 +67,8 @@ AW_PATHS={
 }
 #################
 
-class AllianceWar:
-    """Collector integration for JPAGS' AllianceWar.com."""
+class AllianceQuest:
+    """Collector integration for Alliance Quest."""
 
     def __init__(self):
         self.config = Config.get_conf(self, identifier=1234512345)
@@ -83,21 +86,21 @@ class AllianceWar:
         self.config.register_global(**default_global)
         self.config.register_guild(**default_guild)
 
-    @commands.group(pass_context=True, aliases=['aw',])
-    async def alliancewar(self, ctx):
+    @commands.group(pass_context=True, aliases=['aq',])
+    async def alliancequest(self, ctx):
         ''' Commands [WIP]'''
 
-    @alliancewar.group(pass_context=True, manage_guild=True, name='set') # assuming Officers are allowed to manage guild
+    @alliancequest.group(pass_context=True, manage_guild=True, name='set') # assuming Officers are allowed to manage guild
     async def _aw_set(self, ctx):
         '''Alliance Settings'''
 
-    @_aw_set.command(pass_context=True, name='tier')
-    async def _aw_set_tier(self, ctx, tier):
-        '''Set default Alliance War Tier'''
-        if tier in PATHS.keys():
-            guild = self.config.guild(ctx.guild)
-            await guild.tier.set(tier)
-            await ctx.send('Alliance War Tier for this guild set to {}'.format(guild.tier()))
+    # @_aw_set.command(pass_context=True, name='tier')
+    # async def _aw_set_tier(self, ctx, tier):
+    #     '''Set default Alliance War Tier'''
+    #     if tier in PATHS.keys():
+    #         guild = self.config.guild(ctx.guild)
+    #         await guild.tier.set(tier)
+    #         await ctx.send('Alliance War Tier for this guild set to {}'.format(guild.tier()))
 
     # @_aw_set.command(pass_context=True, name='setup')
     # async def _aw_set_setup(self, ctx):
@@ -113,54 +116,52 @@ class AllianceWar:
     #                 await ctx.send('{} Role found: {}'.format(n, r.name))
     #     ctx.delete_message(message)
 
-    @_aw_set.command(pass_context=True, name='officers')
-    async def _aw_set_officers(self, ctx, officers: discord.Role):
-        '''Set default Alliance Officer role'''
-        guild = self.config.guild(ctx.guild)
-        await guild.officers.set(officers.id)
-        await ctx.send('Setting officers role as: {}'.format(guild.officers()))
+    # @_aw_set.command(pass_context=True, name='officers')
+    # async def _aw_set_officers(self, ctx, officers: discord.Role):
+    #     '''Set default Alliance Officer role'''
+    #     guild = self.config.guild(ctx.guild)
+    #     await guild.officers.set(officers.id)
+    #     await ctx.send('Setting officers role as: {}'.format(guild.officers()))
+    #
+    # @_aw_set.command(pass_context=True, name='officers')
+    # async def _aw_set_officers(self, ctx, officers: discord.Role):
+    #     '''Set default Alliance Officer role'''
+    #     guild = self.config.guild(ctx.guild)
+    #     await guild.officers.set(officers.id)
+    #     await ctx.send('Setting officers role as: {}'.format(guild.officers()))
 
-    @_aw_set.command(pass_context=True, name='officers')
-    async def _aw_set_officers(self, ctx, officers: discord.Role):
-        '''Set default Alliance Officer role'''
-        guild = self.config.guild(ctx.guild)
-        await guild.officers.set(officers.id)
-        await ctx.send('Setting officers role as: {}'.format(guild.officers()))
+    # @_aw_set.command(pass_context=True, name='clear', manage_guild=True)
+    # async def _aw_set_clear(self, ctx):
+    #     '''Clear Alliance settings'''
+    #     guild = self.config.guild(ctx.guild)
+    #     await guild(ctx.guild).clear_all()
+    #     message = await ctx.send('Alliance settings cleared')
 
-    @_aw_set.command(pass_context=True, name='clear', manage_guild=True)
-    async def _aw_set_clear(self, ctx):
-        '''Clear Alliance settings'''
-        guild = self.config.guild(ctx.guild)
-        await guild(ctx.guild).clear_all()
-        message = await ctx.send('Alliance settings cleared')
-
-    @alliancewar.command(pass_context=True, name='settings')
-    async def _settings(self, ctx):
-        guild = self.config.guild(ctx.guild)
-        officers = await guild.officers()
-        bg1 = await guild.bg1()
-        bg2 = await guild.bg2()
-        bg3 = await guild.bg3()
-        tier = await guild.tier()
-        em = discord.Embed(color=discord.Color.gold(), title='Alliance War Settings', url=PATREON)
-        em.add_field(name='Tier', value=tier)
-        for n in (officers, bg1, bg2, bg3):
-            n2 = discord.utils.get(ctx.guild.roles, id=n)
-            if n2 is not None:
-                em.add_field(name='{} role'.format(n), value=n2.name)
-        # em.add_field(name='Officer role', value=officers, inline=False)
-        # em.add_field(name='BG1 role', value=bg1, inline=False)
-        # em.add_field(name='BG2 role', value=bg2, inline=False)
-        # em.add_field(name='BG3 role', value=bg3, inline=False)
-        em.set_thumbnail(url=ctx.guild.icon_url)
-        await ctx.send(embed=em)
+    # @alliancequest.command(pass_context=True, name='settings')
+    # async def _settings(self, ctx):
+    #     guild = self.config.guild(ctx.guild)
+    #     officers = await guild.officers()
+    #     bg1 = await guild.bg1()
+    #     bg2 = await guild.bg2()
+    #     bg3 = await guild.bg3()
+    #     tier = await guild.tier()
+    #     em = discord.Embed(color=discord.Color.gold(), title='Alliance War Settings', url=PATREON)
+    #     em.add_field(name='Tier', value=tier)
+    #     for n in (officers, bg1, bg2, bg3):
+    #         n2 = discord.utils.get(ctx.guild.roles, id=n)
+    #         if n2 is not None:
+    #             em.add_field(name='{} role'.format(n), value=n2.name)
+    #     # em.add_field(name='Officer role', value=officers, inline=False)
+    #     # em.add_field(name='BG1 role', value=bg1, inline=False)
+    #     # em.add_field(name='BG2 role', value=bg2, inline=False)
+    #     # em.add_field(name='BG3 role', value=bg3, inline=False)
+    #     em.set_thumbnail(url=ctx.guild.icon_url)
+    #     await ctx.send(embed=em)
 
 
         # await ctx.send('Alliance Report\nTier: {}'.format(tier))
 
-
-
-    @alliancewar.command(pass_context=True, name="node")
+    @alliancequest.command(pass_context=True, name="node")
     async def _node_info(self, ctx, nodeNumber, tier = 'expert'):
         '''Report Alliance War node information.'''
         if tier in {'expert','hard','challenger','intermediate','normal','easy'}:
@@ -169,22 +170,18 @@ class AllianceWar:
         else:
             await ctx.send('Valid tiers include: advanced, intermediate, challenger, hard, expert')
 
-    @alliancewar.command(pass_context=True, name="map")
-    async def _map(self, ctx, tier = 'expert'):
+    @alliancequest.command(pass_context=True, name="map")
+    async def _map(self, ctx, tier: int = 5):
         '''Report AW track information.'''
-        if tier.lower() in PATHS.keys():
-            if tier.lower()=='advanced' or tier.lower()=='easy':
-                tier ='normal'
-            mapTitle = 'Alliance War 3.0 Normal Map'.format(tier.title())
-        else:
-            tier = 'expert'
-            mapTitle = 'Alliance War 3.0 {} Map'.format(PATHS[tier]['title'])
+        if tier > 6 or tier < 1:
+            tier = 5
+        mapTitle = 'Alliance War 3.0 {} Map'.format(PATHS[tier]['title'])
         em = discord.Embed(color=PATHS[tier]['color'],title=mapTitle,url=PATREON)
         em.set_image(url=PATHS[tier]['map'])
         em.set_footer(text='CollectorDevTeam',icon_url=COLLECTOR_ICON)
         await ctx.send(embed=em)
 
-    @alliancewar.command(pass_context=True, name="path", aliases=('tracks','track','paths'))
+    @alliancequest.command(pass_context=True, name="path", aliases=('tracks','track','paths'))
     async def _path_info(self, ctx, track='A', tier = 'expert'):
         '''Report AW track information.
         Tracks are labeled A - I from left to right.'''
@@ -199,7 +196,7 @@ class AllianceWar:
         else:
             path = paths[tracks[track]]
         page_list = []
-        print('alliancewar _path_info debug: {}'.format(path))
+        print('alliancequest _path_info debug: {}'.format(path))
         title='{} Track {} Summary'.format(PATHS[tier]['title'],track)
         emSummary = discord.Embed(color=PATHS[tier]['color'], title=title, descritpion='', url=JPAGS)
         emSummary.set_image(url=PATHS[tier]['map'])
@@ -209,14 +206,6 @@ class AllianceWar:
             em = await self.get_awnode_details(ctx = ctx, nodeNumber=nodeNumber,tier=tier) #, season=season)
             em.set_image(url=PATHS[tier]['map'])
             page_list.append(em)
-            #
-            # if int(nodeNumber) in PATHS[tier]['minis']:
-            #     title='{} Node {} MINIBOSS Boosts'.format(PATHS[tier]['title'],nodeNumber)
-            # elif int(nodeNumber) in PATHS[tier]['boss']:
-            #     title='{} Node {} BOSS Boosts'.format(PATHS[tier]['title'],nodeNumber)
-            # else:
-            #
-
             nodedetails = pathdata['boosts'][str(nodeNumber)]
             boostvalues=[]
             for n in nodedetails:
@@ -273,7 +262,7 @@ class AllianceWar:
                         text = 'Description text is missing from alliancwar.com.  Report to @jpags#5202.'
                 else:
                     title = 'Error: {}'.format(nodename)
-                    text = 'Boost details for {} missing from alliancewar.com.  Report to @jpags#5202.'.format(nodename)
+                    text = 'Boost details for {} missing from alliancequest.com.  Report to @jpags#5202.'.format(nodename)
             em.add_field(name=title, value=text, inline=False)
-        em.set_footer(icon_url=JPAGS+'/aw/images/app_icon.jpg',text='AllianceWar.com')
+        em.set_footer(icon_url=JPAGS+'/aw/images/app_icon.jpg',text='alliancequest.com')
         return em

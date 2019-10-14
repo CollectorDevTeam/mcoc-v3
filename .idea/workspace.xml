@@ -3,8 +3,16 @@
   <component name="ChangeListManager">
     <list default="true" id="a8a7b8aa-fb1b-425f-a2b8-9a2dd638212c" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+<<<<<<< Updated upstream
       <change beforePath="$PROJECT_DIR$/mcoc/cdtdata.py" beforeDir="false" afterPath="$PROJECT_DIR$/mcoc/cdtdata.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/mcoc/mcoc.py" beforeDir="false" afterPath="$PROJECT_DIR$/mcoc/mcoc.py" afterDir="false" />
+=======
+      <change beforePath="$PROJECT_DIR$/alliancewar/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/alliancewar/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/alliancewar/alliancequest.py" beforeDir="false" afterPath="$PROJECT_DIR$/alliancewar/alliancequest.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/alliancewar/pages_menu.py" beforeDir="false" afterPath="$PROJECT_DIR$/alliancewar/pages_menu.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mcoc/cdtdata.py" beforeDir="false" afterPath="$PROJECT_DIR$/mcoc/cdtdata.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mcoc/championclass.py" beforeDir="false" afterPath="$PROJECT_DIR$/mcoc/championclass.py" afterDir="false" />
+>>>>>>> Stashed changes
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -17,8 +25,13 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/mcoc/cdtdata.py">
           <provider selected="true" editor-type-id="text-editor">
+<<<<<<< Updated upstream
             <state relative-caret-position="46">
               <caret line="2" column="16" selection-start-line="2" selection-start-column="16" selection-end-line="2" selection-end-column="16" />
+=======
+            <state relative-caret-position="69">
+              <caret line="3" column="32" selection-start-line="3" selection-start-column="32" selection-end-line="3" selection-end-column="32" />
+>>>>>>> Stashed changes
             </state>
           </provider>
         </entry>
@@ -46,8 +59,16 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/mcoc/mcoc.py">
           <provider selected="true" editor-type-id="text-editor">
+<<<<<<< Updated upstream
             <state relative-caret-position="23">
               <caret line="1" column="16" selection-start-line="1" selection-start-column="16" selection-end-line="1" selection-end-column="16" />
+=======
+            <state relative-caret-position="115">
+              <caret line="5" column="19" lean-forward="true" selection-start-line="5" selection-start-column="19" selection-end-line="5" selection-end-column="19" />
+              <folding>
+                <element signature="e#0#32#0" expanded="true" />
+              </folding>
+>>>>>>> Stashed changes
             </state>
           </provider>
         </entry>
@@ -56,7 +77,11 @@
         <entry file="file://$PROJECT_DIR$/mcoc/__init__.py">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="115">
+<<<<<<< Updated upstream
               <caret line="5" selection-start-line="5" selection-end-line="5" />
+=======
+              <caret line="5" lean-forward="true" selection-start-line="5" selection-end-line="5" />
+>>>>>>> Stashed changes
             </state>
           </provider>
         </entry>
@@ -70,18 +95,25 @@
     <option name="CHANGED_PATHS">
       <list>
         <option value="$PROJECT_DIR$/mcoc/cdt_data" />
-        <option value="$PROJECT_DIR$/mcoc/__init__.py" />
         <option value="$PROJECT_DIR$/mcoc/gshandler.py" />
         <option value="$PROJECT_DIR$/mcoc/mcoc.py" />
+        <option value="$PROJECT_DIR$/mcoc/__init__.py" />
         <option value="$PROJECT_DIR$/mcoc/cdtdata.py" />
       </list>
     </option>
   </component>
   <component name="ProjectFrameBounds" extendedState="6">
+<<<<<<< Updated upstream
     <option name="x" value="-12" />
     <option name="y" value="-12" />
     <option name="width" value="1626" />
     <option name="height" value="1746" />
+=======
+    <option name="x" value="-177" />
+    <option name="y" value="-15" />
+    <option name="width" value="1936" />
+    <option name="height" value="1056" />
+>>>>>>> Stashed changes
   </component>
   <component name="ProjectView">
     <navigator proportions="" version="1">
@@ -147,7 +179,11 @@
     <servers />
   </component>
   <component name="ToolWindowManager">
+<<<<<<< Updated upstream
     <frame x="-6" y="-6" width="1613" height="873" extended-state="6" />
+=======
+    <frame x="-8" y="-8" width="1936" height="1056" extended-state="6" />
+>>>>>>> Stashed changes
     <editor active="true" />
     <layout>
       <window_info id="Favorites" order="0" side_tool="true" />
@@ -170,6 +206,9 @@
       <window_info anchor="right" id="R Graphics" order="3" />
       <window_info anchor="right" id="R Packages" order="4" />
     </layout>
+  </component>
+  <component name="VcsManagerConfiguration">
+    <option name="LAST_COMMIT_MESSAGE" value="" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -196,6 +235,7 @@
         </state>
       </provider>
     </entry>
+<<<<<<< Updated upstream
     <entry file="file://$PROJECT_DIR$/mcoc/gshandler.py">
       <provider selected="true" editor-type-id="text-editor">
         <state>
@@ -207,20 +247,48 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="115">
           <caret line="5" selection-start-line="5" selection-end-line="5" />
+=======
+    <entry file="file://$PROJECT_DIR$/mcoc/common/pages_menu.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state>
+          <folding>
+            <element signature="e#0#14#0" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/mcoc/mcoc.py">
       <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="115">
+          <caret line="5" column="19" lean-forward="true" selection-start-line="5" selection-start-column="19" selection-end-line="5" selection-end-column="19" />
+          <folding>
+            <element signature="e#0#32#0" expanded="true" />
+          </folding>
+>>>>>>> Stashed changes
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/mcoc/mcoc.py">
+      <provider selected="true" editor-type-id="text-editor">
+<<<<<<< Updated upstream
         <state relative-caret-position="23">
           <caret line="1" column="16" selection-start-line="1" selection-start-column="16" selection-end-line="1" selection-end-column="16" />
+=======
+        <state relative-caret-position="115">
+          <caret line="5" lean-forward="true" selection-start-line="5" selection-end-line="5" />
+>>>>>>> Stashed changes
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/mcoc/cdtdata.py">
       <provider selected="true" editor-type-id="text-editor">
+<<<<<<< Updated upstream
         <state relative-caret-position="46">
           <caret line="2" column="16" selection-start-line="2" selection-start-column="16" selection-end-line="2" selection-end-column="16" />
+=======
+        <state relative-caret-position="69">
+          <caret line="3" column="32" selection-start-line="3" selection-start-column="32" selection-end-line="3" selection-end-column="32" />
+>>>>>>> Stashed changes
         </state>
       </provider>
     </entry>

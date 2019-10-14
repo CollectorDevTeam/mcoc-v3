@@ -5,18 +5,21 @@ from collections import namedtuple, OrderedDict
 class PagesMenu:
     '''CollectorDevTeam Pages Menu'''
 
-    EmojiReact = namedtuple('EmojiReact', 'emoji include page_inc')
 
-    def __init__(self, bot, *, add_pageof=True, timeout=30, choice=False,
-            delete_onX=True):
-        self.bot = bot
-        self.timeout = timeout
-        self.add_pageof = add_pageof
-        self.choice = choice
-        self.delete_onX = delete_onX
-        self.embedded = True
+    def __init__(self):
+        self.config = Config.get_conf(self, identifier=1212121212)
+        default_global = {
+            timeout = 30,
+            add_pageof = True,
+            choice = False,
+            delete_onX = True,
+            embedded = True,
+            EmojiReact = namedtuple('EmojiReact', 'emoji include page_inc')
+        }
 
-    async def menu_start(self, pages):
+        self.config.register_global(**default_global)
+
+    async def menu_start(self, pages, timeout=30, page_start=0):
         page_list = []
         if isinstance(pages, list):
             page_list = pages
@@ -48,7 +51,7 @@ class PagesMenu:
                     page += '\n(Page {} of {})'.format(i+1, page_length)
 
         self.page_list = page_list
-        await self.display_page(None, 0)
+        await self.display_page(None, page_start)
 
     async def display_page(self, message, page):
         if not message:
