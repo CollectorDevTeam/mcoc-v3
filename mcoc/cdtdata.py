@@ -1,5 +1,5 @@
 from redbot.core import Config
-from redbot.core import commands
+from redbot.core import Commands as commands
 from .common.pages_menu import PagesMenu as Menu
 ##
 import aiohttp
