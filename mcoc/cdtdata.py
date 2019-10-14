@@ -92,12 +92,12 @@ class CDTDATA(BaseCog):
 
 
 
-            self.cdt_data = cdt_data
-            self.cdt_versions = cdt_versions
-            self.cdt_masteries = await self.fetch_json(
-                'https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/json/masteries.json',
-                session)
-            # self.cdt_stats = StaticGameData.get_gsheets_data('cdt_stats')
+        self.cdt_data = cdt_data
+        self.cdt_versions = cdt_versions
+        self.cdt_masteries = await self.fetch_json(
+            'https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/json/masteries.json',
+            session)
+        # self.cdt_stats = StaticGameData.get_gsheets_data('cdt_stats')
 
     @commands.command()
     async def fetch(self, ctx):
