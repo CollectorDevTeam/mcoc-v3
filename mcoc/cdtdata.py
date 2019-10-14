@@ -7,7 +7,9 @@ from collections import defaultdict, ChainMap, namedtuple, OrderedDict
 remote_data_basepath = "https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/"
 GOOGLECREDENTIALS = ''
 
-class CDTDATA():
+BaseCog = getattr(commands, "Cog", object)
+
+class CDTDATA(BaseCog):
     def __init__(self):
         self.config = Config.get_conf(self, identifier=324631601344544778001)
         default_global = {
