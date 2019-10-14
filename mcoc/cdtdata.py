@@ -1,4 +1,5 @@
-from redbot.core import Config
+import discord
+from redbot.core.config import Config
 from redbot.core import commands, checks
 import aiohttp
 from collections import defaultdict, ChainMap, namedtuple, OrderedDict
@@ -86,10 +87,10 @@ class CDTDATA():
                 session)
             # self.cdt_stats = StaticGameData.get_gsheets_data('cdt_stats')
 
-    @commands.command()
-    async def testcom(selfself, ctx):
-        """Test Command String"""
-        await ctx.send("I can do stuff")
+    # @commands.command()
+    # async def testcom(selfself, ctx):
+    #     """Test Command String"""
+    #     await ctx.send("I can do stuff")
 
 def setup(bot):
     bot.loop.create_task(CDTDATA.load_cdt_data())
