@@ -1,7 +1,5 @@
 from redbot.core import Config
-from redbot.core import Commands as commands
-from .common.pages_menu import PagesMenu as Menu
-##
+from redbot.core import commands, checks
 import aiohttp
 from collections import defaultdict, ChainMap, namedtuple, OrderedDict
 
