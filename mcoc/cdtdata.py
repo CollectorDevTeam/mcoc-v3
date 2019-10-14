@@ -4,14 +4,22 @@ from redbot.core import commands, checks
 import aiohttp
 from collections import defaultdict, ChainMap, namedtuple, OrderedDict
 
+BaseCog = getattr(commands, "Cog", object)
+
 remote_data_basepath = "https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/"
 GOOGLECREDENTIALS = ''
 
-BaseCog = getattr(commands, "Cog", object)
 
 class CDTDATA(BaseCog):
-    def __init__(self):
-        self.config = Config.get_conf(self, identifier=324631601344544778001)
+    """
+    CollectorDevTeam DataSets for Marvel Contest of Champions
+    """
+
+    __version__ = "1.0.0"
+
+    def __init__(self, bot):
+        self.bot = bot
+        self.database = Config.get_conf(self, identifier=324631601344544778001, force_registration=True)
         default_global = {
             "prestige": {
                 "info": "Champion Prestige"
@@ -71,6 +79,9 @@ class CDTDATA(BaseCog):
                 cdt_data.maps.append(val)
                 cdt_versions.maps.append(ver)
 
+        await self.database.cdt_data.set(cdt_data)
+        await self.database.cdt_versions.set(cdt_versions)
+
         # Test cdt_data for validity
         # IF TRUE, store cdt_data locally
         # Load Local data to config.global.cdt_data
@@ -88,10 +99,10 @@ class CDTDATA(BaseCog):
                 session)
             # self.cdt_stats = StaticGameData.get_gsheets_data('cdt_stats')
 
-    # @commands.command()
-    # async def testcom(selfself, ctx):
-    #     """Test Command String"""
-    #     await ctx.send("I can do stuff")
+    @commands.command()
+    async def fetch(self, ctx):
+        """Test Command String"""
+        await self.load_cdt_data()
 
 def setup(bot):
     bot.loop.create_task(CDTDATA.load_cdt_data())
