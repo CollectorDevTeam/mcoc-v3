@@ -8,44 +8,44 @@ COLLECTOR_ICON = 'https://raw.githubusercontent.com/CollectorDevTeam/assets/mast
 class ROSTER(commands.Cog):
     """Test User data creation cog"""
     def __init__(self):
-    self.config = Config.get_conf(self, identifier=8675309)
-    default_user = {
-        "about": "",
-        "gender": "",
-        "ingame": "",
-        "started": "",
-        "roster": {},
-        "roster_enabled": False,
-        "masteries": {},
-        "prestige": 0
-    }
-    default_champion = {
-        "Awakened": 0,
-        "Id": "",
-        "Pi": 0,
-        "Rank": 1,
-        "Role": "",
-        "Stars": 1,
-        "Class": "",
-        "Tags": [],
-        "Date_Added_To_Roster": ""
-    }
-    default_guild = {
-        "mcoc_enabled": False,
-        "alliance_name": "",
-        "alliance_tag": "",
-        "alliance_about": "",
-        "alliance_started": "",
-        "alliance_invite": "",
-        "alliance_poster_url": "",
-        "alliance_officers_role": "",
-        "alliance_bg1_role": "",
-        "alliance_bg2_role": "",
-        "alliance_bg3_role": "",
-        "alliance_alliance_role":""
-    }
-    self.config.register_user(**default_user)
-    self.config.register_guild(**default_guild)
+        self.config = Config.get_conf(self, identifier=8675309)
+        default_user = {
+            "about": "",
+            "gender": "",
+            "ingame": "",
+            "started": "",
+            "roster": {},
+            "roster_enabled": False,
+            "masteries": {},
+            "prestige": 0
+        }
+        default_champion = {
+            "Awakened": 0,
+            "Id": "",
+            "Pi": 0,
+            "Rank": 1,
+            "Role": "",
+            "Stars": 1,
+            "Class": "",
+            "Tags": [],
+            "Date_Added_To_Roster": ""
+        }
+        default_guild = {
+            "mcoc_enabled": False,
+            "alliance_name": "",
+            "alliance_tag": "",
+            "alliance_about": "",
+            "alliance_started": "",
+            "alliance_invite": "",
+            "alliance_poster_url": "",
+            "alliance_officers_role": "",
+            "alliance_bg1_role": "",
+            "alliance_bg2_role": "",
+            "alliance_bg3_role": "",
+            "alliance_alliance_role":""
+        }
+        self.config.register_user(**default_user)
+        self.config.register_guild(**default_guild)
 
     @commands.command()
     async def mycom(self, ctx):
