@@ -2,7 +2,7 @@ from redbot.core import Config
 from redbot.core import commands
 from .common.pages_menu import PagesMenu as Menu
 
-class MCOC():
+class MCOC(commands.Cog):
     """A CollectorDevTeam package for Marvel's Contest of Champions"""
     def __init__(self, bot):
         self.config = Config.get_conf(self, identifier=1234567890)
