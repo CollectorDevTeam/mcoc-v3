@@ -4,11 +4,10 @@ from .common.pages_menu import PagesMenu as Menu
 
 class MCOC(commands.Cog):
     """A CollectorDevTeam package for Marvel's Contest of Champions"""
-    def __init__(self, bot):
+    def __init__(self):
         self.config = Config.get_conf(self, identifier=1234567890)
         self.config.register_global(
-
-        # )
+        )
         # self.bot = bot
 
     @commands.group(pass_context=True, aliases=['champs',])
