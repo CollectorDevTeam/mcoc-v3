@@ -8,8 +8,8 @@ class MCOC(commands.Cog):
         self.config = Config.get_conf(self, identifier=1234567890)
         self.config.register_global(
 
-        )
-        self.bot = bot
+        # )
+        # self.bot = bot
 
     @commands.group(pass_context=True, aliases=['champs',])
     async def champ(self, ctx):
