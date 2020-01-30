@@ -10,7 +10,7 @@
 # GOOGLECREDENTIALS = ''
 #
 #
-# class CDTDATA(BaseCog):
+# class CDTDATA(commands.Cog):
 #     """
 #     CollectorDevTeam DataSets for Marvel Contest of Champions
 #     """

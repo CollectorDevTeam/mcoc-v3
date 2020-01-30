@@ -1,9 +1,11 @@
 from redbot.core import commands
 from redbot.core import Config
 import discord
+from .collectordevteam import CDT
+
 from redbot.core import checks ## Command check decorators
 
-COLLECTOR_ICON = 'https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/cdt_icon.png'
+
 
 class ROSTER(commands.Cog):
     """Test User data creation cog"""
@@ -57,13 +59,20 @@ class ROSTER(commands.Cog):
     async def myembed(self, ctx):
         """This is a test embed field"""
 
-        em = discord.Embed(title="Test Embed | Title Field", color=ctx.message.author.color, description="CollectorDevTeam | description text", url="https://discordpy.readthedocs.io/en/v1.3.1/api.html#discord.Embed")
-        em.set_author(name="CollectorDevTeam", url="https://patreon.com/collectordevteam", icon_url=COLLECTOR_ICON)
+        embed = CDT.cdt_embed(ctx)
+        embed.add_field(name="Field name",value="Field value", inline=True)
 
-        em.set_footer(text="Requested by {}".format(ctx.message.author), icon_url=COLLECTOR_ICON)
-        em.set_thumbnail(url="https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/images/featured/collector.png")
-        em.set_image(url="https://media.discordapp.net/attachments/398210253923024902/672232058818658354/MCoC_CharacterPose-TheCollector-Current_4.png?width=441&height=676")
-        em.add_field(name="Field name",value="Field value", inline=True)
+        await ctx.send(embed=em)
+
+    @commands.command()
+    async def myembed2(self, ctx):
+        """This is a test embed removing thumbnail and images."""
+
+        embed = CDT.cdt_embed(ctx)
+        embed.set_thumbnail(url=None)
+        embed.set_image(url=None)
+        embed.set_footer("Requested by {0} | {0.id}".format(ctx.message.author))
+
 
         await ctx.send(embed=em)
 
