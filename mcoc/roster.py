@@ -60,8 +60,11 @@ class ROSTER(commands.Cog):
         """This is a test embed field"""
 
         embed = CDT.cdt_embed(self)
+        embed.title = "Test Embed 1"
+        embed.description = "Description\nTest embed, ctx not passed."
         embed.add_field(name="Field name", value="Field value", inline=True)
-        embed.description = "Test embed, ctx not passed."
+        embed.set_image(url="https://cdn.discordapp.com/attachments/398210253923024902/672232058818658354/MCoC_CharacterPose-TheCollector-Current_4.png")
+        embed.set_thumbnail(url="https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/images/featured/collector.png")
         await ctx.send(embed=embed)
 
     @commands.command()
@@ -69,7 +72,8 @@ class ROSTER(commands.Cog):
         """This is a test embed removing thumbnail and images."""
 
         embed = CDT.cdt_embed(self, ctx=ctx)
-        embed.description = "Test embed, ctx passed."
+        embed.title = "Test Embed 2"
+        embed.description = "Description field\nTest embed, ctx passed."
         embed.set_author(name="Requested by {0.display_name} | {0.id}".format(ctx.message.author),
                          icon_url=ctx.message.author.avatar_url)
         await ctx.send(embed=embed)
