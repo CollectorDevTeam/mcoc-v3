@@ -1,6 +1,6 @@
 from redbot.core import commands
 import pygsheets
-# from redbot.core import Config
+from redbot.core import Config
 # from .common.pages_menu import PagesMenu as Menu
 #
 # GOOGLECREDENTIALS = ''
@@ -8,8 +8,10 @@ import pygsheets
 diagnostics = '672501245180772353'
 class GSHandler(commands.Cog):
     def __init__(self):
-        pass
-    # self.config = Config.get_conf(self, identifier=gshandler2019)
+        self.config = Config.get_conf(self, identifier=672501245180772353)
+        default_gsheet = {
+
+        }
 
 
     @commands.command()
