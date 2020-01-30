@@ -18,8 +18,7 @@ class CDTDATA(commands.Cog):
 
     __version__ = "1.0.0"
 
-    def __init__(self, bot):
-        self.bot = bot
+    def __init__(self):
         CDTDATA_ID = 324631601344544778001
         self.config = Config.get_conf(self, identifier=CDTDATA_ID, force_registration=True)
         default_global = {
