@@ -19,7 +19,7 @@ class CDTDATA(commands.Cog):
     __version__ = "1.0.0"
 
     def __init__(self):
-        CDTDATA_ID = 324631601344544778001
+        CDTDATA_ID = 3246316013445447780012
         self.config = Config.get_conf(self, identifier=CDTDATA_ID, force_registration=True)
         default_global = {
             "prestige": {
@@ -51,7 +51,10 @@ class CDTDATA(commands.Cog):
     @checks.is_owner()
     async def check_cdt_data(self, ctx):
         '''Check last data update'''
-        await ctx.send("CDTDATA last updated: {}".format(self.CDTDATA.updated.date))
+        await ctx.send("attempting CDTDATA.get_raw")
+        await ctx.send("CDTDATA last updated: {}".format(self.CDTDATA.get_raw("updated", "date")))
+        await ctx.send("attempting CDTDATA.get_attr")
+        await ctx.send("CDTDATA last upated: {}".format(self.CDTDATA.updated.get_attr("date")))
 
 #     async def load_cdt_data(self):
 #         """Load existing CDT Data
