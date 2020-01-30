@@ -12,7 +12,7 @@ class CDT(commands.Cog):
 
         if ctx is not None:
             emcolor = ctx.message.author.color
-            emfooter = "Requested by {}".format(ctx.message.author.nickname)
+            emfooter = "Requested by {}".format(ctx.message.author.nick)
         else:
             emcolor = discord.Color.gold()
             emfooter = "CollectorDevTeam"

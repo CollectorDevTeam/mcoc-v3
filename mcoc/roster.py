@@ -59,8 +59,8 @@ class ROSTER(commands.Cog):
     async def myembed(self, ctx):
         """This is a test embed field"""
 
-        embed = CDT.cdt_embed(self, ctx=ctx)
-        embed.add_field(name="Field name",value="Field value", inline=True)
+        embed = CDT.cdt_embed(self)
+        embed.add_field(name="Field name", value="Field value", inline=True)
 
         await ctx.send(embed=embed)
 
