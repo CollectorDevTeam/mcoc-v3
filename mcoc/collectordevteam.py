@@ -11,16 +11,18 @@ class CDT(commands.Cog):
     def cdt_embed(self, ctx=None):
 
         if ctx is not None:
-            emcolor = ctx.message.athor.color
+            emcolor = ctx.message.author.color
+            emfooter = "Requested by {}".format(ctx.message.author.nickname)
         else:
             emcolor = discord.Color.gold()
+            emfooter = "CollectorDevTeam"
 
         embed = discord.Embed(title="Test Embed | Title Field", color=emcolor,
                               description="CollectorDevTeam | description text",
                               url="https://discordpy.readthedocs.io/en/v1.3.1/api.html#discord.Embed")
         embed.set_author(name="CollectorDevTeam", url="https://patreon.com/collectordevteam", icon_url=COLLECTOR_ICON)
 
-        embed.set_footer(text="Requested by {}".format(ctx.message.author), icon_url=COLLECTOR_ICON)
+        embed.set_footer(text=emfooter, icon_url=COLLECTOR_ICON)
         embed.set_thumbnail(
             url="https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/images/featured/collector.png")
         embed.set_image(
