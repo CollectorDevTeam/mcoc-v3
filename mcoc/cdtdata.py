@@ -21,7 +21,7 @@ class CDTDATA(commands.Cog):
     def __init__(self):
         CDTDATA_ID = 3246316013445447780012
         self.config = Config.get_conf(self, identifier=CDTDATA_ID, force_registration=True)
-        default_global = {
+        _default_global = {
             "prestige": {
                 "info": "Champion Prestige"
             },
@@ -42,7 +42,7 @@ class CDTDATA(commands.Cog):
             }
         }
 
-        self.config.register_global(**default_global)
+        self.config.register_global(**_default_global)
         # self.config.register_guild(**default_guild)
         # self.config.register_user(**default_user)
         self.CDTDATA = Config.get_conf(self, identifier=CDTDATA_ID)
@@ -52,9 +52,9 @@ class CDTDATA(commands.Cog):
     async def check_cdt_data(self, ctx):
         '''Check last data update'''
         await ctx.send("attempting CDTDATA.get_raw")
-        await ctx.send("CDTDATA last updated: {}".format(self.CDTDATA.get_raw("updated", "date")))
-        await ctx.send("attempting CDTDATA.get_attr")
-        await ctx.send("CDTDATA last upated: {}".format(self.CDTDATA.updated.get_attr("date")))
+        await ctx.send("CDTDATA last updated: {}".format(await self.CDTDATA.updated.date()))
+        # await ctx.send("attempting CDTDATA.get_attr")
+        # await ctx.send("CDTDATA last upated: {}".format(await self.CDTDATA.updated.get_attr("date")))
 
 #     async def load_cdt_data(self):
 #         """Load existing CDT Data
