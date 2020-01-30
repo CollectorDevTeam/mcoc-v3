@@ -13,7 +13,7 @@ class GSHandler(commands.Cog):
     @commands.command()
     async def testapi(self, ctx):
         """Test Command String"""
-        collectordevteam = await self.bot.get_shared_api_tokens("collectordevteam")
+        collectordevteam = await self.get_shared_api_tokens("collectordevteam")
         await ("Token: "+collectordevteam)
         try:
             return pygsheets.authorize(custom_credentials=collectordevteam)
