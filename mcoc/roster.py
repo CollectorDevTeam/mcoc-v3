@@ -69,6 +69,8 @@ class ROSTER(commands.Cog):
         """This is a test embed removing thumbnail and images."""
 
         embed = CDT.cdt_embed(self, ctx=ctx)
+        embed.set_thumbnail()
+        embed.set_image()
         embed.set_footer(text="Requested by {0.display_name} | {0.id}".format(ctx.message.author),
                          icon_url=ctx.message.author.avatar_url)
         await ctx.send(embed=embed)
