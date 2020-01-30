@@ -6,8 +6,7 @@ import pygsheets
 # GOOGLECREDENTIALS = ''
 #
 class GSHandler(commands.Cog):
-    def __init__(self, bot):
-        self.bot = bot
+    # def __init__(self):
         # self.config = Config.get_conf(self, identifier=gshandler2019)
 
 
