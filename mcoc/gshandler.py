@@ -14,7 +14,7 @@ class GSHandler(commands.Cog):
     async def testapi(self, ctx):
         """Test Command String"""
         collectordevteam = await ctx.bot.get_shared_api_tokens("collectordevteam")
-        await ("Token: "+collectordevteam)
+        await ctx.send("Token: {}".format(collectordevteam))
         try:
             return pygsheets.authorize(custom_credentials=collectordevteam)
         except FileNotFoundError:
