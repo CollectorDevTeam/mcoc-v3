@@ -51,6 +51,8 @@ class CDTDATA(commands.Cog):
     @checks.is_owner()
     async def check_cdt_data(self, ctx):
         '''Check last data update'''
+
+        self.CDTDATA.updated.date.set("Today")
         await ctx.send("attempting CDTDATA.get_raw")
         await ctx.send("CDTDATA last updated: {}".format(await self.CDTDATA.updated.date()))
         # await ctx.send("attempting CDTDATA.get_attr")
