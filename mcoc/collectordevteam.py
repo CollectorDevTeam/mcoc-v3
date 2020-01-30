@@ -9,8 +9,8 @@ class CDT(commands.Cog):
     #     pass
 
     def cdt_embed(self, ctx=None):
-
-        emfooter_icon_url = self.COLLECTOR_ICON
+        """Discord Embed constructor with CollectorDevTeam defaults."""
+        emfooter_icon_url = CDT.COLLECTOR_ICON
         if ctx is not None:
             emcolor = ctx.message.author.color
             emfooter = "Requested by {}".format(ctx.message.author.nick)
@@ -23,7 +23,7 @@ class CDT(commands.Cog):
         embed = discord.Embed(title="Test Embed | Title Field", color=emcolor,
                               description="CollectorDevTeam | description text",
                               url="https://discordpy.readthedocs.io/en/v1.3.1/api.html#discord.Embed")
-        embed.set_author(name="CollectorDevTeam", url="https://patreon.com/collectordevteam", icon_url=self.COLLECTOR_ICON)
+        embed.set_author(name="CollectorDevTeam", url="https://patreon.com/collectordevteam", icon_url=CDT.COLLECTOR_ICON)
 
         embed.set_footer(text=emfooter, icon_url=emfooter_icon_url)
         embed.set_thumbnail(
