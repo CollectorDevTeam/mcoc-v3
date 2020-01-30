@@ -71,6 +71,6 @@ class ROSTER(commands.Cog):
         embed = CDT.cdt_embed(self, ctx=ctx)
         embed.set_thumbnail(url=None)
         embed.set_image(url=None)
-        embed.set_footer("Requested by {0} | {0.id}".format(ctx.message.author))
+        embed.set_footer(text="Requested by {0.nick} | {0.id}".format(ctx.message.author), icon_url=ctx.message.author.avatar)
         await ctx.send(embed=embed)
 
