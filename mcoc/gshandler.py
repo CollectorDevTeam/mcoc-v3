@@ -23,6 +23,7 @@ class GSHandler(commands.Cog):
         Client = await self.authorize(ctx, collectordevteam)
         if Client is not None:
             await ctx.send("Client authenticated")
+            await ctx.send("Google sheets client authenticated", channel=ctx.bot.get_channel(diagnostics))
 
     async def authorize(self, ctx, token):
         await ctx.send("Token: {}".format(token))
