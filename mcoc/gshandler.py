@@ -16,7 +16,9 @@ class GSHandler(commands.Cog):
         collectordevteam = await ctx.bot.get_shared_api_tokens("collectordevteam")
         await ctx.send("Token: {}".format(collectordevteam))
         try:
-            return pygsheets.authorize(custom_credentials=collectordevteam)
+            authentication = pygsheets.authorize(custom_credentials=collectordevteam)
+            await ctx.send(authentication)
+            # return pygsheets.authorize(custom_credentials=collectordevteam)
         except FileNotFoundError:
             err_msg = 'API token failed to authenticate'
             await ctx.send(err_msg)
