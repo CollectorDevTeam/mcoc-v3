@@ -45,14 +45,18 @@ class CDTDATA(commands.Cog):
         self.config.register_global(**_default_global)
         # self.config.register_guild(**default_guild)
         # self.config.register_user(**default_user)
-        self.CDTDATA = Config.get_conf(self, identifier=CDTDATA_ID)
+    @commands.command()
+    @checks.is_owner()
+    async def clear_cdt_data(self, ctx):
+        '''Removes all CDTDATA.
+        This cannot be undone.'''
+        await self.config.clear_all_globals(self)
+
 
     @commands.command()
     @checks.is_owner()
     async def check_cdt_data(self, ctx):
         '''Check last data update'''
-
-        self.CDTDATA.updated.date.set("Today")
         await ctx.send("attempting CDTDATA.get_raw")
         await ctx.send("CDTDATA last updated: {}".format(await self.CDTDATA.updated.date()))
         # await ctx.send("attempting CDTDATA.get_attr")
