@@ -61,15 +61,16 @@ class ROSTER(commands.Cog):
 
         embed = CDT.cdt_embed(self)
         embed.add_field(name="Field name", value="Field value", inline=True)
-
+        embed.description = "Test embed, ctx not passed."
         await ctx.send(embed=embed)
 
     @commands.command()
     async def myembed2(self, ctx):
         """This is a test embed removing thumbnail and images."""
 
-        embed = CDT.cdt_embed(self, ctx=ctx, cdt=1)
-        embed.set_footer(text="Requested by {0.display_name} | {0.id}".format(ctx.message.author),
+        embed = CDT.cdt_embed(self, ctx=ctx)
+        embed.description = "Test embed, ctx passed."
+        embed.set_author(text="Requested by {0.display_name} | {0.id}".format(ctx.message.author),
                          icon_url=ctx.message.author.avatar_url)
         await ctx.send(embed=embed)
 
