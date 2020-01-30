@@ -20,9 +20,5 @@ class CDT(commands.Cog):
             emauthor = "CollectorDevTeam"
 
         embed = discord.Embed(color=emcolor)
-        # embed = discord.Embed(title="Test Embed | Title Field", color=emcolor,
-        #                       description="CollectorDevTeam | description text")
-        embed.set_author(name=emauthor, icon_url=emauthor_icon_url)
-
-        embed.set_footer(text="CollectorDevTeam", icon_url=CDT.COLLECTOR_ICON)
+        embed.set_footer(text=emauthor, icon_url=emauthor_icon_url)
         return embed

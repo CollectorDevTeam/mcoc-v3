@@ -69,12 +69,10 @@ class ROSTER(commands.Cog):
 
     @commands.command()
     async def myembed2(self, ctx):
-        """This is a test embed removing thumbnail and images."""
+        """This is a test embed passing context."""
 
         embed = CDT.cdt_embed(self, ctx=ctx)
         embed.title = "Test Embed 2"
         embed.description = "Description field\nTest embed, ctx passed."
-        embed.set_author(name="Requested by {0.display_name} | {0.id}".format(ctx.message.author),
-                         icon_url=ctx.message.author.avatar_url)
         await ctx.send(embed=embed)
 
