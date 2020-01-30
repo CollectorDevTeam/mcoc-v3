@@ -59,7 +59,7 @@ class ROSTER(commands.Cog):
     async def myembed(self, ctx):
         """This is a test embed field"""
 
-        embed = CDT.cdt_embed(self)
+        embed = CDT.cdt_embed(self, cdt=1)
         embed.add_field(name="Field name", value="Field value", inline=True)
 
         await ctx.send(embed=embed)
@@ -69,8 +69,6 @@ class ROSTER(commands.Cog):
         """This is a test embed removing thumbnail and images."""
 
         embed = CDT.cdt_embed(self, ctx=ctx)
-        embed.set_thumbnail()
-        embed.set_image()
         embed.set_footer(text="Requested by {0.display_name} | {0.id}".format(ctx.message.author),
                          icon_url=ctx.message.author.avatar_url)
         await ctx.send(embed=embed)
