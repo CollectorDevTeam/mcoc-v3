@@ -65,5 +65,5 @@ class ROSTER(commands.Cog):
         em.set_image(url="")
         em.add_field(name="Field name",value="Field value",inline=True)
 
-        await ctx.send(em)
+        await ctx.send(embed=em)
 
