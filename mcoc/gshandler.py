@@ -10,8 +10,10 @@ class GSHandler(commands.Cog):
     def __init__(self):
         self.config = Config.get_conf(self, identifier=672501245180772353)
         default_gsheet = {
-
-        }
+            "name": '',
+            "gkey": '',
+            "sheet": ''
+       }
 
 
     @commands.command()
