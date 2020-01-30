@@ -13,9 +13,9 @@ class CDT(commands.Cog):
         emfooter_icon_url = CDT.COLLECTOR_ICON
         if ctx is not None:
             emcolor = ctx.message.author.color
-            emfooter = "Requested by {}".format(ctx.message.author.nick)
+            emfooter = "Requested by {}".format(ctx.message.author.display_name)
             if ctx.message.author.avatar is not None:
-                emfooter_icon_url = ctx.message.author.avatar
+                emfooter_icon_url = ctx.message.author.avatar_url
         else:
             emcolor = discord.Color.gold()
             emfooter = "CollectorDevTeam"
