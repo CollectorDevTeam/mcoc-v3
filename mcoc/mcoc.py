@@ -1,5 +1,6 @@
 from redbot.core import Config
 from redbot.core import commands
+import discord
 from .common.pages_menu import PagesMenu as Menu
 
 class MCOC(commands.Cog):

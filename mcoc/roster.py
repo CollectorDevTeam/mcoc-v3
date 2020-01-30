@@ -1,6 +1,6 @@
 from redbot.core import commands
 from redbot.core import Config
-from redbot.core.utils import embed
+import discord
 from redbot.core import checks ## Command check decorators
 
 COLLECTOR_ICON = 'https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/cdt_icon.png'
@@ -56,8 +56,8 @@ class ROSTER(commands.Cog):
     @commands.command()
     async def myembed(self, ctx):
         """This is a test embed field"""
-        em = embed(title="Title", color=ctx.message.author.color, description="description text",
-                   url="https://discordpy.readthedocs.io/en/v1.3.1/api.html#discord.Embed")
+
+        em = discord.Embed(title="Title", color=ctx.message.author.color, description="description text", url="https://discordpy.readthedocs.io/en/v1.3.1/api.html#discord.Embed")
         em.set_author(name="CollectorDevTeam", url="https://patreon.com/collectordevteam", icon_url=COLLECTOR_ICON)
 
         em.set_footer(text="Requested by {}".format(ctx.message.author), icon_url=ctx.message.author.avatar)
