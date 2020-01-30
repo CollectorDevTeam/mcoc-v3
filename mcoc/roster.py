@@ -70,7 +70,7 @@ class ROSTER(commands.Cog):
 
         embed = CDT.cdt_embed(self, ctx=ctx)
         embed.description = "Test embed, ctx passed."
-        embed.set_author(text="Requested by {0.display_name} | {0.id}".format(ctx.message.author),
+        embed.set_author(name="Requested by {0.display_name} | {0.id}".format(ctx.message.author),
                          icon_url=ctx.message.author.avatar_url)
         await ctx.send(embed=embed)
 
