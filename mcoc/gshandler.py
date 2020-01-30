@@ -5,7 +5,6 @@ from redbot.core import Config
 #
 # GOOGLECREDENTIALS = ''
 #
-diagnostics = '672501245180772353'
 class GSHandler(commands.Cog):
     def __init__(self):
         self.config = Config.get_conf(self, identifier=672501245180772353)
@@ -23,7 +22,6 @@ class GSHandler(commands.Cog):
         Client = await self.authorize(ctx, collectordevteam)
         if Client is not None:
             await ctx.send("Client authenticated")
-            await ctx.send("Google sheets client authenticated", channel=ctx.bot.get_channel(diagnostics))
 
     async def authorize(self, ctx, token):
         await ctx.send("Token: {}".format(token))
@@ -31,5 +29,5 @@ class GSHandler(commands.Cog):
             return pygsheets.authorize(custom_credentials=token)
         except FileNotFoundError:
             err_msg = 'API token failed to authenticate'
-            await ctx.send(content=err_msg, channel=ctx.bot.get_channel(diagnostics))
+            await ctx.send(err_msg)
             raise FileNotFoundError(err_msg)

@@ -1,8 +1,9 @@
 # import discord
-# from redbot.core.config import Config
-# from redbot.core import commands, checks
-# import aiohttp
-# from collections import defaultdict, ChainMap, namedtuple, OrderedDict
+from redbot.core import Config
+from redbot.core import commands
+from redbot.core import checks
+import aiohttp
+from collections import defaultdict, ChainMap, namedtuple, OrderedDict
 #
 # BaseCog = getattr(commands, "Cog", object)
 #
@@ -10,45 +11,49 @@
 # GOOGLECREDENTIALS = ''
 #
 #
-# class CDTDATA(commands.Cog):
-#     """
-#     CollectorDevTeam DataSets for Marvel Contest of Champions
-#     """
-#
-#     __version__ = "1.0.0"
-#
-#     def __init__(self, bot):
-#         self.bot = bot
-#         self.database = Config.get_conf(self, identifier=324631601344544778001, force_registration=True)
-#         default_global = {
-#             "prestige": {
-#                 "info": "Champion Prestige"
-#             },
-#             "cdt_data": {
-#                 "info": "Kabam JSON translation data, aggregated"
-#             },
-#             "cdt_stats": {
-#                 "info": "CollectorDevTeam Champion Stats by Star by Rank"
-#             },
-#             "cdt_versions": {
-#                 "info": "Champions Verions tracking 12.0+"
-#             },
-#             "cdt_masteries": {
-#                 "info": "CollectorDevTeam Mastery information"
-#             }
-#         }
-#         default_guild = {
-#             "alliance_name": "",
-#             "alliance_tag": ""
-#         }
-#         default_user = {
-#             "prestige": {},
-#             "roster": {}
-#         }
-#         self.config.register_global(**default_global)
-#         self.config.register_guild(**default_guild)
-#         self.config.register_user(**default_user)
-#
+class CDTDATA(commands.Cog):
+    """
+    CollectorDevTeam DataSets for Marvel Contest of Champions
+    """
+
+    __version__ = "1.0.0"
+
+    def __init__(self, bot):
+        self.bot = bot
+        CDTDATA_ID = 324631601344544778001
+        self.config = Config.get_conf(self, identifier=CDTDATA_ID, force_registration=True)
+        default_global = {
+            "prestige": {
+                "info": "Champion Prestige"
+            },
+            "cdt_data": {
+                "info": "Kabam JSON translation data, aggregated"
+            },
+            "cdt_stats": {
+                "info": "CollectorDevTeam Champion Stats by Star by Rank"
+            },
+            "cdt_versions": {
+                "info": "Champions Verions tracking 12.0+"
+            },
+            "cdt_masteries": {
+                "info": "CollectorDevTeam Mastery information"
+            },
+            "updated": {
+                "date": "Never"
+            }
+        }
+
+        self.config.register_global(**default_global)
+        # self.config.register_guild(**default_guild)
+        # self.config.register_user(**default_user)
+        self.CDTDATA = Config.get_conf(self, identifier=CDTDATA_ID)
+
+    @commands.command()
+    @checks.is_admin_or_superior()
+    async def check_cdt_data(self, ctx):
+        '''Check last data update'''
+        await ctx.send("CDTDATA last updated: {}".format(self.CDTDATA.updated.date))
+
 #     async def load_cdt_data(self):
 #         """Load existing CDT Data
 #         Pull new CDT Data
