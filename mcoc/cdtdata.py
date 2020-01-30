@@ -49,7 +49,7 @@ class CDTDATA(commands.Cog):
         self.CDTDATA = Config.get_conf(self, identifier=CDTDATA_ID)
 
     @commands.command()
-    @checks.is_admin_or_superior(ctx)
+    @checks.is_owner()
     async def check_cdt_data(self, ctx):
         '''Check last data update'''
         await ctx.send("CDTDATA last updated: {}".format(self.CDTDATA.updated.date))
