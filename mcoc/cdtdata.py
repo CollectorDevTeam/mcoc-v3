@@ -16,7 +16,7 @@ class CDTDATA(commands.Cog):
     __version__ = "1.0.0"
 
     def __init__(self):
-        self.config = Config.get_conf(self, identifier=CDT.ID, force_registration=True)
+        self.config = Config.get_conf(self, cog_name="CDTDATA", identifier=CDT.ID, force_registration=True)
         _default_global = {
             "prestige": {
                 "info": "Champion Prestige",
@@ -67,7 +67,7 @@ class CDTDATA(commands.Cog):
         await ctx.send("attempting CDTDATA.get_raw")
         # await ctx.send("CDTDATA last updated: {}".format(await self.config.get_raw("date_updated")))
         # await ctx.send("CDTDATA last updated: {}".format(await self.config.get_raw("date_updated", "date")))
-        await ctx.send("CDTDATA keys: {}".format(CDTDATA.keys()))
+        # await ctx.send("CDTDATA keys: {}".format(CDTDATA.keys()))
         await ctx.send("CDTDATA.all(): {}".format(self.config.all()))
         # await ctx.send("attempting CDTDATA.get_attr")
         # await ctx.send("CDTDATA last upated: {}".format(await self.CDTDATA.updated.get_attr("date")))
