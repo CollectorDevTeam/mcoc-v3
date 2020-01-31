@@ -5,6 +5,7 @@ import discord
 class CDT(commands.Cog):
     COLLECTOR_ICON = 'https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/cdt_icon.png'
     COLLECTOR_FEATURED = 'https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/images/featured/collector.png'
+    BASEPATH = "https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/"
     PATREON = 'https://patreon.com/collectorbot'
     KABAM_ICON = 'https://imgur.com/UniRf5f.png'
     COLORS = {1: discord.Color(0x3c4d3b), 2: discord.Color(0xa05e44), 3: discord.Color(0xa0aeba),
@@ -20,6 +21,7 @@ class CDT(commands.Cog):
                   'master': discord.Color.purple(), 'epic': discord.Color(0x2799f7),
                   'uncollected': discord.Color(0x2799f7), 'symbiote': discord.Color.darker_grey(),
                   }
+
     # def _init__(self):
     #     pass
 

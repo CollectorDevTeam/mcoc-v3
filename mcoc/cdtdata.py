@@ -6,13 +6,8 @@ import aiohttp
 import json
 from collections import defaultdict, ChainMap, namedtuple, OrderedDict
 from .collectordevteam import CDT
-#
-# BaseCog = getattr(commands, "Cog", object)
-#
-# remote_data_basepath = "https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/"
-# GOOGLECREDENTIALS = ''
-#
-#
+
+
 class CDTDATA(commands.Cog):
     """
     CollectorDevTeam DataSets for Marvel Contest of Champions
@@ -21,8 +16,7 @@ class CDTDATA(commands.Cog):
     __version__ = "1.0.0"
 
     def __init__(self):
-        CDTDATA_ID = 3246316013445447780012
-        self.config = Config.get_conf(self, identifier=CDTDATA_ID, force_registration=True)
+        self.config = Config.get_conf(self, identifier=3246316013445447780012, force_registration=True)
         _default_global = {
             "prestige": {
                 "info": "Champion Prestige"
@@ -75,24 +69,27 @@ class CDTDATA(commands.Cog):
         Verify new CDT Data
         Store new CDT Data
         Load new CDT Data into bot"""
+        ctx.send("Creating file download manifest")
         cdt_data, cdt_versions = ChainMap(), ChainMap()
-        files = (
-            'https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/json/snapshots/en/bcg_en.json',
-            'https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/json/snapshots/en/bcg_stat_en.json',
-            'https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/json/snapshots/en/special_attacks_en.json',
+        files = {
+            "bcg_en" : 'https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/json/snapshots/en/bcg_en.json',
+            "bcg_stat_en" : 'https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/json/snapshots/en/bcg_stat_en.json',
+            "special_attacks" : 'https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/json/snapshots/en/special_attacks_en.json',
             # 'https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/json/snapshots/en/masteries_en.json',
-            'https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/json/snapshots/en/character_bios_en.json',
+            "character_bios_en" : 'https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/json/snapshots/en/character_bios_en.json',
             # 'https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/json/snapshots/en/dungeons_en.json',
             # 'https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/json/snapshots/en/cutscenes_en.json',
             # 'https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/json/snapshots/en/initial_en.json',
             # 'https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/json/snapshots/en/alliances_en.json'
-        )
+        }
 
         ## PULL CDT Data
-        async with ctx.typing():
-            async with aiohttp.ClientSession() as session:
-                for url in files:
-                    raw_data = await CDT.fetch_json(url, session)
+        ctx.send("Attempting to create aiohttp connection")
+        async with aiohttp.ClientSession() as session:
+            for url in files.items():
+                ctx.send("Retrieving {}".format(url))
+                async with ctx.typing():
+                    raw_data = await CDT.fetch_json(files[url], session)
                     val, ver = {}, {}
                     for dlist in raw_data['strings']:
                         val[dlist['k']] = dlist['v']
