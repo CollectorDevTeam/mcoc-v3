@@ -63,7 +63,7 @@ class CDTDATA(commands.Cog):
     async def check_cdt_data(self, ctx):
         '''Check last data update'''
         await ctx.send("attempting CDTDATA.get_raw")
-        await ctx.send("CDTDATA last updated: {}".format(await self.config.updated.date_updated()))
+        await ctx.send("CDTDATA last updated: {}".format(await self.config.date_updated()))
         # await ctx.send("attempting CDTDATA.get_attr")
         # await ctx.send("CDTDATA last upated: {}".format(await self.CDTDATA.updated.get_attr("date")))
 
@@ -89,22 +89,24 @@ class CDTDATA(commands.Cog):
         )
 
         ## PULL CDT Data
-        async with ctx.typing() and aiohttp.ClientSession() as session:
-            for url in files:
-                raw_data = await CDT.fetch_json(url, session)
-                val, ver = {}, {}
-                for dlist in raw_data['strings']:
-                    val[dlist['k']] = dlist['v']
-                    if 'vn' in dlist:
-                        ver[dlist['k']] = dlist['vn']
-                cdt_data.maps.append(val)
-                cdt_versions.maps.append(ver)
+        async with ctx.typing():
+            async with aiohttp.ClientSession() as session:
+                for url in files:
+                    raw_data = await CDT.fetch_json(url, session)
+                    val, ver = {}, {}
+                    for dlist in raw_data['strings']:
+                        val[dlist['k']] = dlist['v']
+                        if 'vn' in dlist:
+                            ver[dlist['k']] = dlist['vn']
+                    cdt_data.maps.append(val)
+                    cdt_versions.maps.append(ver)
 
         ## TEST CDT DATA VALIDITY
 
         ## IF PASS Load into Config
         await self.config.cdt_data.nested_update(cdt_data)
         await self.config.cdt_versions.nested_update(cdt_versions)
+        await self.config.date_updated.date.set(ctx.message.timestamp)
 
 
 
