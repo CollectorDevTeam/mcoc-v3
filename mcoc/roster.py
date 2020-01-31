@@ -94,7 +94,7 @@ class ROSTER(commands.Cog):
             ctx.send("Only one user per Roster command")
             return None
         else:
-            hargs = hargs.replace(mentions[0]&" ", "")
+            hargs = hargs.replace("{} ".format(mentions[0], ""))
             return mentions[0], hargs
 
 
