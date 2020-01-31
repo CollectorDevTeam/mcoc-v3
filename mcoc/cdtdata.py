@@ -65,7 +65,9 @@ class CDTDATA(commands.Cog):
         '''Check last data update'''
         CDTDATA = self.config.all() #should be treated as a dictionary now
         for x in ["prestige", "cdt_data", "cdt_stats", "cdt_versions", "cdt_masteries", "date_updated"]:
-            print(CDTDATA[x]["info"])
+            print(CDTDATA.prestige.info())
+            print(CDTDATA.cdt_stats.info())
+            print(CDTDATA.date_updated.date())
 
 
     @commands.command()
