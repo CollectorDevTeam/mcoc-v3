@@ -37,3 +37,9 @@ class CDT(commands.Cog):
         embed = discord.Embed(color=emcolor)
         embed.set_footer(text=emauthor, icon_url=emauthor_icon_url)
         return embed
+
+    @staticmethod
+    async def fetch_json(url, session):
+        async with session.get(url) as response:
+            raw_data = json.loads(await response.text())
+        return raw_data

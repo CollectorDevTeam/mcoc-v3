@@ -3,7 +3,7 @@
     "NAME" : "MCOC",
     "SHORT" : "Collector Cogs designed to provide information for Marvel Contest of Champions by Kabam.",
     "DESCRIPTION" : "This repo contains a suite of cogs designed to power Collector, a RED instance.\nMCOC provides champion information for Marvel Contest of Champions.",
-    "REQUIREMENTS" : "pygsheets, aiohttp, collections",
+    "REQUIREMENTS" : "pygsheets, aiohttp, collections, json",
     "MIN_BOT_VERSION" : "3.3.0",
     "MIN_PYTHON_VERSION" : "3.8.1",
     "TYPE" : "COG"
