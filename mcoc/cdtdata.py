@@ -16,8 +16,7 @@ class CDTDATA(commands.Cog):
     __version__ = "1.0.0"
 
     def __init__(self):
-        CDTID = CDT.ID
-        self.config = Config.get_conf(self, identifier=CDTID, force_registration=True)
+        self.config = Config.get_conf(self, identifier=CDT.ID, force_registration=True)
         _default_global = {
             "prestige": {
                 "info": "Champion Prestige",
@@ -45,7 +44,7 @@ class CDTDATA(commands.Cog):
             }
         }
 
-        self.config.register_custom(CDTID, **_default_global)
+        self.config.register_custom(CDT.ID, **_default_global)
         # self.config.register_global(**default_global)
         # self.config.register_guild(**default_guild)
         # self.config.register_user(**default_user)
@@ -56,7 +55,8 @@ class CDTDATA(commands.Cog):
     async def clear_cdt_data(self, ctx):
         '''Removes all CDTDATA and resets the global data schema.
         This cannot be undone.'''
-        await self.config.clear_all_custom(CDT.ID)
+        await self.config.clear_all()
+        # await self.config.clear_all_custom()
         await ctx.send("All CDT data has been erased.")
 
 
