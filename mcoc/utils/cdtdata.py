@@ -3,9 +3,8 @@ from redbot.core import Config
 from redbot.core import commands
 from redbot.core import checks
 import aiohttp
-import json
-from collections import defaultdict, ChainMap, namedtuple, OrderedDict
-from .collectordevteam import CDT
+from collections import ChainMap
+from mcoc.utils.collectordevteam import CDT
 
 
 class CDTDATA(commands.Cog):

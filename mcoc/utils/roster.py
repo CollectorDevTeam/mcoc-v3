@@ -1,10 +1,6 @@
 from redbot.core import commands
 from redbot.core import Config
-import discord
-from .collectordevteam import CDT#, HashParser
-
-from redbot.core import checks ## Command check decorators
-
+from mcoc.utils.collectordevteam import CDT#, HashParser
 
 
 class ROSTER(commands.Cog):
@@ -94,7 +90,7 @@ class ROSTER(commands.Cog):
             ctx.send("Only one user per Roster command")
             return None
         else:
-            hargs = hargs.replace("{} ".format(mentions[0], ""))
+            hargs = hargs.replace("{} ".format(mentions[0]), "")
             return mentions[0], hargs
 
 

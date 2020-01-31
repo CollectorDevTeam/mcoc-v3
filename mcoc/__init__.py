@@ -1,7 +1,7 @@
-from .cdtdata import CDTDATA
+from mcoc.utils.cdtdata import CDTDATA
 from .mcoc import MCOC
-from .roster import ROSTER
-from .gshandler import GSHandler
+from mcoc.utils.roster import ROSTER
+from mcoc.utils.gshandler import GSHandler
 
 def setup(bot):
     bot.add_cog(CDTDATA())
