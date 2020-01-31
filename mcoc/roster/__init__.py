@@ -1,4 +1,4 @@
-from mcoc.roster.roster import ROSTER
+from .roster import ROSTER
 
 def setup(bot):
     bot.add_cog(ROSTER())
