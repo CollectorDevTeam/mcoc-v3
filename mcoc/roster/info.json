@@ -3,10 +3,8 @@
     "install_msg" : "Thank you for installing our repo.  Cogs within the mcoc repo are for Marvel's Contest of Champions",
     "name" : "ROSTER",
     "short" : "Contest of Champions roster management tools.",
-    "description" : "Commands include: \n/roster\n/roster add <champions>\n/roster del <champions>\n/roster purge",
-    "requirements" : "pygsheets, aiohttp, collections, json, modgrammar",
+    "description" : "Commands include: \n/roster\n/roster add \n/roster del \n/roster purge",
     "min_bot_version" : "3.3.0",
     "min_python_version" : "3.8.1",
-    "type" : "COG",
-    "author" : "CollectorDevTeam (JJW & DeltaSigma)"
+    "type" : "COG"
 }

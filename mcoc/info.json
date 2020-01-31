@@ -7,6 +7,5 @@
     "requirements" : "pygsheets, aiohttp, collections, json, modgrammar",
     "min_bot_version" : "3.3.0",
     "min_python_version" : "3.8.1",
-    "type" : "COG",
-    "author" : "CollectorDevTeam (JJW & DeltaSigma)"
+    "type" : "COG"
 }
