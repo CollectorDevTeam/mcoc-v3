@@ -1,8 +1,8 @@
 from redbot.core import commands
 import discord
 
-# For HashParser
-import modgrammar
+# # For HashParser
+# import modgrammar
 
 
 class CDT(commands.Cog):

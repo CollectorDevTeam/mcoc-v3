@@ -8,7 +8,7 @@
 #     '''Argument Parsing class that geneartes Champion objects from user input'''
 #
 #     arg_help = '''
-#     Specify a single champion with optional parameters of star, rank, or sig.
+#     Specify a single lib_champion with optional parameters of star, rank, or sig.
 #     Champion names can be a number of aliases or partial aliases if no conflicts are found.
 #
 #     The optional arguments can be in any order, with or without spaces.
@@ -102,8 +102,8 @@
 #         r<digit> specifies rank <default: 5>
 #         s<digit> specifies signature level <default: 99>
 #
-#     If optional arguments are listed without a champion, it changes the default for all
-#     remaining champions.  Arguments attached to a champion are local to that champion
+#     If optional arguments are listed without a lib_champion, it changes the default for all
+#     remaining champions.  Arguments attached to a lib_champion are local to that lib_champion
 #     only.
 #
 #     Examples:
@@ -132,7 +132,7 @@
 #         if dangling_arg:
 #             em = discord.Embed(title='Dangling Argument',
 #                     description="Last argument '{}' is unused.\n".format(dangling_arg)
-#                         + "Place **before** the champion or **without a space**.")
+#                         + "Place **before** the lib_champion or **without a space**.")
 #             await bot.say(embed=em)
 #         return champs
 #
@@ -445,7 +445,7 @@
 #
 # class ChampionFactory():
 #     '''Creation and storage of the dynamically created Champion subclasses.
-#     A new subclass is created for every champion defined.  Then objects are
+#     A new subclass is created for every lib_champion defined.  Then objects are
 #     created from user function calls off of the dynamic classes.'''
 #
 #     def __init__(self, *args, **kwargs):
@@ -502,19 +502,19 @@
 #             if not value or value == 'n/a':
 #                 kwargs[key] = None
 #
-#         champion = type(kwargs['mattkraftid'], (Champion,), kwargs)
-#         self.champions[tuple(alias_set)] = champion
+#         lib_champion = type(kwargs['mattkraftid'], (Champion,), kwargs)
+#         self.champions[tuple(alias_set)] = lib_champion
 #         logger.debug('Creating Champion class {}'.format(kwargs['mattkraftid']))
-#         return champion
+#         return lib_champion
 #
 #     async def get_champion(self, name_id, attrs=None):
-#         '''straight alias lookup followed by new champion object creation'''
+#         '''straight alias lookup followed by new lib_champion object creation'''
 #         #await self.update_local()
 #         return self.champions[name_id](attrs)
 #
 #     async def search_champions(self, search_str, attrs=None):
-#         '''searching through champion aliases and allowing partial matches.
-#         Returns an array of new champion objects'''
+#         '''searching through lib_champion aliases and allowing partial matches.
+#         Returns an array of new lib_champion objects'''
 #         #await self.update_local()
 #         re_str = re.compile(search_str)
 #         champs = []

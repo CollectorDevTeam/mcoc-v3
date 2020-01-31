@@ -1,6 +1,6 @@
 from redbot.core import commands
 from redbot.core import Config
-from mcoc.libraries.cdt_library.cdt_library import CDT#, HashParser
+from mcoc.lib_cdt.cdt_library import CDT#, HashParser
 
 class ROSTER(commands.Cog):
     """Test User data creation cog"""
