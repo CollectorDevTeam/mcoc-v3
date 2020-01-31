@@ -4,8 +4,7 @@ from redbot.core import commands
 from redbot.core import checks
 import aiohttp
 from collections import ChainMap
-from mcoc.lib_cdt.cdt_library import CDT
-
+from mcoc.cdt_library import CDT
 
 class CDTDATA(commands.Cog):
     """

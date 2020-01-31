@@ -1,9 +1,0 @@
-{
-  "author" : "CollectorDevTeam",
-    "install_msg" : "Thank you for installing our repo.  Cogs within the mcoc repo are for Marvel's Contest of Champions",
-    "name" : "CDT Data Downloader",
-    "short" : "Downloads CDT Data.",
-    "description" : "This repo contains a suite of cogs designed to power Collector, a RED instance.\nMCOC provides champion information for Marvel Contest of Champions.",
-    "requirements" : "aiohttp, collections",
-    "type" : "COG"
-}
