@@ -80,7 +80,7 @@ class ROSTER(commands.Cog):
     async def roster(self, ctx, *, hargs=''):
         # testphrase = self.HashParser.parse_with_user(ctx, hargs, **kwargs)
         user, hargs = self.get_mention(ctx, hargs)
-        await ctx.bot.say("Roster command identified: {}".format(user.display_name))
+        await ctx.send("Roster command identified: {}".format(user.display_name))
         return
 
     def get_mention(self, ctx, hargs):
