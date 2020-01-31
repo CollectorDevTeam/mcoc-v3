@@ -1,9 +1,9 @@
 {
-    "author" : "CollectorDevTeam (JJW & DeltaSigma)",
+  "author" : "CollectorDevTeam (JJW & DeltaSigma)",
     "install_msg" : "Thank you for installing our repo.  Cogs within the mcoc repo are for Marvel's Contest of Champions",
-    "name" : "MCOC",
-    "short" : "Collector Cogs designed to provide information for Marvel Contest of Champions by Kabam.",
+    "name" : "CDT Data Downloader",
+    "short" : "Downloads CDT Data.",
     "description" : "This repo contains a suite of cogs designed to power Collector, a RED instance.\nMCOC provides champion information for Marvel Contest of Champions.",
-    "required_cogs" : "CDTDATA",
+    "requirements" : "aiohttp, collections",
     "type" : "COG"
 }

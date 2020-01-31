@@ -4,7 +4,5 @@
     "name" : "ROSTER",
     "short" : "Contest of Champions roster management tools.",
     "description" : "Commands include: \n/roster\n/roster add \n/roster del \n/roster purge",
-    "min_bot_version" : "3.3.0",
-    "min_python_version" : "3.8.1",
     "type" : "COG"
 }
