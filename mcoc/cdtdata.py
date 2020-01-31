@@ -40,7 +40,6 @@ class CDTDATA(commands.Cog):
             },
             "date_updated": {
                 "date": "Never",
-                "keys": ""
             }
         }
 
@@ -66,8 +65,10 @@ class CDTDATA(commands.Cog):
         '''Check last data update'''
         CDTDATA = self.config.all() #should be treated as a dictionary now
         await ctx.send("attempting CDTDATA.get_raw")
-        await ctx.send("CDTDATA last updated: {}".format(await self.config.date_updated("date")))
+        await ctx.send("CDTDATA last updated: {}".format(await self.config.get_raw("date_updated")))
+        await ctx.send("CDTDATA last updated: {}".format(await self.config.get_raw("date_updated", "date")))
         await ctx.send("CDTDATA keys: {}".format(CDTDATA.keys()))
+        await ctx.send("CDTDATA.all(): {}".format(self.config.all()))
         # await ctx.send("attempting CDTDATA.get_attr")
         # await ctx.send("CDTDATA last upated: {}".format(await self.CDTDATA.updated.get_attr("date")))
 
