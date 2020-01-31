@@ -56,8 +56,10 @@ class CDTDATA(commands.Cog):
     @checks.is_owner()
     async def check_cdt_data(self, ctx):
         '''Check last data update'''
+        CDTDATA = self.config()
         await ctx.send("attempting CDTDATA.get_raw")
         await ctx.send("CDTDATA last updated: {}".format(await self.config.date_updated()))
+        await ctx.send("CDTDATA keys: {}".format(CDTDATA.keys()))
         # await ctx.send("attempting CDTDATA.get_attr")
         # await ctx.send("CDTDATA last upated: {}".format(await self.CDTDATA.updated.get_attr("date")))
 
@@ -87,7 +89,7 @@ class CDTDATA(commands.Cog):
         ## PULL CDT Data
         ctx.send("Attempting to create aiohttp connection")
         async with aiohttp.ClientSession() as session:
-            for url in files.items():
+            for url in files.keys():
                 ctx.send("Retrieving {}".format(url))
                 async with ctx.typing():
                     raw_data = await CDT.fetch_json(files[url], session)
