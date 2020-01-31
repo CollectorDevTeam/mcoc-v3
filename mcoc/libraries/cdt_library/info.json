@@ -1,5 +1,5 @@
 {
-  "author" : "CollectorDevTeam (JJW & DeltaSigma)",
+  "author" : "CollectorDevTeam",
   "install_msg" : "Thank you for installing our repo.  Cogs within the mcoc repo are for Marvel's Contest of Champions",
   "name" : "CDT Library",
   "short" : "A collection of utilities used by CDT Cogs",
