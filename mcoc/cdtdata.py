@@ -62,7 +62,8 @@ class CDTDATA(commands.Cog):
         # await ctx.send("CDTDATA last upated: {}".format(await self.CDTDATA.updated.get_attr("date")))
 
 
-
+    @commands.command()
+    @checks.is_owner()
     async def load_cdt_data(self, ctx):
         """Load existing CDT Data
         Pull new CDT Data
