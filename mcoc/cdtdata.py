@@ -64,13 +64,8 @@ class CDTDATA(commands.Cog):
     async def check_cdt_data(self, ctx):
         '''Check last data update'''
         CDTDATA = self.config.all() #should be treated as a dictionary now
-        await ctx.send("attempting CDTDATA.get_raw")
-        # await ctx.send("CDTDATA last updated: {}".format(await self.config.get_raw("date_updated")))
-        # await ctx.send("CDTDATA last updated: {}".format(await self.config.get_raw("date_updated", "date")))
-        # await ctx.send("CDTDATA keys: {}".format(CDTDATA.keys()))
-        await ctx.send("CDTDATA.all(): {}".format(self.config.all()))
-        # await ctx.send("attempting CDTDATA.get_attr")
-        # await ctx.send("CDTDATA last upated: {}".format(await self.CDTDATA.updated.get_attr("date")))
+        for x in ["prestige", "cdt_data", "cdt_stats", "cdt_versions", "cdt_masteries", "date_updated"]:
+            print(CDTDATA[x]["info"])
 
 
     @commands.command()
