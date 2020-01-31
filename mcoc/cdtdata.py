@@ -43,7 +43,7 @@ class CDTDATA(commands.Cog):
             }
         }
 
-        self.config.register_custom(CDT.ID, **_default_global)
+        self.config.register_global(**_default_global)
         # self.config.register_global(**default_global)
         # self.config.register_guild(**default_guild)
         # self.config.register_user(**default_user)
@@ -54,7 +54,7 @@ class CDTDATA(commands.Cog):
     async def clear_cdt_data(self, ctx):
         '''Removes all CDTDATA and resets the global data schema.
         This cannot be undone.'''
-        await self.config.clear_all()
+        await self.config.clear_all_globals()
         # await self.config.clear_all_custom()
         await ctx.send("All CDT data has been erased.")
 
@@ -63,11 +63,12 @@ class CDTDATA(commands.Cog):
     @checks.is_owner()
     async def check_cdt_data(self, ctx):
         '''Check last data update'''
-        CDTDATA = self.config.all() #should be treated as a dictionary now
+        CDTDATA = self.config #should be treated as a dictionary now
         for x in ["prestige", "cdt_data", "cdt_stats", "cdt_versions", "cdt_masteries", "date_updated"]:
             print(CDTDATA.prestige.info())
             print(CDTDATA.cdt_stats.info())
             print(CDTDATA.date_updated.date())
+
 
 
     @commands.command()
