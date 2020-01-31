@@ -1,4 +1,5 @@
 from redbot.core import commands
+import json
 import discord
 
 # # For HashParser
@@ -6,6 +7,10 @@ import discord
 
 
 class CDT(commands.Cog):
+    """Library functions for CollectorDevTeam
+
+    """
+
     ID = 3246316013445447780012
     COLLECTOR_ICON = 'https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/cdt_icon.png'
     COLLECTOR_FEATURED = 'https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/images/featured/collector.png'

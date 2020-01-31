@@ -1,10 +1,13 @@
 # import discord
-from redbot.core import Config
-from redbot.core import commands
-from redbot.core import checks
-import aiohttp
 from collections import ChainMap
-from mcoc.cdt_library import CDT
+
+import aiohttp
+from redbot.core import Config
+from redbot.core import checks
+from redbot.core import commands
+
+from mcoc.CDT import CDT
+
 
 class CDTDATA(commands.Cog):
     """
@@ -13,7 +16,8 @@ class CDTDATA(commands.Cog):
 
     __version__ = "1.0.0"
 
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.config = Config.get_conf(self, cog_name="CDTDATA", identifier=CDT.ID, force_registration=True)
         _default_global = {
             "prestige": {
@@ -59,7 +63,7 @@ class CDTDATA(commands.Cog):
     @checks.is_owner()
     async def check_cdt_data(self, ctx):
         '''Check last data update'''
-        CDTDATA = self.config #should be treated as a dictionary now
+        CDTDATA = self.config  # should be treated as a dictionary now
         for x in ["prestige", "cdt_data", "cdt_stats", "cdt_versions", "cdt_masteries", "date_updated"]:
             print(CDTDATA.prestige.info())
             print(CDTDATA.cdt_stats.info())
@@ -76,11 +80,11 @@ class CDTDATA(commands.Cog):
         ctx.send("Creating file download manifest")
         cdt_data, cdt_versions = ChainMap(), ChainMap()
         files = {
-            "bcg_en" : 'https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/json/snapshots/en/bcg_en.json',
-            "bcg_stat_en" : 'https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/json/snapshots/en/bcg_stat_en.json',
-            "special_attacks" : 'https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/json/snapshots/en/special_attacks_en.json',
+            "bcg_en": 'https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/json/snapshots/en/bcg_en.json',
+            "bcg_stat_en": 'https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/json/snapshots/en/bcg_stat_en.json',
+            "special_attacks": 'https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/json/snapshots/en/special_attacks_en.json',
             # 'https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/json/snapshots/en/masteries_en.json',
-            "character_bios_en" : 'https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/json/snapshots/en/character_bios_en.json',
+            "character_bios_en": 'https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/json/snapshots/en/character_bios_en.json',
             # 'https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/json/snapshots/en/dungeons_en.json',
             # 'https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/json/snapshots/en/cutscenes_en.json',
             # 'https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/json/snapshots/en/initial_en.json',
@@ -109,6 +113,3 @@ class CDTDATA(commands.Cog):
         # await self.config.cdt_data.set({"keys" : cdt_data.keys()})
         await self.config.cdt_versions.nested_update(cdt_versions)
         await self.config.date_updated.date.set(ctx.message.timestamp)
-
-
-
