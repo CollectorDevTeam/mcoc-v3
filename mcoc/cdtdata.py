@@ -16,29 +16,37 @@ class CDTDATA(commands.Cog):
     __version__ = "1.0.0"
 
     def __init__(self):
-        self.config = Config.get_conf(self, identifier=3246316013445447780012, force_registration=True)
+        CDTID = CDT.ID
+        self.config = Config.get_conf(self, identifier=CDTID, force_registration=True)
         _default_global = {
             "prestige": {
-                "info": "Champion Prestige"
+                "info": "Champion Prestige",
+                "keys": ""
             },
             "cdt_data": {
-                "info": "Kabam JSON translation data, aggregated"
+                "info": "Kabam JSON translation data, aggregated",
+                "keys": ""
             },
             "cdt_stats": {
-                "info": "CollectorDevTeam Champion Stats by Star by Rank"
+                "info": "CollectorDevTeam Champion Stats by Star by Rank",
+                "keys": ""
             },
             "cdt_versions": {
-                "info": "Champions Verions tracking 12.0+"
+                "info": "Champions Verions tracking 12.0+",
+                "keys": ""
             },
             "cdt_masteries": {
-                "info": "CollectorDevTeam Mastery information"
+                "info": "CollectorDevTeam Mastery information",
+                "keys": ""
             },
             "date_updated": {
-                "date": "Never"
+                "date": "Never",
+                "keys": ""
             }
         }
 
-        self.config.register_global(**_default_global)
+        self.config.register_custom(CDTID, **_default_global)
+        # self.config.register_global(**default_global)
         # self.config.register_guild(**default_guild)
         # self.config.register_user(**default_user)
 
@@ -48,17 +56,17 @@ class CDTDATA(commands.Cog):
     async def clear_cdt_data(self, ctx):
         '''Removes all CDTDATA and resets the global data schema.
         This cannot be undone.'''
-        await self.config.clear_all_globals()
-        await ctx.send("All global data has been erased.")
+        await self.config.clear_all_custom(CDT.ID)
+        await ctx.send("All CDT data has been erased.")
 
 
     @commands.command()
     @checks.is_owner()
     async def check_cdt_data(self, ctx):
         '''Check last data update'''
-        CDTDATA = self.config
+        CDTDATA = self.config.all() #should be treated as a dictionary now
         await ctx.send("attempting CDTDATA.get_raw")
-        await ctx.send("CDTDATA last updated: {}".format(await self.config.date_updated()))
+        await ctx.send("CDTDATA last updated: {}".format(await self.config.date_updated("date")))
         await ctx.send("CDTDATA keys: {}".format(CDTDATA.keys()))
         # await ctx.send("attempting CDTDATA.get_attr")
         # await ctx.send("CDTDATA last upated: {}".format(await self.CDTDATA.updated.get_attr("date")))
@@ -105,6 +113,7 @@ class CDTDATA(commands.Cog):
 
         ## IF PASS Load into Config
         await self.config.cdt_data.nested_update(cdt_data)
+        # await self.config.cdt_data.set({"keys" : cdt_data.keys()})
         await self.config.cdt_versions.nested_update(cdt_versions)
         await self.config.date_updated.date.set(ctx.message.timestamp)
 

@@ -3,6 +3,7 @@ import discord
 
 
 class CDT(commands.Cog):
+    ID = 3246316013445447780012
     COLLECTOR_ICON = 'https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/cdt_icon.png'
     COLLECTOR_FEATURED = 'https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/images/featured/collector.png'
     BASEPATH = "https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/"
