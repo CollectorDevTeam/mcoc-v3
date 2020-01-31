@@ -48,7 +48,6 @@ class CDTDATA(commands.Cog):
         # self.config.register_guild(**default_guild)
         # self.config.register_user(**default_user)
 
-
     @commands.command()
     @checks.is_owner()
     async def clear_cdt_data(self, ctx):
@@ -57,7 +56,6 @@ class CDTDATA(commands.Cog):
         await self.config.clear_all_globals()
         # await self.config.clear_all_custom()
         await ctx.send("All CDT data has been erased.")
-
 
     @commands.command()
     @checks.is_owner()
@@ -68,8 +66,6 @@ class CDTDATA(commands.Cog):
             print(CDTDATA.prestige.info())
             print(CDTDATA.cdt_stats.info())
             print(CDTDATA.date_updated.date())
-
-
 
     @commands.command()
     @checks.is_owner()

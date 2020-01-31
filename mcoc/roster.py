@@ -1,7 +1,7 @@
 from redbot.core import commands
 from redbot.core import Config
 import discord
-from .collectordevteam import CDT
+from .collectordevteam import CDT#, HashParser
 
 from redbot.core import checks ## Command check decorators
 
@@ -75,4 +75,27 @@ class ROSTER(commands.Cog):
         embed.title = "Test Embed 2"
         embed.description = "Description field\nTest embed, ctx passed."
         await ctx.send(embed=embed)
+
+    @commands.group()
+    async def roster(self, ctx, *, hargs=''):
+        # testphrase = self.HashParser.parse_with_user(ctx, hargs, **kwargs)
+        user, hargs = self.get_mention(ctx, hargs)
+        await ctx.bot.say("Roster command identified: {}".format(user.display_name))
+        return
+
+    def get_mention(self, ctx, hargs):
+        """Very basic user extractor"""
+        mentions = ctx.message.mentions
+        print(mentions)
+        print(len(mentions))
+        if len(mentions) == 0:
+            return ctx.message.author, hargs
+        if len(mentions) > 1:
+            ctx.send("Only one user per Roster command")
+            return None
+        else:
+            hargs = hargs.replace(mentions[0]&" ", "")
+            return mentions[0], hargs
+
+
 
