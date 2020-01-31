@@ -66,7 +66,7 @@ class CDTDATA(commands.Cog):
         CDTDATA = self.config.all() #should be treated as a dictionary now
         await ctx.send("attempting CDTDATA.get_raw")
         # await ctx.send("CDTDATA last updated: {}".format(await self.config.get_raw("date_updated")))
-        await ctx.send("CDTDATA last updated: {}".format(await self.config.get_raw("date_updated", "date")))
+        # await ctx.send("CDTDATA last updated: {}".format(await self.config.get_raw("date_updated", "date")))
         await ctx.send("CDTDATA keys: {}".format(CDTDATA.keys()))
         await ctx.send("CDTDATA.all(): {}".format(self.config.all()))
         # await ctx.send("attempting CDTDATA.get_attr")
