@@ -6,7 +6,7 @@ import discord
 import asyncio
 import contextlib
 from redbot.core.utils import menus
-from mcoc.CDT import CDT
+from .CDT import CDT
 
 class ROSTER(commands.Cog):
     """Test User data creation cog"""
