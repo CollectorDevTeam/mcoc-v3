@@ -1,5 +1,11 @@
 from redbot.core import commands
 from redbot.core import Config
+from redbot.core.utils.menus import start_adding_reactions
+from redbot.core.utils.predicates import MessagePredicate, ReactionPredicate
+import discord
+import asyncio
+import contextlib
+from redbot.core.utils import menus
 from mcoc.CDT import CDT
 
 class ROSTER(commands.Cog):
@@ -75,8 +81,54 @@ class ROSTER(commands.Cog):
     async def roster(self, ctx, *, hargs=''):
         # testphrase = self.HashParser.parse_with_user(ctx, hargs, **kwargs)
         user, hargs = self.get_mention(ctx, hargs)
-        await ctx.send("Roster command identified: {}".format(user.display_name))
+        await self.roster_display(ctx, user)
+        # await ctx.send("Roster command identified: {}".format(user.display_name))
         return
+
+    async def roster_display(self, ctx, user):
+        roster = self.config.user(user.id)
+        print(roster.roster_enabled())
+        if roster.roster_enabled():
+            ctx.send("Prestige: {}".format(roster.prestige()))
+        else:
+            await create_roster(ctx)
+
+
+    async def create_roster(self, ctx):
+        embed = CDT.cdt_embed(ctx)
+        embed.title = "Roster is not enabled:sparkles:"
+        embed.description = "Would you like to enable your CollectorVerseRoster?"
+        message = await ctx.send(embed=embed)
+        can_react = ctx.channel.permissions_for(ctx.me).add_reactions
+        if not can_react:
+            message += " (y/n)"
+        query: discord.Message = await ctx.send(message)
+        if can_react:
+            start_adding_reactions(query, ReactionPredicate.YES_OR_NO_EMOJIS, ctx.bot.loop)
+            pred = ReactionPredicate.yes_or_no(query, ctx.author)
+            event = "reaction_add"
+        else:
+            pred = MessagePredicate.yes_or_no(ctx)
+            event = "message"
+        try:
+            await ctx.bot.wait_for(event, check=pred, timeout=30)
+            print("Create Roster Predicate: {}".format(pred))
+        except asyncio.TimeoutError:
+            await query.delete()
+            return
+
+        if not pred.result:
+            if can_react:
+                await query.delete()
+            else:
+                await ctx.send(_("OK then."))
+            return
+        else:
+            if can_react:
+                with contextlib.suppress(discord.Forbidden):
+                    await query.clear_reactions()
+
+
 
     def get_mention(self, ctx, hargs):
         """Very basic user extractor"""

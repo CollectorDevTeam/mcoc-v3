@@ -2,7 +2,6 @@
 # from discord.ext import commands
 # import json
 # import requests
-# import pages_menu
 #
 # class ChampConverter(commands.Converter):
 #     '''Argument Parsing class that geneartes Champion objects from user input'''
