@@ -6,8 +6,7 @@ from redbot.core import Config
 from redbot.core import checks
 from redbot.core import commands
 
-from mcoc.CDT import CDT
-
+from .CDT import CDT
 
 class CDTDATA(commands.Cog):
     """
