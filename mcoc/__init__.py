@@ -1,5 +1,5 @@
-from .CDT import CDT
-from .roster import ROSTER
+from mcoc.CDT import CDT
+from mcoc.roster import ROSTER
 # from .cdtdata import CDTDATA
 # from .gshandler import GSHandler
 # from .core import MCOC
