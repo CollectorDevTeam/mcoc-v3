@@ -1,5 +1,6 @@
 from redbot.core import commands
 import json
+import aiohttp
 import discord
 
 # # For HashParser
@@ -50,8 +51,8 @@ class CDT(commands.Cog):
         return embed
 
     @staticmethod
-    async def fetch_json(url, session):
-        async with session.get(url) as response:
+    async def fetch_json(url):
+        async with aiohttp.ClientSession.get(url) as response:
             raw_data = json.loads(await response.text())
         return raw_data
     
