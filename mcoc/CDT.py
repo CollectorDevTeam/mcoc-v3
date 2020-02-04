@@ -52,7 +52,8 @@ class CDT(commands.Cog):
 
     @staticmethod
     async def fetch_json(url):
-        async with aiohttp.ClientSession.get(url) as response:
+        async with aiohttp.ClientSession() as session:
+            response = session.get(url)
             raw_data = json.loads(await response.text())
         return raw_data
     
