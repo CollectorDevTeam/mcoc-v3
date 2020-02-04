@@ -128,11 +128,11 @@ class CDTDATA(commands.Cog):
 
 
     async def _get_prestige(self, ctx):
-        await ctx.say("Attempting Prestige1: {}".format(self.config.jsonurls.prestige1()))
+        await ctx.send("Attempting Prestige1: {}".format(self.config.jsonurls.prestige1()))
         prestige_json = await CDT.fetch_json(self.config.jsonurls.prestige1())
         if prestige_json == '{}':
             ctx.say("Prestige retrieval timeout.  Loading backup.")
-            await ctx.say("Attempting Backup Prestige: {}".format(self.config.jsonurls.backup_prestige()))
+            await ctx.send("Attempting Backup Prestige: {}".format(self.config.jsonurls.backup_prestige()))
             prestige_json = await CDT.fetch_json(self.config.jsonurls.backup_prestige())
         update = {}
         for row in prestige_json["rows"]:
