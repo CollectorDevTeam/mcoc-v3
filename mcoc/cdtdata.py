@@ -18,15 +18,13 @@ class CDTDATA(commands.Cog):
 
     __version__ = "1.0.0"
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.config = Config.get_conf(self, cog_name="CDTDATA", force_registration=True)
+    def __init__(self):
+        # super().__init__(*args, **kwargs)
+        self.config = Config.get_conf(self, identifier=CDT.ID, force_registration=True)
         _default_global = {
-            "jsonurls":{
-                "prestige1":  "http://gsx2json.com/api?id=1I3T2G2tRV05vQKpBfmI04VpvP5LjCBPfVICDmuJsjks&sheet=2&columns=false&integers=false",
-                "backup_prestige": CDT.BASEPATH+"jason/backup_prestige.json",
-                "spotlightjson": "http://gsx2json.com/api?id=1I3T2G2tRV05vQKpBfmI04VpvP5LjCBPfVICDmuJsjks&sheet=1&columns=false&integers=false"
-            },
+            "auntmai_prestige":  "http://gsx2json.com/api?id=1I3T2G2tRV05vQKpBfmI04VpvP5LjCBPfVICDmuJsjks&sheet=2&columns=false&integers=false",
+            "backup_prestige": CDT.BASEPATH+"jason/backup_prestige.json",
+            "spotlight_json": "http://gsx2json.com/api?id=1I3T2G2tRV05vQKpBfmI04VpvP5LjCBPfVICDmuJsjks&sheet=1&columns=false&integers=false",
             "prestige": {
                 "info": "Champion Prestige",
                 "keys": ""
@@ -128,12 +126,12 @@ class CDTDATA(commands.Cog):
 
 
     async def _get_prestige(self, ctx):
-        await ctx.send("Attempting Prestige1: {}".format(self.config.jsonurls.prestige1()))
-        prestige_json = await CDT.fetch_json(self.config.jsonurls.prestige1())
+        await ctx.send("Attempting Prestige1: {}".format(self.config.auntmai_prestige()))
+        prestige_json = await CDT.fetch_json(self.config.auntmai_prestige())
         if prestige_json == '{}':
             ctx.say("Prestige retrieval timeout.  Loading backup.")
-            await ctx.send("Attempting Backup Prestige: {}".format(self.config.jsonurls.backup_prestige()))
-            prestige_json = await CDT.fetch_json(self.config.jsonurls.backup_prestige())
+            await ctx.send("Attempting Backup Prestige: {}".format(self.config.backup_prestige()))
+            prestige_json = await CDT.fetch_json(self.config.backup_prestige())
         update = {}
         for row in prestige_json["rows"]:
             update.update({row.pop("mattkraftid"): row})
