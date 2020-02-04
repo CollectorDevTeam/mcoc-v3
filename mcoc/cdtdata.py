@@ -20,7 +20,7 @@ class CDTDATA(commands.Cog):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.config = Config.get_conf(self, cog_name="CDTDATA", identifier=CDT.ID, force_registration=True)
+        self.config = Config.get_conf(self, cog_name="CDTDATA", force_registration=True)
         _default_global = {
             "jsonurls":{
                 "prestige1":  "http://gsx2json.com/api?id=1I3T2G2tRV05vQKpBfmI04VpvP5LjCBPfVICDmuJsjks&sheet=2&columns=false&integers=false",
