@@ -126,16 +126,16 @@ class CDTDATA(commands.Cog):
 
 
     async def _get_prestige(self, ctx):
-        await ctx.send("Attempting Prestige1: {}".format(self.config.auntmai_prestige()))
-        prestige_json = await CDT.fetch_json(self.config.auntmai_prestige())
+        await ctx.send("Attempting Prestige1: {}".format(await self.config.auntmai_prestige()))
+        prestige_json = await CDT.fetch_json(await self.config.auntmai_prestige())
         if prestige_json == '{}':
             ctx.say("Prestige retrieval timeout.  Loading backup.")
-            await ctx.send("Attempting Backup Prestige: {}".format(self.config.backup_prestige()))
-            prestige_json = await CDT.fetch_json(self.config.backup_prestige())
+            await ctx.send("Attempting Backup Prestige: {}".format(await self.config.backup_prestige()))
+            prestige_json = await CDT.fetch_json(await self.config.backup_prestige())
         update = {}
         for row in prestige_json["rows"]:
             update.update({row.pop("mattkraftid"): row})
 
         if update["5-karnak-5"]["sig0"] is not None:
             ctx.say("Prestige test passed")
-            self.config.cdt_prestige.nested_update(update)
+            await self.config.cdt_prestige.nested_update(update)
