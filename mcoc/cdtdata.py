@@ -8,9 +8,7 @@ from redbot.core import checks
 from redbot.core import commands
 from mcoc.CDT import CDT
 
-PRESTIGE1 = "http://gsx2json.com/api?id=1I3T2G2tRV05vQKpBfmI04VpvP5LjCBPfVICDmuJsjks&sheet=2&columns=false&integers=false"
-BACKUP_PRESTIGE = CDT.BASEPATH+"json/backup_prestige.json"
-SPOTLIGHTJSON = "http://gsx2json.com/api?id=1I3T2G2tRV05vQKpBfmI04VpvP5LjCBPfVICDmuJsjks&sheet=1&columns=false&integers=false"
+
 
 
 class CDTDATA(commands.Cog):
@@ -24,6 +22,11 @@ class CDTDATA(commands.Cog):
         super().__init__(*args, **kwargs)
         self.config = Config.get_conf(self, cog_name="CDTDATA", identifier=CDT.ID, force_registration=True)
         _default_global = {
+            "jsonurls":{
+                "prestige1":  "http://gsx2json.com/api?id=1I3T2G2tRV05vQKpBfmI04VpvP5LjCBPfVICDmuJsjks&sheet=2&columns=false&integers=false",
+                "backup_prestige": CDT.BASEPATH+"jason/backup_prestige.json",
+                "spotlightjson": "http://gsx2json.com/api?id=1I3T2G2tRV05vQKpBfmI04VpvP5LjCBPfVICDmuJsjks&sheet=1&columns=false&integers=false"
+            },
             "prestige": {
                 "info": "Champion Prestige",
                 "keys": ""
@@ -125,12 +128,14 @@ class CDTDATA(commands.Cog):
 
 
     async def _get_prestige(self, ctx):
-        prestigejson = await CDT.fetch_json(PRESTIGE1)
-        if prestigejson == '{}':
+        await ctx.say("Attempting Prestige1: {}".format(self.config.jsonurls.prestige1()))
+        prestige_json = await CDT.fetch_json(self.config.jsonurls.prestige1())
+        if prestige_json == '{}':
             ctx.say("Prestige retrieval timeout.  Loading backup.")
-            prestigejson = await CDT.fetch_json(BACKUP_PRESTIGE)
+            await ctx.say("Attempting Backup Prestige: {}".format(self.config.jsonurls.backup_prestige()))
+            prestige_json = await CDT.fetch_json(self.config.jsonurls.backup_prestige())
         update = {}
-        for row in prestigejson["rows"]:
+        for row in prestige_json["rows"]:
             update.update({row.pop("mattkraftid"): row})
 
         if update["5-karnak-5"]["sig0"] is not None:
