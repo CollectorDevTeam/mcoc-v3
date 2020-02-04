@@ -2,11 +2,17 @@
 from collections import ChainMap
 
 import aiohttp
+import json
 from redbot.core import Config
 from redbot.core import checks
 from redbot.core import commands
 
 from .CDT import CDT
+
+PRESTIGE1 = "http://gsx2json.com/api?id=1I3T2G2tRV05vQKpBfmI04VpvP5LjCBPfVICDmuJsjks&sheet=2&columns=false&integers=false"
+BACKUP_PRESTIGE = CDT.BASEPATH+"json/backup_prestige.json"
+SPOTLIGHTJSON = "http://gsx2json.com/api?id=1I3T2G2tRV05vQKpBfmI04VpvP5LjCBPfVICDmuJsjks&sheet=1&columns=false&integers=false"
+
 
 class CDTDATA(commands.Cog):
     """
@@ -112,3 +118,23 @@ class CDTDATA(commands.Cog):
         # await self.config.cdt_data.set({"keys" : cdt_data.keys()})
         await self.config.cdt_versions.nested_update(cdt_versions)
         await self.config.date_updated.date.set(ctx.message.timestamp)
+
+
+    @commands.Command
+    async def get_prestige(self, ctx):
+        await self._get_prestige(ctx)
+
+
+    async def _get_prestige(self, ctx):
+        prestigejson = await CDT.fetch_json(PRESTIGE1)
+        if prestigejson == '{}':
+            ctx.say("Prestige retrieval timeout.  Loading backup.")
+            prestigejson = await CDT.fetch_json(BACKUP_PRESTIGE)
+        update = {}
+        for row in prestigejson["rows"]:
+            update.update({row.pop("mattkraftid"): row})
+
+        if update["5-karnak-5"]["sig0"] is not None:
+            ctx.say("Prestige test passed")
+            self.config.cdt_prestige.nested_update(update)
+            
