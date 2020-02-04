@@ -6,8 +6,7 @@ import json
 from redbot.core import Config
 from redbot.core import checks
 from redbot.core import commands
-
-from .CDT import CDT
+from mcoc.CDT import CDT
 
 PRESTIGE1 = "http://gsx2json.com/api?id=1I3T2G2tRV05vQKpBfmI04VpvP5LjCBPfVICDmuJsjks&sheet=2&columns=false&integers=false"
 BACKUP_PRESTIGE = CDT.BASEPATH+"json/backup_prestige.json"
@@ -137,4 +136,3 @@ class CDTDATA(commands.Cog):
         if update["5-karnak-5"]["sig0"] is not None:
             ctx.say("Prestige test passed")
             self.config.cdt_prestige.nested_update(update)
-            
