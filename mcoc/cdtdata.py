@@ -22,31 +22,39 @@ class CDTDATA(commands.Cog):
         # super().__init__(*args, **kwargs)
         self.config = Config.get_conf(self, cog_name="CDTDATA", identifier=3246316013445447780012, force_registration=True)
         _default_global = {
-            "auntmai_prestige":  "http://gsx2json.com/api?id=1I3T2G2tRV05vQKpBfmI04VpvP5LjCBPfVICDmuJsjks&sheet=2&columns=false&integers=false",
-            "backup_prestige": CDT.BASEPATH+"jason/backup_prestige.json",
-            "spotlight_json": "http://gsx2json.com/api?id=1I3T2G2tRV05vQKpBfmI04VpvP5LjCBPfVICDmuJsjks&sheet=1&columns=false&integers=false",
             "prestige": {
+                "url1": "http://gsx2json.com/api?id=1I3T2G2tRV05vQKpBfmI04VpvP5LjCBPfVICDmuJsjks&sheet=2&columns=false&integers=false",
+                "url2": CDT.BASEPATH + "jason/backup_prestige.json",
+                "date": "",
                 "info": "Champion Prestige",
-                "keys": ""
+                "keylist": "",
+                "data": {}
             },
             "cdt_data": {
+                "date": "",
                 "info": "Kabam JSON translation data, aggregated",
-                "keys": ""
+                "keylist": "",
+                "data": {}
             },
             "cdt_stats": {
+                "url1": "http://gsx2json.com/api?id=1I3T2G2tRV05vQKpBfmI04VpvP5LjCBPfVICDmuJsjks&sheet=1&columns=false&integers=false",
+                "url2": None,
+                "date": "",
                 "info": "CollectorDevTeam Champion Stats by Star by Rank",
-                "keys": ""
+                "keylist": "",
+                "data": {}
             },
             "cdt_versions": {
+                "date": "",
                 "info": "Champions Verions tracking 12.0+",
-                "keys": ""
+                "keylist": "",
+                "data": {}
             },
             "cdt_masteries": {
+                "date": "",
                 "info": "CollectorDevTeam Mastery information",
-                "keys": ""
-            },
-            "date_updated": {
-                "date": "Never",
+                "keylist": "",
+                "data": {}
             }
         }
 
@@ -128,18 +136,19 @@ class CDTDATA(commands.Cog):
     async def _get_prestige(self, ctx):
         await ctx.send("The info statement will test accessing nested information.")
         await ctx.send("Prestige Info: {}".format(await self.config.prestige.info()))
-        await ctx.send("Attempting Prestige1: {}".format(await self.config.auntmai_prestige()))
-        prestige_json = await CDT.fetch_json(ctx, await self.config.auntmai_prestige())
+        await ctx.send("Attempting Prestige1: {}".format(await self.config.prestige.url1()))
+        prestige_json = await CDT.fetch_json(ctx, await self.config.prestige.url1())
         print(prestige_json.keys())
         if prestige_json == '{}':
             ctx.say("Prestige retrieval timeout.  Loading backup.")
-            await ctx.send("Attempting Backup Prestige: {}".format(await self.config.backup_prestige()))
-            prestige_json = await CDT.fetch_json(await self.config.backup_prestige())
+            await ctx.send("Attempting Backup Prestige: {}".format(await self.config.prestige.url2()))
+            prestige_json = await CDT.fetch_json(ctx, await self.config.prestige.url2())
         update = {}
         with ctx.typing():
             for row in prestige_json["rows"]:
+                unique = row.pop("mattkraftid")
                 update.update({row.pop("mattkraftid"): row})
-            await self.config.cdt_prestige.nested_update(update)
+            await self.config.prestige.data.nested_update(update)
 
 
         # if update["5-karnak-5"]["sig0"] is not None:

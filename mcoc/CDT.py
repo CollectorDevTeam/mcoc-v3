@@ -54,11 +54,12 @@ class CDT(commands.Cog):
     async def fetch_json(ctx, url):
         await ctx.send("Initializing 'fetch_json(ctx, url)'")
         async with aiohttp.ClientSession() as session:
-            response = await session.get(url)
-            raw_data = json.loads(await response.text())
-        ctx.send("Returning json data")
-        return raw_data
-    
+            async with session.get(url) as response:
+            #Cuation - all json data is loaded into memory
+                ctx.send(response.status)
+                ctx.send("Returning json data")
+                json_data = await response.json()
+                return json_data
 #
 # ##################################################
 # #  Hashtag grammar
