@@ -17,24 +17,27 @@ class CDTDATA(commands.Cog):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+        Config.init_custom(group_identifier="prestige", identifier_count=1)
+        Config.init_custom(group_identifier="cdt_words", identifier_count=2)
+        Config.init_custom(group_identifier="cdt_stats", identifier_count=3)
+        Config.init_custom(group_identifier="cdt_masteries", identifier_count=4)
         self.config = Config.get_conf(self, cog_name="CDTDATA", 
                                       identifier=3246316013445447780012, force_registration=True)
-        self.config.init_custom(group_identifier="prestige", identifier_count=1)
-        self.config.init_custom(group_identifier="cdt_data", identifier_count=2)
-        self.config.init_custom(group_identifier="cdt_stats", identifier_count=3)
-        self.config.init_custom(group_identifier="cdt_masteries", identifier_count=4)
+        # self.config.init_custom(group_identifier="prestige", identifier_count=1)
+        # self.config.init_custom(group_identifier="cdt_words", identifier_count=2)
+        # self.config.init_custom(group_identifier="cdt_stats", identifier_count=3)
+        # self.config.init_custom(group_identifier="cdt_masteries", identifier_count=4)
         _default_prestige = {
             "url1": "http://gsx2json.com/api?id=1I3T2G2tRV05vQKpBfmI04VpvP5LjCBPfVICDmuJsjks&sheet=2&columns=false&integers=false",
             "url2": CDT.BASEPATH + "jason/backup_prestige.json",
             "date": "",
             "info": "Champion Prestige",
-            "keylist": "",
             "data": {}
         }
-        _default_data = {
+        _default_words = {
             "date": "",
             "info": "Kabam JSON translation data, aggregated",
-            "keylist": "",
             "data": {},
             "versions": {}
         }
@@ -43,19 +46,17 @@ class CDTDATA(commands.Cog):
             "url2": None,
             "date": "",
             "info": "CollectorDevTeam Champion Stats by Star by Rank",
-            "keylist": "",
             "data": {}
         }
         _default_masteries = {
             "date": "",
             "info": "CollectorDevTeam Mastery information",
-            "keylist": "",
             "data": {}
         }
         _default_global = {
         }
         self.config.register_custom("prestige", **_default_prestige)
-        self.config.register_custom("cdt_data", **_default_data)
+        self.config.register_custom("cdt_words", **_default_words)
         self.config.register_custom("cdt_stats", **_default_stats)
         self.config.register_custom("cdt_masteries", **_default_masteries)
         # self.config.register_global(**_default_global)
