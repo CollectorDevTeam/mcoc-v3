@@ -20,7 +20,7 @@ class CDTDATA(commands.Cog):
 
     def __init__(self):
         # super().__init__(*args, **kwargs)
-        self.config = Config.get_conf(self, identifier=CDT.ID, force_registration=True)
+        self.config = Config.get_conf(self, cog_name="CDTDATA", identifier=3246316013445447780012, force_registration=True)
         _default_global = {
             "auntmai_prestige":  "http://gsx2json.com/api?id=1I3T2G2tRV05vQKpBfmI04VpvP5LjCBPfVICDmuJsjks&sheet=2&columns=false&integers=false",
             "backup_prestige": CDT.BASEPATH+"jason/backup_prestige.json",
@@ -133,9 +133,11 @@ class CDTDATA(commands.Cog):
             await ctx.send("Attempting Backup Prestige: {}".format(await self.config.backup_prestige()))
             prestige_json = await CDT.fetch_json(await self.config.backup_prestige())
         update = {}
-        for row in prestige_json["rows"]:
-            update.update({row.pop("mattkraftid"): row})
-
-        if update["5-karnak-5"]["sig0"] is not None:
-            ctx.say("Prestige test passed")
+        with ctx.typing():
+            for row in prestige_json["rows"]:
+                update.update({row.pop("mattkraftid"): row})
             await self.config.cdt_prestige.nested_update(update)
+
+
+        # if update["5-karnak-5"]["sig0"] is not None:
+        #     ctx.say("Prestige test passed")
