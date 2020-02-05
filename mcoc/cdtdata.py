@@ -144,10 +144,11 @@ class CDTDATA(commands.Cog):
             await ctx.send("Attempting Backup Prestige: {}".format(await self.config.prestige.url2()))
             prestige_json = await CDT.fetch_json(ctx, await self.config.prestige.url2())
         update = {}
-        with ctx.typing():
-            for row in prestige_json["rows"]:
+        async with ctx.typing():
+            rows = prestige_json['rows'][0]
+            for row in rows:
                 unique = row.pop("mattkraftid")
-                update.update({row.pop("mattkraftid"): row})
+                update.update({unique: row})
             await self.config.prestige.data.nested_update(update)
 
 
