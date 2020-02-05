@@ -65,8 +65,8 @@ class CDTDATA(commands.Cog):
 
     @commands.command()
     async def get_defaults(self, ctx):
-        print(await self.config.custom("prestige", "info").all())
-        print(await self.config.custom("prestige").all())
+        prestige = self.config.custom("prestige")
+        await ctx.send("Prestige\nInfo: {}\nDate: {}".format(await prestige.info(), prestige.date()))
     # @commands.command()
     # @checks.is_owner()
     # async def clear_cdt_data(self, ctx):
@@ -159,9 +159,9 @@ class CDTDATA(commands.Cog):
                 data.update({unique: row})
                 await prestige.data.nested_update({unique: row})
                 # await prestige.set_raw("data", unique, value=row)
+            await prestige.date.set(ctx.message.timestamp())
             await ctx.send("Prestige data looped")
-            await ctx.send("Karnak test")
-            await ctx.send()
+
             # await ctx.send(len(data))
             # await self.config.prestige.data.nested_update(update)
         # if update["5-karnak-5"]["sig0"] is not None:
