@@ -154,17 +154,21 @@ class CDTDATA(commands.Cog):
         async with ctx.typing():
             data = {}
             rows = prestige_json["rows"] #[0]
+            update = {}
             # await ctx.send(update.keys())
             for row in rows:
                 unique = row.pop("mattkraftid")
                 print(unique)
                 print(row)
-                data.update({unique: row})
-                await prestige.data.nested_update({unique: row})
+                update.update({unique: row})
+                # data.update({unique: row})
+                # await prestige.data.nested_update({unique: row})
                 # await prestige.set_raw("data", unique, value=row)
             await prestige.date.set(ctx.message.timestamp())
             await ctx.send("Prestige data looped")
 
+        await ctx.send("Testing 4-karnak-5 sig20")
+        await ctx.send("Karnak prestige: {}".format(update["4-karnak-5"]["sig20"]))
             # await ctx.send(len(data))
             # await self.config.prestige.data.nested_update(update)
         # if update["5-karnak-5"]["sig0"] is not None:
