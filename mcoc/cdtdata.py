@@ -18,16 +18,16 @@ class CDTDATA(commands.Cog):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        Config.init_custom(group_identifier="prestige", identifier_count=1)
-        Config.init_custom(group_identifier="cdt_words", identifier_count=2)
-        Config.init_custom(group_identifier="cdt_stats", identifier_count=3)
-        Config.init_custom(group_identifier="cdt_masteries", identifier_count=4)
+        # Config.init_custom(group_identifier="prestige", identifier_count=1)
+        # Config.init_custom(group_identifier="cdt_words", identifier_count=2)
+        # Config.init_custom(group_identifier="cdt_stats", identifier_count=3)
+        # Config.init_custom(group_identifier="cdt_masteries", identifier_count=4)
         self.config = Config.get_conf(self, cog_name="CDTDATA", 
                                       identifier=3246316013445447780012, force_registration=True)
-        # self.config.init_custom(group_identifier="prestige", identifier_count=1)
-        # self.config.init_custom(group_identifier="cdt_words", identifier_count=2)
-        # self.config.init_custom(group_identifier="cdt_stats", identifier_count=3)
-        # self.config.init_custom(group_identifier="cdt_masteries", identifier_count=4)
+        self.config.init_custom(group_identifier="prestige", identifier_count=1)
+        self.config.init_custom(group_identifier="cdt_words", identifier_count=2)
+        self.config.init_custom(group_identifier="cdt_stats", identifier_count=3)
+        self.config.init_custom(group_identifier="cdt_masteries", identifier_count=4)
         _default_prestige = {
             "url1": "http://gsx2json.com/api?id=1I3T2G2tRV05vQKpBfmI04VpvP5LjCBPfVICDmuJsjks&sheet=2&columns=false&integers=false",
             "url2": CDT.BASEPATH + "jason/backup_prestige.json",
@@ -68,14 +68,16 @@ class CDTDATA(commands.Cog):
     async def get_defaults(self, ctx):
         prestige = self.config.custom("prestige")
         await ctx.send("Prestige\nInfo: {}\nDate: {}".format(await prestige.info(), prestige.date()))
-    # @commands.command()
-    # @checks.is_owner()
-    # async def clear_cdt_data(self, ctx):
-    #     """Removes all CDTDATA and resets the global data schema.
-    #     This cannot be undone."""
-    #     await self.config.clear_all_globals()
-    #     # await self.config.clear_all_custom()
-    #     await ctx.send("All CDT data has been erased.")
+
+    @commands.command()
+    @checks.is_owner()
+    async def clear_config(self, ctx):
+        """Removes all CDTDATA and resets the global data schema.
+        This cannot be undone."""
+        # await self.config.clear_all_globals()
+        await self.config.clear_all()
+        # await self.config.clear_all_custom()
+        await ctx.send("All CDT data has been erased.")
     #
     # @commands.command()
     # @checks.is_owner()
