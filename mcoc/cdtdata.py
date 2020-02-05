@@ -129,7 +129,7 @@ class CDTDATA(commands.Cog):
         await ctx.send("The info statement will test accessing nested information.")
         await ctx.send("Prestige Info: {}".format(await self.config.prestige.info()))
         await ctx.send("Attempting Prestige1: {}".format(await self.config.auntmai_prestige()))
-        prestige_json = await CDT.fetch_json(await self.config.auntmai_prestige())
+        prestige_json = await CDT.fetch_json(ctx, await self.config.auntmai_prestige())
         print(prestige_json.keys())
         if prestige_json == '{}':
             ctx.say("Prestige retrieval timeout.  Loading backup.")
