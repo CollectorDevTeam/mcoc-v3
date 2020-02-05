@@ -50,8 +50,8 @@ class CDT(commands.Cog):
         embed.set_footer(text=emauthor, icon_url=emauthor_icon_url)
         return embed
 
-    # @staticmethod
-    async def fetch_json(self, ctx, url):
+    @staticmethod
+    async def fetch_json(ctx, url):
         ctx.send("Initializing 'fetch_json(ctx, url)'")
         async with aiohttp.ClientSession() as session:
             response = await session.get(url)
