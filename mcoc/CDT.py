@@ -58,7 +58,8 @@ class CDT(commands.Cog):
             #Cuation - all json data is loaded into memory
                 await ctx.send(response.status)
                 await ctx.send("Returning json data")
-                json_data = await response.json()
+                json_data = json.loads(await response.text())
+                # json_data = await response.json()
                 return json_data
 #
 # ##################################################
