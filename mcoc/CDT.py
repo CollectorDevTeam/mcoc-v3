@@ -1,5 +1,6 @@
 from redbot.core import commands
 import json
+import dirtyjson
 import aiohttp
 import discord
 
@@ -58,7 +59,7 @@ class CDT(commands.Cog):
             #Cuation - all json data is loaded into memory
                 await ctx.send(response.status)
                 await ctx.send("Returning json data")
-                json_data = json.loads(await response.text())
+                json_data = dirtyjson.loads(await response.text())
                 # json_data = await response.json()
                 return json_data
 #
