@@ -63,6 +63,10 @@ class CDTDATA(commands.Cog):
         # self.config.register_guild(**default_guild)
         # self.config.register_user(**default_user)
 
+    @commands.command()
+    async def get_defaults(self, ctx):
+        print(await self.config.custom_groups("prestige").all())
+        print(await self.config.custom("prestige").all())
     # @commands.command()
     # @checks.is_owner()
     # async def clear_cdt_data(self, ctx):
@@ -134,7 +138,7 @@ class CDTDATA(commands.Cog):
 
 
     async def _get_prestige(self, ctx):
-        prestige = await self.config.custom("prestige")
+        prestige = self.config.custom("prestige")
         await ctx.send("The info statement will test accessing nested information.")
         await ctx.send("Prestige Info: {}".format(await prestige.info()))
         await ctx.send("Attempting Prestige1: {}".format(await prestige.url1()))
