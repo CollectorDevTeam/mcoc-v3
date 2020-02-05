@@ -56,8 +56,8 @@ class CDT(commands.Cog):
         async with aiohttp.ClientSession() as session:
             async with session.get(url) as response:
             #Cuation - all json data is loaded into memory
-                ctx.send(response.status)
-                ctx.send("Returning json data")
+                await ctx.send(response.status)
+                await ctx.send("Returning json data")
                 json_data = await response.json()
                 return json_data
 #
