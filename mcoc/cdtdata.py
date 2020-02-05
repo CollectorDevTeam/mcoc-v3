@@ -91,15 +91,15 @@ class CDTDATA(commands.Cog):
         ctx.send("Creating file download manifest")
         cdt_data, cdt_versions = ChainMap(), ChainMap()
         files = {
-            "bcg_en": 'https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/json/snapshots/en/bcg_en.json',
-            "bcg_stat_en": 'https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/json/snapshots/en/bcg_stat_en.json',
-            "special_attacks": 'https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/json/snapshots/en/special_attacks_en.json',
-            # 'https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/json/snapshots/en/masteries_en.json',
-            "character_bios_en": 'https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/json/snapshots/en/character_bios_en.json',
-            # 'https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/json/snapshots/en/dungeons_en.json',
-            # 'https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/json/snapshots/en/cutscenes_en.json',
-            # 'https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/json/snapshots/en/initial_en.json',
-            # 'https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/json/snapshots/en/alliances_en.json'
+            "bcg_en": "https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/json/snapshots/en/bcg_en.json""",
+            "bcg_stat_en": "https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/json/snapshots/en/bcg_stat_en.json",
+            "special_attacks": "https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/json/snapshots/en/special_attacks_en.json",
+            # "https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/json/snapshots/en/masteries_en.json",
+            "character_bios_en": "https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/json/snapshots/en/character_bios_en.json",
+            # "https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/json/snapshots/en/dungeons_en.json",
+            # "https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/json/snapshots/en/cutscenes_en.json",
+            # "https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/json/snapshots/en/initial_en.json",
+            # "https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/json/snapshots/en/alliances_en.json"
         }
 
         ## PULL CDT Data
@@ -110,10 +110,10 @@ class CDTDATA(commands.Cog):
                 async with ctx.typing():
                     raw_data = await CDT.fetch_json(files[url], session)
                     val, ver = {}, {}
-                    for dlist in raw_data['strings']:
-                        val[dlist['k']] = dlist['v']
-                        if 'vn' in dlist:
-                            ver[dlist['k']] = dlist['vn']
+                    for dlist in raw_data["strings"]:
+                        val[dlist["k"]] = dlist["v"]
+                        if "vn" in dlist:
+                            ver[dlist["k"]] = dlist["vn"]
                     cdt_data.maps.append(val)
                     cdt_versions.maps.append(ver)
 
@@ -137,16 +137,18 @@ class CDTDATA(commands.Cog):
         await ctx.send("Attempting Prestige1: {}".format(await self.config.prestige.url1()))
         prestige_json = await CDT.fetch_json(ctx, await self.config.prestige.url1())
         print(prestige_json.keys())
-        if prestige_json == '{}':
+        if prestige_json == "{}":
             ctx.say("Prestige retrieval timeout.  Loading backup.")
             await ctx.send("Attempting Backup Prestige: {}".format(await self.config.prestige.url2()))
             prestige_json = await CDT.fetch_json(ctx, await self.config.prestige.url2())
         async with ctx.typing():
             data = {}
-            rows = prestige_json['rows'] #[0]
+            rows = prestige_json["rows"] #[0]
             # await ctx.send(update.keys())
             for row in rows:
                 unique = row.pop("mattkraftid")
+                print(unique)
+                print(row)
                 data.update({unique: row})
                 # await self.config.prestige.data.nested_update({unique: row})
             await ctx.send(len(data))
