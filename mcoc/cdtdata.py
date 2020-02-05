@@ -141,7 +141,7 @@ class CDTDATA(commands.Cog):
 
 
     async def _get_prestige(self, ctx):
-        prestige = self.config.custom("prestige")
+        prestige = self.config.prestige
         await ctx.send("The info statement will test accessing nested information.")
         await ctx.send("Prestige Info: {}".format(await prestige.info()))
         await ctx.send("Attempting Prestige1: {}".format(await prestige.url1()))
