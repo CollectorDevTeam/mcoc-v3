@@ -127,7 +127,7 @@ class CDTDATA(commands.Cog):
 
     async def _get_prestige(self, ctx):
         await ctx.send("The info statement will test accessing nested information.")
-        await ctx.send("Prestige Info: {}".format(await self.config.auntmai_prestige.info()))
+        await ctx.send("Prestige Info: {}".format(await self.config.prestige.info()))
         await ctx.send("Attempting Prestige1: {}".format(await self.config.auntmai_prestige()))
         prestige_json = await CDT.fetch_json(await self.config.auntmai_prestige())
         print(prestige_json.keys())
