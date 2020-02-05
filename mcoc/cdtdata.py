@@ -66,7 +66,7 @@ class CDTDATA(commands.Cog):
 
     @commands.command()
     async def get_defaults(self, ctx):
-        prestige = self.config.custom(group_identifier="prestige").all()
+        prestige = await self.config.custom(group_identifier="prestige").all()
         print(prestige)
         # await ctx.send("Prestige\nInfo: {}\nDate: {}".format(await prestige.info(), prestige.date()))
 
