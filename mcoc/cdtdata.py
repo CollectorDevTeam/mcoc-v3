@@ -1,14 +1,11 @@
 # import discord
 from collections import ChainMap
-
 import aiohttp
-import json
+# import json
 from redbot.core import Config
 from redbot.core import checks
 from redbot.core import commands
 from mcoc.CDT import CDT
-
-
 
 
 class CDTDATA(commands.Cog):
@@ -18,9 +15,10 @@ class CDTDATA(commands.Cog):
 
     __version__ = "1.0.0"
 
-    def __init__(self):
-        # super().__init__(*args, **kwargs)
-        self.config = Config.get_conf(self, cog_name="CDTDATA", identifier=3246316013445447780012, force_registration=True)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.config = Config.get_conf(self, cog_name="CDTDATA", 
+                                      identifier=3246316013445447780012, force_registration=True)
         _default_global = {
             "prestige": {
                 "url1": "http://gsx2json.com/api?id=1I3T2G2tRV05vQKpBfmI04VpvP5LjCBPfVICDmuJsjks&sheet=2&columns=false&integers=false",
@@ -46,7 +44,7 @@ class CDTDATA(commands.Cog):
             },
             "cdt_versions": {
                 "date": "",
-                "info": "Champions Verions tracking 12.0+",
+                "info": "Champions Versions tracking 12.0+",
                 "keylist": "",
                 "data": {}
             },
@@ -66,8 +64,8 @@ class CDTDATA(commands.Cog):
     @commands.command()
     @checks.is_owner()
     async def clear_cdt_data(self, ctx):
-        '''Removes all CDTDATA and resets the global data schema.
-        This cannot be undone.'''
+        """Removes all CDTDATA and resets the global data schema.
+        This cannot be undone."""
         await self.config.clear_all_globals()
         # await self.config.clear_all_custom()
         await ctx.send("All CDT data has been erased.")
@@ -75,7 +73,7 @@ class CDTDATA(commands.Cog):
     @commands.command()
     @checks.is_owner()
     async def check_cdt_data(self, ctx):
-        '''Check last data update'''
+        """Check last data update"""
         CDTDATA = self.config  # should be treated as a dictionary now
         for x in ["prestige", "cdt_data", "cdt_stats", "cdt_versions", "cdt_masteries", "date_updated"]:
             print(CDTDATA.prestige.info())
@@ -144,11 +142,14 @@ class CDTDATA(commands.Cog):
             await ctx.send("Attempting Backup Prestige: {}".format(await self.config.prestige.url2()))
             prestige_json = await CDT.fetch_json(ctx, await self.config.prestige.url2())
         async with ctx.typing():
-            update = {}
+            data = {}
             rows = prestige_json['rows'] #[0]
+            # await ctx.send(update.keys())
             for row in rows:
                 unique = row.pop("mattkraftid")
-                update.update({unique: row})
-            await self.config.prestige.data.nested_update(update)
+                data.update({unique: row})
+                # await self.config.prestige.data.nested_update({unique: row})
+            await ctx.send(len(data))
+            # await self.config.prestige.data.nested_update(update)
         # if update["5-karnak-5"]["sig0"] is not None:
         #     ctx.say("Prestige test passed")
