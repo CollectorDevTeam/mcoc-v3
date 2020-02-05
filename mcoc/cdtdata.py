@@ -28,37 +28,33 @@ class CDTDATA(commands.Cog):
         self.config.init_custom(group_identifier="cdt_words", identifier_count=2)
         self.config.init_custom(group_identifier="cdt_stats", identifier_count=3)
         self.config.init_custom(group_identifier="cdt_masteries", identifier_count=4)
-        _default_prestige = {
+        _default_global = {
+        }
+        self.config.register_custom("prestige", {
             "url1": "http://gsx2json.com/api?id=1I3T2G2tRV05vQKpBfmI04VpvP5LjCBPfVICDmuJsjks&sheet=2&columns=false&integers=false",
             "url2": CDT.BASEPATH + "jason/backup_prestige.json",
             "date": "",
             "info": "Champion Prestige",
             "data": {}
-        }
-        _default_words = {
+        })
+        self.config.register_custom("cdt_words", {
             "date": "",
             "info": "Kabam JSON translation data, aggregated",
             "data": {},
             "versions": {}
-        }
-        _default_stats = {
+        })
+        self.config.register_custom("cdt_stats", {
             "url1": "http://gsx2json.com/api?id=1I3T2G2tRV05vQKpBfmI04VpvP5LjCBPfVICDmuJsjks&sheet=1&columns=false&integers=false",
             "url2": None,
             "date": "",
             "info": "CollectorDevTeam Champion Stats by Star by Rank",
             "data": {}
-        }
-        _default_masteries = {
+        })
+        self.config.register_custom("cdt_masteries", {
             "date": "",
             "info": "CollectorDevTeam Mastery information",
             "data": {}
-        }
-        _default_global = {
-        }
-        self.config.register_custom("prestige", **_default_prestige)
-        self.config.register_custom("cdt_words", **_default_words)
-        self.config.register_custom("cdt_stats", **_default_stats)
-        self.config.register_custom("cdt_masteries", **_default_masteries)
+        })
         # self.config.register_global(**_default_global)
         # self.config.register_global(**default_global)
         # self.config.register_guild(**default_guild)
@@ -66,8 +62,11 @@ class CDTDATA(commands.Cog):
 
     @commands.command()
     async def get_defaults(self, ctx):
-        prestige = await self.config.custom(group_identifier="prestige").all()
-        print(prestige)
+        prestige = self.config.custom("prestige")
+        async with prestige.info() as info:
+            ctx.send("Prestige Info: {}".format(info))
+        async with prestige.data() as data:
+            print(prestige)
         # await ctx.send("Prestige\nInfo: {}\nDate: {}".format(await prestige.info(), prestige.date()))
 
     @commands.command()
