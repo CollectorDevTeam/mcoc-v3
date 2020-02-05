@@ -51,10 +51,12 @@ class CDT(commands.Cog):
         return embed
 
     @staticmethod
-    async def fetch_json(url):
+    async def fetch_json(ctx, url):
+        ctx.send("Initializing 'fetch_json(ctx, url)'")
         async with aiohttp.ClientSession() as session:
             response = await session.get(url)
             raw_data = json.loads(await response.text())
+        ctx.send("Returning json data")
         return raw_data
     
 #
