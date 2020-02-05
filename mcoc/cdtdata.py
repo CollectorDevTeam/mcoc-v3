@@ -54,7 +54,7 @@ class CDTDATA(commands.Cog):
         }
         _default_global = {
         }
-        self.config.register_custom("prestige",**_default_prestige)
+        self.config.register_custom("prestige", **_default_prestige)
         self.config.register_custom("cdt_data", **_default_data)
         self.config.register_custom("cdt_stats", **_default_stats)
         self.config.register_custom("cdt_masteries", **_default_masteries)
@@ -134,7 +134,7 @@ class CDTDATA(commands.Cog):
 
 
     async def _get_prestige(self, ctx):
-        prestige = self.config.custom("prestige")
+        prestige = await self.config.custom("prestige")
         await ctx.send("The info statement will test accessing nested information.")
         await ctx.send("Prestige Info: {}".format(await prestige.info()))
         await ctx.send("Attempting Prestige1: {}".format(await prestige.url1()))
