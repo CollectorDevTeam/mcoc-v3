@@ -30,27 +30,27 @@ class CDTDATA(commands.Cog):
         self.config.init_custom(group_identifier="cdt_masteries", identifier_count=4)
         _default_global = {
         }
-        self.config.register_custom("prestige", {
+        self.config.register_custom("prestige", data={
             "url1": "http://gsx2json.com/api?id=1I3T2G2tRV05vQKpBfmI04VpvP5LjCBPfVICDmuJsjks&sheet=2&columns=false&integers=false",
             "url2": CDT.BASEPATH + "jason/backup_prestige.json",
             "date": "",
             "info": "Champion Prestige",
             "data": {}
         })
-        self.config.register_custom("cdt_words", {
+        self.config.register_custom("cdt_words", data={
             "date": "",
             "info": "Kabam JSON translation data, aggregated",
             "data": {},
             "versions": {}
         })
-        self.config.register_custom("cdt_stats", {
+        self.config.register_custom("cdt_stats", data={
             "url1": "http://gsx2json.com/api?id=1I3T2G2tRV05vQKpBfmI04VpvP5LjCBPfVICDmuJsjks&sheet=1&columns=false&integers=false",
             "url2": None,
             "date": "",
             "info": "CollectorDevTeam Champion Stats by Star by Rank",
             "data": {}
         })
-        self.config.register_custom("cdt_masteries", {
+        self.config.register_custom("cdt_masteries", data={
             "date": "",
             "info": "CollectorDevTeam Mastery information",
             "data": {}
@@ -66,7 +66,7 @@ class CDTDATA(commands.Cog):
         async with prestige.info() as info:
             ctx.send("Prestige Info: {}".format(info))
         async with prestige.data() as data:
-            print(prestige)
+            print(data.info())
         # await ctx.send("Prestige\nInfo: {}\nDate: {}".format(await prestige.info(), prestige.date()))
 
     @commands.command()
@@ -141,31 +141,33 @@ class CDTDATA(commands.Cog):
 
 
     async def _get_prestige(self, ctx):
-        prestige = self.config.custom(group_identifier="prestige")
-        await ctx.send("The info statement will test accessing nested information.")
-        await ctx.send("Prestige Info: {}".format(await prestige.info()))
-        await ctx.send("Attempting Prestige1: {}".format(await prestige.url1()))
-        prestige_json = await CDT.fetch_json(ctx, await prestige.url1())
-        print(prestige_json.keys())
-        if prestige_json == "{}":
-            ctx.say("Prestige retrieval timeout.  Loading backup.")
-            await ctx.send("Attempting Backup Prestige: {}".format(await prestige.url2()))
-            prestige_json = await CDT.fetch_json(ctx, await prestige.url2())
-        async with ctx.typing():
-            data = {}
-            rows = prestige_json["rows"] #[0]
-            update = {}
-            # await ctx.send(update.keys())
-            for row in rows:
-                unique = row.pop("mattkraftid")
-                print(unique)
-                print(row)
-                update.update({unique: row})
-                # data.update({unique: row})
-                # await prestige.data.nested_update({unique: row})
-                # await prestige.set_raw("data", unique, value=row)
-            await prestige.date.set(ctx.message.timestamp())
-            await ctx.send("Prestige data looped")
+        prestige = self.config.custom("prestige")
+        async with prestige.data() as data:
+            await ctx.send("The info statement will test accessing nested information.")
+            await ctx.send("Prestige Info: {}".format(await data.info()))
+            await ctx.send("Attempting Prestige1: {}".format(await data.url1()))
+            prestige_json = await CDT.fetch_json(ctx, await data.url1())
+            print(prestige_json.keys())
+            if prestige_json == "{}":
+                ctx.say("Prestige retrieval timeout.  Loading backup.")
+                await ctx.send("Attempting Backup Prestige: {}".format(await data.url2()))
+                prestige_json = await CDT.fetch_json(ctx, await data.url2())
+            async with ctx.typing():
+                data = {}
+                rows = prestige_json["rows"] #[0]
+                update = {}
+                # await ctx.send(update.keys())
+                for row in rows:
+                    unique = row.pop("mattkraftid")
+                    print(unique)
+                    print(row)
+                    update.update({unique: row})
+                    # data.update({unique: row})
+                    # await prestige.data.nested_update({unique: row})
+                    # await prestige.set_raw("data", unique, value=row)
+                # await data.data.update(update)
+                await data.date.set(ctx.message.timestamp())
+                await ctx.send("Prestige data looped")
 
         await ctx.send("Testing 4-karnak-5 sig20")
         await ctx.send("Karnak prestige: {}".format(update["4-karnak-5"]["sig20"]))
