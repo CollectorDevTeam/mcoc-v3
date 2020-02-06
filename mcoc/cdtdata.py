@@ -22,7 +22,7 @@ class CDTDATA(commands.Cog):
         # Config.init_custom(group_identifier="cdt_words", identifier_count=2)
         # Config.init_custom(group_identifier="cdt_stats", identifier_count=3)
         # Config.init_custom(group_identifier="cdt_masteries", identifier_count=4)
-        self.config = Config.get_conf(self, cog_name="CDTDATA", 
+        self.config = Config.get_conf(self, cog_name="CDTDATA",
                                       identifier=3246316013445447780012, force_registration=True)
         self.config.init_custom(group_identifier="prestige", identifier_count=1)
         self.config.init_custom(group_identifier="cdt_words", identifier_count=2)
@@ -63,10 +63,9 @@ class CDTDATA(commands.Cog):
     @commands.command()
     async def get_defaults(self, ctx):
         prestige = self.config.custom("prestige")
-        async with prestige.info() as info:
-            ctx.send("Prestige Info: {}".format(info))
         async with prestige.data() as data:
             print(data.info())
+            ctx.send("Prestige Info: {}".format(data.info()))
         # await ctx.send("Prestige\nInfo: {}\nDate: {}".format(await prestige.info(), prestige.date()))
 
     @commands.command()
