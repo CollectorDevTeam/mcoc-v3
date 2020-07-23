@@ -14,7 +14,6 @@
         "cdtcommon": "https://github.com/CollectorDevTeam/mcoc-v3"
     },
     "requirements": [
-        "random",
         "aiohttp"
     ],
     "hidden": false
