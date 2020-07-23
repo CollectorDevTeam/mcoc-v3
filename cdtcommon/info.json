@@ -3,7 +3,6 @@
         "JJW"
     ],
     "install_msg": "This library provides core common functions for the CollectorDevTeam cog series.",
-    "type": "SHARED_LIBRARY",
     "name": "cdtcommon",
     "disabled": false,
     "short": "",
