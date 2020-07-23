@@ -15,8 +15,7 @@
     "requirements": [
         "random",
         "json",
-        "aiohttp",
-        "discord"
+        "aiohttp"
     ],
     "hidden": false
 }
