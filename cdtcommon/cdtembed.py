@@ -1,9 +1,9 @@
 import discord
 import requests
-from validator_collection import validators, checkers
+from validator_collection import validators
 
 
-class CDTEmbed:
+class Embed:
     def __init__(self, bot):
         self.bot = bot
 
@@ -11,7 +11,7 @@ class CDTEmbed:
                thumbnail=None, url=None, footer_text=None, footer_url=None, author_text=None):
         '''Return a color styled embed with CDT footer, and optional title or description.
         user_id = user id string. If none provided, takes message author.
-        color = manual override, otherwise takes gold for private channels, or author color for server.
+        color = manual override, otherwise takes gold for private channels, or author color for guild.
         title = String, sets title.
         description = String, sets description.
         image = String url.  Validator checks for valid url.
@@ -20,7 +20,7 @@ class CDTEmbed:
         PATREON = 'https://patreon.com/collectorbot'
         CDT_LOGO = 'https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/cdt_logo.png'
 
-        if not ctx.message.channel.is_private:
+        if isinstance(ctx.message.channel, discord.abc.GuildChannel):
             color = ctx.message.author.color
         if url is None:
             url = PATREON
@@ -57,7 +57,3 @@ class CDTEmbed:
             footer_url = CDT_LOGO
         data.set_footer(text=footer_text, icon_url=footer_url)
         return data
-
-
-def setup(bot):
-    bot.add_cog(CDTEmbed)
