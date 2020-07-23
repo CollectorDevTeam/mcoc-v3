@@ -10,10 +10,8 @@
     "short": "",
     "description": "It's for jokes.",
     "tags": [],
-    "required_cogs": {
-        "cdtcommon": "https://github.com/CollectorDevTeam/mcoc-v3"
-    },
     "requirements": [
+        "git+https://github.com/CollectorDevTeam/mcoc-v3/tree/master/cdtcommon",
         "aiohttp"
     ],
     "hidden": false
