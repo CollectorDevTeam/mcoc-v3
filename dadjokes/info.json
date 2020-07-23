@@ -1,0 +1,22 @@
+{
+    "author": [
+        "JJW"
+    ],
+    "install_msg": "",
+    "min_bot_version": "3.3.0",
+    "name": "DadJokes",
+    "disabled": false,
+    "short": "",
+    "description": "It's for jokes.",
+    "tags": [],
+    "required_cogs": {
+        "cdtcommon": "https://github.com/CollectorDevTeam/mcoc-v3"
+    },
+    "requirements": [
+        "random",
+        "json",
+        "aiohttp",
+        "discord"
+    ],
+    "hidden": false
+}
