@@ -37,24 +37,24 @@ class CDTDATA(commands.Cog):
             "info": "Champion Prestige",
             "data": {}
         })
-        self.config.register_custom("cdt_words", data={
-            "date": "",
-            "info": "Kabam JSON translation data, aggregated",
-            "data": {},
-            "versions": {}
-        })
-        self.config.register_custom("cdt_stats", data={
-            "url1": "http://gsx2json.com/api?id=1I3T2G2tRV05vQKpBfmI04VpvP5LjCBPfVICDmuJsjks&sheet=1&columns=false&integers=false",
-            "url2": None,
-            "date": "",
-            "info": "CollectorDevTeam Champion Stats by Star by Rank",
-            "data": {}
-        })
-        self.config.register_custom("cdt_masteries", data={
-            "date": "",
-            "info": "CollectorDevTeam Mastery information",
-            "data": {}
-        })
+        # self.config.register_custom("cdt_words", data={
+        #     "date": "",
+        #     "info": "Kabam JSON translation data, aggregated",
+        #     "data": {},
+        #     "versions": {}
+        # })
+        # self.config.register_custom("cdt_stats", data={
+        #     "url1": "http://gsx2json.com/api?id=1I3T2G2tRV05vQKpBfmI04VpvP5LjCBPfVICDmuJsjks&sheet=1&columns=false&integers=false",
+        #     "url2": None,
+        #     "date": "",
+        #     "info": "CollectorDevTeam Champion Stats by Star by Rank",
+        #     "data": {}
+        # })
+        # self.config.register_custom("cdt_masteries", data={
+        #     "date": "",
+        #     "info": "CollectorDevTeam Mastery information",
+        #     "data": {}
+        # })
         # self.config.register_global(**_default_global)
         # self.config.register_global(**default_global)
         # self.config.register_guild(**default_guild)
