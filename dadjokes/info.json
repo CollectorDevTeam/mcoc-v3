@@ -11,7 +11,6 @@
     "description": "It's for jokes.",
     "tags": [],
     "requirements": [
-        "git+https://github.com/CollectorDevTeam/cdtcommon",
         "aiohttp"
     ],
     "hidden": false
