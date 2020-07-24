@@ -38,7 +38,9 @@ class DadJokes(commands.Cog):
         # if self.channel is None:
         #     self.set_channel()
         # try:
-        await ctx.send(ctx.message.channel, embed=data)
+        # await ctx.send(ctx.message.channel, embed=data)
+
+        await ctx.send(embed=data)
         #     await self.diagnostics.log(ctx, self.channel)
         # except:
         #     await self.diagnostics.log(ctx, self.channel, msg=joke)
