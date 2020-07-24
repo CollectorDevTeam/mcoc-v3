@@ -1,6 +1,6 @@
 import random
 # from cdtcommon.cdtdiagnostics import DIAGNOSTICS
-from ..cdtcommon.cdtembed import Embed
+from cdtcommon.cdtembed import Embed
 import json
 import aiohttp
 import discord
