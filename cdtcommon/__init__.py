@@ -1,6 +1,7 @@
-from .cdtcommon import cdtcommon
+from .cdtcommon import CdtCommon
+from .fetch_data import FetchCdtData
 
 
 def setup(bot):
-    cog = cdtcommon(bot)
-    bot.add_cog(cog)
+    bot.add_cog(CdtCommon(bot))
+    bot.add_cog(FetchCdtData(bot))
