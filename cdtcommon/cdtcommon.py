@@ -27,6 +27,5 @@ class CdtCommon(commands.Cog):
             data = self.Embed.create(ctx, title='#{} Topic :sparkles:'.format(
                                      channel.name),
                                  description=topic)
-            data.set_thumbnail(url=ctx.message.guil.icon_url)
-            # data.set_footer(text='CollectorDevTeam', icon_url=COLLECTOR_ICON)
+            data.set_thumbnail(url=ctx.message.guild.icon_url)
             await ctx.send(embed=data)
