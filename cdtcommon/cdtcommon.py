@@ -18,7 +18,7 @@ class CdtCommon(commands.Cog):
         )
 
     @commands.command(pass_context=True, no_pm=True)
-    async def topic(self, ctx, channel: discord.TextChannel = None):
+    async def showtopic(self, ctx, channel: discord.TextChannel = None):
         """Play the Channel Topic in the chat channel."""
         if channel is None:
             channel = ctx.message.channel
@@ -27,6 +27,6 @@ class CdtCommon(commands.Cog):
             data = self.Embed.create(ctx, title='#{} Topic :sparkles:'.format(
                                      channel.name),
                                  description=topic)
-            data.set_thumbnail(url=ctx.message.guild.icon_url)
+            data.set_thumbnail(url=ctx.message.guil.icon_url)
             # data.set_footer(text='CollectorDevTeam', icon_url=COLLECTOR_ICON)
             await ctx.send(embed=data)
