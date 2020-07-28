@@ -40,7 +40,8 @@ class CdtCommon(commands.Cog):
             #     description = content
             if len(ctx.message.attachments) > 0:
                 image = ctx.message.attachments[0]
-                imgurl = image['url']
+                # imgurl = image['url']
+                imgurl = image.url
                 # urllib.request.urlretrieve(imgurl, 'data/mcocTools/temp.png')
                 # asyncio.wait(5)
                 # newfile = await self.bot.file_upload(robotworkshop, 'data/mcocTools/temp.png')
