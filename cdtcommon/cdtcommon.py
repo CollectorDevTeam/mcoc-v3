@@ -64,16 +64,16 @@ class CdtCommon(commands.Cog):
             thumbnail = 'https://images-ext-1.discordapp.net/external/6Q7QyBwbwH2SCmwdt_YR_ywkHWugnXkMc3rlGLUnvCQ/https/raw.githubusercontent.com/CollectorDevTeam/assets/master/data/images/featured/collector.png?width=230&height=230'
             # for imgurl in imagelist:
             data = self.Embed.create(ctx,
-                                     title='CollectorVerse Tips', description=content,
+                                     title='CollectorVerse Tips:sparkle:', description=content,
                                      image=imgurl)
             data.set_author(name="{} of CollectorDevTeam".format(
                 ctx.message.author.display_name), icon_url=ctx.message.author.avatar_url)
             data.add_field(name="Alliance Template",
-                           value="[Make a Server](https://discord.new/gtzuXHq2kCg4)")
+                           value="[Make an Alliance Guild](https://discord.new/gtzuXHq2kCg4)\nRoles, Channels & Permissions pre-defined", inline=False)
             data.add_field(
-                name="Get Collector", value="[Invite](https://discord.com/oauth2/authorize?client_id=210480249870352385&scope=bot&permissions=8)")
+                name="Get Collector", value="[Invite](https://discord.com/oauth2/authorize?client_id=210480249870352385&scope=bot&permissions=8)", inline=False)
             data.add_field(
-                name="Get Support", value="[CollectorDevTeam Server](https://discord.gg/BwhgZxk)")
+                name="Support", value="[CollectorDevTeam Guild](https://discord.gg/BwhgZxk)", inline=False)
             await channel.send(embed=data)
             # await self.bot.delete_message(ctx.message)
             # pages.append(data)
