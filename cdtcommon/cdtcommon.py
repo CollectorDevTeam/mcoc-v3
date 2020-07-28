@@ -64,7 +64,7 @@ class CdtCommon(commands.Cog):
             thumbnail = 'https://images-ext-1.discordapp.net/external/6Q7QyBwbwH2SCmwdt_YR_ywkHWugnXkMc3rlGLUnvCQ/https/raw.githubusercontent.com/CollectorDevTeam/assets/master/data/images/featured/collector.png?width=230&height=230'
             # for imgurl in imagelist:
             data = self.Embed.create(ctx,
-                                     title='CollectorVerse Tips:sparkle:', description=content,
+                                     title='CollectorVerse Tips:sparkles:', description=content,
                                      image=imgurl)
             data.set_author(name="{} of CollectorDevTeam".format(
                 ctx.message.author.display_name), icon_url=ctx.message.author.avatar_url)
