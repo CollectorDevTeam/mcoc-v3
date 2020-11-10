@@ -1,5 +1,5 @@
 import random
-# from cdtcommon.cdtdiagnostics import DIAGNOSTICS
+from cdtcommon.cdtdiagnostics import DIAGNOSTICS
 from .cdtembed import Embed
 import json
 import aiohttp
@@ -19,7 +19,7 @@ class DadJokes(commands.Cog):
             force_registration=True,
         )
         self.channel = self.bot.get_channel('725065939460030575')
-        # self.diagnostics = DIAGNOSTICS(self.bot)
+        self.diagnostics = DIAGNOSTICS(self.bot)
         self.dadjoke_images = [
             'https://cdn.discordapp.com/attachments/391330316662341632/725045045794832424/collector_dadjokes.png',
             'https://cdn.discordapp.com/attachments/391330316662341632/725054700457689210/dadjokes2.png',
