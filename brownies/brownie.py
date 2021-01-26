@@ -24,6 +24,7 @@ def positive_int(arg: str) -> int:
         raise commands.BadArgument(f"{arg} is not a integer.")
     if ret <= 0:
         raise commands.BadArgument(f"{arg} is not a positive integer.")
+    return ret # Return here
 
 
 class PluralDict(dict):
