@@ -27,13 +27,18 @@ class Calculator(commands.Cog):
                                  + '|floor|fmod|frexp|fsum|gamma|gcd|hypot|inf|isclose|isfinite'
                                  + '|isinf|isnan|ldexp|lgamma|log|log10|log1p|log2|modf|nan|pi'
                                  + '|pow|radians|sin|sinh|sqrt|tan|tanh|round', m)
-        calculate_stuff = eval(''.join(math_filter))
+        try:
+            calculate_stuff = eval(''.join(math_filter))
+        except NameError:
+            calculate_stuff = 0
         if len(str(calculate_stuff)) > 0:
             em = self.Embed.create(ctx, title="CollectorDevTeam Calculator",
                                    thumbnail=self.thumbnail,
                                    description='**Input**\n`{}`\n\n**Result**\n`{}`'.format(m, calculate_stuff))
             em.add_field(name="Type Math", value="Get Fun")
             await ctx.send(embed=em)
+        else:
+            await ctx.send("Hm, it looks like that wasn't a valid calculation")
 
     @commands.command(pass_context=True, aliases=['p2f', ], hidden=True)
     async def per2flat(self, ctx, per: float, ch_rating: int = 100):
