@@ -135,7 +135,7 @@ class Brownies(commands.Cog):
             if uid in guild_data:
                 await self.config.member_from_ids(guild_id, uid).clear()
 
-    @commands.group()
+    @commands.group(aliases=["setb"])
     @commands.admin()
     async def setbrownie(self, ctx):
         """Change the Brownie settings for your guild"""
@@ -156,7 +156,6 @@ class Brownies(commands.Cog):
     async def settings(self, ctx):
         """Get the settings for Brownie and Steal cooldown"""
         settings = await self.config.guild(ctx.guild).get_raw()
-        settings.pop("Players")
         embed = await self.default_embed(
             ctx, title=f"{ctx.guild.name} Settings", thumbnail=ctx.guild.icon_url
         )
