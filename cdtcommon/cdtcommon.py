@@ -125,7 +125,7 @@ class CdtCommon(commands.Cog):
         return members or None
 
     def _get_controls(self, list: list, export: bool = False):
-        controls = set()
+        controls = dict()
         if len(list) < 5:
             controls.update({
                 "<:arrowleft:735628703610044488>": menus.prev_page,
