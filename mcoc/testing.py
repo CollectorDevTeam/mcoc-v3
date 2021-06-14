@@ -1,6 +1,5 @@
-from redbot.core import Config
-from redbot.core import commands
 import discord
+from redbot.core import Config, commands
 
 from mcoc.cdtembed import Embed
 
@@ -10,8 +9,7 @@ class CdtTesting(commands.cog):
 
     def __init__(self):
         self.config = Config.get_conf(self, identifier=1000000000001)
-        self.config.register_global(
-        )
+        self.config.register_global()
 
     @commands.group(name="test", hidden=True)
     async def _test(self, ctx):

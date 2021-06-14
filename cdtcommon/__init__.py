@@ -1,6 +1,6 @@
+from .calculator import Calculator
 from .cdtcommon import CdtCommon
 from .fetch_data import FetchCdtData
-from .calculator import Calculator
 
 
 def setup(bot):
