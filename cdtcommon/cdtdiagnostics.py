@@ -5,6 +5,10 @@ class DIAGNOSTICS:
     def __init__(self, bot):
         self.bot = bot
 
+    async def emojilist(self, ctx, message):
+        emojis = message.reactions
+        msg = "``````"
+
     async def log(self, ctx, channel, msg=None):
         """Logs message to daignostics channel"""
         # package = self._log(ctx, msg)
