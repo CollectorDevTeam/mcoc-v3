@@ -8,6 +8,6 @@
     "short": "",
     "description": "Common Files",
     "tags": [],
-    "requirements": [],
+    "requirements": ["requests"],
     "hidden": true
 }
