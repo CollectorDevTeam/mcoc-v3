@@ -4,9 +4,10 @@ from typing import Optional
 import discord
 from redbot.core import checks, commands
 from redbot.core.config import Config
-from redbot.core.utils import chat_formatting, menus
+from redbot.core.utils import chat_formatting
 
 from .cdtembed import Embed
+from .cdt_menu import CDTPage, CDTMenu
 
 import logging
 
@@ -124,18 +125,8 @@ class CdtCommon(commands.Cog):
                 ret = "\n".join("{0.display_name}".format(m) for m in members)
             else:
                 ret = "\n".join("{0.name} [{0.id}]".format(m) for m in members)
-            for num, page in enumerate(chat_formatting.pagify(ret, page_length=200), 1):
-                data = await Embed.create(
-                    ctx,
-                    title="{0.name} Role - {1} member(s)".format(role, len(members)),
-                    description=page,
-                    footer_text=f"Page {num} | CDT Embed"
-                )
-                pages.append(data)
-            msg = await ctx.send(embed=pages[0])
-            if len(pages) > 1:
-                menus.start_adding_reactions(msg, self._get_controls())
-                await menus.menu(ctx=ctx, pages=pages, controls=self._get_controls(), message=msg)
+            source = CDTPage(list(pagify(ret, page_length=200)))
+            await CDTMenu(source).start(ctx)
         else:
             await ctx.send(f"I could not find any members with the role {role.name}.")
 
@@ -143,14 +134,6 @@ class CdtCommon(commands.Cog):
         """Given guild and role, return member list"""
         members = [m for m in guild.members if role in m.roles]
         return members or None
-
-    def _get_controls(self):
-        controls = {
-            "<:arrowleft:735628703610044488>": menus.prev_page,
-            "<:circlex:735628703530483814>": menus.close_menu,
-            "<:arrowright:735628703840600094>": menus.next_page,
-        }
-        return controls
 
     async def collectordevteam(self, ctx):
         """Verifies if calling user has either the trusted CollectorDevTeam role, or CollectorSupportTeam"""
