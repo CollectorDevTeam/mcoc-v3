@@ -7,6 +7,8 @@ from redbot.core.utils import chat_formatting, menus
 
 from .cdtembed import Embed
 
+from typing import Optional
+
 
 class CdtCommon(commands.Cog):
     """
@@ -94,10 +96,11 @@ class CdtCommon(commands.Cog):
             # menu = PagesMenu(self.bot, timeout=30, add_pageof=True)
             # await menu.menu_start(pages=pages)
 
-    @commands.command(pass_context=True, no_pm=True)
+    @commands.command()
+    @commands.guild_only()
     async def showtopic(self, ctx, channel: discord.TextChannel = None):
         """Show the Channel Topic in the chat channel as a CDT Embed."""
-        channel = channel or ...
+        channel = channel or ctx.channel
         topic = channel.topic
         if topic is not None and topic != "":
             data = self.Embed.create(
@@ -105,58 +108,44 @@ class CdtCommon(commands.Cog):
             )
             data.set_thumbnail(url=ctx.message.guild.icon_url)
             await ctx.send(embed=data)
+        else:
+            await ctx.send("That channel does not have a topic")
 
-    @commands.command(pass_context=True, name="list_members", aliases=("list_users",))
-    async def _users_by_role(self, ctx, role: discord.Role, use_alias=True):
-        """Embed a list of server users by Role"""
-        guild = ctx.message.guild
+    @commands.command(name='listmembers', aliases=('listusers', "roleroster", "rr"))
+    async def _users_by_role(self, ctx, use_alias: Optional[bool] = True, *, role: discord.Role):
+        '''Embed a list of server users by Role'''
+        guild = ctx.guild
         pages = []
-        members = self._list_users(ctx, role, ctx.message.guild)
+        members = self._list_users(ctx, role, guild)
         if members is not None:
             if use_alias is True:
                 ret = "\n".join("{0.display_name}".format(m) for m in members)
             else:
-                ret = "\n".join("{0.name} [{0.id}]".format(m) for m in members)
-            pagified = chat_formatting.pagify(ret)
-            # if use_alias:
-            #     ret = '\n'.join([m.display_name for m in members])
-            # else:
-            #     ret = '\n'.join([m.name for m in members])
-            for page in pagified:
-                data = self.Embed.create(
-                    ctx,
-                    title="{0.name} Role - {1} member(s)".format(role, len(members)),
-                    description=page,
-                )
+                ret = '\n'.join('{0.name} [{0.id}]'.format(m) for m in members)
+            for page in chat_formatting.pagify(ret):
+                data = self.Embed.create(ctx, title='{0.name} Role - {1} member(s)'.format(role, len(members)),
+                                         description=page)
                 pages.append(data)
             if len(pages) == 1:
                 await ctx.send(embed=data)
-            # elif len(pages) > 1:
-            #     await menus.menu(ctx=ctx, pages=pages, controls=self._get_controls(pages))
+            else:
+                await menus.menu(ctx=ctx, pages=pages, controls=self._get_controls(pages))
+        else:
+            await ctx.send(f"I could not find any members with the role {role.name}.")
 
     def _list_users(self, ctx, role: discord.Role, guild: discord.guild):
         """Given guild and role, return member list"""
-        members = []
-        for member in guild.members:
-            if role in member.roles:
-                members.append(member)
-        if len(members) > 0:
-            return members
-        else:
-            return None
+        members = [m for m in guild.members if role in m.roles]
+        return members or None
 
     def _get_controls(self, list: list, export: bool = False):
-        controls = {}
+        controls = dict()
         if len(list) < 5:
-            controls.update(
-                {
-                    # "<:arrowsleft:735628703824085004>" : menus.prev_page,
-                    "<:arrowleft:735628703610044488>": menus.prev_page,
-                    "<:circlex:735628703530483814>": menus.close_menu,
-                    "<:arrowright:735628703840600094>": menus.next_page
-                    # "<:arrowsright:735628703609913396>": menus.next_page
-                }
-            )
+            controls.update({
+                "<:arrowleft:735628703610044488>": menus.prev_page,
+                "<:circlex:735628703530483814>": menus.close_menu,
+                "<:arrowright:735628703840600094>": menus.next_page
+            })
         elif len(list) >= 5:
             controls.update(
                 {
