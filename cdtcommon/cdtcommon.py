@@ -127,7 +127,7 @@ class CdtCommon(commands.Cog):
             for num, page in enumerate(chat_formatting.pagify(ret, page_length=200), 1):
                 data = await Embed.create(
                     ctx,
-                    title="{0.name} Role - {1} member(s)".format(role, len(members)),
+                    title="{0.name} Role - {1} member{2}".format(role, len(members), "s" if not len(members) == 1 else ""),
                     description=page,
                     footer_text=f"Page {num} | CDT Embed"
                 )
