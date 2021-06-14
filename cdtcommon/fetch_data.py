@@ -1,8 +1,9 @@
 import discord
 import requests
-from .cdtembed import Embed
-from redbot.core import commands, checks
+from redbot.core import checks, commands
 from redbot.core.config import Config
+
+from .cdtembed import Embed
 
 files = {
     "bcg_en": "https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/json/snapshots/en/bcg_en.json",
@@ -24,7 +25,7 @@ default_global = {
     "cdt_masteries": {},
     "cdt_character_bios": {},
     "masteries": {},
-    "prestige": {}
+    "prestige": {},
 }
 
 remote_data_basepath = "https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/"
@@ -72,8 +73,9 @@ class FetchCdtData(commands.Cog):
 
     async def _fetch_cdt_translation_files(self, ctx, filename=None):
         """Pull translation files from CDT, store in global config"""
-        data = Embed.create(self, ctx,
-                            title="Retrieving [{}] CDT JSON files\n".format(len(files.keys())))
+        data = Embed.create(
+            self, ctx, title="Retrieving [{}] CDT JSON files\n".format(len(files.keys()))
+        )
         package = ""
         monitor = await ctx.send(embed=data)
         keycount = len(files.keys())
@@ -85,20 +87,22 @@ class FetchCdtData(commands.Cog):
                 r = requests.get(files[key])
                 raw_data = r.json()
                 if raw_data is None:
-                    data.add_field(
-                        name=key, value="{} has no data".format(key))
+                    data.add_field(name=key, value="{} has no data".format(key))
                 else:
                     field = data.add_field(
-                        name=key, value="0/{} completed".format(len(raw_data['strings'])))
+                        name=key, value="0/{} completed".format(len(raw_data["strings"]))
+                    )
                     counter = 0
-                    for dlist in raw_data['strings']:
-                        cdt_data.update({dlist['k']: dlist['v']})
+                    for dlist in raw_data["strings"]:
+                        cdt_data.update({dlist["k"]: dlist["v"]})
                         if "vn" in dlist:
-                            cdt_versions.update(
-                                {dlist['k']: dlist['vn']})
+                            cdt_versions.update({dlist["k"]: dlist["vn"]})
                         counter += 1
                         data.set_field_at(
-                            af, name=key, value="{}/{} completed".format(counter, len(raw_data['strings'])))
+                            af,
+                            name=key,
+                            value="{}/{} completed".format(counter, len(raw_data["strings"])),
+                        )
                     package += "\n{} stored".format(key)
                     data.description = package
                 af += 1
@@ -116,16 +120,19 @@ class FetchCdtData(commands.Cog):
                 data.add_field(name=key, value="{} has no data".format(key))
             else:
                 field = data.add_field(
-                    name=key, value="0/{} completed".format(len(raw_data['strings'])))
+                    name=key, value="0/{} completed".format(len(raw_data["strings"]))
+                )
                 counter = 0
-                for dlist in raw_data['strings']:
-                    fdata.update({dlist['k']: dlist['v']})
+                for dlist in raw_data["strings"]:
+                    fdata.update({dlist["k"]: dlist["v"]})
                     if "vn" in dlist:
-                        cdt_versions.update(
-                            {dlist['k']: dlist['vn']})
+                        cdt_versions.update({dlist["k"]: dlist["vn"]})
                     counter += 1
                     data.set_field_at(
-                        af, name=key, value="{}/{} completed".format(counter, len(raw_data['strings'])))
+                        af,
+                        name=key,
+                        value="{}/{} completed".format(counter, len(raw_data["strings"])),
+                    )
                 package += "\n{} stored".format(key)
                 data.description = package
                 async with self.conf.filename() as f:
@@ -137,14 +144,14 @@ class FetchCdtData(commands.Cog):
 
     async def _fetch_cdt_mastery_file(self, ctx, monitor=None):
         """Retrieve CDT Mastery Data"""
-        r = requests.get(remote_data_basepath+"json/masteries.json")
+        r = requests.get(remote_data_basepath + "json/masteries.json")
         if r is not None:
             raw_data = r.json()
             async with self.config.masteries() as m:
                 m.update(raw_data)
 
-    @ checks.is_owner()
-    @ commands.command(name="ftest")
+    @checks.is_owner()
+    @commands.command(name="ftest")
     async def _fetch_test(self, ctx, key="ID_UI_HERO_SYNERGY_DESC_MOJO_3"):
         data = Embed.create(self, ctx, title="Fetch Test", description="")
         async with self.config.cdt_data() as cd:
