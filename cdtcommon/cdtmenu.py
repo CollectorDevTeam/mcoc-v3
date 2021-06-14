@@ -14,18 +14,18 @@ emojis = (
 
 
 class CDTPage(menus.ListPageSource):
-    def __init__(self, pages: list):
+    def __init__(self, pages: list, title: str):
         super().__init__(pages, per_page=1)
+        self.title = f"CDT Menu | {title}"
 
     def is_paginating(self) -> bool:
         return True
 
     async def format_page(self, menu: menus.MenuPages, page: str):
         footer = f"Page {menu.current_page + 1}/{self.get_max_pages()}"
-        title = "CDT Menu"
         if await menu.ctx.embed_requested():
-            return await Embed.create(menu.ctx, title=title, description=page, footer_text=footer)
-        return f"{title}\n\n{page}\n{footer}"
+            return await Embed.create(menu.ctx, title=self.title, description=page, footer_text=footer)
+        return f"{self.title}\n\n{page}\n{footer}"
 
 
 class CDTMenu(menus.MenuPages, inherit_buttons=False):
