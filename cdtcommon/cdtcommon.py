@@ -125,7 +125,7 @@ class CdtCommon(commands.Cog):
                 ret = "\n".join("{0.display_name}".format(m) for m in members)
             else:
                 ret = "\n".join("{0.name} [{0.id}]".format(m) for m in members)
-            source = CDTPage(list(pagify(ret, page_length=200)))
+            source = CDTPage(list(chat_formatting.pagify(ret, page_length=200)))
             await CDTMenu(source).start(ctx)
         else:
             await ctx.send(f"I could not find any members with the role {role.name}.")
