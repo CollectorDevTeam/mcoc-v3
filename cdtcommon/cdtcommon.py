@@ -133,7 +133,6 @@ class CdtCommon(commands.Cog):
                 )
                 pages.append(data)
             msg = await ctx.send(embed=pages[0])
-            log.info(len(pages))
             if len(pages) > 1:
                 menus.start_adding_reactions(msg, self._get_controls())
                 await menus.menu(ctx=ctx, pages=pages, controls=self._get_controls(), message=msg)
