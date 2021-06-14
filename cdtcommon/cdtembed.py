@@ -1,9 +1,8 @@
-import discord
-import aiohttp
-
-from redbot.core.commands import Context
-
 import logging
+
+import aiohttp
+import discord
+from redbot.core.commands import Context
 
 log = logging.getLogger("red.CollectorDevTeam.cdtembed")
 
@@ -20,7 +19,7 @@ class Embed:
         image: str = None,
         thumbnail: str = None,
         url: str = None,
-        footer_text:str = None,
+        footer_text: str = None,
         footer_url: str = None,
         author_text: str = None,
     ) -> discord.Embed:
@@ -49,9 +48,7 @@ class Embed:
         data = discord.Embed(color=color, title=title, url=url)
         if description and len(description) < 2048:
             data.description = description
-        data.set_author(
-            name=ctx.author.display_name, icon_url=ctx.author.avatar_url
-        )
+        data.set_author(name=ctx.author.display_name, icon_url=ctx.author.avatar_url)
         if image:
             async with client.get(image) as re:
                 if re.status != 200:

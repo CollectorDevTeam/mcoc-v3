@@ -1,16 +1,15 @@
 import json
+import logging
 import random
 
 import aiohttp
 import discord
 from redbot.core import checks, commands
 from redbot.core.config import Config
-import logging
 
 log = logging.getLogger("red.CollectorDevTeam.dadjokes")
-CDT_LOGO = (
-    "https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/cdt_logo.png"
-)
+CDT_LOGO = "https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/cdt_logo.png"
+
 
 class DadJokes(commands.Cog):
     """Random dad jokes from icanhazdadjoke.com"""
@@ -43,9 +42,7 @@ class DadJokes(commands.Cog):
         image_url = random.choice(self.dadjoke_images)
         kwargs = {"content": f"{image_url}\n\n{joke}"}
         if await ctx.embed_requested():
-            data = self.create(
-                ctx, title="CollectorVerse Dad Jokes:sparkles:", description=joke
-            )
+            data = self.create(ctx, title="CollectorVerse Dad Jokes:sparkles:", description=joke)
             data.set_author
             data.set_image(url=random.choice(self.dadjoke_images))
 
@@ -88,8 +85,7 @@ class DadJokes(commands.Cog):
 
         if (
             isinstance(ctx.message.channel, discord.abc.GuildChannel)
-            and
-            str(ctx.author.colour) != "#000000"
+            and str(ctx.author.colour) != "#000000"
         ):
             color = ctx.author.colour
         if url is None:
@@ -98,9 +94,7 @@ class DadJokes(commands.Cog):
         if description is not None:
             if len(description) < 1500:
                 data.description = description
-        data.set_author(
-            name=ctx.author.display_name, icon_url=ctx.author.avatar_url
-        )
+        data.set_author(name=ctx.author.display_name, icon_url=ctx.author.avatar_url)
         if image:
             async with self.session.get(image) as re:
                 if re.status == 200:
@@ -124,7 +118,6 @@ class DadJokes(commands.Cog):
             footer_url = CDT_LOGO
         data.set_footer(text=footer_text, icon_url=footer_url)
         return data
-
 
 
 def setup(bot):

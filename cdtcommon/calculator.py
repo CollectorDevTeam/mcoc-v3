@@ -14,7 +14,6 @@ class Calculator(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
-        self.Embed = Embed(self)
         self.thumbnail = "https://www.ebuyer.com/blog/wp-content/uploads/2014/07/buttons-on-a-calculator-header1.jpg"
 
     @commands.command(pass_context=True, name="calculator", aliases=("calc",))
@@ -34,7 +33,7 @@ class Calculator(commands.Cog):
         )
         calculate_stuff = eval("".join(math_filter))
         if len(str(calculate_stuff)) > 0:
-            em = self.Embed.create(
+            em = await Embed.create(
                 ctx,
                 title="CollectorDevTeam Calculator",
                 thumbnail=self.thumbnail,
@@ -44,7 +43,6 @@ class Calculator(commands.Cog):
             await ctx.send(embed=em)
 
     @commands.command(
-        pass_context=True,
         aliases=[
             "p2f",
         ],
@@ -76,7 +74,7 @@ class Calculator(commands.Cog):
         )
         flat_val = eval("".join(math_filter))
         p = CdtCommon.from_flat(flat_val, challenger_rating)
-        em = self.Embed.create(
+        em = await Embed.create(
             ctx,
             color=discord.Color.gold(),
             title="FlatValue:",
@@ -86,13 +84,15 @@ class Calculator(commands.Cog):
         em.add_field(name="Percentage:", value="{}\%".format(p))
         await ctx.send(embed=em)
 
-    @commands.command(pass_context=True, aliases=["compf", "cfrac"], hidden=True)
+    @commands.command(aliases=["compf", "cfrac"], hidden=True)
     async def compound_frac(self, ctx, base: float, exp: int):
+        # On second thought, I'm not gonna touch this
+        # - Jojo
         """Calculate multiplicative compounded fractions"""
         if base > 1:
             base = base / 100
         compound = 1 - (1 - base) ** exp
-        em = self.Embed.create(
+        em = await Embed.create(
             ctx,
             color=discord.Color.gold(),
             title="Compounded Fractions",

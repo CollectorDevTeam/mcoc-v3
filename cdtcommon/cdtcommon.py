@@ -1,4 +1,5 @@
 import random
+from typing import Optional
 
 import discord
 from redbot.core import checks, commands
@@ -7,8 +8,9 @@ from redbot.core.utils import chat_formatting, menus
 
 from .cdtembed import Embed
 
-from typing import Optional
+import logging
 
+log = logging.getLogger("red.CollectorDevTeam.cdtcommon")
 
 class CdtCommon(commands.Cog):
     """
@@ -111,25 +113,30 @@ class CdtCommon(commands.Cog):
         else:
             await ctx.send("That channel does not have a topic")
 
-    @commands.command(name='listmembers', aliases=('listusers', "roleroster", "rr"))
+    @commands.command(name="listmembers", aliases=("listusers", "roleroster", "rr"))
     async def _users_by_role(self, ctx, use_alias: Optional[bool] = True, *, role: discord.Role):
-        '''Embed a list of server users by Role'''
+        """Embed a list of server users by Role"""
         guild = ctx.guild
         pages = []
         members = self._list_users(ctx, role, guild)
-        if members is not None:
-            if use_alias is True:
+        if members:
+            if use_alias:
                 ret = "\n".join("{0.display_name}".format(m) for m in members)
             else:
-                ret = '\n'.join('{0.name} [{0.id}]'.format(m) for m in members)
-            for page in chat_formatting.pagify(ret):
-                data = self.Embed.create(ctx, title='{0.name} Role - {1} member(s)'.format(role, len(members)),
-                                         description=page)
+                ret = "\n".join("{0.name} [{0.id}]".format(m) for m in members)
+            for num, page in enumerate(chat_formatting.pagify(ret, page_length=200), 1):
+                data = await Embed.create(
+                    ctx,
+                    title="{0.name} Role - {1} member(s)".format(role, len(members)),
+                    description=page,
+                    footer_text=f"Page {num} | CDT Embed"
+                )
                 pages.append(data)
-            if len(pages) == 1:
-                await ctx.send(embed=data)
-            else:
-                await menus.menu(ctx=ctx, pages=pages, controls=self._get_controls(pages))
+            msg = await ctx.send(embed=pages[0])
+            log.info(len(pages))
+            if len(pages) > 1:
+                menus.start_adding_reactions(msg, self._get_controls())
+                await menus.menu(ctx=ctx, pages=pages, controls=self._get_controls(), message=msg)
         else:
             await ctx.send(f"I could not find any members with the role {role.name}.")
 
@@ -138,26 +145,12 @@ class CdtCommon(commands.Cog):
         members = [m for m in guild.members if role in m.roles]
         return members or None
 
-    def _get_controls(self, list: list, export: bool = False):
-        controls = dict()
-        if len(list) < 5:
-            controls.update({
-                "<:arrowleft:735628703610044488>": menus.prev_page,
-                "<:circlex:735628703530483814>": menus.close_menu,
-                "<:arrowright:735628703840600094>": menus.next_page
-            })
-        elif len(list) >= 5:
-            controls.update(
-                {
-                    "<:arrowsleft:735628703824085004>": menus.prev_page,
-                    "<:arrowleft:735628703610044488>": menus.prev_page,
-                    "<:circlex:735628703530483814>": menus.close_menu,
-                    "<:arrowright:735628703840600094>": menus.next_page,
-                    "<:arrowsright:735628703609913396>": menus.next_page,
-                }
-            )
-        if export is True:
-            controls.update({"<:slow:735197282206482502>": close_menu})
+    def _get_controls(self):
+        controls = {
+            "<:arrowleft:735628703610044488>": menus.prev_page,
+            "<:circlex:735628703530483814>": menus.close_menu,
+            "<:arrowright:735628703840600094>": menus.next_page,
+        }
         return controls
 
     async def collectordevteam(self, ctx):
@@ -211,10 +204,12 @@ class CdtCommon(commands.Cog):
                 print("User is not CollectorSupportTeam")
                 return False
 
+    @staticmethod
     def from_flat(flat, ch_rating):
         denom = 5 * ch_rating + 1500 + flat
         return round(100 * flat / denom, 2)
 
+    @staticmethod
     def to_flat(per, ch_rating):
         num = (5 * ch_rating + 1500) * per
         return round(num / (100 - per), 2)
