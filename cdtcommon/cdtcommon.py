@@ -127,7 +127,7 @@ class CdtCommon(commands.Cog):
             for num, page in enumerate(chat_formatting.pagify(ret, page_length=200), 1):
                 data = await Embed.create(
                     ctx,
-                    title="{0.name} Role - {1} member(s)".format(role, len(members)),
+                    title="{0.name} Role - {1} member{2}".format(role, len(members), "s" if not len(members) == 1 else ""),
                     description=page,
                     footer_text=f"Page {num} | CDT Embed"
                 )
@@ -146,9 +146,12 @@ class CdtCommon(commands.Cog):
 
     def _get_controls(self):
         controls = {
-            "<:arrowleft:735628703610044488>": menus.prev_page,
-            "<:circlex:735628703530483814>": menus.close_menu,
-            "<:arrowright:735628703840600094>": menus.next_page,
+            # "<:arrowleft:735628703610044488>": menus.prev_page,
+            # "<:circlex:735628703530483814>": menus.close_menu,
+            # "<:arrowright:735628703840600094>": menus.next_page,
+            "◀️": menus.prev_page,
+            "❌": menus.close_menu,
+            "▶️": menus.next_page,
         }
         return controls
 

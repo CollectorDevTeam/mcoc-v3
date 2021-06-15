@@ -41,10 +41,9 @@ class DadJokes(commands.Cog):
         joke = await self.get_joke()
         image_url = random.choice(self.dadjoke_images)
         kwargs = {"content": f"{image_url}\n\n{joke}"}
-        if await ctx.embed_requested():
-            data = self.create(ctx, title="CollectorVerse Dad Jokes:sparkles:", description=joke)
-            data.set_author
-            data.set_image(url=random.choice(self.dadjoke_images))
+        #if await ctx.embed_requested():
+        data = await self.create(ctx, title="CollectorVerse Dad Jokes:sparkles:", description=joke)
+ #           data.set_author
 
         await ctx.send(embed=data)
 
@@ -111,6 +110,7 @@ class DadJokes(commands.Cog):
         else:
             thumbnail = CDT_LOGO
         data.set_thumbnail(url=thumbnail)
+        data.set_image(url=random.choice(self.dadjoke_images))
 
         if not footer_text:
             footer_text = "Collector | Contest of Champions | CollectorDevTeam"
