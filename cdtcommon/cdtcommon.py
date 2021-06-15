@@ -146,9 +146,12 @@ class CdtCommon(commands.Cog):
 
     def _get_controls(self):
         controls = {
-            "<:arrowleft:735628703610044488>": menus.prev_page,
-            "<:circlex:735628703530483814>": menus.close_menu,
-            "<:arrowright:735628703840600094>": menus.next_page,
+            # "<:arrowleft:735628703610044488>": menus.prev_page,
+            # "<:circlex:735628703530483814>": menus.close_menu,
+            # "<:arrowright:735628703840600094>": menus.next_page,
+            "◀️": menus.prev_page,
+            "❌": menus.close_menu,
+            "▶️": menus.next_page,
         }
         return controls
 
