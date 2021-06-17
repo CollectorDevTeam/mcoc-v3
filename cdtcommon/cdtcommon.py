@@ -105,7 +105,7 @@ class CdtCommon(commands.Cog):
         channel = channel or ctx.channel
         topic = channel.topic
         if topic is not None and topic != "":
-            data = self.Embed.create(
+            data = await Embed.create(
                 ctx, title="#{} Topic :sparkles:".format(channel.name), description=topic
             )
             data.set_thumbnail(url=ctx.message.guild.icon_url)
