@@ -21,7 +21,6 @@ class Embed:
         url: str = None,
         footer_text: str = "Collector | Contest of Champions | CollectorDevTeam",
         footer_url: str = "https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/cdt_logo.png",
-        author : discord.User = None,
     ) -> discord.Embed:
         """Return a color styled embed with CDT footer, and optional title or description.
         user_id = user id string. If none provided, takes message author.
@@ -48,9 +47,8 @@ class Embed:
         data = discord.Embed(color=color, title=title, url=url)
         if description and len(description) < 2048:
             data.description = description
-        if author is not None:
-            data.set_author(name=ctx.author.display_name,
-                            icon_url=ctx.author.avatar_url)
+        data.set_author(name=ctx.author.display_name,
+                        icon_url=ctx.author.avatar_url)
         if image:
             async with client.get(image) as re:
                 if re.status != 200:
@@ -66,10 +64,6 @@ class Embed:
                     log.info(f"Attempted URL:\n{thumbnail}")
                     thumbnail = CDT_LOGO
         data.set_thumbnail(url=thumbnail)
-        # if not footer_text:
-        #     footer_text = "Collector | Contest of Champions | CollectorDevTeam"
-        # if not footer_url:
-        #     footer_url = "https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/cdt_logo.png"
         data.set_footer(text=footer_text, icon_url=footer_url)
         await client.close()
         return data

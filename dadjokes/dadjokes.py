@@ -45,9 +45,7 @@ class DadJokes(commands.Cog):
         image = random.choice(self.dadjoke_images)
         kwargs = {"content": f"{image}\n\n{joke}"}
         #if await ctx.embed_requested():
-        data = await Embed.create(ctx, title="CollectorVerse Dad Jokes:sparkles:", description=joke, author=author, image=image)
- #           data.set_author
-
+        data = await Embed.create(ctx, title="CollectorVerse Dad Jokes:sparkles:", description=joke, image=image, footer_text="Dad Jokes | CollectorDevTeam")
         await ctx.send(embed=data)
 
     async def get_joke(self):
