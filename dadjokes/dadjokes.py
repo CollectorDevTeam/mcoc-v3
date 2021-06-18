@@ -1,6 +1,9 @@
+
 import json
 import logging
 import random
+from cdtcommon.cdtdiagnostics import DIAGNOSTICS
+from cdtcommon.cdtembed import Embed
 
 import aiohttp
 import discord
@@ -16,7 +19,7 @@ class DadJokes(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
-        # self.diagnostics = DIAGNOSTICS(self.bot)
+        self.diagnostics = DIAGNOSTICS(self.bot)
         self.dadjoke_images = [
             "https://cdn.discordapp.com/attachments/391330316662341632/725045045794832424/collector_dadjokes.png",
             "https://cdn.discordapp.com/attachments/391330316662341632/725054700457689210/dadjokes2.png",
@@ -42,7 +45,7 @@ class DadJokes(commands.Cog):
         image_url = random.choice(self.dadjoke_images)
         kwargs = {"content": f"{image_url}\n\n{joke}"}
         #if await ctx.embed_requested():
-        data = await self.create(ctx, title="CollectorVerse Dad Jokes:sparkles:", description=joke)
+        data = await self.create(ctx, title="CollectorVerse Dad Jokes:sparkles:", description=joke, author=author)
  #           data.set_author
 
         await ctx.send(embed=data)
