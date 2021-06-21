@@ -185,7 +185,8 @@ class CdtCommon(commands.Cog):
     def check_collectorsupportteam(self, ctx, user=None):
         """Checks if User is in CollectorSupportTeam"""
         # cdtguild = self.bot.get_guild(215271081517383682)
-        role = discord.utils.get(self.cdtguild.roles, id=390253719125622807)
+        # role = discord.utils.get(cdtguild.roles, id=390253719125622807)
+        role = self.cdtguild.get_role(role_id=390253719125622807)
         print("CST role found")
         if user is None:
             user = ctx.message.author
