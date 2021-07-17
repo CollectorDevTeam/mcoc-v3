@@ -21,10 +21,10 @@ class DadJokes(commands.Cog):
         self.bot = bot
         self.diagnostics = DIAGNOSTICS(self.bot)
         self.dadjoke_images = [
-            "https://cdn.discordapp.com/attachments/391330316662341632/725045045794832424/collector_dadjokes.png",
-            "https://cdn.discordapp.com/attachments/391330316662341632/725054700457689210/dadjokes2.png",
-            "https://cdn.discordapp.com/attachments/391330316662341632/725055822023098398/dadjokes3.png",
-            "https://cdn.discordapp.com/attachments/391330316662341632/725056025404637214/dadjokes4.png",
+            "https://cdn.discordapp.com/attachments/391330316662341632/865785748979187732/dadjoke1.png",
+            "https://cdn.discordapp.com/attachments/391330316662341632/865785751853727754/dadjoke2.png",
+            "https://cdn.discordapp.com/attachments/391330316662341632/865785754055082004/dadjoke3.png",
+            "https://cdn.discordapp.com/attachments/391330316662341632/865785756399042600/dadjoke4.png",
         ]
         self.session = aiohttp.ClientSession()
 
