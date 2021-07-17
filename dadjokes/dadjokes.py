@@ -25,6 +25,10 @@ class DadJokes(commands.Cog):
             "https://cdn.discordapp.com/attachments/391330316662341632/865785751853727754/dadjoke2.png",
             "https://cdn.discordapp.com/attachments/391330316662341632/865785754055082004/dadjoke3.png",
             "https://cdn.discordapp.com/attachments/391330316662341632/865785756399042600/dadjoke4.png",
+            "https://cdn.discordapp.com/attachments/391330316662341632/865819301326880768/dadjoke5.png",
+            "https://cdn.discordapp.com/attachments/391330316662341632/865819305693675541/dadjoke6.png",
+            "https://cdn.discordapp.com/attachments/391330316662341632/865819308731138109/dadjoke7.png"
+            
         ]
         self.session = aiohttp.ClientSession()
 
