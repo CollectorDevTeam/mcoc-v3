@@ -10,7 +10,7 @@ from datetime import datetime
 from contextlib import suppress
 
 from .abc import AllianceMeta
-from .validator import *
+from .validator import Validator
 
 import logging
 
@@ -39,7 +39,7 @@ def officer_check():
             return False
         if ctx.guild.owner == ctx.author:
             return True
-        officer_role = await ctx.cog.guild(ctx.guild).officers()
+        officer_role = await ctx.cog.config.guild(ctx.guild).officers()
         if officer_role is None:
             return False
         return officer_role in [r.id for r in ctx.author.roles]
