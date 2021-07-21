@@ -195,34 +195,34 @@ class Alliance(Validator, commands.Cog, metaclass=AllianceMeta):
         await ctx.send("cdt check {0}.\ncst check {1}.\nguildies check {2}.\nfam check {3}.".format(cdt, cst, guildies, fam))
 
 
-    @alliance.command(name="add", aliases=["create"])
-    @commands.guild_only()
-    @commands.guildowner_or_permissions(administrator=True)
-    async def alliance_add(self, ctx: commands.Context, *, alliance_role: discord.Role, officer_role: discord.Role, name: str):
-        """Create an alliance guild.
-        An Alliance Role is required to create an alliance.
-        An Officer Role is required to create an alliance.
-        Only Guild Owners or Administrators may create an alliance.
-        Only Alliance Officers may edit properties of an alliance.
+    # @alliance.command(name="add", aliases=["create"])
+    # @commands.guild_only()
+    # @commands.guildowner_or_permissions(administrator=True)
+    # async def alliance_add(self, ctx: commands.Context, *, alliance_role: discord.Role, officer_role: discord.Role, name: str):
+    #     """Create an alliance guild.
+    #     An Alliance Role is required to create an alliance.
+    #     An Officer Role is required to create an alliance.
+    #     Only Guild Owners or Administrators may create an alliance.
+    #     Only Alliance Officers may edit properties of an alliance.
 
-        """
+    #     """
 
-        # if alliance_role is None:
-            # prompt for alliance_role
+    #     # if alliance_role is None:
+    #         # prompt for alliance_role
 
-        # if officer_role is None:
-            # prompt for officer_role
+    #     # if officer_role is None:
+    #         # prompt for officer_role
 
-        if await alliance_role.id in self.config.guild(ctx.guild).alliances():
-            return await ctx.send("Alliance with id {} is already registered.".format(alliance_role.id))
-        await self.config.guild(ctx.guild).register_custom(**_config_structure["alliance"], alliance_role.id)
-        await self.config.guild(ctx.guild).alliances(alliance_role.id).members.set(alliance_role.id)
-        if officer_role is not None:
-            await self.config.guild(ctx.guild).alliances(alliance_role.id).officers.set(officer_role.id)
-        else:
-            for r in ctx.guild.roles:
-                if r.name is "officers" or r.name is "Officers":
-                    await confirm_role
+    #     if await alliance_role.id in self.config.guild(ctx.guild).alliances():
+    #         return await ctx.send("Alliance with id {} is already registered.".format(alliance_role.id))
+    #     await self.config.guild(ctx.guild).register_custom(**_config_structure["alliance"], alliance_role.id)
+    #     await self.config.guild(ctx.guild).alliances(alliance_role.id).members.set(alliance_role.id)
+    #     if officer_role is not None:
+    #         await self.config.guild(ctx.guild).alliances(alliance_role.id).officers.set(officer_role.id)
+    #     else:
+    #         for r in ctx.guild.roles:
+    #             if r.name is "officers" or r.name is "Officers":
+    #                 await confirm_role
         
         # Jojo's code, bypassing
         # if await self.config.guild(ctx.guild).registered():
