@@ -184,7 +184,7 @@ class Alliance(Validator, commands.Cog, metaclass=AllianceMeta):
             kwargs = {"embed": embed}
         await ctx.send(**kwargs)
 
-    @commands.command(hidden=True, aliases=("atest"))
+    @commands.command(hidden=True, aliases=("atest",))
     async def alliance_test(self, ctx):
         """validate cdt check & tattletales"""
         await self.send("initiating alliance test")
