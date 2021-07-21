@@ -1,5 +1,6 @@
 import aiohttp
 import discord
+from cdtcommon.cdtcommon import CdtCommon as cdtcommon
 
 from redbot.core import commands, Config
 from redbot.core.bot import Red
@@ -17,7 +18,12 @@ import logging
 
 _config_structure = {
     "guild": {
+        "alliances" : {},  
+    },
+    "alliance": {
+        "guild_id": None, #int guild id
         "name": None, # str
+        "tag" : None, # str
         "officers": None, # int For the role id
         "members": None, # int For the role id
         "poster": None, # str An image link, NOTE use aiohttp for this
@@ -25,10 +31,6 @@ _config_structure = {
         "registered": False,
         "creation_date": None,
         "invite_url": None,
-    },
-    "user": {
-        "alliance_guild": None, # int For the guild id
-        "in_alliance": False,
     }
 }
 
@@ -55,9 +57,10 @@ class Alliance(Validator, commands.Cog, metaclass=AllianceMeta):
         self.config.register_guild(
             **_config_structure["guild"]
         )
-        self.config.register_user(
-            **_config_structure["user"]
-        )
+        # self.config.register_user(
+        #     **_config_structure["user"]
+        # )
+        self.config
         self.session = aiohttp.ClientSession()
         with suppress(RuntimeError):
             self.bot.add_dev_env_value("alliance", lambda x: self)
@@ -116,34 +119,34 @@ class Alliance(Validator, commands.Cog, metaclass=AllianceMeta):
 
         await ctx.send(**kwargs)
 
-    @alliance.command(name="join")
-    @commands.guild_only()
-    async def alliance_join(self, ctx: commands.Context):
-        """Join an alliance"""
-        data = await self.config.user(ctx.author).all()
-        guild_data = await self.config.guild(ctx.guild).all()
-        if not guild_data.get("registered"):
-            return await ctx.send("This guild has not registered as an alliance")
+    # @alliance.command(name="join")
+    # @commands.guild_only()
+    # async def alliance_join(self, ctx: commands.Context):
+    #     """Join an alliance"""
+    #     data = await self.config.user(ctx.author).all()
+    #     guild_data = await self.config.guild(ctx.guild).all()
+    #     if not guild_data.get("registered"):
+    #         return await ctx.send("This guild has not registered as an alliance")
 
-        maybe_role = guild_data.get("members")
-        maybe_officer_role = guild_data.get("officers")
+    #     maybe_role = guild_data.get("members")
+    #     maybe_officer_role = guild_data.get("officers")
 
-        if not maybe_role and not maybe_officer_role:
-            return await ctx.send("This guild does not have a member role set up")
+    #     if not maybe_role and not maybe_officer_role:
+    #         return await ctx.send("This guild does not have a member role set up")
 
-        officer_role = ctx.guild.get_role(maybe_officer_role)
-        member_role = ctx.guild.get_role(maybe_role)
+    #     officer_role = ctx.guild.get_role(maybe_officer_role)
+    #     member_role = ctx.guild.get_role(maybe_role)
 
-        if officer_role and officer_role in ctx.author.roles:
-            status = "an Officer"
-        elif member_role and member_role in ctx.author.roles:
-            status = "a Member"
-        else:
-            return await ctx.send("You are not a part of this alliance! Ask a staff member to add a role to you")
+    #     if officer_role and officer_role in ctx.author.roles:
+    #         status = "an Officer"
+    #     elif member_role and member_role in ctx.author.roles:
+    #         status = "a Member"
+    #     else:
+    #         return await ctx.send("You are not a part of this alliance! Ask a staff member to add a role to you")
 
-        await ctx.send(f"You have joined {guild_data['name']} as {status}")
-        await self.config.user(ctx.author).in_alliance.set(True)
-        await self.config.user(ctx.author).alliance_guild.set(ctx.guild.id)
+    #     await ctx.send(f"You have joined {guild_data['name']} as {status}")
+    #     await self.config.user(ctx.author).in_alliance.set(True)
+    #     await self.config.user(ctx.author).alliance_guild.set(ctx.guild.id)
 
     @alliance.command(name="template")
     async def alliance_template(self, ctx: commands.Context):
@@ -162,7 +165,7 @@ class Alliance(Validator, commands.Cog, metaclass=AllianceMeta):
         msg = (
             f"1. Use the {cdt_template} to create a new server\n"
             f"2. Invite Collector using `{ctx.clean_prefix}invite`\n"
-            f"3. Add announcements to #announcements with `{ctx.clean_prefix}announceset channel announcements`\n"
+            f"3. Add announcements to #announcements with `{ctx.clean_prefix}announceset channel announcements`\n
             f"4. Use `{ctx.clean_prefix}alliance create` to register your alliance with Collector.\n"
             f"5. Visit the {cdt_invite} to get support"
         )
@@ -181,106 +184,141 @@ class Alliance(Validator, commands.Cog, metaclass=AllianceMeta):
             kwargs = {"embed": embed}
         await ctx.send(**kwargs)
 
+    @commands.command(hidden=True)
+    async def alliance_test(self, ctx):
+        """validate cdt check & tattletales"""
+        cdt = await cdtcommon.check_collectordevteam(self, ctx)
+        cst = await cdtcommon.check_collectorsupportteam(self, ctx)
+        guildies = await cdtcommon.check_guildowners(self, ctx)
+        fam = await cdtcommon.check_familyowners(self, ctx)
+        await ctx.send("cdt check {0}.\ncst check {1}.\nguildies check {2}.\nfam check {3}.".format(cdt, cst, guildies, fam))
+
+
     @alliance.command(name="add", aliases=["create"])
     @commands.guild_only()
-    @commands.admin_or_permissions(administrator=True)
-    async def alliance_add(self, ctx: commands.Context, *, name: str):
-        """Set this guild as an alliance guild"""
-        if await self.config.guild(ctx.guild).registered():
-            return await ctx.send("This guild is already registered!")
-        elif len(name) > 50:
-            return await ctx.send("Alliance names cannot be longer than 50 characters")
-        await self.config.guild(ctx.guild).registered.set(True)
-        await self.config.guild(ctx.guild).name.set(name)
-        await ctx.send(
-            f"Your alliance is now registered with CDT. Use `{ctx.clean_prefix}alliance settings` to setup your alliance"
-        )
+    @commands.guildowner_or_permissions(administrator=True)
+    async def alliance_add(self, ctx: commands.Context, *, alliance_role: discord.Role, officer_role: discord.Role, name: str):
+        """Create an alliance guild.
+        An Alliance Role is required to create an alliance.
+        An Officer Role is required to create an alliance.
+        Only Guild Owners or Administrators may create an alliance.
+        Only Alliance Officers may edit properties of an alliance.
 
-    @commands.group(name="alliancesettings", aliases=["allianceset"])
-    @commands.guild_only()
-    @officer_check()
-    async def alliance_settings(self, ctx: commands.Context):
-        """Commands for setting up your alliance"""
-        pass
+        """
 
-    @alliance_settings.command(name="name")
-    async def alliance_name(self, ctx: commands.Context, *, name: str):
-        """Set the name of your alliance"""
-        if not await self.config.guild(ctx.guild).registered():
-            return await ctx.send(
-                f"Your guild is not registered with CDT! Use `{ctx.clean_prefix}alliance add` to create one"
-            )
-        await self.config.guild(ctx.guild).name.set(name)
-        await ctx.send(f"Your alliance's name is now `{name}`")
+        # if alliance_role is None:
+            # prompt for alliance_role
 
-    @alliance_settings.command(name="members", aliases=["member"])
-    async def alliance_members(self, ctx: commands.Context, role: discord.Role):
-        """Set a role as the members role"""
-        data = await self.config.guild(ctx.guild).all()
-        old_role = data["members"]
-        allowed_mentions = discord.AllowedMentions(roles=False)
-        if not data["registered"]:
-            return await ctx.send("This guild is not registered!")
-        elif old_role is not None and ctx.guild.get_role(old_role) == role:
-            return await ctx.send(
-                f"The members role is already `{role.name}`"
-            )
-        await ctx.send(f"The members role is now `{role.name}`")
-        await self.config.guild(ctx.guild).members.set(role.id)
+        # if officer_role is None:
+            # prompt for officer_role
 
-    @alliance_settings.command(name="officers", aliases=["officer"])
-    @commands.guildowner()
-    async def alliance_officers(self, ctx: commands.Context, role: discord.Role):
-        """Set a role as the officers role"""
-
-        data = await self.config.guild(ctx.guild).all()
-        old_role = data["officers"]
-        if not data["registered"]:
-            return await ctx.send("This guild is not registered!")
-        elif old_role is not None and ctx.guild.get_role(old_role) == role:
-            return await ctx.send(f"The officers role is already `{role.name}`")
-        await ctx.send(f"The officers role is now `{role.name}`")
-        await self.config.guild(ctx.guild).officers.set(role.id)
-
-    @alliance_settings.command(name="founded")
-    async def alliance_created_at(self, ctx: commands.Context, month: int, day: int, year: int):
-        """Set the time your alliance was founded at"""
-        if not await self.config.guild(ctx.guild).registered():
-            return await ctx.send("This guild is not registered")
-        try:
-            date = datetime(year, month, day).timestamp() # grab the timestamp
-        except ValueError:
-            return await ctx.send("That was an invalid date!")
-        await ctx.send(f"I have set the creation date of your alliance to <t:{int(date)}:d>")
-        await self.config.guild(ctx.guild).creation_date.set(date)
-
-    @alliance_settings.command(name="summary")
-    async def alliance_summary(self, ctx: commands.Context, *, summary: str):
-        """Set the summary of your alliance"""
-        if not await self.config.guild(ctx.guild).registered():
-            return await ctx.send("This guild is not registered")
-        await self.config.guild(ctx.guild).summary.set(summary)
-        await ctx.send("Done. That is now your summary")
-
-    @alliance_settings.command(name="poster")
-    async def alliance_poster(self, ctx: commands.Context, url: str):
-        """Set the poster for your alliance"""
-        if not await self.config.guild(ctx.guild).registered():
-            return await ctx.send("This guild is not registered")
-        try:
-            url = await self._validate_url(url)
-        except BadImage as e:
-            return await ctx.send(e.args[0])
+        if await alliance_role.id in self.config.guild(ctx.guild).alliances():
+            return await ctx.send("Alliance with id {} is already registered.".format(alliance_role.id))
+        await self.config.guild(ctx.guild).register_custom(**_config_structure["alliance"], alliance_role.id)
+        await self.config.guild(ctx.guild).alliances(alliance_role.id).members.set(alliance_role.id)
+        if officer_role is not None:
+            await self.config.guild(ctx.guild).alliances(alliance_role.id).officers.set(officer_role.id)
         else:
-            if not url:
-                return await ctx.send("That url was not valid!")
-        await ctx.send("Done. Set that as your poster")
-        await self.config.guild(ctx.guild).poster.set(url)
+            for r in ctx.guild.roles:
+                if r.name is "officers" or r.name is "Officers":
+                    await confirm_role
+        
+        # Jojo's code, bypassing
+        # if await self.config.guild(ctx.guild).registered():
+        #     return await ctx.send("This guild is already registered!")
+        # elif len(name) > 50:
+        #     return await ctx.send("Alliance names cannot be longer than 50 characters")
+        # await self.config.guild(ctx.guild).registered.set(True)
+        # await self.config.guild(ctx.guild).name.set(name)
+        # await ctx.send(
+        #     f"Your alliance is now registered with CDT. Use `{ctx.clean_prefix}alliance settings` to setup your alliance"
+        # )
 
-    @alliance_settings.command(name="invite")
-    async def alliance_invite(self, ctx: commands.Context, invite: discord.Invite):
-        """Set an invite url for your alliance"""
-        if not await self.config.guild(ctx.guild).registered():
-            return await ctx.send("This guild is not registered")
-        await ctx.send(f"Done. {discord.utils.escape_markdown(invite.url)} has been set as your invite url")
-        await self.config.guild(ctx.guild).invite_url.set(invite.url)
+    # @commands.group(name="alliancesettings", aliases=["allianceset"])
+    # @commands.guild_only()
+    # @officer_check()
+    # async def alliance_settings(self, ctx: commands.Context):
+    #     """Commands for setting up your alliance"""
+    #     pass
+
+    # @alliance_settings.command(name="name")
+    # async def alliance_name(self, ctx: commands.Context, *, name: str):
+    #     """Set the name of your alliance"""
+    #     if not await self.config.guild(ctx.guild).registered():
+    #         return await ctx.send(
+    #             f"Your guild is not registered with CDT! Use `{ctx.clean_prefix}alliance add` to create one"
+    #         )
+    #     await self.config.guild(ctx.guild).name.set(name)
+    #     await ctx.send(f"Your alliance's name is now `{name}`")
+
+    # @alliance_settings.command(name="members", aliases=["member"])
+    # async def alliance_members(self, ctx: commands.Context, role: discord.Role):
+    #     """Set a role as the members role"""
+    #     data = await self.config.guild(ctx.guild).all()
+    #     old_role = data["members"]
+    #     allowed_mentions = discord.AllowedMentions(roles=False)
+    #     if not data["registered"]:
+    #         return await ctx.send("This guild is not registered!")
+    #     elif old_role is not None and ctx.guild.get_role(old_role) == role:
+    #         return await ctx.send(
+    #             f"The members role is already `{role.name}`"
+    #         )
+    #     await ctx.send(f"The members role is now `{role.name}`")
+    #     await self.config.guild(ctx.guild).members.set(role.id)
+
+    # @alliance_settings.command(name="officers", aliases=["officer"])
+    # @commands.guildowner()
+    # async def alliance_officers(self, ctx: commands.Context, role: discord.Role):
+    #     """Set a role as the officers role"""
+
+    #     data = await self.config.guild(ctx.guild).all()
+    #     old_role = data["officers"]
+    #     if not data["registered"]:
+    #         return await ctx.send("This guild is not registered!")
+    #     elif old_role is not None and ctx.guild.get_role(old_role) == role:
+    #         return await ctx.send(f"The officers role is already `{role.name}`")
+    #     await ctx.send(f"The officers role is now `{role.name}`")
+    #     await self.config.guild(ctx.guild).officers.set(role.id)
+
+    # @alliance_settings.command(name="founded")
+    # async def alliance_created_at(self, ctx: commands.Context, month: int, day: int, year: int):
+    #     """Set the time your alliance was founded at"""
+    #     if not await self.config.guild(ctx.guild).registered():
+    #         return await ctx.send("This guild is not registered")
+    #     try:
+    #         date = datetime(year, month, day).timestamp() # grab the timestamp
+    #     except ValueError:
+    #         return await ctx.send("That was an invalid date!")
+    #     await ctx.send(f"I have set the creation date of your alliance to <t:{int(date)}:d>")
+    #     await self.config.guild(ctx.guild).creation_date.set(date)
+
+    # @alliance_settings.command(name="summary")
+    # async def alliance_summary(self, ctx: commands.Context, *, summary: str):
+    #     """Set the summary of your alliance"""
+    #     if not await self.config.guild(ctx.guild).registered():
+    #         return await ctx.send("This guild is not registered")
+    #     await self.config.guild(ctx.guild).summary.set(summary)
+    #     await ctx.send("Done. That is now your summary")
+
+    # @alliance_settings.command(name="poster")
+    # async def alliance_poster(self, ctx: commands.Context, url: str):
+    #     """Set the poster for your alliance"""
+    #     if not await self.config.guild(ctx.guild).registered():
+    #         return await ctx.send("This guild is not registered")
+    #     try:
+    #         url = await self._validate_url(url)
+    #     except BadImage as e:
+    #         return await ctx.send(e.args[0])
+    #     else:
+    #         if not url:
+    #             return await ctx.send("That url was not valid!")
+    #     await ctx.send("Done. Set that as your poster")
+    #     await self.config.guild(ctx.guild).poster.set(url)
+
+    # @alliance_settings.command(name="invite")
+    # async def alliance_invite(self, ctx: commands.Context, invite: discord.Invite):
+    #     """Set an invite url for your alliance"""
+    #     if not await self.config.guild(ctx.guild).registered():
+    #         return await ctx.send("This guild is not registered")
+    #     await ctx.send(f"Done. {discord.utils.escape_markdown(invite.url)} has been set as your invite url")
+    #     await self.config.guild(ctx.guild).invite_url.set(invite.url)

@@ -12,10 +12,24 @@ import logging
 
 log = logging.getLogger("red.CollectorDevTeam.cdtcommon")
 
+_config_structure = {
+    "commands": {
+        "name" : {},
+        "reporting_channel": {},  
+        "tattletales" : 537330789332025364,
+    },
+    "cdt_roles": {
+        "cdt" : 390253643330355200,
+        "cst" : 390253719125622807,
+        "guildowners" : 391667615497584650,
+        "familyowners" : 731197047562043464,
+    }
+}
 class CdtCommon(commands.Cog):
     """
     Common Files
     """
+
 
     def __init__(self, bot):
         self.bot = bot
@@ -25,6 +39,8 @@ class CdtCommon(commands.Cog):
             identifier=8675309,
             force_registration=True,
         )
+        self.config.register_global(**_config_structure["commands"])
+        self.config.register_global(**_config_structure["cdt_roles"])
 
     @commands.command(hidden=True, name="promote", aliases=("promo",))
     @commands.guild_only()
@@ -161,51 +177,91 @@ class CdtCommon(commands.Cog):
             "390253643330355200",
             "390253719125622807",
         )
-        authnorized = False
-        passfail = "fail"
         for r in role_ids:
             self.roles.update({r: self._get_role(self.bot.get_server("215271081517383682"), r)})
-            if self.roles[r] in ctx.message.author.roles:
-                authorized = True
-                passfail = "pass"
+            if self.roles[r] in ctx.author.roles:
+                return True
                 continue
-        return authorized
+        return False
 
-    def check_collectordevteam(self, ctx, user=None):
+    async def check_collectordevteam(self, ctx, user=None):
         """Checks if User is in CollectorDevTeam"""
-        role = discord.utils.get(self.cdtguild.roles, id=390253643330355200)
+        role = await discord.utils.get(self.cdtguild.roles, id=self.config.cdt_roles.cdt())
         if user is None:
-            user = ctx.message.author
-        checkuser = discord.utils.get(self.cdtguild.members, id=user.id)
+            user = ctx.author
+        checkuser = await discord.utils.get(self.cdtguild.members, id=user.id)
         if role in checkuser.roles:
             return True
         else:
+            await ctx.send("CDT Authentication attempt failed, {0.name}{0.id} on {1.name}{1.id}".format(user, ctx.guild), 
+            channel=await self.config.commands.tattletales())
             return False
 
-    def check_collectorsupportteam(self, ctx, user=None):
+    async def check_collectorsupportteam(self, ctx, user=None):
         """Checks if User is in CollectorSupportTeam"""
-        # cdtguild = self.bot.get_guild(215271081517383682)
-        # role = discord.utils.get(cdtguild.roles, id=390253719125622807)
-        role = self.cdtguild.get_role(role_id=390253719125622807)
+        role = await discord.utils.get(self.cdtguild.roles, id=self.config.cdt_roles.cst())
         print("CST role found")
         if user is None:
-            user = ctx.message.author
+            user = ctx.author
             print("Message.author is user")
         checkuser = discord.utils.get(self.cdtguild.members, id=user.id)
         if checkuser is None:
-            print("User not found on CDT Guild")
+            # print("User not found on CDT Guild")
             return False
         else:
-            print("User found on CDT guild")
+            # print("User found on CDT guild")
             if role in checkuser.roles:
-                print("CollectorSupporTeam Authenticated")
-                return True
-            elif self.check_collectordevteam(ctx, user) is True:
-                print("CollectorDevTeam Authenticated")
-                return True
-            else:
-                print("User is not CollectorSupportTeam")
-                return False
+                return True # print("CollectorSupporTeam Authenticated")
+            else :
+                await ctx.send("CST Authentication attempt failed, {0.name}{0.id} on {1.name}{1.id}".format(user, ctx.guild), 
+            channel=await self.config.commands.tattletales())
+                return await self.check_collectordevteam(ctx, user)
+
+    async def check_guildowners(self, ctx, user=None):
+        """Checks if User is Registered GuildOwner in CollectorDevTeam"""
+        role = await discord.utils.get(self.cdtguild.roles, id=self.config.cdt_roles.guildowners())
+        if user is None:
+            user = ctx.author
+        checkuser = await discord.utils.get(self.cdtguild.members, id=user.id)
+        if role in checkuser.roles:
+            return True
+        else:
+            await ctx.send("CDT Authentication attempt failed, {0.name}{0.id} on {1.name}{1.id}".format(user, ctx.guild), 
+            channel=await self.config.commands.tattletales())
+            return False
+
+    async def check_familyowners(self, ctx, user=None):
+        """Checks if User is Registered GuildOwner in CollectorDevTeam"""
+        role = await discord.utils.get(self.cdtguild.roles, id=self.config.cdt_roles.familyowners())
+        if user is None:
+            user = ctx.author
+        checkuser = await discord.utils.get(self.cdtguild.members, id=user.id)
+        if role in checkuser.roles:
+            return True
+        else:
+            await ctx.send("CDT Authentication attempt failed, {0.name}{0.id} on {1.name}{1.id}".format(user, ctx.guild), 
+            channel=await self.config.commands.tattletales())
+            return False
+
+    async def _get_user_confirmation(self, ctx, question):
+        pages = []
+        data = await Embed.create(
+                    ctx,
+                    title="Confirmation Request",
+                    description=question,
+                )
+        pages.append(data)
+        
+        q = await ctx.send(embed=pages(0))
+        confirm_controls = {'❎': False, '✅': True}
+
+        menus.start_adding_reactions(q, confirm_controls)
+        await menus.menu(ctx=ctx, pages=pages, controls=confirm_controls, message=q)
+
+    @commands.group(name="cdtmonitor", alias="monitor")
+    @check_collectordevteam()
+
+
 
     @staticmethod
     def from_flat(flat, ch_rating):

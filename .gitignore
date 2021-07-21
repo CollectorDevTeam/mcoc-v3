@@ -110,3 +110,4 @@ venv.bak/
 # ide
 .idea/
 .vscode/
+alliance/alliance-v2.py
