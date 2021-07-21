@@ -258,8 +258,8 @@ class CdtCommon(commands.Cog):
         menus.start_adding_reactions(q, confirm_controls)
         await menus.menu(ctx=ctx, pages=pages, controls=confirm_controls, message=q)
 
-    @commands.group(name="cdtmonitor", alias="monitor")
-    @check_collectordevteam()
+    # @commands.group(name="cdtmonitor", alias="monitor")
+    # @check_collectordevteam()
 
 
 
