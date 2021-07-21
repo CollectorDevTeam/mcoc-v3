@@ -165,7 +165,7 @@ class Alliance(Validator, commands.Cog, metaclass=AllianceMeta):
         msg = (
             f"1. Use the {cdt_template} to create a new server\n"
             f"2. Invite Collector using `{ctx.clean_prefix}invite`\n"
-            f"3. Add announcements to #announcements with `{ctx.clean_prefix}announceset channel announcements`\n
+            f"3. Add announcements to #announcements with `{ctx.clean_prefix}announceset channel announcements`\n"
             f"4. Use `{ctx.clean_prefix}alliance create` to register your alliance with Collector.\n"
             f"5. Visit the {cdt_invite} to get support"
         )
