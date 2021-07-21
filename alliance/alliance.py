@@ -187,7 +187,7 @@ class Alliance(Validator, commands.Cog, metaclass=AllianceMeta):
     @commands.command(hidden=True, aliases=("atest",))
     async def alliance_test(self, ctx):
         """validate cdt check & tattletales"""
-        await self.send("initiating alliance test")
+        await ctx.send("initiating alliance test")
         cdt = await cdtcommon.check_collectordevteam(self, ctx)
         cst = await cdtcommon.check_collectorsupportteam(self, ctx)
         guildies = await cdtcommon.check_guildowners(self, ctx)
