@@ -33,7 +33,7 @@ class CdtCommon(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
-        self.cdtguild = self.bot.get_guild(215271081517383682)
+        # self.cdtguild = self.bot.get_guild(215271081517383682)
         self.config = Config.get_conf(
             self,
             identifier=8675309,
@@ -186,10 +186,11 @@ class CdtCommon(commands.Cog):
 
     async def check_collectordevteam(self, ctx, user=None):
         """Checks if User is in CollectorDevTeam"""
-        role = await discord.utils.get(self.cdtguild.roles, id=self.config.cdt_roles.cdt())
+        cdtguild = self.bot.get_guild(215271081517383682)
+        role = await discord.utils.get(cdtguild.roles, id=self.config.cdt_roles.cdt())
         if user is None:
             user = ctx.author
-        checkuser = await discord.utils.get(self.cdtguild.members, id=user.id)
+        checkuser = await discord.utils.get(cdtguild.members, id=user.id)
         if role in checkuser.roles:
             return True
         else:
@@ -199,12 +200,12 @@ class CdtCommon(commands.Cog):
 
     async def check_collectorsupportteam(self, ctx, user=None):
         """Checks if User is in CollectorSupportTeam"""
-        role = await discord.utils.get(self.cdtguild.roles, id=self.config.cdt_roles.cst())
+        role = await discord.utils.get(cdtguild.roles, id=self.config.cdt_roles.cst())
         print("CST role found")
         if user is None:
             user = ctx.author
             print("Message.author is user")
-        checkuser = discord.utils.get(self.cdtguild.members, id=user.id)
+        checkuser = discord.utils.get(cdtguild.members, id=user.id)
         if checkuser is None:
             # print("User not found on CDT Guild")
             return False
@@ -219,10 +220,11 @@ class CdtCommon(commands.Cog):
 
     async def check_guildowners(self, ctx, user=None):
         """Checks if User is Registered GuildOwner in CollectorDevTeam"""
-        role = await discord.utils.get(self.cdtguild.roles, id=self.config.cdt_roles.guildowners())
+        cdtguild = self.bot.get_guild(215271081517383682)
+        role = await discord.utils.get(cdtguild.roles, id=self.config.cdt_roles.guildowners())
         if user is None:
             user = ctx.author
-        checkuser = await discord.utils.get(self.cdtguild.members, id=user.id)
+        checkuser = await discord.utils.get(cdtguild.members, id=user.id)
         if role in checkuser.roles:
             return True
         else:
@@ -232,10 +234,11 @@ class CdtCommon(commands.Cog):
 
     async def check_familyowners(self, ctx, user=None):
         """Checks if User is Registered GuildOwner in CollectorDevTeam"""
-        role = await discord.utils.get(self.cdtguild.roles, id=self.config.cdt_roles.familyowners())
+        cdtguild = self.bot.get_guild(215271081517383682)
+        role = await discord.utils.get(cdtguild.roles, id=self.config.cdt_roles.familyowners())
         if user is None:
             user = ctx.author
-        checkuser = await discord.utils.get(self.cdtguild.members, id=user.id)
+        checkuser = await discord.utils.get(cdtguild.members, id=user.id)
         if role in checkuser.roles:
             return True
         else:
