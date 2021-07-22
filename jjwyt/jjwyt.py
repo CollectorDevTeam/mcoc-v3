@@ -49,7 +49,7 @@ class YouTubeID(commands.Cog):
     @commands.group()
     async def ytsubs(self, ctx):
         if not await self.config.user(ctx.author).youtube_id():
-            ctx.send("You aren't registered dummy")
+            await ctx.send("You aren't registered dummy")
             return
         youtubeid = await self.config.user(ctx.author).youtube_id()
         if youtubeid is not None:
@@ -65,7 +65,7 @@ class YouTubeID(commands.Cog):
         # need to regex out the url stuff
         youtubeid = regexyt(youtubeid)
         if youtubeid is None:
-            ctx.send("The youtube regex broke, dummy")
+            await ctx.send("The youtube regex broke, dummy")
             return
         else:
             answer = await CdtCommon._get_user_confirmation(self, ctx, "Do you want to set {} as your youtube identity?".format(youtubeid))
@@ -103,7 +103,8 @@ class YouTubeID(commands.Cog):
 
 
 def regexyt(youtubeid:str):
-    regex = re.compile(r'(https?://)?(www\.)?(youtube|youtu|youtube-nocookie)\.(com|be)/(watch\?v=|embed/|v/|.+\?v=)?(?P<id>[A-Za-z0-9\-=_]{11})')
+    pattern = '(?:(https?:\/\/)?(www\.)?youtu((\.be)|(be\..{2,5}))\/((user)|(c|channel))\/)'
+    regex = re.compile(r'(?:(https?:\/\/)?(www\.)?youtu((\.be)|(be\..{2,5}))\/((user)|(c|channel))\/)')
     yid = regex.match(youtubeid)
     print(yid)
     return yid
