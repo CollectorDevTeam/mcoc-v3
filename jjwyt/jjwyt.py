@@ -63,7 +63,7 @@ class YouTubeID(commands.Cog):
     async def add_youtube_id(self, ctx, youtubeid:str):
         """Include your youtube userid or your channel url"""
         # need to regex out the url stuff
-        youtubeid = self.regexyt(youtubeid)
+        youtubeid = regexyt(youtubeid)
         if youtubeid is None:
             ctx.send("The youtube regex broke, dummy")
             return
@@ -102,8 +102,8 @@ class YouTubeID(commands.Cog):
 
 
 
-    def regexyt(youtubeid:str):
-        regex = re.compile(r'(https?://)?(www\.)?(youtube|youtu|youtube-nocookie)\.(com|be)/(watch\?v=|embed/|v/|.+\?v=)?(?P<id>[A-Za-z0-9\-=_]{11})')
-        yid = regex.match(youtubeid)
-        print(yid)
-        return yid
+def regexyt(youtubeid:str):
+    regex = re.compile(r'(https?://)?(www\.)?(youtube|youtu|youtube-nocookie)\.(com|be)/(watch\?v=|embed/|v/|.+\?v=)?(?P<id>[A-Za-z0-9\-=_]{11})')
+    yid = regex.match(youtubeid)
+    print(yid)
+    return yid
