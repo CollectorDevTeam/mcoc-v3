@@ -1,5 +1,4 @@
 from typing import Literal
-from jjwyt import get_youtube_id
 import re
 
 from cdtcommon.cdtcommon import CdtCommon
@@ -94,7 +93,7 @@ class YouTubeID(commands.Cog):
 
 
 
-# def regexyt(youtubeid:str):
-#     regex = re.compile(r'(https?://)?(www\.)?(youtube|youtu|youtube-nocookie)\.(com|be)/(watch\?v=|embed/|v/|.+\?v=)?(?P<id>[A-Za-z0-9\-=_]{11})')
-#     return regex.match(youtubeid)
+def regexyt(youtubeid:str):
+    regex = re.compile(r'(https?://)?(www\.)?(youtube|youtu|youtube-nocookie)\.(com|be)/(watch\?v=|embed/|v/|.+\?v=)?(?P<id>[A-Za-z0-9\-=_]{11})')
+    return regex.match(youtubeid)
 
