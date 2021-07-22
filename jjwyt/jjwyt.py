@@ -104,7 +104,7 @@ class YouTubeID(commands.Cog):
 
 def regexyt(youtubeid:str):
     pattern = '(?:(https?:\/\/)?(www\.)?youtu((\.be)|(be\..{2,5}))\/((user)|(c|channel))\/)'
-    regex = re.compile(r'(?:(https?:\/\/)?(www\.)?youtu((\.be)|(be\..{2,5}))\/((user)|(c|channel))\/)', '')
+    regex = re.compile(r'(?:(https?:\/\/)?(www\.)?youtu((\.be)|(be\..{2,5}))\/((user)|(c|channel))\/)')
     
     yid = regex.sub(youtubeid, '')
     print(yid)
