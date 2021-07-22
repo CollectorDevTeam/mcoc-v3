@@ -70,17 +70,17 @@ class YouTubeID(commands.Cog):
         """Include your youtube userid or your channel url"""
         # need to regex out the url stuff
         data = await Embed.create(ctx, title=_TITLE, description="")
-        youtubeid = regexyt(youtubeid)
+        yid = regexyt(youtubeid)
         await ctx.send("dbg: youtubeid is {}".format(youtubeid))
-        if youtubeid is None:
+        if yid is None:
             data.description = "Youtube ID could not be extracted."
             await ctx.send(embed=data)
             return
         else:
-            answer = await CdtCommon._get_user_confirmation(self, ctx, "Do you want to set ``{}`` as your youtube identity?".format(youtubeid))
+            answer = await CdtCommon._get_user_confirmation(self, ctx, "Do you want to set ``{}`` as your youtube identity?".format(yid))
             if answer:
-                await self.config.user(ctx.author).youtube_id.set(youtubeid)
-                data.description("Youtube ID set as ``{}``".format(youtubeid))
+                await self.config.user(ctx.author).youtube_id.set(yid)
+                data.description = "Youtube ID set as ``{}``".format(yid)
                 await ctx.send(data)
             else:
                 data.description = "Youtube ID was not recorded."
@@ -98,7 +98,7 @@ class YouTubeID(commands.Cog):
         if answer:
             # await self.config.user(ctx.author).youtube().id.set(None)
             await self.config.user(ctx.author).clear() # not sure if this is right
-            data.description= "User data deleted."
+            data.description = "User data deleted."
             await ctx.send(embed=data)
             return
 
