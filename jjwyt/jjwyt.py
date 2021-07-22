@@ -59,7 +59,7 @@ class YouTubeID(commands.Cog):
         youtubeid = await self.config.user(ctx.author).youtube_id()
         if youtubeid is not None:
             data.description = "Your registered Youtube ID is ``{}``".format(youtubeid)
-            data.url("https://www.youtube.com/channel/{}".format(youtubeid))
+            data.url = "https://www.youtube.com/channel/{}".format(youtubeid)
             await ctx.send(data)
             return
 
