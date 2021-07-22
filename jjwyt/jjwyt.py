@@ -103,16 +103,37 @@ class YouTubeID(commands.Cog):
             return
 
     #guildowner/admin yt addsubrole channel + role for subscribers
-    # @ytsubs.command(name="addsubrole")
-    # @commands.guildowner_or_permissions(administrator=True)
-    # async def add_subrole(self, ctx, youtube_channel:str, subrole: discord.Role):
-    #     if subrole in ctx.guild.roles:
-    #         youtube_channel = regexyt(youtube_channel)
-    #         answer = await CdtCommon._get_user_confirmation(self, ctx, "Do you want to give the {0.mention} role to subscribers of {1}?".format(subrole, youtube_channel))
-    #         if answer:
-    #             await self.config.guild(ctx.guild).channel(youtube_channel).set
-    #     else:
-    #         await ctx.send("The requested role is not available on this server.")
+    @ytsubs.command(name="addsubrole")
+    @commands.guildowner_or_permissions(manage_roles=True)
+    async def add_subrole(self, ctx, youtube_channel:str, subrole: discord.Role):
+        data = await Embed.create(ctx, title=_TITLE, description="You are not registered.")
+        response = "..."
+        ycid = regexyt(youtube_channel)
+        
+        if subrole not in ctx.guild.roles:
+            response = "The role {0.name} is not available on this guild: {1.name} {1.id}".format(subrole, ctx.guild)
+        elif youtube_channel is None:
+            response = "The youtube channel {} appears to be invalid.".format(ycid)
+        elif self.config.guild(ctx.guild).ycid():
+            response = "There is an existing role registration for this YouTube Channel."
+            xycid = await self.config.guild(ctx.guild).channels(ycid).channel_id()
+            xrole = ctx.guild.get_role(await self.config.guild(ctx.guild).channels(ycid).subscriber_role())
+            response += "Youtube Channel: www.youtube.com/channel/{0}\nRole for subscribers: {1.mention}".format(xycid, xrole)
+            response += "Do you want to replace the existing subscriber role?"
+            answer = await CdtCommon._get_user_confirmation(self, ctx, response)
+            if answer:
+                self.config.guild(ctx.guild).channels(ycid).subscriber_role.set(subrole.id)
+                ## possibly call to refresh role assignments
+        else:    
+            answer = await CdtCommon._get_user_confirmation(self, ctx, "Do you want to give the {0.mention} role to subscribers of {1}?".format(subrole, ycid))
+            if answer:           
+                ytchannel = _config_structure["channel"]
+                ytchannel.update({"id": ycid, "subscriber_role": subrole.id})
+                await self.config.guild(ctx.guild).append(ytchannel)
+
+        data.description = response
+        await ctx.send(embed=data)
+        return
 
     #guildowner/admin yt deletesubrole channel + role for subscribers
 
