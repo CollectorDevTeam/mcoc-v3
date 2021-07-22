@@ -1,0 +1,20 @@
+{
+    "name": "YouTubeID",
+    "short": "Log and store user Youtube Id.",
+    "description": "Log & store user youtube id.",
+    "end_user_data_statement": "This cog only stores user submitted youtube channel id",
+    "install_msg": "Subscribe to Youtube.com/JJW8071",
+    "author": [
+        "JJW"
+    ],
+    "required_cogs": {},
+    "requirements": [],
+    "tags": [
+        "youtube,",
+        "subscriber"
+    ],
+    "min_bot_version": "3.3.10",
+    "hidden": false,
+    "disabled": false,
+    "type": "COG"
+}
