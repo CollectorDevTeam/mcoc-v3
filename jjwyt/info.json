@@ -7,7 +7,7 @@
     "author": [
         "JJW"
     ],
-    "required_cogs": {},
+    "required_cogs": {"cdtcommon"},
     "requirements": [],
     "tags": [
         "youtube,",

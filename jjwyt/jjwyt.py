@@ -1,5 +1,6 @@
 from typing import Literal
-from get_youtube_id import regexyt
+from jjwyt import get_youtube_id
+import re
 
 from cdtcommon.cdtcommon import CdtCommon
 
@@ -58,7 +59,7 @@ class YouTubeID(commands.Cog):
     async def add_youtube_id(self, ctx, youtubeid:str):
         """Include your youtube userid or your channel url"""
         # need to regex out the url stuff
-        youtubeid = regexyt(youtubeid)
+        youtubeid = get_youtube_id.regexyt(youtubeid)
         answer = await CdtCommon._get_user_confirmation(self, ctx, "Do you want to set {} as your youtube identity?".format(youtubeid))
         if answer:
             await self.config.user(ctx.author).youtube().id.set(youtubeid)
@@ -89,4 +90,11 @@ class YouTubeID(commands.Cog):
     #         await ctx.send("The requested role is not available on this server.")
 
     #guildowner/admin yt deletesubrole channel + role for subscribers
+
+
+
+
+# def regexyt(youtubeid:str):
+#     regex = re.compile(r'(https?://)?(www\.)?(youtube|youtu|youtube-nocookie)\.(com|be)/(watch\?v=|embed/|v/|.+\?v=)?(?P<id>[A-Za-z0-9\-=_]{11})')
+#     return regex.match(youtubeid)
 
