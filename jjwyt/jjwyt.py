@@ -11,8 +11,8 @@ from redbot.core.config import Config
 RequestType = Literal["discord_deleted_user", "owner", "user", "user_strict"]
 
 _config_structure = {
-    "youtube" : {
-        "id" : None,
+    "user" : {
+        "youtube-id" : None,
     },
     "guild" : {
         "channels": {},
@@ -37,7 +37,7 @@ class YouTubeID(commands.Cog):
             identifier=1998837463252134,
             force_registration=True,
         )
-        self.config.register_user(**_config_structure["youtube"])
+        self.config.register_user(**_config_structure["user"])
         self.config.register_guild(**_config_structure["guild"])
 
 
@@ -48,10 +48,10 @@ class YouTubeID(commands.Cog):
     #pseudocode command layout
     @commands.group()
     async def ytsubs(self, ctx):
-        if not await self.config.user(ctx.author).registered():
+        if not await self.config.user(ctx.author).youtube-id():
             ctx.send("You aren't registered dummy")
             return
-        youtubeid = await self.config.user(ctx.author).youtube().id()
+        youtubeid = await self.config.user(ctx.author).youtube-id()
         if youtubeid is not None:
             await ctx.send("{}".format(youtubeid))
         else:
@@ -63,10 +63,10 @@ class YouTubeID(commands.Cog):
     async def add_youtube_id(self, ctx, youtubeid:str):
         """Include your youtube userid or your channel url"""
         # need to regex out the url stuff
-        youtubeid = get_youtube_id.regexyt(youtubeid)
+        youtubeid = regexyt(youtubeid)
         answer = await CdtCommon._get_user_confirmation(self, ctx, "Do you want to set {} as your youtube identity?".format(youtubeid))
         if answer:
-            await self.config.user(ctx.author).youtube().id.set(youtubeid)
+            await self.config.user(ctx.author).youtube-id.set(youtubeid)
         else:
             await ctx.send("Cancelled")
 
