@@ -14,15 +14,15 @@ log = logging.getLogger("red.CollectorDevTeam.cdtcommon")
 
 _config_structure = {
     "commands": {
-        "name" : {},
-        "reporting_channel": {},  
-        "tattletales" : 537330789332025364,
+        "name" : None,
+        "reporting_channel": None,  
     },
     "cdt_roles": {
         "cdt" : 390253643330355200,
         "cst" : 390253719125622807,
         "guildowners" : 391667615497584650,
         "familyowners" : 731197047562043464,
+        "tattletales" : 537330789332025364,
     }
 }
 class CdtCommon(commands.Cog):
@@ -195,7 +195,7 @@ class CdtCommon(commands.Cog):
             return True
         else:
             await ctx.send("CDT Authentication attempt failed, {0.name}{0.id} on {1.name}{1.id}".format(user, ctx.guild), 
-            channel=await self.config.commands.tattletales())
+            channel=await self.config.cdt_roles().tattletales())
             return False
 
     async def check_collectorsupportteam(self, ctx, user=None):
@@ -216,7 +216,7 @@ class CdtCommon(commands.Cog):
                 return True # print("CollectorSupporTeam Authenticated")
             else :
                 await ctx.send("CST Authentication attempt failed, {0.name}{0.id} on {1.name}{1.id}".format(user, ctx.guild), 
-            channel=await self.config.commands.tattletales())
+            channel=await self.config.cdt_roles().tattletales())
                 return await self.check_collectordevteam(ctx, user)
 
     async def check_guildowners(self, ctx, user=None):
@@ -230,7 +230,7 @@ class CdtCommon(commands.Cog):
             return True
         else:
             await ctx.send("CDT Authentication attempt failed, {0.name}{0.id} on {1.name}{1.id}".format(user, ctx.guild), 
-            channel=await self.config.commands.tattletales())
+            channel=await self.config.cdt_roles().tattletales())
             return False
 
     async def check_familyowners(self, ctx, user=None):
@@ -244,7 +244,7 @@ class CdtCommon(commands.Cog):
             return True
         else:
             await ctx.send("CDT Authentication attempt failed, {0.name}{0.id} on {1.name}{1.id}".format(user, ctx.guild), 
-            channel=await self.config.commands.tattletales())
+            channel=await self.config.cdt_roles().tattletales())
             return False
 
     async def _get_user_confirmation(self, ctx, question):
