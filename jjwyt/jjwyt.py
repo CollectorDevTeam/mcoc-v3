@@ -51,7 +51,7 @@ class YouTubeID(commands.Cog):
     #pseudocode command layout
     @commands.group()
     async def ytsubs(self, ctx):
-        data = Embed.create(title=_TITLE)
+        data = Embed.create(ctx, title=_TITLE)
         if not await self.config.user(ctx.author).youtube_id():
             data.description("Your youtube account is not registered.")
             await ctx.send(data)
@@ -69,7 +69,7 @@ class YouTubeID(commands.Cog):
     async def add_youtube_id(self, ctx, youtubeid:str):
         """Include your youtube userid or your channel url"""
         # need to regex out the url stuff
-        data = Embed.create(title=_TITLE)
+        data = Embed.create(ctx, title=_TITLE)
         youtubeid = regexyt(youtubeid)
         await ctx.send("dbg: youtubeid is {}".format(youtubeid))
         if youtubeid is None:
@@ -90,7 +90,7 @@ class YouTubeID(commands.Cog):
     @ytsubs.command(name="delete", aliases=("rm", "del"))
     async def delete_youtube_id(self, ctx):
         """Delete your youtube userid"""
-        data = Embed.create(title=_TITLE)
+        data = Embed.create(ctx, title=_TITLE)
         # need to regex out the url stuff
         if not await self.config.user(ctx.author).youtube_id():
             data.description("You are not registered.")
