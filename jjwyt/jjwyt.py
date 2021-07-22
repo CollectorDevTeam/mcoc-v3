@@ -54,13 +54,13 @@ class YouTubeID(commands.Cog):
         data = await Embed.create(ctx, title=_TITLE, description="")
         if not await self.config.user(ctx.author).youtube_id():
             data.description = "Your youtube account is not registered." 
-            await ctx.send(data)
+            await ctx.send(embed=data)
             return
         youtubeid = await self.config.user(ctx.author).youtube_id()
         if youtubeid is not None:
             data.description = "Your registered Youtube ID is ``{}``".format(youtubeid)
             data.url = "https://www.youtube.com/channel/{}".format(youtubeid)
-            await ctx.send(data)
+            await ctx.send(embed=data)
             return
 
     #yt add id
@@ -81,10 +81,10 @@ class YouTubeID(commands.Cog):
             if answer:
                 await self.config.user(ctx.author).youtube_id.set(yid)
                 data.description = "Youtube ID set as ``{}``".format(yid)
-                await ctx.send(data)
+                await ctx.send(embed=data)
             else:
                 data.description = "Youtube ID was not recorded."
-                await ctx.send(data)
+                await ctx.send(embed=data)
 
     #yt delete id
     @ytsubs.command(name="delete", aliases=("rm", "del"))
