@@ -106,6 +106,7 @@ class YouTubeID(commands.Cog):
     @ytsubs.command(name="addsubrole")
     @commands.guildowner_or_permissions(manage_roles=True)
     async def add_subrole(self, ctx, youtube_channel:str, subrole: discord.Role):
+        """Add a subscriber role for your Youtube channel.  """
         data = await Embed.create(ctx, title=_TITLE, description="You are not registered.")
         response = "..."
         ycid = regexyt(youtube_channel)
@@ -114,7 +115,7 @@ class YouTubeID(commands.Cog):
             response = "The role {0.name} is not available on this guild: {1.name} {1.id}".format(subrole, ctx.guild)
         elif youtube_channel is None:
             response = "The youtube channel {} appears to be invalid.".format(ycid)
-        elif self.config.guild(ctx.guild).ycid():
+        elif self.config.guild(ctx.guild).channels(ycid):
             response = "There is an existing role registration for this YouTube Channel."
             xycid = await self.config.guild(ctx.guild).channels(ycid).channel_id()
             xrole = ctx.guild.get_role(await self.config.guild(ctx.guild).channels(ycid).subscriber_role())
