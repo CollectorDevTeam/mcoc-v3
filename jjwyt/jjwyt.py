@@ -64,11 +64,12 @@ class YouTubeID(commands.Cog):
         """Include your youtube userid or your channel url"""
         # need to regex out the url stuff
         youtubeid = regexyt(youtubeid)
+        await ctx.send("dbg: youtubeid is {}".format(youtubeid))
         if youtubeid is None:
             await ctx.send("The youtube regex broke, dummy")
             return
         else:
-            answer = await CdtCommon._get_user_confirmation(self, ctx, "Do you want to set {} as your youtube identity?".format(youtubeid))
+            answer = await CdtCommon._get_user_confirmation(self, ctx, "Do you want to set ``{}`` as your youtube identity?".format(youtubeid))
             if answer:
                 await self.config.user(ctx.author).youtube_id.set(youtubeid)
             else:
@@ -79,6 +80,7 @@ class YouTubeID(commands.Cog):
     async def delete_youtube_id(self, ctx):
         """Delete your youtube userid"""
         # need to regex out the url stuff
+        
         answer = await CdtCommon._get_user_confirmation(self, ctx, "Do you want to delete your youtube identity?")
         if answer:
             # await self.config.user(ctx.author).youtube().id.set(None)
@@ -104,8 +106,8 @@ class YouTubeID(commands.Cog):
 
 def regexyt(youtubeid:str):
     pattern = '(?:(https?:\/\/)?(www\.)?youtu((\.be)|(be\..{2,5}))\/((user)|(c|channel))\/)'
-    regex = re.compile(r'(?:(https?:\/\/)?(www\.)?youtu((\.be)|(be\..{2,5}))\/((user)|(c|channel))\/)')
-    
-    yid = regex.sub(youtubeid, '')
+    # regex = re.compile(r'(?:(https?:\/\/)?(www\.)?youtu((\.be)|(be\..{2,5}))\/((user)|(c|channel))\/)')
+    yid = re.sub(pattern, '', youtubeid)    
+    # yid = regex.sub(youtubeid, '')
     print(yid)
     return yid
