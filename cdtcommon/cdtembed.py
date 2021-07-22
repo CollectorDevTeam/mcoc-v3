@@ -33,9 +33,10 @@ class Embed:
             "https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/cdt_icon.png"
         )
         PATREON = "https://patreon.com/collectorbot"
-        CDT_LOGO = (
-            "https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/cdt_logo.png"
-        )
+        CDT_LOGO = ("https://cdn.discordapp.com/attachments/391330316662341632/867885227603001374/collectorbota.gif")
+        # CDT_LOGO = (
+        #     "https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/cdt_logo.png"
+        # )
         client = aiohttp.ClientSession()
 
         if (

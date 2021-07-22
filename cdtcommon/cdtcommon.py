@@ -252,6 +252,7 @@ class CdtCommon(commands.Cog):
             return False
 
     async def _get_user_confirmation(self, ctx, question):
+        """Pass user a question, returns True or False"""
         can_react = ctx.channel.permissions_for(ctx.me).add_reactions
         if not can_react:
             question += " (y/n)"
@@ -302,9 +303,3 @@ class CdtCommon(commands.Cog):
     def to_flat(per, ch_rating):
         num = (5 * ch_rating + 1500) * per
         return round(num / (100 - per), 2)
-
-async def _return_true():
-    return True
-
-async def _return_false():
-    return False
