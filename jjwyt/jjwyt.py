@@ -53,12 +53,12 @@ class YouTubeID(commands.Cog):
     async def ytsubs(self, ctx):
         data = Embed.create(ctx, title=_TITLE)
         if not await self.config.user(ctx.author).youtube_id():
-            data.description("Your youtube account is not registered.")
+            data.description = "Your youtube account is not registered." 
             await ctx.send(data)
             return
         youtubeid = await self.config.user(ctx.author).youtube_id()
         if youtubeid is not None:
-            data.description("Your registered Youtube ID is ``{}``".format(youtubeid))
+            data.description = "Your registered Youtube ID is ``{}``".format(youtubeid)
             data.url("https://www.youtube.com/channel/{}".format(youtubeid))
             await ctx.send(data)
             return
@@ -73,7 +73,7 @@ class YouTubeID(commands.Cog):
         youtubeid = regexyt(youtubeid)
         await ctx.send("dbg: youtubeid is {}".format(youtubeid))
         if youtubeid is None:
-            data.description("Youtube ID could not be extracted.")
+            data.description = "Youtube ID could not be extracted."
             await ctx.send(embed=data)
             return
         else:
@@ -83,7 +83,7 @@ class YouTubeID(commands.Cog):
                 data.description("Youtube ID set as ``{}``".format(youtubeid))
                 await ctx.send(data)
             else:
-                data.description("Youtube ID was not recorded.")
+                data.description = "Youtube ID was not recorded."
                 await ctx.send(data)
 
     #yt delete id
@@ -93,13 +93,13 @@ class YouTubeID(commands.Cog):
         data = Embed.create(ctx, title=_TITLE)
         # need to regex out the url stuff
         if not await self.config.user(ctx.author).youtube_id():
-            data.description("You are not registered.")
+            data.description ="You are not registered."
             await ctx.send(embed=data)
         answer = await CdtCommon._get_user_confirmation(self, ctx, "Do you want to delete your youtube identity?")
         if answer:
             # await self.config.user(ctx.author).youtube().id.set(None)
             await self.config.user(ctx.author).clear() # not sure if this is right
-            data.description("User data deleted.")
+            data.description= "User data deleted."
             await ctx.send(embed=data)
             return
 
