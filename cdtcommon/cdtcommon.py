@@ -265,7 +265,7 @@ class CdtCommon(commands.Cog):
         pages.append(data)    
         query = await ctx.send(embed=pages[0])
         if can_react:
-            menus.start_adding_reactions(query, ReactionPredicate.YES_OR_NO_EMJOIS)
+            menus.start_adding_reactions(query, ReactionPredicate.YES_OR_NO_EMOJIS)
             pred = ReactionPredicate.yes_or_no(query, ctx.author)
             event = "reaction_add"
         else: 
