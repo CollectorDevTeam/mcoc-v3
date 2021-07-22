@@ -63,12 +63,16 @@ class YouTubeID(commands.Cog):
     async def add_youtube_id(self, ctx, youtubeid:str):
         """Include your youtube userid or your channel url"""
         # need to regex out the url stuff
-        youtubeid = regexyt(youtubeid)
-        answer = await CdtCommon._get_user_confirmation(self, ctx, "Do you want to set {} as your youtube identity?".format(youtubeid))
-        if answer:
-            await self.config.user(ctx.author).youtube_id.set(youtubeid)
+        youtubeid = self.regexyt(youtubeid)
+        if youtubeid is None:
+            ctx.send("The youtube regex broke, dummy")
+            return
         else:
-            await ctx.send("Cancelled")
+            answer = await CdtCommon._get_user_confirmation(self, ctx, "Do you want to set {} as your youtube identity?".format(youtubeid))
+            if answer:
+                await self.config.user(ctx.author).youtube_id.set(youtubeid)
+            else:
+                await ctx.send("Cancelled")
 
     #yt delete id
     @ytsubs.command(name="del")
@@ -98,7 +102,10 @@ class YouTubeID(commands.Cog):
 
 
 
-def regexyt(youtubeid:str):
-    regex = re.compile(r'(https?://)?(www\.)?(youtube|youtu|youtube-nocookie)\.(com|be)/(watch\?v=|embed/|v/|.+\?v=)?(?P<id>[A-Za-z0-9\-=_]{11})')
-    return regex.match(youtubeid)
+    def regexyt(youtubeid:str):
+        regex = re.compile(r'(https?://)?(www\.)?(youtube|youtu|youtube-nocookie)\.(com|be)/(watch\?v=|embed/|v/|.+\?v=)?(?P<id>[A-Za-z0-9\-=_]{11})')
+        yid = regex.match(youtubeid)
+        print yid
+        return yid
 
+f
