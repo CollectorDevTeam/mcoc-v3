@@ -48,6 +48,9 @@ class YouTubeID(commands.Cog):
     #pseudocode command layout
     @commands.group()
     async def ytsubs(self, ctx):
+        if not await self.config.user(ctx.author).registered():
+            ctx.send("You aren't registered dummy")
+            return
         youtubeid = await self.config.user(ctx.author).youtube().id()
         if youtubeid is not None:
             await ctx.send("{}".format(youtubeid))
