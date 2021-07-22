@@ -14,8 +14,10 @@ _config_structure = {
     "youtube" : {
         "id" : None,
     },
-    "guild" : None,
-    "channels": {
+    "guild" : {
+        "channels": {},
+    },
+    "channel": {
         "channel_id" : None,
         "channel_name": None,
         "subscriber_role": None,
