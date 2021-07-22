@@ -259,13 +259,20 @@ class CdtCommon(commands.Cog):
         q = await ctx.send(embed=pages[0])
         confirm_controls = {'❎': False, '✅': True}
 
-        menus.start_adding_reactions(q, confirm_controls)
-        await menus.menu(ctx=ctx, pages=pages, controls=confirm_controls, message=q)
+        await menus.start_adding_reactions(q, confirm_controls)
+        answer = await menus.menu(ctx=ctx, pages=pages, controls=confirm_controls, message=q)
+        return answer
 
     # @commands.group(name="cdtmonitor", alias="monitor")
     # @check_collectordevteam()
 
-
+    @staticmethod
+    def return_true():
+        return True
+    
+    @staticmethod
+    def return_false():
+        return False
 
     @staticmethod
     def from_flat(flat, ch_rating):
