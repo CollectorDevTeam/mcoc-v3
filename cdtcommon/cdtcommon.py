@@ -256,7 +256,7 @@ class CdtCommon(commands.Cog):
                 )
         pages.append(data)
         
-        q = await ctx.send(embed=pages(0))
+        q = await ctx.send(embed=pages[0])
         confirm_controls = {'❎': False, '✅': True}
 
         menus.start_adding_reactions(q, confirm_controls)
