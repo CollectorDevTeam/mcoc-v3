@@ -1,10 +1,14 @@
+import contextlib
 import random
 from typing import Optional
+import asyncio
 
 import discord
 from redbot.core import checks, commands
 from redbot.core.config import Config
 from redbot.core.utils import chat_formatting, menus
+from redbot.core.utils.predicates import MessagePredicate, ReactionPredicate
+
 
 from .cdtembed import Embed
 
@@ -248,20 +252,43 @@ class CdtCommon(commands.Cog):
             return False
 
     async def _get_user_confirmation(self, ctx, question):
-        pages = []
+        can_react = ctx.channel.permissions_for(ctx.me).add_reactions
+        if not can_react:
+            question += " (y/n)"
         data = await Embed.create(
                     ctx,
-                    title="Confirmation Request",
+                    title="Confirmation Request :sparkles:",
                     description=question,
                 )
-        pages.append(data)
         
-        q = await ctx.send(embed=pages[0])
-        confirm_controls = {'❎': _return_false, '✅': _return_true}
+        pages = []
+        pages.append(data)    
+        query = await ctx.send(embed=pages[0])
+        if can_react:
+            menus.start_adding_reactions(query, ReactionPredicate.YES_OR_NO_EMJOIS)
+            pred = ReactionPredicate.yes_or_no(query, ctx.author)
+            event = "reaction_add"
+        else: 
+            pred = MessagePredicate.yes_or_no(ctx)
+            event = "message"
+        try:
+             await ctx.bot.wait_for(event, check=pred, timeout=30)
+        except asyncio.TimeoutError:
+            await query.delete()
+            return
 
-        await menus.start_adding_reactions(q, confirm_controls)
-        answer = await menus.menu(ctx=ctx, pages=pages, controls=confirm_controls, message=q)
-        return answer
+        if not pred.result:
+            if can_react:
+                await query.delete()
+            else:
+                await ctx.send(_("Ok then. :sparkles:"))
+            return
+        else:
+            if can_react:
+                with contextlib.suppress(discord.Forbidden):
+                    await query.clear_reactions()
+
+        return pred.result
 
     # @commands.group(name="cdtmonitor", alias="monitor")
     # @check_collectordevteam()
