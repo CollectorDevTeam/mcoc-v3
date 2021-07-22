@@ -257,7 +257,7 @@ class CdtCommon(commands.Cog):
         pages.append(data)
         
         q = await ctx.send(embed=pages[0])
-        confirm_controls = {'❎': False, '✅': True}
+        confirm_controls = {'❎': _return_false, '✅': _return_true}
 
         await menus.start_adding_reactions(q, confirm_controls)
         answer = await menus.menu(ctx=ctx, pages=pages, controls=confirm_controls, message=q)
@@ -265,14 +265,6 @@ class CdtCommon(commands.Cog):
 
     # @commands.group(name="cdtmonitor", alias="monitor")
     # @check_collectordevteam()
-
-    @staticmethod
-    def return_true():
-        return True
-    
-    @staticmethod
-    def return_false():
-        return False
 
     @staticmethod
     def from_flat(flat, ch_rating):
@@ -283,3 +275,9 @@ class CdtCommon(commands.Cog):
     def to_flat(per, ch_rating):
         num = (5 * ch_rating + 1500) * per
         return round(num / (100 - per), 2)
+
+async def _return_true():
+    return True
+
+async def _return_false():
+    return False
