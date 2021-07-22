@@ -105,7 +105,5 @@ class YouTubeID(commands.Cog):
     def regexyt(youtubeid:str):
         regex = re.compile(r'(https?://)?(www\.)?(youtube|youtu|youtube-nocookie)\.(com|be)/(watch\?v=|embed/|v/|.+\?v=)?(?P<id>[A-Za-z0-9\-=_]{11})')
         yid = regex.match(youtubeid)
-        print yid
+        print(yid)
         return yid
-
-f
