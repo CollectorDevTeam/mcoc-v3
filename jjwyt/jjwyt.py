@@ -18,7 +18,7 @@ _config_structure = {
     "guild" : {
         "yt_channels": {},
     },
-    "yt_channel_id": {
+    "custom": {
         "channel_id" : None,
         "channel_name": None,
         "subscriber_role": None,
@@ -123,10 +123,10 @@ class YouTubeID(commands.Cog):
             if await CdtCommon._get_user_confirmation(self, ctx, question):
                 data.description = "Registering Subscriber role {0.mention} for YT channel {1}".format(subrole, ycid)
                 status = await ctx.send(embed=data)
-                await self.config.guild(ctx.guild).yt_channels.register_custom(ycid, **_config_structure["youtube_channel_id"])
-                if await self.config.guild(ctx.guild).yt_channels.ycid():
-                    await self.config.guild(ctx.guild).yt_channels.ycid().subscriber_role.set(subrole.id)
-                    await self.config.guild(ctx.guild).yt_channels.ycid().channel_id.set(ycid)
+                await self.config.guild(ctx.guild).yt_channels().register_custom(ycid, **_config_structure["custom"])
+                if await self.config.guild(ctx.guild).yt_channels(ycid):
+                    await self.config.guild(ctx.guild).yt_channels(ycid).subscriber_role.set(subrole.id)
+                    await self.config.guild(ctx.guild).yt_channels(ycid).channel_id.set(ycid)
                     data.description = "Subscription role {0.mention} registered for {1}.".format(subrole, ycid)
                     await ctx.delete(status)
                     await ctx.send(embed=data)
@@ -161,11 +161,11 @@ class YouTubeID(commands.Cog):
         if youtube_channel is not None:
             ycid = regexyt(youtube_channel)
             data = Embed.create("CDT Youtube Subscription Removal :sparkles:")
-            if await self.config.guild(ctx.guild).ycid():
+            if await self.config.guild(ctx.guild).yt_channels(ycid):
                 question = "Do you want to remove the YouTube channel registration?"
                 answer = await CdtCommon._get_user_confirmation(question)
                 if answer:
-                    await self.config.guild(ctx.guild).ycid().clear()
+                    await self.config.guild(ctx.guild).yt_channels(ycid).clear()
                     response = "Registration deleted."
                 else:
                     response = "Registration deletion aborted."
