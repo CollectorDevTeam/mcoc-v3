@@ -163,7 +163,7 @@ class YouTubeID(commands.Cog):
             data = Embed.create("CDT Youtube Subscription Removal :sparkles:")
             if await self.config.guild(ctx.guild).yt_channels(ycid):
                 question = "Do you want to remove the YouTube channel registration?"
-                answer = await CdtCommon._get_user_confirmation(question)
+                answer = await CdtCommon._get_user_confirmation(self, ctx, question)
                 if answer:
                     await self.config.guild(ctx.guild).yt_channels(ycid).clear()
                     response = "Registration deleted."
