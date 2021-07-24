@@ -165,7 +165,7 @@ class YouTubeID(commands.Cog):
                 question = "Do you want to remove the YouTube channel registration?"
                 answer = await CdtCommon._get_user_confirmation(self, ctx, question)
                 if answer:
-                    await self.config.guild(ctx.guild).yt_channels.clear_all_custom(ycid)
+                    await self.config.guild(ctx.guild).yt_channels(ycid).clear()
                     response = "Registration deleted."
                 else:
                     response = "Registration deletion aborted."
