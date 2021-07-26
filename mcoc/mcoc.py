@@ -95,7 +95,7 @@ class Champions(commands.Cog):
 
     @commands.group(aliases=("champ","champion","mcoc"))
     async def champions(self, ctx):
-        data = Embed.create(ctx, title="Marvel Contest of Champions")
+        data = await Embed.create(ctx, title="Marvel Contest of Champions")
         data.description = "dummy group"
         
 
