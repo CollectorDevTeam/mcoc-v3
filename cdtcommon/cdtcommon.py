@@ -291,7 +291,7 @@ class CdtCommon(commands.Cog):
 
         return pred.result
 
-    async def tattle(self, ctx, tale : str, tattle: discord.Channel = 537330789332025364,):
+    async def tattle(self, ctx, tale : str, tattle: discord.Channel = 537330789332025364):
         await ctx.send(tale, channel=tattle)
 
     # @commands.group(name="cdtmonitor", alias="monitor")
