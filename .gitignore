@@ -111,3 +111,4 @@ venv.bak/
 .idea/
 .vscode/
 alliance/alliance-v2.py
+mcocv3-workspace.code-workspace
