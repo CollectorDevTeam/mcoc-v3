@@ -1,6 +1,7 @@
 import aiohttp
 import discord
 from cdtcommon.cdtcommon import CdtCommon as cdtcommon
+from cdtcommon.cdtembed import Embed
 
 from redbot.core import commands, Config
 from redbot.core.bot import Red
