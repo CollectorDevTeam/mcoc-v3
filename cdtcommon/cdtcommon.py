@@ -5,6 +5,7 @@ import asyncio
 
 import discord
 from redbot.core import checks, commands
+from redbot.core.bot import Red
 from redbot.core.config import Config
 from redbot.core.utils import chat_formatting, menus
 from redbot.core.utils.predicates import MessagePredicate, ReactionPredicate
@@ -35,7 +36,7 @@ class CdtCommon(commands.Cog):
     """
 
 
-    def __init__(self, bot):
+    def __init__(self, bot: Red):
         self.bot = bot
         # self.cdtguild = self.bot.get_guild(215271081517383682)
         self.config = Config.get_conf(
