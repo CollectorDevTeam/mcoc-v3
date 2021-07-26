@@ -16,7 +16,9 @@ __version__ = "32.0.0"
 
 _config_structure = {
     "global" : {
-        "champions": {},
+        "champions": {
+
+        },
         "default_champion" : {
             "id" : None, #str unique champion id
             "bid" : None, #str unique auntm.ai champion file id
@@ -72,15 +74,12 @@ _config_structure = {
                 "meta": None,
                 "strings": None,
                 },
-            "cutscenes_en": {
-                "meta": None,
-                "strings": None,
-                },
             "special_attacks": {
                 "meta": None,
                 "strings": None,
                 },
-        }, 
+        }, # end snapshots
+        "words": {}, #all words
     }, # end global set
 }
 
@@ -96,7 +95,7 @@ class Champions(commands.Cog):
 
     @commands.group(aliases=("champ","champion","mcoc"))
     async def champions(self, ctx):
-        data = Embed.create(title="Marvel Contest of Champions")
+        data = Embed.create(ctx, title="Marvel Contest of Champions")
         data.description = "dummy group"
         
 
