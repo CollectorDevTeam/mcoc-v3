@@ -192,7 +192,8 @@ class CdtCommon(commands.Cog):
     async def check_collectordevteam(self, ctx, user=None):
         """Checks if User is in CollectorDevTeam"""
         cdtguild = self.bot.get_guild(215271081517383682)
-        role = await discord.utils.get(cdtguild.roles, id=await self.config.cdt_roles("cdt"))
+        checkrole = ctx.get_role(await self.config.cdt_roles().cdt())
+        role = await discord.utils.get(cdtguild.roles, id=checkrole)
         if user is None:
             user = ctx.author
         checkuser = await discord.utils.get(cdtguild.members, id=user.id)
