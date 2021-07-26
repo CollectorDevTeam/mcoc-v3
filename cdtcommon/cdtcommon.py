@@ -22,14 +22,13 @@ _config_structure = {
         "name" : None,
         "reporting_channel": None,  
     },
-    "cdt_roles": {
-        "cdt" : 390253643330355200,
-        "cst" : 390253719125622807,
-        "guildowners" : 391667615497584650,
-        "familyowners" : 731197047562043464,
-        "tattletales" : 537330789332025364,
-    }
+    "cdt" : 390253643330355200,
+    "cst" : 390253719125622807,
+    "guildowners" : 391667615497584650,
+    "familyowners" : 731197047562043464,
+    "tattletales" : 537330789332025364,
 }
+
 class CdtCommon(commands.Cog):
     """
     Common Files
@@ -45,7 +44,10 @@ class CdtCommon(commands.Cog):
             force_registration=True,
         )
         self.config.register_global(**_config_structure["commands"])
-        self.config.register_global(**_config_structure["cdt_roles"])
+        self.config.register_global(**_config_structure["cdt"])
+        self.config.register_global(**_config_structure["cst"])
+        self.config.register_global(**_config_structure["guildowners"])
+        self.config.register_global(**_config_structure["familyowners"])
 
     @commands.command(hidden=True, name="promote", aliases=("promo",))
     @commands.guild_only()
@@ -192,17 +194,27 @@ class CdtCommon(commands.Cog):
     async def check_collectordevteam(self, ctx, user=None):
         """Checks if User is in CollectorDevTeam"""
         cdtguild = self.bot.get_guild(215271081517383682)
-        checkrole = await self.config.cdt_roles("cdt")
-        role = await discord.utils.get(cdtguild.roles, id=checkrole)
+        checkrole = await self.config.cdt()
+        data = Embed.create(ctx, title="Checking CollectorDevTeam")
         if user is None:
             user = ctx.author
-        checkuser = await discord.utils.get(cdtguild.members, id=user.id)
-        if role in checkuser.roles:
-            return True
-        else:
-            await ctx.send("CDT Authentication attempt failed, {0.name}{0.id} on {1.name}{1.id}".format(user, ctx.guild), 
-            channel=await self.config.cdt_roles().tattletales())
+        data.description = "user: {0.name}\nid: {0.id}:\nguild: {1.name}\nguild id: {1.id}\n".format(ctx.author, ctx.guild)
+        role = await discord.utils.get(cdtguild.roles, id=checkrole)
+        if role is None:
+            data.description+="Role check failed as None"
+            await ctx.send(embed=data, channel=await self.config.tattletales())
             return False
+        else:
+            checkuser = await discord.utils.get(cdtguild.members, id=user.id)
+            if role in checkuser.roles:
+                data.description += "User is CollectorDevTeam"
+                await ctx.send(embed=data, channel=await self.config.tattletales())
+                return True
+            else:
+                data.description += "User is not CollectorDevTeam"
+                channel=await self.config.tattletales()
+                await ctx.send(embed=data, channel=await self.config.tattletales())
+                return False
 
     async def check_collectorsupportteam(self, ctx, user=None):
         """Checks if User is in CollectorSupportTeam"""
