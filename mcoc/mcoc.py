@@ -102,7 +102,7 @@ class Champions(commands.Cog):
     @champions.group(aliases=("data",), hidden=True)
     async def champions_data(self, ctx):
         """Data commands"""
-        if await CdtCommon.check_collectordevteam:
+        if await CdtCommon.check_collectordevteam(self, ctx):
             pass
         else:
             await CdtCommon.tattle("Unauthorized attempt to manipulate ChampData")
