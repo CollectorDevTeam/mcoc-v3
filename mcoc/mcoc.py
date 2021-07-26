@@ -1,5 +1,9 @@
 import discord
+
+from datetime import datetime
+
 from redbot.core import Config, commands
+from redbot.core.bot import Red
 
 from cdtcommon.cdtcommon import CdtCommon
 from cdtcommon.cdtembed import Embed
@@ -96,7 +100,7 @@ class Champions(commands.Cog):
         data.description = "dummy group"
         
 
-    @champions.group(aliases="data", hidden=True)
+    @champions.group(aliases=("data",), hidden=True)
     async def champions_data(self, ctx):
         """Data commands"""
         if await CdtCommon.check_collectordevteam:
@@ -116,7 +120,7 @@ class Champions(commands.Cog):
         elif json_key not in await self.config.snapshots(snapshot_key):
             await ctx.send("``{}`` not found in snapshot".format(json_key))
 
-    @champions_data.group(aliases="import")
+    @champions_data.group(aliases=("import",))
     async def champions_import(self, ctx):
         """Data import commands"""
 
