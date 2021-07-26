@@ -88,10 +88,10 @@ _config_structure = {
 class Champions(commands.Cog):
     """A CollectorDevTeam package for Marvel"s Contest of Champions"""
 
-    def __init__(self):
+    def __init__(self, bot: Red):
+        self.bot = bot
         self.config = Config.get_conf(self, identifier=21978198120172018)
         self.config.register_global(**_config_structure["global"])
-        # self.bot = bot
 
     @commands.group(aliases=("champ","champion","mcoc"))
     async def champions(self, ctx):
