@@ -14,84 +14,86 @@ import json
 
 __version__ = "32.0.0"
 
-__config_structure = {
-    "global" : {
-        "champions": {},
-        "default_champion" : {
-            "id" : None, #str unique champion id
-            "bid" : None, #str unique auntm.ai champion file id
-            "uid" : None, #str unique auntm.ai url id
-            "json_keys": {
-                "bio": [],
-                "description" : [],
-                "sp1": [],
-                "sp2" : [],
-                "sp3" : [],
-                "abilities": [], 
-                },
-            "aliases" : [],
-            "name": None,
-            "class": None,
-            "release_date": None,
-            "prerelease_date": None,
-            "tags": [],
-            "weaknesses": [],
-            "strengths" : [],
-            "tier_availability" : {
-                "t1" : None,
-                "t2" : None,
-                "t3" : None,
-                "t4" : None,
-                "t5" : None,
-                "t6" : None
-            },
-        },
-        "synergies" : None,
-        "classes": {
-            "Cosmic": discord.Color(0x2799f7), 
-            "Tech": discord.Color(0x0033ff),
-            "Mutant": discord.Color(0xffd400), 
-            "Skill": discord.Color(0xdb1200),
-            "Science": discord.Color(0x0b8c13), 
-            "Mystic": discord.Color(0x7f0da8),
-            "All": discord.Color(0x03f193), 
-            "Superior": discord.Color(0x03f193), 
-            "default": discord.Color.light_grey(),
-        }, 
-        "snapshots" : {
-            "root_path" : "snapshots/en/Standard/",
-            "bcg_en" : {
-                "meta": None,
-                "strings": None,
-            },
-            "bcg_stat_en": {
-                "meta": None,
-                "strings": None,
-                },
-            "character_bios" : {
-                "meta": None,
-                "strings": None,
-                },
-            "cutscenes_en": {
-                "meta": None,
-                "strings": None,
-                },
-            "special_attacks": {
-                "meta": None,
-                "strings": None,
-                },
-        }, 
-    }, # end global set
-}
+
 
 # class Champion - champion factory with all champion properties defined.
 
 class Champions(commands.Cog):
     """A CollectorDevTeam package for Marvel"s Contest of Champions"""
 
+    __config_structure = {
+        "global" : {
+            "champions": {},
+            "default_champion" : {
+                "id" : None, #str unique champion id
+                "bid" : None, #str unique auntm.ai champion file id
+                "uid" : None, #str unique auntm.ai url id
+                "json_keys": {
+                    "bio": [],
+                    "description" : [],
+                    "sp1": [],
+                    "sp2" : [],
+                    "sp3" : [],
+                    "abilities": [], 
+                    },
+                "aliases" : [],
+                "name": None,
+                "class": None,
+                "release_date": None,
+                "prerelease_date": None,
+                "tags": [],
+                "weaknesses": [],
+                "strengths" : [],
+                "tier_availability" : {
+                    "t1" : None,
+                    "t2" : None,
+                    "t3" : None,
+                    "t4" : None,
+                    "t5" : None,
+                    "t6" : None
+                },
+            },
+            "synergies" : None,
+            "classes": {
+                "Cosmic": discord.Color(0x2799f7), 
+                "Tech": discord.Color(0x0033ff),
+                "Mutant": discord.Color(0xffd400), 
+                "Skill": discord.Color(0xdb1200),
+                "Science": discord.Color(0x0b8c13), 
+                "Mystic": discord.Color(0x7f0da8),
+                "All": discord.Color(0x03f193), 
+                "Superior": discord.Color(0x03f193), 
+                "default": discord.Color.light_grey(),
+            }, 
+            "snapshots" : {
+                "root_path" : "snapshots/en/Standard/",
+                "bcg_en" : {
+                    "meta": None,
+                    "strings": None,
+                },
+                "bcg_stat_en": {
+                    "meta": None,
+                    "strings": None,
+                    },
+                "character_bios" : {
+                    "meta": None,
+                    "strings": None,
+                    },
+                "cutscenes_en": {
+                    "meta": None,
+                    "strings": None,
+                    },
+                "special_attacks": {
+                    "meta": None,
+                    "strings": None,
+                    },
+            }, 
+        }, # end global set
+    }
+
     def __init__(self):
         self.config = Config.get_conf(self, identifier=21978198120172018)
-        self.config.register_global(__config_structure["global"])
+        self.config.register_global(**__config_structure["global"])
         # self.bot = bot
 
     @commands.group(aliases=("champ","champion","mcoc"))
