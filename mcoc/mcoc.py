@@ -45,7 +45,7 @@ __config_structure = {
                 "t5" : None,
                 "t6" : None
             },
-    },
+        },
         "synergies" : None,
         "classes": {
             "Cosmic": discord.Color(0x2799f7), 
@@ -91,7 +91,7 @@ class Champions(commands.Cog):
 
     def __init__(self):
         self.config = Config.get_conf(self, identifier=21978198120172018)
-        self.config.register_global(**__config_structure["global"])
+        self.config.register_global(__config_structure["global"])
         # self.bot = bot
 
     @commands.group(aliases=("champ","champion","mcoc"))
