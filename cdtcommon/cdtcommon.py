@@ -22,11 +22,13 @@ _config_structure = {
         "name" : None,
         "reporting_channel": None,  
     },
-    "cdt" : 390253643330355200,
-    "cst" : 390253719125622807,
-    "guildowners" : 391667615497584650,
-    "familyowners" : 731197047562043464,
-    "tattletales" : 537330789332025364,
+    "checks" :{
+        "cdt" : 390253643330355200,
+        "cst" : 390253719125622807,
+        "guildowners" : 391667615497584650,
+        "familyowners" : 731197047562043464,
+        "tattletales" : 537330789332025364,
+    }
 }
 
 class CdtCommon(commands.Cog):
@@ -43,11 +45,11 @@ class CdtCommon(commands.Cog):
             identifier=8675309,
             force_registration=True,
         )
-        self.config.register_global(**_config_structure["commands"])
-        self.config.register_global(**_config_structure["cdt"])
-        self.config.register_global(**_config_structure["cst"])
-        self.config.register_global(**_config_structure["guildowners"])
-        self.config.register_global(**_config_structure["familyowners"])
+        self.config.register_global(**_config_structure["checks"])
+        # self.config.init_custom("checks", 1) # need to initialize first
+        # self.config.register_custom("checks", **_config_structure["checks"])
+
+
 
     @commands.command(hidden=True, name="promote", aliases=("promo",))
     @commands.guild_only()
@@ -195,7 +197,7 @@ class CdtCommon(commands.Cog):
     async def check_collectordevteam(self, ctx, user=None):
         """Checks if User is in CollectorDevTeam"""
         cdtguild = self.bot.get_guild(215271081517383682)
-        checkrole = await self.config.cdt()
+        checkrole = await self.config.checks("cdt")
         data = Embed.create(ctx, title="Checking CollectorDevTeam")
         if user is None:
             user = ctx.author
@@ -220,7 +222,7 @@ class CdtCommon(commands.Cog):
     # async def check_collectorsupportteam(self, ctx, user=None):
     #     """Checks if User is in CollectorSupportTeam"""
     #     cdtguild = self.bot.get_guild(215271081517383682)
-    #     role = await discord.utils.get(cdtguild.roles, id=await self.config.cst())
+    #     role = await discord.utils.get(cdtguild.roles, id=await self.config.checks().cst())
     #     print("CST role found")
     #     if user is None:
     #         user = ctx.author
@@ -235,7 +237,7 @@ class CdtCommon(commands.Cog):
     #             return True # print("CollectorSupporTeam Authenticated")
     #         else :
     #             await ctx.send("CST Authentication attempt failed, {0.name}{0.id} on {1.name}{1.id}".format(user, ctx.guild), 
-    #         channel=await self.config.cdt_roles().tattletales())
+    #         channel=await self.config.checks().tattletales())
     #             return await self.check_collectordevteam(ctx, user)
 
     # async def check_guildowners(self, ctx, user=None):
