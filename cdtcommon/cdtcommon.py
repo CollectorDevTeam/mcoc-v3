@@ -192,7 +192,7 @@ class CdtCommon(commands.Cog):
     async def check_collectordevteam(self, ctx, user=None):
         """Checks if User is in CollectorDevTeam"""
         cdtguild = self.bot.get_guild(215271081517383682)
-        role = await discord.utils.get(cdtguild.roles, id=self.config.cdt_roles().cdt())
+        role = await discord.utils.get(cdtguild.roles, id=self.config.cdt_roles("cdt"))
         if user is None:
             user = ctx.author
         checkuser = await discord.utils.get(cdtguild.members, id=user.id)
@@ -206,7 +206,7 @@ class CdtCommon(commands.Cog):
     async def check_collectorsupportteam(self, ctx, user=None):
         """Checks if User is in CollectorSupportTeam"""
         cdtguild = self.bot.get_guild(215271081517383682)
-        role = await discord.utils.get(cdtguild.roles, id=self.config.cdt_roles().cst())
+        role = await discord.utils.get(cdtguild.roles, id=self.config.cdt_roles("cst"))
         print("CST role found")
         if user is None:
             user = ctx.author
@@ -227,7 +227,7 @@ class CdtCommon(commands.Cog):
     async def check_guildowners(self, ctx, user=None):
         """Checks if User is Registered GuildOwner in CollectorDevTeam"""
         cdtguild = self.bot.get_guild(215271081517383682)
-        role = await discord.utils.get(cdtguild.roles, id=self.config.cdt_roles().guildowners())
+        role = await discord.utils.get(cdtguild.roles, id=self.config.cdt_roles("guildowners"))
         if user is None:
             user = ctx.author
         checkuser = await discord.utils.get(cdtguild.members, id=user.id)
@@ -241,15 +241,15 @@ class CdtCommon(commands.Cog):
     async def check_familyowners(self, ctx, user=None):
         """Checks if User is Registered GuildOwner in CollectorDevTeam"""
         cdtguild = self.bot.get_guild(215271081517383682)
-        role = await discord.utils.get(cdtguild.roles, id=self.config.cdt_roles().familyowners())
+        role = await discord.utils.get(cdtguild.roles, id=self.config.cdt_roles("familyowners"))
         if user is None:
             user = ctx.author
         checkuser = await discord.utils.get(cdtguild.members, id=user.id)
         if role in checkuser.roles:
             return True
         else:
-            await ctx.send("CDT Authentication attempt failed, {0.name}{0.id} on {1.name}{1.id}".format(user, ctx.guild), 
-            channel=await self.config.cdt_roles().tattletales())
+            await ctx.send("CDT Authentication attempt failed, {0.name}{0.id} on {1.name}{1.id}".format(user, ctx.guild),   
+            channel=await self.config.cdt_roles("tattletales"))
             return False
 
     async def get_user_confirmation(self, ctx, question):
