@@ -3,19 +3,45 @@ from redbot.core import Config, commands
 
 from cdtcommon.cdtcommon import CdtCommon
 from cdtcommon.cdtembed import Embed
-from mcoc import snapshots
+
 # from mcoc.champion import ChampionFactory
 
 import json
-
-from cdtcommon.cdtcommon import CdtCommon
-from cdtcommon.cdtembed import Embed
 
 __version__ = "32.0.0"
 
 __config_structure = {
     "global" : {
         "champions": {},
+        "default_champion" : {
+            "id" : None, #str unique champion id
+            "bid" : None, #str unique auntm.ai champion file id
+            "uid" : None, #str unique auntm.ai url id
+            "json_keys": {
+                "bio": [],
+                "description" : [],
+                "sp1": [],
+                "sp2" : [],
+                "sp3" : [],
+                "abilities": [], 
+                },
+            "aliases" : [],
+            "name": None,
+            "class": None,
+            "release_date": None,
+            "prerelease_date": None,
+            "tags": [],
+            "weaknesses": [],
+            "strengths" : [],
+            "tier_availability" : {
+                "t1" : None,
+                "t2" : None,
+                "t3" : None,
+                "t4" : None,
+                "t5" : None,
+                "t6" : None
+            },
+    },
         "synergies" : None,
         "classes": {
             "Cosmic": discord.Color(0x2799f7), 
@@ -69,9 +95,16 @@ class Champions(commands.Cog):
         data = Embed.create(title="Marvel Contest of Champions")
         data.description = "dummy group"
         
+
     @champions.group(aliases="data", hidden=True)
     async def champions_data(self, ctx):
         """Data commands"""
+        if await CdtCommon.check_collectordevteam:
+            pass
+        else:
+            await CdtCommon.tattle("Unauthorized attempt to manipulate ChampData")
+
+
 
     @champions_data.command(name="test")
     async def _champ_test(self, ctx, snapshot_key, json_key):
@@ -87,8 +120,8 @@ class Champions(commands.Cog):
     async def champions_import(self, ctx):
         """Data import commands"""
 
-    @champions_import.command(name="snapshots")
-    async def champions_import_snapshots(self, ctx):
+    @champions_import.command(name="snapshot")
+    async def champions_import_snapshot(self, ctx):
         snapshots = {}
         keys = await self.config.snapshots()
         for key in keys:

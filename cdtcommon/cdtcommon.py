@@ -251,7 +251,7 @@ class CdtCommon(commands.Cog):
             channel=await self.config.cdt_roles().tattletales())
             return False
 
-    async def _get_user_confirmation(self, ctx, question):
+    async def get_user_confirmation(self, ctx, question):
         """Pass user a question, returns True or False"""
         can_react = ctx.channel.permissions_for(ctx.me).add_reactions
         if not can_react:
@@ -290,6 +290,9 @@ class CdtCommon(commands.Cog):
                     await query.clear_reactions()
 
         return pred.result
+
+    async def tattle(self, ctx, tale : str, tattle: discord.Channel = 537330789332025364,):
+        await ctx.send(tale, channel=tattle)
 
     # @commands.group(name="cdtmonitor", alias="monitor")
     # @check_collectordevteam()
