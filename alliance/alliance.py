@@ -16,6 +16,11 @@ from .validator import Validator
 
 import logging
 
+CDTGUILD = 215271081517383682
+COLLECTORDEVTEAM = 390253643330355200
+COLLECTORSUPPORTTEAM = 390253719125622807
+GUILDOWNERS = 391667615497584650
+FAMILYOWNERS = 731197047562043464
 
 _config_structure = {
     "guild": {
@@ -120,9 +125,9 @@ class Alliance(Validator, commands.Cog, metaclass=AllianceMeta):
 
         await ctx.send(**kwargs)
 
-    # @alliance.command(name="join")
-    # @commands.guild_only()
-    # async def alliance_join(self, ctx: commands.Context):
+    @alliance.command(name="join")
+    @commands.guild_only()
+    async def alliance_join(self, ctx: commands.Context):
     #     """Join an alliance"""
     #     data = await self.config.user(ctx.author).all()
     #     guild_data = await self.config.guild(ctx.guild).all()

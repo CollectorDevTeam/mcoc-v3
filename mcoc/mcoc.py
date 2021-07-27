@@ -9,7 +9,7 @@ from redbot.core.utils import chat_formatting, menus
 
 from cdtcommon.cdtcommon import CdtCommon
 from cdtcommon.cdtembed import Embed
-from cdtcommon import FetchData
+from cdtcommon.fetch_data import FetchData
 
 import requests
 # from mcoc.champion import ChampionFactory
@@ -71,12 +71,12 @@ _config_structure = {
             "default": discord.Color.light_grey(),
         }, 
         "urls": {
-            "bcg_en": "https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/json/snapshots/en/bcg_en.json",
-            "bcg_stat_en": "https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/json/snapshots/en/bcg_stat_en.json",
-            "special_attacks_en": "https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/json/snapshots/en/special_attacks_en.json",
-            "masteries_en": "https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/json/snapshots/en/masteries_en.json",
-            "character_bios_en": "https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/json/snapshots/en/character_bios_en.json",
-            "cutscenes_en": "https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/json/snapshots/en/cutscenes_en.json",
+            "bcg_en": "https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/json/snapshots/en/Standard/bcg_en.json",
+            "bcg_stat_en": "https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/json/snapshots/en/Standard/bcg_stat_en.json",
+            "special_attacks_en": "https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/json/snapshots/en/Standard/special_attacks_en.json",
+            "masteries_en": "https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/json/snapshots/en/Standard/masteries_en.json",
+            "character_bios_en": "https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/json/snapshots/en/Standard/character_bios_en.json",
+            "cutscenes_en": "https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/json/snapshots/en/Standard/cutscenes_en.json",
         },
         "snapshots" : {
             "bcg_en" : {
@@ -164,8 +164,38 @@ class Champions(commands.Cog):
             if json_file in jkeys:
                 jkeys = [json_file] 
             for j in jkeys:
-                urls[j]
-                jfile = 
+                await ctx.send("champions_import_json, fetch url\n{}".format(urls[j]))
+                jfile = await FetchData.aiohttp_http_to_json(urls[j])
+                jfile = self.convert_snapshot_to_json(jfile)
+                answer = await CdtCommon.get_user_confirmation(self, ctx, "Would you like to review the raw_json?")
+                if answer:
+                    pages = chat_formatting.pagify
+                    await menus.menu(pages=pages, controls=CdtCommon._get_controls())
+                async with self.config.words() as words:
+                    words.update(jfile["strings"])
+                async with self.config.snapshots(j) as standard:
+                    standard.update(jfile)
+
+
+    def convert_snapshot_to_json(kabamfile:json):
+        stringlist = kabamfile["strings"] #list of strings
+        snapshot_file = {}
+        strings = {}
+        for i in len(stringlist):
+            for k, v in stringlist[i]:
+                if "vn" in pkg.keys():
+                    vn = pkg["vn"]
+                    if isinstance(vn, int):
+                        vn = str(vn)
+                else:
+                    vn = "0.0.0"
+                pkg = {k : {"v" : v , "vn": vn}}
+                print(pkg)
+                strings.update(pkg)
+        snapshot_file.update({"meta" : kabamfile["meta"], "strings": strings})
+        return snapshot_file
+
+
 
 
     # @champions_import.command(name="snapshot")
