@@ -14,6 +14,12 @@ import json
 
 __version__ = "32.0.0"
 
+CDTGUILD = 215271081517383682
+COLLECTORDEVTEAM = 390253643330355200
+COLLECTORSUPPORTTEAM = 390253719125622807
+GUILDOWNERS = 391667615497584650
+FAMILYOWNERS = 731197047562043464
+
 _config_structure = {
     "global" : {
         "champions": {
@@ -24,31 +30,31 @@ _config_structure = {
             "bid" : None, #str unique auntm.ai champion file id
             "uid" : None, #str unique auntm.ai url id
             "json_keys": {
-                "bio": [],
-                "description" : [],
-                "sp1": [],
-                "sp2" : [],
-                "sp3" : [],
-                "abilities": [], 
+                "bio": [], #list of json keys 
+                "description" : [], #list of json keys 
+                "sp1": [], #list of json keys 
+                "sp2" : [], #list of json keys 
+                "sp3" : [], #list of json keys 
+                "abilities": [], #list of json keys 
                 },
-            "aliases" : [],
-            "name": None,
-            "class": None,
-            "release_date": None,
-            "prerelease_date": None,
-            "tags": [],
-            "weaknesses": [],
-            "strengths" : [],
+            "aliases" : [], #all known aliases, check against known for clashes
+            "name": None, #formal name
+            "class": None, 
+            "release_date": None, #date
+            "prerelease_date": None, 
+            "tags": [], #list of tags
+            "weaknesses": [], #list of weaknesses
+            "strengths" : [], #list of strengths
             "tier_availability" : {
-                "t1" : None,
-                "t2" : None,
-                "t3" : None,
-                "t4" : None,
-                "t5" : None,
-                "t6" : None
+                "t1" : None, #release_date + x
+                "t2" : None, #release_date + x
+                "t3" : None, #release_date + x
+                "t4" : None, #release_date + x
+                "t5" : None, #release_date + x
+                "t6" : None #release_date + x
             },
         },
-        "synergies" : None,
+        "synergies" : None, #dictionary of {synergy_key: {}} 
         "classes": {
             "Cosmic": discord.Color(0x2799f7), 
             "Tech": discord.Color(0x0033ff),
@@ -100,24 +106,20 @@ class Champions(commands.Cog):
         
 
     @champions.group(aliases=("data",), hidden=True)
+    @commands.has_role(COLLECTORDEVTEAM)
     async def champions_data(self, ctx):
         """Data commands"""
-        if await CdtCommon.check_collectordevteam(self, ctx):
-            pass
-        else:
-            await CdtCommon.tattle("Unauthorized attempt to manipulate ChampData")
+        
 
-
-
-    @champions_data.command(name="test")
-    async def _champ_test(self, ctx, snapshot_key, json_key):
-        if json_key in await self.config.snapshots(snapshot_key):
-            await ctx.send("keys found.  testing")
-            await ctx.send("{}".format(await self.config.snapshots(snapshot_key).json_key()))
-        elif snapshot_key not in await self.config.snapshots():
-            await ctx.send("``{}`` not found in snapshots".format(snapshot_key))
-        elif json_key not in await self.config.snapshots(snapshot_key):
-            await ctx.send("``{}`` not found in snapshot".format(json_key))
+    # @champions_data.command(name="test")
+    # async def _champ_test(self, ctx, snapshot_key, json_key):
+    #     if json_key in await self.config.snapshots(snapshot_key):
+    #         await ctx.send("keys found.  testing")
+    #         await ctx.send("{}".format(await self.config.snapshots(snapshot_key).json_key()))
+    #     elif snapshot_key not in await self.config.snapshots():
+    #         await ctx.send("``{}`` not found in snapshots".format(snapshot_key))
+    #     elif json_key not in await self.config.snapshots(snapshot_key):
+    #         await ctx.send("``{}`` not found in snapshot".format(json_key))
 
     @champions_data.group(aliases=("import",))
     async def champions_import(self, ctx):
