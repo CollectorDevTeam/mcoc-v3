@@ -13,10 +13,10 @@ class FetchData():
         async with session.get(url) as response:
             if response.status != 200:
                 await ctx.send("Response Status: {response.status}")
-            if response.json():
-                result = await response.json()
-            else:
+            if response.content_type is "text/plain; charset=utf-8":
                 result = json.loads(response.text())
+            else:
+                result = response.json()
             session.close()
         return result
 
