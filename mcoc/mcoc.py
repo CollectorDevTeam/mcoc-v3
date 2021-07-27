@@ -121,7 +121,7 @@ class Champions(commands.Cog):
             keys = words.keys()
             if json_key is None:
                 question = "json_key_check: There are currently {} json_keys registered.\nDo you want a listing?".format(len(keys))
-                answer = await CdtCommon.get_user_confirmation(ctx, question)
+                answer = await self.CdtCommon.get_user_confirmation(ctx, question)
                 if answer:
                     listing = "\n".join(k for k in keys)
                     pages = chat_formatting.pagify(listing, page_length=1000)
