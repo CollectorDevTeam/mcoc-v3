@@ -112,8 +112,7 @@ class Champions(commands.Cog):
     @champions.group(aliases=("data",), hidden=True)
     @commands.has_role(COLLECTORDEVTEAM)
     async def champions_data(self, ctx):
-        """Data commands"""
-        
+        """Data commands""" 
 
     @champions_data.command(name="check")
     async def json_key_check(self, ctx, json_key=None):
@@ -132,13 +131,8 @@ class Champions(commands.Cog):
             else:
                 await ctx.send("{} not found in words".format(json_key))
 
-    @champions_data.group(name="import")
-    async def champions_import(self, ctx):
-        """Data import commands"""
-
     @champions_data.commands(name="delete")
-    @commands.is_owner()
-    async def champions_data_delete(self, ctx, dataset=None):
+    async def dataset_delete(self, ctx, dataset=None):
         """MCOC data purge"""
         if dataset in ("snapshot", "snapshots", "words"):
             answer = await CdtCommon.get_user_confirmation("Do you want to delete {} dataset?".format(dataset))
@@ -147,7 +141,12 @@ class Champions(commands.Cog):
                 await self.config.snapshots.clear()
             elif dataset is "words":
                 await self.config.words.clear()
-
+    
+    
+    @champions_data.group(name="import")
+    async def champions_import(self, ctx):
+        """Data import commands
+        snapshot - scrape data from translation files"""
 
     @champions_import.command(name="snapshot")
     async def champions_import_snapshot(self, ctx):
