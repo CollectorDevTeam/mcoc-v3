@@ -155,7 +155,7 @@ class Champions(commands.Cog):
         if config_key in await self.config.snapshots():
             
             relative_path = await self.config.snapshots.root_path()
-            cwd = os.getcwd
+            cwd = os.getcwd()
             filepath = "{}\\{}\\{}.json".format(cwd, relative_path, config_key)
             with open(filepath, 'r') as f:
                 array = json.load(f)
