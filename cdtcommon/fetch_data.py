@@ -1,16 +1,36 @@
 import aiohttp
+import json
 
 
 class FetchData():
 
-    async def aiohttp_http_to_json(url):
+    async def aiohttp_http_to_json(self, url):
         """pull JSON from url"""
         session = aiohttp.ClientSession()
         async with session.get(url) as response:
             result = await response.json()
-            return result
+            session.close()
+        return result
 
-
+    def convert_snapshot_to_json(self, kabamfile:json):
+        """Convert Kabam's lists of k, v & vn to k: {v, vn}"""
+        stringlist = kabamfile["strings"] #list of strings
+        snapshot_file = {}
+        strings = {}
+        for i in len(stringlist):
+            for k, v in stringlist[i]:
+                if "vn" in pkg.keys():
+                    vn = pkg["vn"]
+                    if isinstance(vn, int):
+                        vn = str(vn)
+                else:
+                    vn = "0.0.0"
+                pkg = {k : {"v" : v , "vn": vn}}
+                print(pkg)
+                strings.update(pkg)
+        snapshot_file.update({"meta" : kabamfile["meta"], "strings": strings})
+        return snapshot_file
+        
 # class FetchCdtData(commands.Cog):
 #     """
 #     Fetch data from CDT

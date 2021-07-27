@@ -166,7 +166,7 @@ class Champions(commands.Cog):
             for j in jkeys:
                 await ctx.send("champions_import_json, fetch url\n{}".format(urls[j]))
                 jfile = await FetchData.aiohttp_http_to_json(urls[j])
-                jfile = self.convert_snapshot_to_json(jfile)
+                jfile = FetchData.convert_snapshot_to_json(jfile)
                 answer = await CdtCommon.get_user_confirmation(self, ctx, "Would you like to review the raw_json?")
                 if answer:
                     pages = chat_formatting.pagify
@@ -177,23 +177,7 @@ class Champions(commands.Cog):
                     standard.update(jfile)
 
 
-    def convert_snapshot_to_json(kabamfile:json):
-        stringlist = kabamfile["strings"] #list of strings
-        snapshot_file = {}
-        strings = {}
-        for i in len(stringlist):
-            for k, v in stringlist[i]:
-                if "vn" in pkg.keys():
-                    vn = pkg["vn"]
-                    if isinstance(vn, int):
-                        vn = str(vn)
-                else:
-                    vn = "0.0.0"
-                pkg = {k : {"v" : v , "vn": vn}}
-                print(pkg)
-                strings.update(pkg)
-        snapshot_file.update({"meta" : kabamfile["meta"], "strings": strings})
-        return snapshot_file
+
 
 
 
