@@ -16,7 +16,7 @@ class FetchData():
             if response.json():
                 result = await response.json()
             else:
-                result = json.dumps(response.text())
+                result = json.loads(response.text())
             session.close()
         return result
 
