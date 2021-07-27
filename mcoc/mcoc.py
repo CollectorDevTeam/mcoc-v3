@@ -131,7 +131,7 @@ class Champions(commands.Cog):
             else:
                 await ctx.send("{} not found in words".format(json_key))
 
-    @champions_data.commands(name="delete")
+    @champions_data.commands(name="purge")
     async def dataset_delete(self, ctx, dataset=None):
         """MCOC data purge"""
         if dataset in ("snapshot", "snapshots", "words"):
