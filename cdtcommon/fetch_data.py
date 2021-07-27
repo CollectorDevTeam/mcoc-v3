@@ -26,7 +26,7 @@ class FetchData():
                 session.close()
                 return result
 
-    async def convert_snapshot_to_json(self, kabamfile:json):
+    def convert_snapshot_to_json(self, kabamfile:json):
         """Convert Kabam's lists of k, v & vn to k: {v, vn}"""
         stringlist = kabamfile["strings"].keys() #list of strings
         snapshot_file = {}
