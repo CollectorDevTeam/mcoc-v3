@@ -170,9 +170,9 @@ class Champions(commands.Cog):
                 jfile = await FetchData.aiohttp_http_to_json(self, ctx, urls[j])
                 if jfile is None:
                     await ctx.send("aiohttp to json failure, returned None")
-                    print(jfile)
                 if jfile is not None:
-                    jfile = await FetchData.convert_snapshot_to_json(self, jfile)
+                    print(jfile)
+                    jfile = FetchData.convert_snapshot_to_json(self, jfile)
                     answer = await CdtCommon.get_user_confirmation(self, ctx, "Would you like to review the raw_json?")
                     if answer:
                         pages = chat_formatting.pagify
