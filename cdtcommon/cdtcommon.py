@@ -188,7 +188,6 @@ class CdtCommon(commands.Cog):
 
     @commands.command(hidden=True)
     @commands.has_role(COLLECTORDEVTEAM)
-    # @Check.is_collectordevteam()
     async def checktest(self, ctx, checking):
         if checking in ("cdt", "collectordevteam"):
             if await self.check_cdt(ctx):
