@@ -69,22 +69,24 @@ _config_structure = {
         }, 
         "snapshots" : {
             "root_path" : "snapshots\\en\\Standard",
-            "bcg_en" : {
-                "meta": None,
-                "strings": None,
+            "json_files": {
+                "bcg_en" : {
+                    "meta": None,
+                    "strings": None,
+                },
+                "bcg_stat_en": {
+                    "meta": None,
+                    "strings": None,
+                },
+                "character_bios" : {
+                    "meta": None,
+                    "strings": None,
+                },
+                "special_attacks": {
+                    "meta": None,
+                    "strings": None,
+                },
             },
-            "bcg_stat_en": {
-                "meta": None,
-                "strings": None,
-                },
-            "character_bios" : {
-                "meta": None,
-                "strings": None,
-                },
-            "special_attacks": {
-                "meta": None,
-                "strings": None,
-                },
         }, # end snapshots
         "words": {}, #all words
     }, # end global set
@@ -129,7 +131,8 @@ class Champions(commands.Cog):
     @champions_import.command(name="snapshot")
     async def champions_import_snapshot(self, ctx):
         snapshots = {}
-        keys = await self.config.snapshots()
+        keys = await self.config.snapshots.json_files()
+        await ctx.send("for key in {}:".format(keys))
         for key in keys:
             readin = await self.loadjson(ctx, key)
             async with self.config.words() as words:
@@ -153,9 +156,9 @@ class Champions(commands.Cog):
         snapshot_file = {"meta": {}, "strings": {}}
         await ctx.send("reading {} json file".format(config_key))
         if config_key in await self.config.snapshots():
-            
-            relative_path = await self.config.snapshots.root_path()
             cwd = os.getcwd()
+            await ctx.send("cwd: {}".format(cwd))
+            
             filepath = "{}\\{}\\{}.json".format(cwd, relative_path, config_key)
             with open(filepath, 'r') as f:
                 array = json.load(f)
