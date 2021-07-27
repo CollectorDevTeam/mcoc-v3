@@ -5,6 +5,7 @@ from datetime import datetime
 
 from redbot.core import Config, commands
 from redbot.core.bot import Red
+from redbot.core.utils import chat_formatting, menus
 
 from cdtcommon.cdtcommon import CdtCommon
 from cdtcommon.cdtembed import Embed
@@ -114,18 +115,39 @@ class Champions(commands.Cog):
         """Data commands"""
         
 
-    @champions_data.command(name="test")
-    async def _champ_test(self, ctx, snapshot_key, json_key):
+    @champions_data.command(name="check")
+    async def json_key_check(self, ctx, json_key=None):
         async with self.config.snapshots.words() as words:
-            if json_key in words:
+            keys = words.keys()
+            if json_key is None:
+                question = "json_key_check: There are currently {} json_keys registered.\nDo you want a listing?".format(len(keys))
+                answer = await CdtCommon.get_user_confirmation(question)
+                if answer:
+                    listing = "\n".join(k for k in keys)
+                    pages = chat_formatting.pagify(listing, page_length=1000)
+                    await menus.menu(ctx, pages=pages)
+            elif json_key is not None and json_key in keys:
                 await ctx.send("keys found.  testing")
-                await ctx.send("{}".format(words[json_key]))
+                await ctx.send("{}".format(words[json_key]["v"]))
             else:
                 await ctx.send("{} not found in words".format(json_key))
 
     @champions_data.group(aliases=("import",))
     async def champions_import(self, ctx):
         """Data import commands"""
+
+    @champions_data.commands(aliases=("delete",))
+    @commands.is_owner()
+    async def champions_data_delete(self, ctx, dataset=None):
+        """MCOC data purge"""
+        if dataset in ("snapshot", "snapshots", "words"):
+            answer = await CdtCommon.get_user_confirmation("Do you want to delete {} dataset?".format(dataset))
+        if answer:
+            if dataset is "snapshot" or dataset is "snapshots":
+                await self.config.snapshots.clear()
+            elif dataset is "words":
+                await self.config.words.clear()
+
 
     @champions_import.command(name="snapshot")
     async def champions_import_snapshot(self, ctx):
@@ -161,13 +183,17 @@ class Champions(commands.Cog):
             with open(filepath, 'r') as f:
                 array = json.load(f)
                 stringlist = array["strings"] #list of strings
+                await ctx.send("loadjson: crawling {} json_strings".format(len(stringlist)))
                 strings = {}
                 for i in len(stringlist):
                     for k, v in stringlist[i]:
                         if "vn" in pkg.keys():
-                            pkg = {k : {"v" : v , "vn": pkg["vn"]}}
+                            vn = pkg["vn"]
+                            if isinstance(vn, int):
+                                vn = str(vn)
                         else:
-                            pkg = {k : {"v" : v }}
+                            vn = "0.0.0"
+                        pkg = {k : {"v" : v , "vn": vn}}
                         strings.update(pkg)
                         await ctx.send("```json\n{}```".format(pkg))
                 snapshot_file.update({"meta" : array["meta"], "strings": strings})
