@@ -154,12 +154,12 @@ class Champions(commands.Cog):
     async def loadjson(self, ctx, config_key: str):
         """Read in JSON file, return dict"""
         snapshot_file = {"meta": {}, "strings": {}}
-        await ctx.send("reading {} json file".format(config_key))
-        if config_key in await self.config.snapshots.json_keys():
-            cwd = os.getcwd()
-            await ctx.send("cwd: {}".format(cwd))
-            relative_path = await self.config.snapshots.relative_path()
-            filepath = "{}\\{}\\{}.json".format(cwd, relative_path, config_key)
+        await ctx.send("loadjson: reading {} json file".format(config_key))
+        cwd = os.getcwd()
+        relative_path = await self.config.snapshots.relative_path()
+        filepath = "{}\\{}\\{}.json".format(cwd, relative_path, config_key)
+        if os.path.isfile(filepath):
+            await ctx.send("loadjson: os filepath is valid file")
             with open(filepath, 'r') as f:
                 array = json.load(f)
                 stringlist = array["strings"] #list of strings
