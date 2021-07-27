@@ -12,6 +12,7 @@ from redbot.core.utils.predicates import MessagePredicate, ReactionPredicate
 
 
 from .cdtembed import Embed
+import checks 
 
 import logging
 
@@ -181,43 +182,39 @@ class CdtCommon(commands.Cog):
         return controls
 
     @commands.command(hidden=True)
-    async def checktest(self, ctx, check):
-        if check is "cdt":
-            await self.check_collectordevteam(ctx)
-        # elif check is "cst":
-        #     await self.check_collectorsupportteam(ctx)
-        # elif check is "family":
-        #     await self.check_familyowners(ctx)
-        # elif check is "guildowners":
-        #     await self.check_guildowners(ctx)
-        else:
-            return 
+    async def checktest(self, ctx, checking):
+        if checking in ("cdt", "collectordevteam"):
+            if await self.check_cdt(ctx):
+                await ctx.send("If this message printed, then checktest passed cdt")
 
+    @checks.is_collectordevteam()
+    async def check_cdt(self, ctx):
+        return True
 
-    async def check_collectordevteam(self, ctx, user=None):
-        """Checks if User is in CollectorDevTeam"""
-        cdtguild = self.bot.get_guild(215271081517383682)
-        checkrole = await self.config.checks("cdt")
-        data = Embed.create(ctx, title="Checking CollectorDevTeam")
-        if user is None:
-            user = ctx.author
-        data.description = "user: {0.name}\nid: {0.id}:\nguild: {1.name}\nguild id: {1.id}\n".format(ctx.author, ctx.guild)
-        role = await discord.utils.get(cdtguild.roles, id=checkrole)
-        if role is None:
-            data.description+="Role check failed as None"
-            await ctx.send(embed=data, channel=await self.config.tattletales())
-            return False
-        else:
-            checkuser = await discord.utils.get(cdtguild.members, id=user.id)
-            if role in checkuser.roles:
-                data.description += "User is CollectorDevTeam"
-                await ctx.send(embed=data, channel=await self.config.tattletales())
-                return True
-            else:
-                data.description += "User is not CollectorDevTeam"
-                channel=await self.config.tattletales()
-                await ctx.send(embed=data, channel=await self.config.tattletales())
-                return False
+    # async def check_collectordevteam(self, ctx, user=None):
+    #     """Checks if User is in CollectorDevTeam"""
+    #     cdtguild = self.bot.get_guild(215271081517383682)
+    #     checkrole = await self.config.checks("cdt")
+    #     data = Embed.create(ctx, title="Checking CollectorDevTeam")
+    #     if user is None:
+    #         user = ctx.author
+    #     data.description = "user: {0.name}\nid: {0.id}:\nguild: {1.name}\nguild id: {1.id}\n".format(ctx.author, ctx.guild)
+    #     role = await discord.utils.get(cdtguild.roles, id=checkrole)
+    #     if role is None:
+    #         data.description+="Role check failed as None"
+    #         await ctx.send(embed=data, channel=await self.config.tattletales())
+    #         return False
+    #     else:
+    #         checkuser = await discord.utils.get(cdtguild.members, id=user.id)
+    #         if role in checkuser.roles:
+    #             data.description += "User is CollectorDevTeam"
+    #             await ctx.send(embed=data, channel=await self.config.tattletales())
+    #             return True
+    #         else:
+    #             data.description += "User is not CollectorDevTeam"
+    #             channel=await self.config.tattletales()
+    #             await ctx.send(embed=data, channel=await self.config.tattletales())
+    #             return False
 
     # async def check_collectorsupportteam(self, ctx, user=None):
     #     """Checks if User is in CollectorSupportTeam"""
