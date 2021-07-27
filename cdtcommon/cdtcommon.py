@@ -10,9 +10,8 @@ from redbot.core.config import Config
 from redbot.core.utils import chat_formatting, menus
 from redbot.core.utils.predicates import MessagePredicate, ReactionPredicate
 
-
+from .checks import Check
 from .cdtembed import Embed
-import checks 
 
 import logging
 
@@ -182,7 +181,7 @@ class CdtCommon(commands.Cog):
         return controls
 
     @commands.command(hidden=True)
-    @checks.is_collectordevteam()
+    @Check.is_collectordevteam()
     async def checktest(self, ctx, checking):
         if checking in ("cdt", "collectordevteam"):
             if await self.check_cdt(ctx):
