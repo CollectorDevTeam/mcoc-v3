@@ -4,11 +4,17 @@ import json
 
 class FetchData():
 
-    async def aiohttp_http_to_json(self, url):
+    def __init__(self):
+        """init"""
+
+    async def aiohttp_http_to_json(self, ctx, url):
         """pull JSON from url"""
-        session = aiohttp.ClientSession()
+        session = aiohttp.ClientSession(json_serialize=json.dumps())
         async with session.get(url) as response:
-            result = await response.json()
+            if response.status != 200:
+                await ctx.send("Response Status: {response.status}")
+            if response.json():
+                result = await response.json()
             session.close()
         return result
 
