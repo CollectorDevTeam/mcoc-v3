@@ -153,7 +153,9 @@ class Champions(commands.Cog):
         snapshot_file = {"meta": {}, "strings": {}}
         await ctx.send("reading {} json file".format(config_key))
         if config_key in await self.config.snapshots():
-            filepath = "{}\\{}\\{}.json".format(os.getcwd, await self.config.snapshots.root_path(), config_key)
+            cwd = os.getcwd + "\\"
+            cwd += await self.config.snapshots.root_path()
+            filepath = "{}\\{}.json".format(cwd, config_key)
             with open(filepath, 'r') as f:
                 array = json.load(f)
                 stringlist = array["strings"] #list of strings
