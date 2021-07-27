@@ -22,7 +22,7 @@ class FetchData():
 
     def convert_snapshot_to_json(self, kabamfile:json):
         """Convert Kabam's lists of k, v & vn to k: {v, vn}"""
-        stringlist = kabamfile["strings"] #list of strings
+        stringlist = kabamfile["strings"].keys() #list of strings
         snapshot_file = {}
         strings = {}
         for i in len(stringlist):
