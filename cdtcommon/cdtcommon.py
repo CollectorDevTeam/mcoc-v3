@@ -10,10 +10,16 @@ from redbot.core.config import Config
 from redbot.core.utils import chat_formatting, menus
 from redbot.core.utils.predicates import MessagePredicate, ReactionPredicate
 
-from .checks import Check
+# from .checks import Check
 from .cdtembed import Embed
 
 import logging
+
+CDTGUILD = 215271081517383682
+COLLECTORDEVTEAM = 390253643330355200
+COLLECTORSUPPORTTEAM = 390253719125622807
+GUILDOWNERS = 391667615497584650
+FAMILYOWNERS = 731197047562043464
 
 log = logging.getLogger("red.CollectorDevTeam.cdtcommon")
 
@@ -181,7 +187,8 @@ class CdtCommon(commands.Cog):
         return controls
 
     @commands.command(hidden=True)
-    @Check.is_collectordevteam()
+    @commands.has_role(COLLECTORDEVTEAM)
+    # @Check.is_collectordevteam()
     async def checktest(self, ctx, checking):
         if checking in ("cdt", "collectordevteam"):
             if await self.check_cdt(ctx):
