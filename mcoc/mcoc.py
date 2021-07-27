@@ -116,7 +116,7 @@ class Champions(commands.Cog):
 
     @champions_data.command(name="check")
     async def json_key_check(self, ctx, json_key=None):
-        async with self.config.snapshots.words() as words:
+        async with self.config.words() as words:
             keys = words.keys()
             if json_key is None:
                 question = "json_key_check: There are currently {} json_keys registered.\nDo you want a listing?".format(len(keys))
