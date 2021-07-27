@@ -165,8 +165,8 @@ class Champions(commands.Cog):
                 jkeys = [json_file] 
             for j in jkeys:
                 await ctx.send("champions_import_json, fetch url\n{}".format(urls[j]))
-                jfile = await FetchData.aiohttp_http_to_json(urls[j])
-                jfile = FetchData.convert_snapshot_to_json(jfile)
+                jfile = await FetchData.aiohttp_http_to_json(self, ctx, urls[j])
+                jfile = FetchData.convert_snapshot_to_json(self, jfile)
                 answer = await CdtCommon.get_user_confirmation(self, ctx, "Would you like to review the raw_json?")
                 if answer:
                     pages = chat_formatting.pagify

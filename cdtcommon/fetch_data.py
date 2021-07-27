@@ -15,6 +15,8 @@ class FetchData():
                 await ctx.send("Response Status: {response.status}")
             if response.json():
                 result = await response.json()
+            else:
+                result = json.dumps(response.text())
             session.close()
         return result
 
