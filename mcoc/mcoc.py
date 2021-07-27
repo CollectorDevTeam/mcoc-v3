@@ -168,14 +168,18 @@ class Champions(commands.Cog):
             for j in jkeys:
                 await ctx.send("champions_import_json, fetch url\n{}".format(urls[j]))
                 jfile = await FetchData.aiohttp_http_to_json(self, ctx, urls[j])
+                answer = await CdtCommon.get_user_confirmation(self, ctx, "Would you like to review the http_to_json output?")
+                if answer:
+                    pages = chat_formatting.pagify("{}".format(jfile))
+                    await menus.menu(pages=pages, controls=CdtCommon.get_controls())
                 if jfile is None:
                     await ctx.send("aiohttp to json failure, returned None")
                 if jfile is not None:
                     print(jfile)
                     jfile = FetchData.convert_snapshot_to_json(self, jfile)
-                    answer = await CdtCommon.get_user_confirmation(self, ctx, "Would you like to review the raw_json?")
+                    answer = await CdtCommon.get_user_confirmation(self, ctx, "Would you like to review the snapshot_conversion?")
                     if answer:
-                        pages = chat_formatting.pagify
+                        pages = chat_formatting.pagify("{}".format(jfile))
                         await menus.menu(pages=pages, controls=CdtCommon.get_controls())
                     async with self.config.words() as words:
                         words.update(jfile["strings"])
