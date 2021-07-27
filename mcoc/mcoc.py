@@ -9,7 +9,9 @@ from redbot.core.utils import chat_formatting, menus
 
 from cdtcommon.cdtcommon import CdtCommon
 from cdtcommon.cdtembed import Embed
+from cdtcommon import FetchData
 
+import requests
 # from mcoc.champion import ChampionFactory
 
 import json
@@ -68,25 +70,30 @@ _config_structure = {
             "Superior": discord.Color(0x03f193), 
             "default": discord.Color.light_grey(),
         }, 
+        "urls": {
+            "bcg_en": "https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/json/snapshots/en/bcg_en.json",
+            "bcg_stat_en": "https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/json/snapshots/en/bcg_stat_en.json",
+            "special_attacks_en": "https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/json/snapshots/en/special_attacks_en.json",
+            "masteries_en": "https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/json/snapshots/en/masteries_en.json",
+            "character_bios_en": "https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/json/snapshots/en/character_bios_en.json",
+            "cutscenes_en": "https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/json/snapshots/en/cutscenes_en.json",
+        },
         "snapshots" : {
-            "relative_path" : "snapshots\\en\\Standard",
-            "json_files": {
-                "bcg_en" : {
-                    "meta": None,
-                    "strings": None,
-                },
-                "bcg_stat_en": {
-                    "meta": None,
-                    "strings": None,
-                },
-                "character_bios" : {
-                    "meta": None,
-                    "strings": None,
-                },
-                "special_attacks": {
-                    "meta": None,
-                    "strings": None,
-                },
+            "bcg_en" : {
+                "meta": {},
+                "strings": {},
+            },
+            "bcg_stat_en": {
+                "meta": {},
+                "strings": {},
+            },
+            "character_bios" : {
+                "meta": {},
+                "strings": {},
+            },
+            "special_attacks": {
+                "meta": {},
+                "strings": {},
             },
         }, # end snapshots
         "words": {}, #all words
@@ -118,13 +125,15 @@ class Champions(commands.Cog):
     async def json_key_check(self, ctx, json_key=None):
         async with self.config.words() as words:
             keys = words.keys()
-            if json_key is None:
+            if json_key is None and len(keys) == 0:
+                await ctx.send("There are currently {} json keys registered.".format(len(keys)))
+            if json_key is None and len(keys) > 0:
                 question = "json_key_check: There are currently {} json_keys registered.\nDo you want a listing?".format(len(keys))
                 answer = await CdtCommon.get_user_confirmation(self, ctx, question)
                 if answer:
                     listing = "\n".join(k for k in keys)
                     pages = chat_formatting.pagify(listing, page_length=1000)
-                    await menus.menu(ctx, pages=pages)
+                    await menus.menu(ctx, pages=pages, controls=CdtCommon._get_controls())
             elif json_key is not None and json_key in keys:
                 await ctx.send("keys found.  testing")
                 await ctx.send("{}".format(words[json_key]["v"]))
@@ -135,7 +144,7 @@ class Champions(commands.Cog):
     # async def dataset_delete(self, ctx, dataset=None):
     #     """MCOC data purge"""
     #     if dataset in ("snapshot", "snapshots", "words"):
-    #         answer = await CdtCommon.get_user_confirmation("Do you want to delete {} dataset?".format(dataset))
+    #         answer = await CdtCommon.get_user_confirmation(self, ctx, "Do you want to delete {} dataset?".format(dataset))
     #     if answer:
     #         if dataset is "snapshot" or dataset is "snapshots":
     #             await self.config.snapshots.clear()
@@ -148,16 +157,30 @@ class Champions(commands.Cog):
         """Data import commands
         snapshot - scrape data from translation files"""
 
-    @champions_import.command(name="snapshot")
-    async def champions_import_snapshot(self, ctx):
-        snapshots = {}
-        async with self.config.snapshots.json_files() as json_files:
-            await ctx.send("for key in {}:".format(json_files))
-            for key in json_files.keys():
-                readin = await self.loadjson(ctx, key)
-                async with self.config.words() as words:
-                    words.update(readin["strings"])
-                json_files[key].update(readin)
+    @champions_import.command(name="json")
+    async def champions_import_json(self, ctx, json_file=None):
+        async with self.config.urls() as urls:
+            jkeys = urls.keys()
+            if json_file in jkeys:
+                jkeys = [json_file] 
+            for j in jkeys:
+                urls[j]
+                jfile = 
+
+
+    # @champions_import.command(name="snapshot")
+    # async def champions_import_snapshot(self, ctx):
+    #     snapshots = {}
+    #     async with self.config.snapshots.json_files() as json_files:
+    #         keys = json_files.keys()
+        
+    #     await ctx.send("for key in {}:".format(json_files))
+    #     for key in keys:
+    #         readin = await self.loadjson(ctx, key)
+    #         async with self.config.words() as words:
+    #             words.update(readin["strings"])
+    #         async with self.config.snapshots.json_files(key) as json_file:
+    #             json_file.update({"meta": readin["meta"], "strings" : readin["strings"]})
 
 
     # @champions.commands(name="info")
@@ -177,6 +200,7 @@ class Champions(commands.Cog):
         cwd = os.getcwd()
         relative_path = await self.config.snapshots.relative_path()
         filepath = "{}\\{}\\{}.json".format(cwd, relative_path, config_key)
+        await ctx.send("loadjson: checking file path exists = {}".format(os.path.isfile(filepath)))
         if os.path.isfile(filepath):
             await ctx.send("loadjson: os filepath is valid file")
             with open(filepath, 'r') as f:

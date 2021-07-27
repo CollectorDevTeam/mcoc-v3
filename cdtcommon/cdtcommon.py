@@ -4,14 +4,15 @@ from typing import Optional
 import asyncio
 
 import discord
-from redbot.core import checks, commands
+from redbot.core import commands
 from redbot.core.bot import Red
 from redbot.core.config import Config
 from redbot.core.utils import chat_formatting, menus
 from redbot.core.utils.predicates import MessagePredicate, ReactionPredicate
 
-# from .checks import Check
-from .cdtembed import Embed
+
+from cdtcommon.cdtembed import Embed
+from cdtcommon.fetch_data import FetchData
 
 import logging
 
@@ -52,6 +53,8 @@ class CdtCommon(commands.Cog):
             force_registration=True,
         )
         self.config.register_global(**_config_structure["checks"])
+
+
         # self.config.init_custom("checks", 1) # need to initialize first
         # self.config.register_custom("checks", **_config_structure["checks"])
 
