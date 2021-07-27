@@ -68,7 +68,7 @@ _config_structure = {
             "default": discord.Color.light_grey(),
         }, 
         "snapshots" : {
-            "root_path" : "snapshots\\en\\Standard",
+            "relative_path" : "snapshots\\en\\Standard",
             "json_files": {
                 "bcg_en" : {
                     "meta": None,
@@ -155,10 +155,10 @@ class Champions(commands.Cog):
         """Read in JSON file, return dict"""
         snapshot_file = {"meta": {}, "strings": {}}
         await ctx.send("reading {} json file".format(config_key))
-        if config_key in await self.config.snapshots():
+        if config_key in await self.config.snapshots.json_keys():
             cwd = os.getcwd()
             await ctx.send("cwd: {}".format(cwd))
-            
+            relative_path = await self.config.snapshots.relative_path()
             filepath = "{}\\{}\\{}.json".format(cwd, relative_path, config_key)
             with open(filepath, 'r') as f:
                 array = json.load(f)
