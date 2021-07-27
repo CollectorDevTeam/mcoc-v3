@@ -131,9 +131,11 @@ class Champions(commands.Cog):
         snapshots = {}
         keys = await self.config.snapshots()
         for key in keys:
-            await self.loadjson(ctx, key)
+            readin = await self.loadjson(ctx, key)
             async with self.config.words() as words:
-                words.update(await self.config.snapshots.key.strings())
+                words.update(readin["strings"])
+            async with self.config.snapshots() as snapshots:
+                snapshots.key.update(readin)
 
 
     # @champions.commands(name="info")
@@ -147,25 +149,25 @@ class Champions(commands.Cog):
 
     ## import functions
     async def loadjson(self, ctx, config_key: str):
-        """need to read in JSON from file"""
-        async with self.config.snapshots(config_key) as snapshot_file:
-            await ctx.send("reading {} json file".format(config_key))
-            if config_key in await self.config.snapshots():
-                filepath = "{}\\{}\\{}.json".format(os.getcwd, await self.config.snapshots.root_path(), config_key)
-                with open(filepath, 'r') as f:
-                    array = json.load(f)
-                    stringlist = array["strings"] #list of strings
-                    snapshot_file.update({"meta" : array["meta"]})
-                    for i in array["meta"]["string_count"]:
-                        pkg = stringlist[i]
-                        for k, v in pkg:
-                            if "vn" in pkg.keys():
-                                pkg = {k : {"v" : v , "vn": pkg["vn"]}}
-                            else:
-                                pkg = {k : {"v" : v }}
-                            snapshot_file.update(pkg)
-                            await ctx.send("```json\n{}```".format(pkg))
-        await ctx.send("```{}```".format(await self.config.snapshots(config_key).meta()))
+        """Read in JSON file, return dict"""
+        snapshot_file = {"meta": {}, "strings": {}}
+        await ctx.send("reading {} json file".format(config_key))
+        if config_key in await self.config.snapshots():
+            filepath = "{}\\{}\\{}.json".format(os.getcwd, await self.config.snapshots.root_path(), config_key)
+            with open(filepath, 'r') as f:
+                array = json.load(f)
+                stringlist = array["strings"] #list of strings
+                strings = {}
+                for i in len(stringlist):
+                    for k, v in stringlist[i]:
+                        if "vn" in pkg.keys():
+                            pkg = {k : {"v" : v , "vn": pkg["vn"]}}
+                        else:
+                            pkg = {k : {"v" : v }}
+                        strings.update(pkg)
+                        await ctx.send("```json\n{}```".format(pkg))
+                snapshot_file.update({"meta" : array["meta"], "strings": strings})
+        return snapshot_file
 
     
 
