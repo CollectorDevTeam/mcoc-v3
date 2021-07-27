@@ -114,15 +114,14 @@ class Champions(commands.Cog):
         """Data commands"""
         
 
-    # @champions_data.command(name="test")
-    # async def _champ_test(self, ctx, snapshot_key, json_key):
-    #     if json_key in await self.config.snapshots(snapshot_key):
-    #         await ctx.send("keys found.  testing")
-    #         await ctx.send("{}".format(await self.config.snapshots(snapshot_key).json_key()))
-    #     elif snapshot_key not in await self.config.snapshots():
-    #         await ctx.send("``{}`` not found in snapshots".format(snapshot_key))
-    #     elif json_key not in await self.config.snapshots(snapshot_key):
-    #         await ctx.send("``{}`` not found in snapshot".format(json_key))
+    @champions_data.command(name="test")
+    async def _champ_test(self, ctx, snapshot_key, json_key):
+        async with self.config.snapshots.words() as words:
+            if json_key in words:
+                await ctx.send("keys found.  testing")
+                await ctx.send("{}".format(words[json_key]))
+            else:
+                await ctx.send("{} not found in words".format(json_key))
 
     @champions_data.group(aliases=("import",))
     async def champions_import(self, ctx):
