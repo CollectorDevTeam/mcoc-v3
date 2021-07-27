@@ -132,11 +132,11 @@ class Champions(commands.Cog):
             else:
                 await ctx.send("{} not found in words".format(json_key))
 
-    @champions_data.group(aliases=("import",))
+    @champions_data.group(name="import")
     async def champions_import(self, ctx):
         """Data import commands"""
 
-    @champions_data.commands(aliases=("delete",))
+    @champions_data.commands(name="delete")
     @commands.is_owner()
     async def champions_data_delete(self, ctx, dataset=None):
         """MCOC data purge"""
