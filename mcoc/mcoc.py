@@ -67,7 +67,7 @@ _config_structure = {
             "default": discord.Color.light_grey(),
         }, 
         "snapshots" : {
-            "root_path" : "snapshots/en/Standard/",
+            "root_path" : "snapshots\\en\\Standard\\",
             "bcg_en" : {
                 "meta": None,
                 "strings": None,
