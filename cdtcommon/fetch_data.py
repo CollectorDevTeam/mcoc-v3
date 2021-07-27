@@ -9,7 +9,7 @@ class FetchData():
 
     async def aiohttp_http_to_json(self, ctx, url):
         """pull JSON from url"""
-        session = aiohttp.ClientSession(json_serialize=json.dumps())
+        session = aiohttp.ClientSession()
         async with session.get(url) as response:
             if response.status != 200:
                 await ctx.send("Response Status: {response.status}")
