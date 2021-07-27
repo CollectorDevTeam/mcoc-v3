@@ -125,7 +125,7 @@ class Champions(commands.Cog):
     async def json_key_check(self, ctx, json_key=None):
         async with self.config.words() as words:
             keys = words.keys()
-            await ctx.send("Processing {keys}")
+            await ctx.send("Processing {}".format(keys))
             if json_key is None and len(keys) == 0:
                 await ctx.send("There are currently {} json keys registered.".format(len(keys)))
             if json_key is None and len(keys) > 0:
@@ -164,11 +164,11 @@ class Champions(commands.Cog):
             jkeys = urls.keys()
             if json_file in jkeys:
                 jkeys = [json_file] 
-            await ctx.send("champion_import_json: processing {jkeys}")            
+            await ctx.send("champion_import_json: processing {}".format(jkeys))            
             for j in jkeys:
                 await ctx.send("champions_import_json, fetch url\n{}".format(urls[j]))
                 jfile = await FetchData.aiohttp_http_to_json(self, ctx, urls[j])
-                jfile = FetchData.convert_snapshot_to_json(self, jfile)
+                jfile = await FetchData.convert_snapshot_to_json(self, jfile)
                 answer = await CdtCommon.get_user_confirmation(self, ctx, "Would you like to review the raw_json?")
                 if answer:
                     pages = chat_formatting.pagify
