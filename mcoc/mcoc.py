@@ -160,9 +160,11 @@ class Champions(commands.Cog):
                         pkg = stringlist[i]
                         for k, v in pkg:
                             if "vn" in pkg.keys():
-                                snapshot_file.update({k : {"v" : v , "vn": pkg["vn"]}})
+                                pkg = {k : {"v" : v , "vn": pkg["vn"]}}
                             else:
-                                snapshot_file.update({k : {"v": v, "vn" : 0 }})
+                                pkg = {k : {"v" : v }}
+                            snapshot_file.update(pkg)
+                            await ctx.send("```json\n{}```".format(pkg))
         await ctx.send("```{}```".format(await self.config.snapshots(config_key).meta()))
 
     
