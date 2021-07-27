@@ -182,14 +182,15 @@ class CdtCommon(commands.Cog):
         return controls
 
     @commands.command(hidden=True)
+    @checks.is_collectordevteam()
     async def checktest(self, ctx, checking):
         if checking in ("cdt", "collectordevteam"):
             if await self.check_cdt(ctx):
                 await ctx.send("If this message printed, then checktest passed cdt")
 
-    @checks.is_collectordevteam()
-    async def check_cdt(self, ctx):
-        return True
+    # @checks.is_collectordevteam()
+    # async def check_cdt(self, ctx):
+    #     return True
 
     # async def check_collectordevteam(self, ctx, user=None):
     #     """Checks if User is in CollectorDevTeam"""
