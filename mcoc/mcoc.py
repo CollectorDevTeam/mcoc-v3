@@ -148,7 +148,7 @@ class Champions(commands.Cog):
     ## import functions
     async def loadjson(self, ctx, config_key: str):
         """need to read in JSON from file"""
-        async with self.config.snapshots.config_key() as snapshot_file:
+        async with self.config.snapshots(config_key) as snapshot_file:
             await ctx.send("reading {} json file".format(config_key))
             if config_key in await self.config.snapshots():
                 filepath = "{}\\{}\\{}.json".format(os.getcwd, await self.config.snapshots.root_path(), config_key)
