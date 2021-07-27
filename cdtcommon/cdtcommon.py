@@ -168,8 +168,8 @@ class CdtCommon(commands.Cog):
                 pages.append(data)
             msg = await ctx.send(embed=pages[0])
             if len(pages) > 1:
-                menus.start_adding_reactions(msg, self._get_controls())
-                await menus.menu(ctx=ctx, pages=pages, controls=self._get_controls(), message=msg)
+                menus.start_adding_reactions(msg, self.get_controls())
+                await menus.menu(ctx=ctx, pages=pages, controls=self.get_controls(), message=msg)
         else:
             await ctx.send(f"I could not find any members with the role {role.name}.")
 
@@ -178,7 +178,7 @@ class CdtCommon(commands.Cog):
         members = [m for m in guild.members if role in m.roles]
         return members or None
 
-    def _get_controls(self):
+    def get_controls():
         controls = {
             # "<:arrowleft:735628703610044488>": menus.prev_page,
             # "<:circlex:735628703530483814>": menus.close_menu,

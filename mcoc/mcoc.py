@@ -172,7 +172,7 @@ class Champions(commands.Cog):
                 answer = await CdtCommon.get_user_confirmation(self, ctx, "Would you like to review the raw_json?")
                 if answer:
                     pages = chat_formatting.pagify
-                    await menus.menu(pages=pages, controls=CdtCommon._get_controls())
+                    await menus.menu(pages=pages, controls=CdtCommon.get_controls())
                 async with self.config.words() as words:
                     words.update(jfile["strings"])
                 async with self.config.snapshots(j) as standard:
