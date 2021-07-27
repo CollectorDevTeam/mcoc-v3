@@ -132,7 +132,7 @@ class Champions(commands.Cog):
     async def champions_import_snapshot(self, ctx):
         snapshots = {}
         async with self.config.snapshots.json_files() as json_files:
-            await ctx.send("for key in {}:".format(keys))
+            await ctx.send("for key in {}:".format(json_files))
             for key in json_files.keys():
                 readin = await self.loadjson(ctx, key)
                 async with self.config.words() as words:
