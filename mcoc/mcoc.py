@@ -169,7 +169,7 @@ class Champions(commands.Cog):
                 await ctx.send("champions_import_json, fetch url\n{}".format(urls[j]))
                 jfile = await FetchData.aiohttp_http_to_json(self, ctx, urls[j])
                 if jfile is None:
-                    await ctx.send("aiohttp to json failure")
+                    await ctx.send("aiohttp to json failure, returned None")
                     print(jfile)
                 if jfile is not None:
                     jfile = await FetchData.convert_snapshot_to_json(self, jfile)
