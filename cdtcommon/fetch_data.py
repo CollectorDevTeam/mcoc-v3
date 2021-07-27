@@ -13,12 +13,18 @@ class FetchData():
         async with session.get(url) as response:
             if response.status != 200:
                 await ctx.send("Response Status: {response.status}")
+                session.close
+                return None
             if response.content_type is "text/plain; charset=utf-8":
-                result = json.loads(response.text())
+                await ctx.send("Response is text. Loading as json ")
+                result = json.load(response.text())
+                session.close()
+                return result
             else:
+                await ctx.send("Response is json.")
                 result = response.json()
-            session.close()
-        return result
+                session.close()
+                return result
 
     async def convert_snapshot_to_json(self, kabamfile:json):
         """Convert Kabam's lists of k, v & vn to k: {v, vn}"""
