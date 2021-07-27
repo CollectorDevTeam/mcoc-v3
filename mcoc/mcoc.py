@@ -102,7 +102,6 @@ class Champions(commands.Cog):
         self.bot = bot
         self.config = Config.get_conf(self, identifier=21978198120172018)
         self.config.register_global(**_config_structure["global"])
-        self.CdtCommon = CdtCommon
 
     @commands.group(aliases=("champ","champion","mcoc"))
     async def champions(self, ctx):
@@ -121,7 +120,7 @@ class Champions(commands.Cog):
             keys = words.keys()
             if json_key is None:
                 question = "json_key_check: There are currently {} json_keys registered.\nDo you want a listing?".format(len(keys))
-                answer = await self.CdtCommon.get_user_confirmation(ctx, question)
+                answer = await CdtCommon.get_user_confirmation(self, ctx, question)
                 if answer:
                     listing = "\n".join(k for k in keys)
                     pages = chat_formatting.pagify(listing, page_length=1000)
