@@ -147,7 +147,7 @@ class Champions(commands.Cog):
         """need to read in JSON from file"""
         snapshot_file = {}
         if config_key in await self.config.snapshots():
-            filepath = "{}{}.json".format(await self.config.snapshots().root_path(), config_key)
+            filepath = "{}{}.json".format(await self.config.snapshots.root_path(), config_key)
             with open(filepath, 'r') as f:
                 array = json.load(f)
                 stringlist = array["strings"] #list of strings
