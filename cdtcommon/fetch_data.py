@@ -13,7 +13,7 @@ class FetchData():
         
 
     async def aiohttp_http_to_text(ctx, url):
-        """pull textfile from url"""
+        """pull text from url, return pretty string"""
         result = None
         async with session.get(url) as response:
             if response.status != 200:
@@ -26,19 +26,26 @@ class FetchData():
                 return filetext
 
     async def aiohttp_http_to_json(ctx, url):
-        """pull jsonfile from url"""
+        """pull text from url, return pretty json"""
         result = None
         async with session.get(url) as response:
             if response.status != 200:
                 await ctx.send("Response Status: {response.status}")
             filetext = await response.text()
-            result = json.loads(filetext)
-            return result
+            prettytext = FetchData.prettyprint(filetext)
+            jsonfile = json.loads(prettytext)
+            return jsonfile
 
-    async def convert_textfile_to_json(ctx, filetext):
+    async def convert_kabamfile_to_json(ctx, kabamjson):
         """Convert Kabam's lists of k, v & vn to k: {v, vn}"""
         # stringlist = kabamfile["strings"].keys() #list of strings
-        jdump = json.loads(filetext)
+        if isinstance(kabamjson, dict):
+            next
+        elif isinstance(kabamjson, str):
+            jdump = json.loads(kabamjson)
+        else:
+            await ctx.send("dbg: kabam_to_json - not str or dict")
+            return None
         meta = jdump["meta"]
         await ctx.send("dbg: text_to_json metacheck{}".format(meta))
         stringlist = jdump["strings"]

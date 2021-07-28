@@ -176,19 +176,16 @@ class Champions(commands.Cog):
                 answer = await CdtCommon.get_user_confirmation(self, ctx, "Would you like to review the http_to_json output?")
                 if answer:
                     print(filetext)
-                    pages = list(chat_formatting.pagify(text=filetext, page_length=1800))
-                    menupages = []
-                    for p in pages:
-                        menupages.append(Embed.create(ctx, description=p))
-                    # pages = CdtCommon.menupagify(self, ctx, filetext)
-                    if isinstance(pages, list):
-                        await menus.menu(ctx, pages=menupages, controls=CdtCommon.get_controls())
-                    else:
-                        await ctx.send("pages is not a list")
+                    pages = chat_formatting.pagify(text=filetext, page_length=1800)
+                    pagelist =list(pages)
+                    try: 
+                        await menus.menu(ctx, pages=pages, controls=CdtCommon.get_controls())
+                    except:
+                        await menus.menu(ctx, pages=pagelist, controls=CdtCommon.get_controls())
 
                 if filetext is not None:
-                    jsonfile = await FetchData.convert_textfile_to_json(ctx, filetext)
-                    if isinstance(jsonfile, json):
+                    jsonfile = await FetchData.convert_kabamfile_to_json(ctx, filetext)
+                    if jsonfile is not None:
                         async with self.config.words() as words:
                             words.update(jsonfile["strings"])
                         async with self.config.snapshots(j) as standard:
