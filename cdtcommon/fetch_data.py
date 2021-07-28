@@ -64,7 +64,7 @@ class FetchData():
         jtext = None
         if isinstance(text_or_json, str):
             jtext = json.loads(text_or_json)
-        if isinstance(text_or_json, json):
+        if isinstance(text_or_json, dict):
             jtext = text_or_json
 
         if jtext is not None:
