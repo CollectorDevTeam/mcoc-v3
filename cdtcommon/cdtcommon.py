@@ -338,8 +338,9 @@ class CdtCommon(commands.Cog):
         return round(num / (100 - per), 2)
 
 
-    def menupagify(self, ctx: Context, text: str, title=None):
-        textpages = list(chat_formatting.pagify(text, page_length=1800))
+    def menupagify(self, ctx: Context, intext: str, title=None):
+        """chat format string to pages, and set in embed object descriptions"""
+        textpages = list(chat_formatting.pagify(text=intext, page_length=1800))
         menupages = []
         for page in textpages:
             p = Embed.create(ctx, description=page)
