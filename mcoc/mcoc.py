@@ -171,7 +171,7 @@ class Champions(commands.Cog):
                 answer = await CdtCommon.get_user_confirmation(self, ctx, "Would you like to review the http_to_json output?")
                 if answer:
                     print(jfile)
-                    pages = chat_formatting.pagify("{}".format(jfile))
+                    pages = chat_formatting.pagify(json.dumps(jfile))
                     await menus.menu(ctx, pages=pages, controls=CdtCommon.get_controls())
                 if jfile is None:
                     await ctx.send("aiohttp to json failure, returned None")
@@ -180,7 +180,7 @@ class Champions(commands.Cog):
                     jfile = FetchData.convert_snapshot_to_json(jfile)
                     answer = await CdtCommon.get_user_confirmation(self, ctx, "Would you like to review the snapshot_conversion?")
                     if answer:
-                        pages = chat_formatting.pagify("{}".format(jfile))
+                        pages = chat_formatting.pagify(json.dumps(jfile))
                         await menus.menu(ctx, pages=pages, controls=CdtCommon.get_controls())
                     async with self.config.words() as words:
                         words.update(jfile["strings"])
