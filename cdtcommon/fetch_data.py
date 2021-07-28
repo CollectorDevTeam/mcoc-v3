@@ -26,8 +26,8 @@ class FetchData():
         """Convert Kabam's lists of k, v & vn to k: {v, vn}"""
         # stringlist = kabamfile["strings"].keys() #list of strings
         print(kabamfile)
-        strings = kabamfile["strings"]
-        keys = strings.keys()
+        meta = kabamfile["meta"]
+        stringlist = kabamfile["strings"]
         snapshot_file = {}
         strings = {}
         for i in len(stringlist):
@@ -41,7 +41,7 @@ class FetchData():
                 pkg = {k : {"v" : v , "vn": vn}}
                 print(pkg)
                 strings.update(pkg)
-        snapshot_file.update({"meta" : kabamfile["meta"], "strings": strings})
+        snapshot_file.update({"meta" : meta, "strings": strings})
         return snapshot_file
         
 # class FetchCdtData(commands.Cog):
