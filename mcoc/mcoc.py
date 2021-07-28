@@ -170,6 +170,7 @@ class Champions(commands.Cog):
                 jfile = await FetchData.aiohttp_http_to_json(self, ctx, urls[j])
                 answer = await CdtCommon.get_user_confirmation(self, ctx, "Would you like to review the http_to_json output?")
                 if answer:
+                    print(jfile)
                     pages = chat_formatting.pagify("{}".format(jfile))
                     await menus.menu(ctx, pages=pages, controls=CdtCommon.get_controls())
                 if jfile is None:
