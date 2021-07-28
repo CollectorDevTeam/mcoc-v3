@@ -47,7 +47,7 @@ class FetchData():
             await ctx.send("dbg: kabam_to_json - not str or dict")
             return None
         snapshot_file = {"meta": {}, "strings": {}}
-        snapshot_file.meta.update(kabamjson["meta"])
+        snapshot_file["meta"].update(kabamjson["meta"])
         await ctx.send("dbg: text_to_json metacheck{}".format(snapshot_file["meta"]))
         stringlist = kabamjson["strings"]
         strings = {}
