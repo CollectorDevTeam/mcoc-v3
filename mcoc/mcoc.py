@@ -183,7 +183,7 @@ class Champions(commands.Cog):
                         await ctx.send("pages is not a list")
 
                 if filetext is not None:
-                    jsonfile = await FetchData.convert_textfile_to_json(filetext)
+                    jsonfile = await FetchData.convert_textfile_to_json(ctx, filetext)
                     if isinstance(jsonfile, json):
                         async with self.config.words() as words:
                             words.update(jsonfile["strings"])
