@@ -196,6 +196,7 @@ class CdtCommon(commands.Cog):
             if await self.check_cdt(ctx):
                 await ctx.send("If this message printed, then checktest passed cdt")
 
+
     # @checks.is_collectordevteam()
     # async def check_cdt(self, ctx):
     #     return True
@@ -319,6 +320,8 @@ class CdtCommon(commands.Cog):
 
     # @commands.group(name="cdtmonitor", alias="monitor")
     # @check_collectordevteam()
+
+
 
     @staticmethod
     def from_flat(flat, ch_rating):
