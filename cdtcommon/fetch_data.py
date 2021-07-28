@@ -1,11 +1,13 @@
 import aiohttp
 import json
+from redbot.core.bot import Red
 
 
 class FetchData():
 
-    def __init__(self):
+    def __init__(self, bot: Red):
         """init"""
+        self.bot = bot
         self.session = aiohttp.ClientSession()
 
 
