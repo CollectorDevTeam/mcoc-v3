@@ -177,8 +177,8 @@ class Champions(commands.Cog):
                 if answer:
                     print(filetext)
                     pages = chat_formatting.pagify(text=filetext, page_length=1500)
-                    if isinstance(pages, list):
-                        await menus.menu(ctx, pages=pages, controls=CdtCommon.get_controls())
+                    if isinstance(list(pages), list):
+                        await menus.menu(ctx, pages=list(pages), controls=CdtCommon.get_controls())
                     else:
                         await ctx.send("pages is not a list")
 
