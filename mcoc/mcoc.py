@@ -176,9 +176,9 @@ class Champions(commands.Cog):
                 answer = await CdtCommon.get_user_confirmation(self, ctx, "Would you like to review the http_to_json output?")
                 if answer:
                     print(filetext)
-                    pages = chat_formatting.pagify(text=filetext, page_length=1500)
-                    if isinstance(list(pages), list):
-                        await menus.menu(ctx, pages=list(pages), controls=CdtCommon.get_controls())
+                    pages = list(chat_formatting.pagify(text=filetext, page_length=1500))
+                    if isinstance(pages, list):
+                        await menus.menu(ctx, pages=pages, controls=CdtCommon.get_controls())
                     else:
                         await ctx.send("pages is not a list")
 
