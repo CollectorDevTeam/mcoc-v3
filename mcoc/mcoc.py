@@ -176,10 +176,13 @@ class Champions(commands.Cog):
                 answer = await CdtCommon.get_user_confirmation(self, ctx, "Would you like to review the http_to_json output?")
                 if answer:
                     print(filetext)
-                    # pages = list(chat_formatting.pagify(text=filetext, page_length=1800))
-                    pages = CdtCommon.menupagify(self, ctx, filetext)
+                    pages = list(chat_formatting.pagify(text=filetext, page_length=1800))
+                    menupages = []
+                    for p in pages:
+                        menupages.append(Embed.create(ctx, description=p))
+                    # pages = CdtCommon.menupagify(self, ctx, filetext)
                     if isinstance(pages, list):
-                        await menus.menu(ctx, pages=pages, controls=CdtCommon.get_controls())
+                        await menus.menu(ctx, pages=menupages, controls=CdtCommon.get_controls())
                     else:
                         await ctx.send("pages is not a list")
 
