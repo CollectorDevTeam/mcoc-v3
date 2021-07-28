@@ -6,13 +6,13 @@ class FetchData():
 
     def __init__(self):
         """init"""
-        5r
+        self.session = aiohttp.ClientSession()
+
 
     async def aiohttp_http_to_json(self, ctx, url):
         """pull JSON from url"""
         result = None
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url) as response:
+        async with self.session.get(url) as response:
                 if response.status != 200:
                     await ctx.send("Response Status: {response.status}")
                 if await response.content_type is "text/plain; charset=utf-8":
@@ -21,7 +21,6 @@ class FetchData():
                 elif isinstance(await response.json(), json):
                     await ctx.send("Response is json.")
                     result = await response.json()
-            session.close()
         return result
 
     def convert_snapshot_to_json(self, kabamfile):
