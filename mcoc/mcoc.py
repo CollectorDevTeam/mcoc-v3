@@ -177,7 +177,7 @@ class Champions(commands.Cog):
                 if answer:
                     print(filetext)
                     # pages = list(chat_formatting.pagify(text=filetext, page_length=1800))
-                    pages = CdtCommon.menupagify(ctx, filetext)
+                    pages = CdtCommon.menupagify(self, ctx, filetext)
                     if isinstance(pages, list):
                         await menus.menu(ctx, pages=pages, controls=CdtCommon.get_controls())
                     else:
