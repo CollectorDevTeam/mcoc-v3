@@ -12,7 +12,7 @@ class FetchData():
         self.bot = bot
         
 
-    async def aiohttp_http_to_json(self, ctx, url):
+    async def aiohttp_http_to_json(ctx, url):
         """pull JSON from url"""
         result = None
         async with session.get(url) as response:
@@ -22,7 +22,7 @@ class FetchData():
             result = json.loads(filetext)
             return result
 
-    def convert_snapshot_to_json(self, kabamfile):
+    def convert_snapshot_to_json(kabamfile):
         """Convert Kabam's lists of k, v & vn to k: {v, vn}"""
         # stringlist = kabamfile["strings"].keys() #list of strings
         print(kabamfile)
