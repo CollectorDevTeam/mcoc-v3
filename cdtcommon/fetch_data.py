@@ -42,17 +42,17 @@ class FetchData():
         if isinstance(kabamjson, dict):
             next
         elif isinstance(kabamjson, str):
-            jdump = json.loads(kabamjson)
+            kabamjson = json.loads(kabamjson)
         else:
             await ctx.send("dbg: kabam_to_json - not str or dict")
             return None
-        meta = jdump["meta"]
-        await ctx.send("dbg: text_to_json metacheck{}".format(meta))
-        stringlist = jdump["strings"]
-        snapshot_file = {}
+        snapshot_file = {"meta": {}, "strings": {}}
+        snapshot_file.meta.update(kabamjson["meta"])
+        await ctx.send("dbg: text_to_json metacheck{}".format(snapshot_file["meta"]))
+        stringlist = kabamjson["strings"]
         strings = {}
-        for i in len(stringlist):
-            for k, v in stringlist[i]:
+        for item in stringlist:
+            for k, v in item:
                 if "vn" in pkg.keys():
                     vn = pkg["vn"]
                     if isinstance(vn, int):
@@ -62,7 +62,7 @@ class FetchData():
                 pkg = {k : {"v" : v , "vn": vn}}
                 print(pkg)
                 strings.update(pkg)
-        snapshot_file.update({"meta" : meta, "strings": strings})
+        snapshot_file["strings"].update(strings)
         return snapshot_file
         
     
