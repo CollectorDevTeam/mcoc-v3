@@ -1,3 +1,4 @@
+from typing import Sequence
 import discord
 import os 
 
@@ -173,10 +174,13 @@ class Champions(commands.Cog):
                     print(jfile)
                     jdump = json.dumps(jfile)
                     if isinstance(jdump, str):
-                        pages = chat_formatting.pagify(jdump)
+                        pages = chat_formatting.pagify(text=jdump, page_length=1500)
+                        if isinstance(pages, list):
+                            await menus.menu(ctx, pages=pages, controls=CdtCommon.get_controls())
+                        else:
+                            ctx.send("pages is not a list")
                     else:
                         await ctx.send("jfile did not jdump into str")
-                    await menus.menu(ctx, pages=pages, controls=CdtCommon.get_controls())
                 if jfile is None:
                     await ctx.send("aiohttp to json failure, returned None")
                 if jfile is not None:
