@@ -109,7 +109,6 @@ class Champions(commands.Cog):
         self.bot = bot
         self.config = Config.get_conf(self, identifier=21978198120172018)
         self.config.register_global(**_config_structure["global"])
-        self.FetchData = FetchData(self)
 
     @commands.group(aliases=("champ","champion","mcoc"))
     async def champions(self, ctx):
@@ -168,7 +167,7 @@ class Champions(commands.Cog):
             await ctx.send("champion_import_json: processing {}".format(jkeys))            
             for j in jkeys:
                 await ctx.send("champions_import_json, fetch url\n{}".format(urls[j]))
-                jfile = await self.FetchData.aiohttp_http_to_json(ctx, urls[j])
+                jfile = await FetchData.aiohttp_http_to_json(ctx, urls[j])
                 answer = await CdtCommon.get_user_confirmation(self, ctx, "Would you like to review the http_to_json output?")
                 if answer:
                     print(jfile)
@@ -178,7 +177,7 @@ class Champions(commands.Cog):
                     await ctx.send("aiohttp to json failure, returned None")
                 if jfile is not None:
                     print(jfile)
-                    jfile = self.FetchData.convert_snapshot_to_json(jfile)
+                    jfile = FetchData.convert_snapshot_to_json(jfile)
                     answer = await CdtCommon.get_user_confirmation(self, ctx, "Would you like to review the snapshot_conversion?")
                     if answer:
                         pages = chat_formatting.pagify("{}".format(jfile))

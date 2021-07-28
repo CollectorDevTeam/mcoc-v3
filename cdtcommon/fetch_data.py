@@ -3,18 +3,19 @@ import json
 from redbot.core.bot import Red
 
 
+session= aiohttp.ClientSession()
 class FetchData():
+
 
     def __init__(self, bot: Red):
         """init"""
         self.bot = bot
-        self.session = aiohttp.ClientSession()
-
+        
 
     async def aiohttp_http_to_json(self, ctx, url):
         """pull JSON from url"""
         result = None
-        async with self.session.get(url) as response:
+        async with session.get(url) as response:
                 if response.status != 200:
                     await ctx.send("Response Status: {response.status}")
                 if await response.content_type is "text/plain; charset=utf-8":
