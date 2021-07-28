@@ -5,6 +5,7 @@ from typing import Optional
 import asyncio
 
 import discord
+from discord.ext.commands.context import Context
 from redbot.core import commands
 from redbot.core.bot import Red
 from redbot.core.config import Config
@@ -337,7 +338,7 @@ class CdtCommon(commands.Cog):
         return round(num / (100 - per), 2)
 
 
-    def menupagify(self, ctx, text, title=None):
+    def menupagify(self, ctx: Context, text: str, title=None):
         textpages = list(chat_formatting.pagify(text, page_length=1800))
         menupages = []
         for page in textpages:
