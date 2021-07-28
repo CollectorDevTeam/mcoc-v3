@@ -19,13 +19,26 @@ class FetchData():
             if response.status != 200:
                 await ctx.send("Response Status: {response.status}")
             filetext = await response.text()
-            # result = json.loads(filetext)
-            return filetext
+            prettytext = FetchData.prettyprint(filetext)
+            if prettytext is not None:
+                return prettytext
+            else:
+                return filetext
+
+    async def aiohttp_http_to_json(ctx, url):
+        """pull jsonfile from url"""
+        result = None
+        async with session.get(url) as response:
+            if response.status != 200:
+                await ctx.send("Response Status: {response.status}")
+            filetext = await response.text()
+            result = json.loads(filetext)
+            return result
 
     async def convert_textfile_to_json(ctx, filetext):
         """Convert Kabam's lists of k, v & vn to k: {v, vn}"""
         # stringlist = kabamfile["strings"].keys() #list of strings
-        jdump = json.dumps(filetext)
+        jdump = json.loads(filetext)
         meta = jdump["meta"]
         await ctx.send("dbg: text_to_json metacheck{}".format(meta))
         stringlist = jdump["strings"]
@@ -45,6 +58,18 @@ class FetchData():
         snapshot_file.update({"meta" : meta, "strings": strings})
         return snapshot_file
         
+    
+    def prettyprint(text_or_json):
+        """Return prettyprint string of json file"""
+        jtext = None
+        if isinstance(text_or_json, str):
+            jtext = json.loads(text_or_json)
+        if isinstance(text_or_json, json):
+            jtext = text_or_json
+
+        if jtext is not None:
+            result = json.dumps(jtext, indent=4, sort_keys=True)
+        return result
 # class FetchCdtData(commands.Cog):
 #     """
 #     Fetch data from CDT

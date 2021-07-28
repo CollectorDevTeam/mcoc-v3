@@ -1,4 +1,5 @@
 import contextlib
+from pickle import decode_long
 import random
 from typing import Optional
 import asyncio
@@ -10,6 +11,7 @@ from redbot.core.config import Config
 from redbot.core.utils import chat_formatting, menus
 from redbot.core.utils.predicates import MessagePredicate, ReactionPredicate
 
+from functools import wraps
 
 from cdtcommon.cdtembed import Embed
 from cdtcommon.fetch_data import FetchData
@@ -323,6 +325,7 @@ class CdtCommon(commands.Cog):
 
 
 
+
     @staticmethod
     def from_flat(flat, ch_rating):
         denom = 5 * ch_rating + 1500 + flat
@@ -332,3 +335,14 @@ class CdtCommon(commands.Cog):
     def to_flat(per, ch_rating):
         num = (5 * ch_rating + 1500) * per
         return round(num / (100 - per), 2)
+
+
+    def menupagify(text, title=None):
+        textpages = list(chat_formatting.pagify(text, page_length=1800))
+        menupages = []
+        for page in textpages:
+            p = Embed.create(description=page)
+            if title is not None:
+                p.title(title)
+            menupages.append(p)
+        return menupages
