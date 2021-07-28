@@ -6,13 +6,14 @@ class FetchData():
 
     def __init__(self):
         """init"""
+        5r
 
     async def aiohttp_http_to_json(self, ctx, url):
         """pull JSON from url"""
         result = None
         async with aiohttp.ClientSession() as session:
             async with session.get(url) as response:
-                if await response.status != 200:
+                if response.status != 200:
                     await ctx.send("Response Status: {response.status}")
                 if await response.content_type is "text/plain; charset=utf-8":
                     await ctx.send("Response is text. Loading as json ")
