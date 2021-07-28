@@ -52,10 +52,10 @@ class FetchData():
         stringlist = kabamjson["strings"]
         strings = {}
         for item in stringlist:
-            for k, v in item:
-                if "vn" in pkg.keys():
-                    vn = pkg["vn"]
-                    if isinstance(vn, int):
+            for k, v in json.loads(item): #load each substring into a dict
+                if "vn" in item:
+                    vn = item["vn"]
+                    if isinstance(vn, int): #unlikely, but they might do it
                         vn = str(vn)
                 else:
                     vn = "0.0.0"
