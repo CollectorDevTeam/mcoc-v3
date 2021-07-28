@@ -337,7 +337,7 @@ class CdtCommon(commands.Cog):
         return round(num / (100 - per), 2)
 
 
-    def menupagify(ctx, text, title=None):
+    def menupagify(self, ctx, text, title=None):
         textpages = list(chat_formatting.pagify(text, page_length=1800))
         menupages = []
         for page in textpages:
