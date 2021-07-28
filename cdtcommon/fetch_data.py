@@ -12,22 +12,23 @@ class FetchData():
         self.bot = bot
         
 
-    async def aiohttp_http_to_json(ctx, url):
-        """pull JSON from url"""
+    async def aiohttp_http_to_text(ctx, url):
+        """pull textfile from url"""
         result = None
         async with session.get(url) as response:
             if response.status != 200:
                 await ctx.send("Response Status: {response.status}")
             filetext = await response.text()
-            result = json.loads(filetext)
-            return result
+            # result = json.loads(filetext)
+            return filetext
 
-    def convert_snapshot_to_json(kabamfile):
+    async def convert_textfile_to_json(ctx, filetext):
         """Convert Kabam's lists of k, v & vn to k: {v, vn}"""
         # stringlist = kabamfile["strings"].keys() #list of strings
-        print(kabamfile)
-        meta = kabamfile["meta"]
-        stringlist = kabamfile["strings"]
+        jdump = json.dumps(filetext)
+        meta = jdump["meta"]
+        await ctx.send("dbg: text_to_json metacheck{}".format(meta))
+        stringlist = jdump["strings"]
         snapshot_file = {}
         strings = {}
         for i in len(stringlist):
