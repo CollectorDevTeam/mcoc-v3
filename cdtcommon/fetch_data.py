@@ -16,14 +16,10 @@ class FetchData():
         """pull JSON from url"""
         result = None
         async with session.get(url) as response:
-                if response.status != 200:
-                    await ctx.send("Response Status: {response.status}")
-                if await response.content_type is "text/plain; charset=utf-8":
-                    await ctx.send("Response is text. Loading as json ")
-                    result = json.load(await response.text())
-                elif isinstance(await response.json(), json):
-                    await ctx.send("Response is json.")
-                    result = await response.json()
+            if response.status != 200:
+                await ctx.send("Response Status: {response.status}")
+            await ctx.send("Response is text. Loading as json ")
+            result = json.load(await response.text())
         return result
 
     def convert_snapshot_to_json(self, kabamfile):
