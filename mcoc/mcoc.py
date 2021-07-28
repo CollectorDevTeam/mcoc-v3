@@ -161,35 +161,46 @@ class Champions(commands.Cog):
 
     @champions_import.command(name="json")
     async def champions_import_json(self, ctx, json_file=None):
+        data = Embed.create(ctx, title="CDT Snapshot Import", description="status")
+        description = "status"
+        status = await ctx.send(embed=data) # need to find the current version of edit message
         async with self.config.urls() as urls:
             jkeys = urls.keys()
             if json_file in jkeys:
                 jkeys = [json_file] 
-            await ctx.send("champion_import_json: processing {}".format(jkeys))            
+            # await ctx.send("champion_import_json: processing {}".format(jkeys))            
             for j in jkeys:
-                await ctx.send("champions_import_json, fetch url\n{}".format(urls[j]))
+                description+="\nFetching {}".format(j)
+                data.description(description)
+                await status.edit(embed=data)
+                # await ctx.send("champions_import_json, fetch url\n{}".format(urls[j]))
                 filetext = await FetchData.aiohttp_http_to_text(ctx, urls[j])
                 if filetext is None:
-                    await ctx.send("aiohttp to json failure, returned None")
-                    return
-
-                answer = await CdtCommon.get_user_confirmation(self, ctx, "Would you like to review the http_to_json output?")
-                if answer:
-                    print(filetext)
-                    pages = chat_formatting.pagify(text=filetext, page_length=1800)
-                    pagelist =list(pages)
-                    try: 
-                        await menus.menu(ctx, pages=pages, controls=CdtCommon.get_controls())
-                    except:
-                        await menus.menu(ctx, pages=pagelist, controls=CdtCommon.get_controls())
+                    description+="\nBad fetch of {}".format(j)
+                    data.description(description)
+                    await status.edit(embed=data)
+                    # await ctx.send("aiohttp to json failure, returned None")
+                    continue
+                # answer = await CdtCommon.get_user_confirmation(self, ctx, "Would you like to review the http_to_json output?")
+                # if answer:
+                #     print(filetext)
+                #     pages = chat_formatting.pagify(text=filetext, page_length=1800)
+                #     pagelist =list(pages)
+                #     try: 
+                #         await menus.menu(ctx, pages=pages, controls=CdtCommon.get_controls())
+                #     except:
+                #         await menus.menu(ctx, pages=pagelist, controls=CdtCommon.get_controls())
 
                 if filetext is not None:
+                    description+="\nGood fetch.  Parsing."
+                    data.description(description)
+                    await status.edit(embed=data)
                     jsonfile = await FetchData.convert_kabamfile_to_json(ctx, filetext)
                     if jsonfile is not None:
                         async with self.config.words() as words:
                             words.update(jsonfile["strings"])
-                        async with self.config.snapshots(j) as standard:
-                            standard.update(jsonfile)
+                        async with self.config.snapshots as snapshots:
+                            snapshots.update({j : jsonfile})
                     else:
                         await ctx.send("textfile_to_json did not return json/dict")
 
