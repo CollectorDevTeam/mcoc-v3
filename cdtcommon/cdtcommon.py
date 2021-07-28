@@ -337,11 +337,11 @@ class CdtCommon(commands.Cog):
         return round(num / (100 - per), 2)
 
 
-    def menupagify(text, title=None):
+    def menupagify(ctx, text, title=None):
         textpages = list(chat_formatting.pagify(text, page_length=1800))
         menupages = []
         for page in textpages:
-            p = Embed.create(description=page)
+            p = Embed.create(ctx, description=page)
             if title is not None:
                 p.title(title)
             menupages.append(p)
