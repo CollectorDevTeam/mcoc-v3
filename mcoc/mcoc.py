@@ -168,24 +168,22 @@ class Champions(commands.Cog):
             await ctx.send("champion_import_json: processing {}".format(jkeys))            
             for j in jkeys:
                 await ctx.send("champions_import_json, fetch url\n{}".format(urls[j]))
-                jfile = await FetchData.aiohttp_http_to_json(ctx, urls[j])
+                filetext = await FetchData.aiohttp_http_to_text(ctx, urls[j])
+                if filetext is None:
+                    await ctx.send("aiohttp to json failure, returned None")
+                    return
+
                 answer = await CdtCommon.get_user_confirmation(self, ctx, "Would you like to review the http_to_json output?")
                 if answer:
-                    print(jfile)
-                    jdump = json.dumps(jfile)
-                    if isinstance(jdump, str):
-                        pages = chat_formatting.pagify(text=jdump, page_length=1500)
-                        if isinstance(pages, list):
-                            await menus.menu(ctx, pages=pages, controls=CdtCommon.get_controls())
-                        else:
-                            ctx.send("pages is not a list")
+                    print(filetext)
+                    pages = chat_formatting.pagify(text=filetext, page_length=1500)
+                    if isinstance(pages, list):
+                        await menus.menu(ctx, pages=pages, controls=CdtCommon.get_controls())
                     else:
-                        await ctx.send("jfile did not jdump into str")
-                if jfile is None:
-                    await ctx.send("aiohttp to json failure, returned None")
+                        await ctx.send("pages is not a list")
+
                 if jfile is not None:
-                    print(jfile)
-                    jfile = FetchData.convert_snapshot_to_json(jfile)
+                    jfile = FetchData.convert_textfile_to_json(jfile)
                     answer = await CdtCommon.get_user_confirmation(self, ctx, "Would you like to review the snapshot_conversion?")
                     if answer:
                         pages = chat_formatting.pagify(json.dumps(jfile))
