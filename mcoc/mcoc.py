@@ -171,7 +171,11 @@ class Champions(commands.Cog):
                 answer = await CdtCommon.get_user_confirmation(self, ctx, "Would you like to review the http_to_json output?")
                 if answer:
                     print(jfile)
-                    pages = chat_formatting.pagify(json.dumps(jfile))
+                    jdump = json.dumps(jfile)
+                    if isinstance(jdump, str):
+                        pages = chat_formatting.pagify(jdump)
+                    else:
+                        await ctx.send("jfile did not jdump into str")
                     await menus.menu(ctx, pages=pages, controls=CdtCommon.get_controls())
                 if jfile is None:
                     await ctx.send("aiohttp to json failure, returned None")
