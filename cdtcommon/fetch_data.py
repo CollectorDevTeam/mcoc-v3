@@ -9,22 +9,19 @@ class FetchData():
 
     async def aiohttp_http_to_json(self, ctx, url):
         """pull JSON from url"""
-        session = aiohttp.ClientSession()
-        async with session.get(url) as response:
-            if response.status != 200:
-                await ctx.send("Response Status: {response.status}")
-                session.close
-                return None
-            if response.content_type is "text/plain; charset=utf-8":
-                await ctx.send("Response is text. Loading as json ")
-                result = json.load(response.text())
-                session.close()
-                return result
-            else:
-                await ctx.send("Response is json.")
-                result = response.json()
-                session.close()
-                return result
+        result = None
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url) as response:
+                if await response.status != 200:
+                    await ctx.send("Response Status: {response.status}")
+                if await response.content_type is "text/plain; charset=utf-8":
+                    await ctx.send("Response is text. Loading as json ")
+                    result = json.load(await response.text())
+                elif isinstance(await response.json(), json):
+                    await ctx.send("Response is json.")
+                    result = await response.json()
+            session.close()
+        return result
 
     def convert_snapshot_to_json(self, kabamfile):
         """Convert Kabam's lists of k, v & vn to k: {v, vn}"""
