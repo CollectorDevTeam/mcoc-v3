@@ -182,16 +182,15 @@ class Champions(commands.Cog):
                     else:
                         await ctx.send("pages is not a list")
 
-                if jfile is not None:
-                    jfile = FetchData.convert_textfile_to_json(jfile)
-                    answer = await CdtCommon.get_user_confirmation(self, ctx, "Would you like to review the snapshot_conversion?")
-                    if answer:
-                        pages = chat_formatting.pagify(json.dumps(jfile))
-                        await menus.menu(ctx, pages=pages, controls=CdtCommon.get_controls())
-                    async with self.config.words() as words:
-                        words.update(jfile["strings"])
-                    async with self.config.snapshots(j) as standard:
-                        standard.update(jfile)
+                if filetext is not None:
+                    jsonfile = await FetchData.convert_textfile_to_json(filetext)
+                    if isinstance(jsonfile, json):
+                        async with self.config.words() as words:
+                            words.update(jsonfile["strings"])
+                        async with self.config.snapshots(j) as standard:
+                            standard.update(jsonfile)
+                    else:
+                        await ctx.send("textfile_to_json did not return json/dict")
 
 
 
