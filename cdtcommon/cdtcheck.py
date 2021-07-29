@@ -6,21 +6,21 @@ from redbot.core.commands.commands import CogCommandMixin
 
 from cdtcommon.cdtembed import Embed
 
-
+CDTGUILD = 215271081517383682
+COLLECTORDEVTEAM = 390253643330355200
+COLLECTORSUPPORTTEAM = 390253719125622807
+GUILDOWNERS = 391667615497584650
+FAMILYOWNERS = 731197047562043464
+PATRONS: 408414956497666050
+CREDITED_PATRONS: 428627905233420288
+CDTBOOSTERS = 736631216035594302
+TATTLETALES = 537330789332025364
 class CdtCheck(CogCommandMixin):
     def __init__(self, *_args):
         self.config: Config
         self.bot: Red
     
-        self.CDTGUILD = 215271081517383682
-        self.COLLECTORDEVTEAM = 390253643330355200
-        self.COLLECTORSUPPORTTEAM = 390253719125622807
-        self.GUILDOWNERS = 391667615497584650
-        self.FAMILYOWNERS = 731197047562043464
-        self.PATRONS: 408414956497666050
-        self.CREDITED_PATRONS: 428627905233420288
-        self.CDTBOOSTERS = 736631216035594302
-        self.TATTLETALES = 537330789332025364
+
 
     async def cdtcheck(self, ctx, role_id):
         """Check for privileged role from CDT guild"""
@@ -28,58 +28,64 @@ class CdtCheck(CogCommandMixin):
         checkrole = cdtguild.get_role(role_id)
         member = cdtguild.get_member(ctx.author.id)
         if member is None:
+            await CdtCheck.tattle(ctx, message="User is not member on CDT")
             return False
         elif checkrole in member.roles:
+            await CdtCheck.tattle(ctx, message="User is authorized")
             return True
         else:
-            return True
+            await CdtCheck.tattle(ctx, message="User is not authorized")
+            return False
+            
 
     def is_collectordevteam():
         async def pred(ctx: commands.Context):
-            checkrole = CdtCheck.COLLECTORDEVTEAM
-            chk = CdtCheck.cdtcheck(ctx, checkrole)
-            if not chk:
-                await CdtCheck.tattle(ctx, message="User is not authorized")
+            checkrole = COLLECTORDEVTEAM
+            chk = await CdtCheck.cdtcheck(ctx, checkrole)
+            if chk:
+                return chk
         return commands.check(pred)
     
     def is_collectorsupportteam():
         async def pred(ctx: commands.Context):
-            checkrole = CdtCheck.COLLECTORSUPPORTTEAM
-            chk = CdtCheck.cdtcheck(ctx, checkrole)
-            if not chk:
-                await CdtCheck.tattle(ctx, message="User is not authorized")
+            checkrole = COLLECTORSUPPORTTEAM
+            chk = await  CdtCheck.cdtcheck(ctx, checkrole)
+            if chk:
+                return chk
         return commands.check(pred)
 
     def is_guildowners():
         async def pred(ctx: commands.Context):
-            checkrole = CdtCheck.GUILDOWNERS
-            chk = CdtCheck.cdtcheck(ctx, checkrole)
-            if not chk:
-                await CdtCheck.tattle(ctx, message="User is not authorized")
+            checkrole = GUILDOWNERS
+            chk = await CdtCheck.cdtcheck(ctx, checkrole)
+            if chk:
+                return chk
         return commands.check(pred)
 
     def is_familyowners():
         async def pred(ctx: commands.Context):
-            checkrole = CdtCheck.FAMILYOWNERS
-            chk = CdtCheck.cdtcheck(ctx, checkrole)
-            if not chk:
-                await CdtCheck.tattle(ctx, message="User is not authorized")
+            checkrole = FAMILYOWNERS
+            chk = await CdtCheck.cdtcheck(ctx, checkrole)
+            if chk:
+                return chk
         return commands.check(pred)
 
     def is_supporter():
         async def pred(ctx: commands.Context):
-            booster = await CdtCheck.cdtcheck(ctx, CdtCheck.CDTBOOSTERS)
-            patron = await CdtCheck.cdtcheck(ctx, CdtCheck.PATRONS)
-            credited_patron = await CdtCheck.cdtcheck(ctx, CdtCheck.CREDITED_PATRONS)
-            if not (booster or patron or credited_patron):
-                await CdtCheck.tattle(ctx, message="User is not authorized")
+            booster = await CdtCheck.cdtcheck(ctx, CDTBOOSTERS)
+            patron = await CdtCheck.cdtcheck(ctx, PATRONS)
+            credited_patron = await CdtCheck.cdtcheck(ctx, CREDITED_PATRONS)
+            if booster or patron or credited_patron:
+                return True
+            else:
+                return False
         return commands.check(pred)
 
     async def tattle(ctx, message, channel=None):
         """"Someone's been a naughty boy/girl/it/zey/zim"""
-        cdtguild = ctx.bot.get_guild(CdtCheck.CDTGUILD)
+        cdtguild = ctx.bot.get_guild(CDTGUILD)
         if channel is None:
-            channel=cdtguild.get_channel(CdtCheck.TATTLETALES)
+            channel=cdtguild.get_channel(TATTLETALES) #default to tattletales
         data = Embed.create(title="CDT Tattletales", description=message)
         data.add_field(name="Who", value="{ctx.author.name} [{ctx.author.id}]")
         data.add_field(name="What", value="{ctx.message.content}")
