@@ -86,8 +86,8 @@ class CdtCommon(CdtCheck, commands.Cog):
     async def familyowners(self,ctx):
         pass
 
-    @checktest.command()
-    @CdtCheck.is_supporter(aliases=("supporter", "patron", "booster"))
+    @checktest.command(aliases=("supporter", "patron", "booster"))
+    @CdtCheck.is_supporter()
     async def supporter(self,ctx):
         pass
 
