@@ -63,40 +63,39 @@ class CdtCommon(CdtCheck, commands.Cog):
         # self.config.register_custom("checks", **_config_structure["checks"])
 
     @commands.group(aliases=("ctest",))
-    async def checktest(self, ctx):
+    async def checktest(self, ctx: commands.Context):
         """Check priviledge groups from CollectorDevTeam guild"""
-        await ctx.send("uh oh")
 
-    @CdtCheck.is_collectordevteam()
     @checktest.command()
+    @CdtCheck.is_collectordevteam()
     async def cdt(self,ctx):
         """Check CollectorDevTeam"""
         await ctx.send("Dev Team test")
 
 
-    @CdtCheck.is_collectorsupportteam()
     @checktest.command()
+    @CdtCheck.is_collectorsupportteam()
     async def cst(self,ctx):
         """Check CollectorSupportTeam"""
         await ctx.send("Support Team test")
 
 
-    @CdtCheck.is_guildowners()
     @checktest.command(aliases=("go",))
+    @CdtCheck.is_guildowners()
     async def guildowner(self,ctx):
         """Check registered GuildOwners"""
         await ctx.send("GuildOwner test")
 
 
-    @CdtCheck.is_familyowners()
     @checktest.command(aliases=("fo",))
+    @CdtCheck.is_familyowners()
     async def familyowners(self,ctx):
         """Check registered FamilyOwners"""
         await ctx.send("supporter test")
 
 
-    @CdtCheck.is_supporter()
     @checktest.command(aliases=("supporter", "patron", "booster"))
+    @CdtCheck.is_supporter()
     async def supporters(self,ctx):
         """Check registered Supporters: Boosters & Patrons"""
         await ctx.send("supporter test")
