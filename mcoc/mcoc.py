@@ -144,7 +144,7 @@ class Champions(commands.Cog):
         return
 
 
-    @champions_data.commands(name="delete", aliases=("purge",))
+    @champions_data.command(name="delete", aliases=("purge",))
     async def champions_data_delete(self, ctx, dataset):
         """MCOC data purge"""
         if dataset in ("snapshot", "snapshots", "words"):
@@ -156,7 +156,7 @@ class Champions(commands.Cog):
                 await self.config.words.clear()
         return
     
-    
+
     @champions_data.group(name="import")
     async def champions_import(self, ctx):
         """Data import commands
