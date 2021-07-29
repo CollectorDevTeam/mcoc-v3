@@ -87,7 +87,7 @@ class CdtCheck(CogCommandMixin):
         data = await Embed.create(ctx, title="CDT Tattletales", description=message)
         data.add_field(name="Who", value="{0.name} [{0.id}]".format(ctx.author), inline=False)
         data.add_field(name="What", value="{0.content}".format(ctx.message), inline=False)
-        data.add_field(name="Where", value="{0.name} [{0.id}]".format(ctx.author), inline=False)
-        data.add_field(name="When", value="{0}".format(ctx.author), inline=False)
+        data.add_field(name="Where", value="Guild: {0.name} [{0.id}]\nMessage: [{1.id}]({1.jump_url})".format(ctx.guild, ctx.message), inline=False)
+        data.add_field(name="When", value="{0.created_at}".format(ctx.message), inline=False)
         await channel.send(embed=data)
         return
