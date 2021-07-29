@@ -62,10 +62,38 @@ class CdtCommon(CdtCheck, commands.Cog):
         # self.config.init_custom("checks", 1) # need to initialize first
         # self.config.register_custom("checks", **_config_structure["checks"])
 
-    @commands.command(hidden=True)
+    @commands.group(hidden=True)
+    async def checktest(self, ctx):
+        pass
+
+    @checktest.command()
     @CdtCheck.is_collectordevteam()
-    async def cdt_test(self,ctx):
-        await ctx.send("Passed I guess")
+    async def cdt(self,ctx):
+        pass
+
+    @checktest.command()
+    @CdtCheck.is_collectorsupportteam()
+    async def cst(self,ctx):
+        pass
+
+    @checktest.command(aliases=("go",))
+    @CdtCheck.is_guildowners()
+    async def guildowner(self,ctx):
+        pass
+
+    @checktest.command(aliases=("fo",))
+    @CdtCheck.is_familyowners()
+    async def cdt(self,ctx):
+        pass
+
+    @checktest.command()
+    @CdtCheck.is_supporter(aliases=("supporter", "patron", "booster"))
+    async def supporter(self,ctx):
+        pass
+
+
+
+
 
     @commands.command(hidden=True, name="promote", aliases=("promo",))
     # @commands.guild_only()

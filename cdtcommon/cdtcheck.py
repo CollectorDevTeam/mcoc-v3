@@ -14,6 +14,7 @@ PATRONS: 408414956497666050
 CREDITED_PATRONS: 428627905233420288
 CDTBOOSTERS = 736631216035594302
 TATTLETALES = 537330789332025364
+
 class CdtCheck(CogCommandMixin):
     def __init__(self, *_args):
         self.config: Config
@@ -39,6 +40,7 @@ class CdtCheck(CogCommandMixin):
             
 
     def is_collectordevteam():
+        """Message caller is CollectorDevTeam"""
         async def pred(ctx: commands.Context):
             checkrole = [COLLECTORDEVTEAM]
             chk = await CdtCheck.cdtcheck(ctx, checkrole)
@@ -47,6 +49,7 @@ class CdtCheck(CogCommandMixin):
         return commands.check(pred)
     
     def is_collectorsupportteam():
+        """Message caller has CollectorSupportTeam or CollectorDevTeam on CDT"""
         async def pred(ctx: commands.Context):
             checkrole = [COLLECTORSUPPORTTEAM, COLLECTORDEVTEAM]
             chk = await  CdtCheck.cdtcheck(ctx, checkrole)
@@ -55,6 +58,7 @@ class CdtCheck(CogCommandMixin):
         return commands.check(pred)
 
     def is_guildowners():
+        """Message caller has GuildOwners role on CDT"""
         async def pred(ctx: commands.Context):
             checkrole = [GUILDOWNERS]
             chk = await CdtCheck.cdtcheck(ctx, checkrole)
@@ -63,6 +67,7 @@ class CdtCheck(CogCommandMixin):
         return commands.check(pred)
 
     def is_familyowners():
+        """Message caller has FamilyOwners role on CDT"""
         async def pred(ctx: commands.Context):
             checkrole = [FAMILYOWNERS]
             chk = await CdtCheck.cdtcheck(ctx, checkrole)
@@ -71,6 +76,7 @@ class CdtCheck(CogCommandMixin):
         return commands.check(pred)
 
     def is_supporter():
+        """Message caller has a supporter role: CDT Booster, Patrons, Credited Patrons"""
         async def pred(ctx: commands.Context):
             checkrole = [CDTBOOSTERS, PATRONS, CREDITED_PATRONS, COLLECTORSUPPORTTEAM, COLLECTORDEVTEAM]
             chk = await CdtCheck.cdtcheck(ctx, checkrole)
@@ -84,7 +90,7 @@ class CdtCheck(CogCommandMixin):
         if channel is None:
             channel=cdtguild.get_channel(TATTLETALES) #default to tattletales
         data = await Embed.create(ctx, title="CDT Tattletales", description=message)
-        data.add_field(name="Who", value="{0.mention}\n[{0.id}]({0.dm_channel})".format(ctx.author), inline=False)
+        data.add_field(name="Who", value="{0.mention}\n[{0.id}]".format(ctx.author), inline=False)
         data.add_field(name="What", value="```{0.content}```".format(ctx.message), inline=False)
         data.add_field(name="Where", value="{0.name} \nguild.id:   {0.id}\nmessage.id: [{1.id}]({1.jump_url})".format(ctx.guild, ctx.message), inline=False)
         data.add_field(name="When", value="{0.created_at}".format(ctx.message), inline=False)
