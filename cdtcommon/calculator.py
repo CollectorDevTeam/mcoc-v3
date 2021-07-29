@@ -1,23 +1,24 @@
+from cdtcommon.abc.cdt import CDT
+from cdtcommon.abc.mixin import cdtcommands
+from cdtcommon.abc.abc import MixinMeta
 import math
 import re
 
 import discord
-from redbot.core import checks, commands
-from redbot.core.config import Config
-
-from .cdtcommon import CdtCommon
-from .cdtembed import Embed
+from redbot.core import commands
 
 
-class Calculator(commands.Cog):
+
+class Calculator(MixinMeta):
     """Calculator"""
 
     def __init__(self, bot):
         self.bot = bot
         self.thumbnail = "https://www.ebuyer.com/blog/wp-content/uploads/2014/07/buttons-on-a-calculator-header1.jpg"
 
-    @commands.command(pass_context=True, name="calculator", aliases=("calc",))
-    async def _calc(self, ctx, *, m):
+    @cdtcommands.group()
+    @commands.command(name="calculator")
+    async def calc(self, ctx, *, m):
         """Math is fun!
         Type math, get fun."""
         m = "".join(m)
@@ -33,7 +34,7 @@ class Calculator(commands.Cog):
         )
         calculate_stuff = eval("".join(math_filter))
         if len(str(calculate_stuff)) > 0:
-            em = await Embed.create(
+            em = await CDT.create_embed(
                 ctx,
                 title="CollectorDevTeam Calculator",
                 thumbnail=self.thumbnail,
@@ -42,18 +43,13 @@ class Calculator(commands.Cog):
             em.add_field(name="Type Math", value="Get Fun")
             await ctx.send(embed=em)
 
-    @commands.command(
-        aliases=[
-            "p2f",
-        ],
-        hidden=True,
-    )
+    @calc.command(aliases=("p2f","\%\2f"),)
     async def per2flat(self, ctx, per: float, ch_rating: int = 100):
         """Convert Percentage to MCOC Flat Value"""
-        await ctx.send(CdtCommon.to_flat(per, ch_rating))
+        await ctx.send(CDT.to_flat(per, ch_rating))
 
     # , aliases=('f2p')) --> this was translating as "flat | f | 2 | p"
-    @commands.command(pass_context=True, name="flat")
+    @calc.command(pass_context=True, name="flat")
     async def flat2per(self, ctx, *, m):
         """Convert MCOC Flat Value to Percentge
         <equation> [challenger rating = 100]"""
@@ -73,18 +69,17 @@ class Calculator(commands.Cog):
             m,
         )
         flat_val = eval("".join(math_filter))
-        p = CdtCommon.from_flat(flat_val, challenger_rating)
-        em = await Embed.create(
+        p = CDT.from_flat(flat_val, challenger_rating)
+        data = await CDT.create_embed(
             ctx,
-            color=discord.Color.gold(),
             title="FlatValue:",
             thumbnail=self.thumbnail,
             description="{}".format(flat_val),
         )
-        em.add_field(name="Percentage:", value="{}\%".format(p))
-        await ctx.send(embed=em)
+        data.add_field(name="Percentage:", value="{}\%".format(p))
+        await ctx.send(embed=data)
 
-    @commands.command(aliases=["compf", "cfrac"], hidden=True)
+    @calc.command(aliases=["compf", "cfrac"], hidden=True)
     async def compound_frac(self, ctx, base: float, exp: int):
         # On second thought, I'm not gonna touch this
         # - Jojo
@@ -92,7 +87,7 @@ class Calculator(commands.Cog):
         if base > 1:
             base = base / 100
         compound = 1 - (1 - base) ** exp
-        em = await Embed.create(
+        em = await CDT.create_embed(
             ctx,
             color=discord.Color.gold(),
             title="Compounded Fractions",

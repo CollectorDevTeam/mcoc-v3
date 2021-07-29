@@ -1,9 +1,6 @@
-from redbot.core import commands, Config
-from redbot.core.bot import Red
-
-from redbot.core.commands.commands import CogCommandMixin
-
-from cdtcommon.cdtembed import Embed
+from cdtcommon.abc.abc import MixinMeta
+from cdtcommon.abc.cdtembed import Embed
+from redbot.core import commands
 
 CDTGUILD = 215271081517383682
 COLLECTORDEVTEAM = 390253643330355200
@@ -15,10 +12,12 @@ CREDITED_PATRONS: 428627905233420288
 CDTBOOSTERS = 736631216035594302
 TATTLETALES = 537330789332025364
 
-class CdtCheck(CogCommandMixin):
-    def __init__(self, *_args):
-        self.config: Config
-        self.bot: Red
+# class CdtCheck(CogCommandMixin):
+class CdtCheck(MixinMeta):
+    """Tools to check priveleges from CDT guild"""
+    # def __init__(self, *_args):
+    #     self.config: Config
+    #     self.bot: Red
     
 
 
@@ -95,7 +94,7 @@ class CdtCheck(CogCommandMixin):
         cdtguild = ctx.bot.get_guild(CDTGUILD)
         if channel is None:
             channel=cdtguild.get_channel(TATTLETALES) #default to tattletales
-        data = await Embed.create(ctx, title="CDT Tattletales", description=message)
+        data = await Embed.create_embed(ctx, title="CDT Tattletales", description=message)
         data.add_field(name="Who", value="{0.mention}\n[{0.id}]".format(ctx.author), inline=False)
         data.add_field(name="What", value="```{0.content}```".format(ctx.message), inline=False)
         data.add_field(name="Where", value="{0.name} \nguild.id:   {0.id}\nmessage.id: [{1.id}]({1.jump_url})".format(ctx.guild, ctx.message), inline=False)
