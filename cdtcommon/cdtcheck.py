@@ -22,9 +22,9 @@ class CdtCheck(CogCommandMixin):
     
 
 
-    async def cdtcheck(self, ctx, role_id):
+    async def cdtcheck(ctx, role_id):
         """Check for privileged role from CDT guild"""
-        cdtguild = ctx.bot.get_guild(self.CDTGUILD)
+        cdtguild = ctx.bot.get_guild(CDTGUILD)
         checkrole = cdtguild.get_role(role_id)
         member = cdtguild.get_member(ctx.author.id)
         if member is None:
