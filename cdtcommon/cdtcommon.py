@@ -67,36 +67,36 @@ class CdtCommon(CdtCheck, commands.Cog):
         """Check priviledge groups from CollectorDevTeam guild"""
         await ctx.send("uh oh")
 
-    @checktest.command()
     @CdtCheck.is_collectordevteam()
+    @checktest.command()
     async def cdt(self,ctx):
         """Check CollectorDevTeam"""
         await ctx.send("Dev Team test")
 
 
-    @checktest.command()
     @CdtCheck.is_collectorsupportteam()
+    @checktest.command()
     async def cst(self,ctx):
         """Check CollectorSupportTeam"""
         await ctx.send("Support Team test")
 
 
-    @checktest.command(aliases=("go",))
     @CdtCheck.is_guildowners()
+    @checktest.command(aliases=("go",))
     async def guildowner(self,ctx):
         """Check registered GuildOwners"""
         await ctx.send("GuildOwner test")
 
 
-    @checktest.command(aliases=("fo",))
     @CdtCheck.is_familyowners()
+    @checktest.command(aliases=("fo",))
     async def familyowners(self,ctx):
         """Check registered FamilyOwners"""
         await ctx.send("supporter test")
 
 
-    @checktest.command(aliases=("supporter", "patron", "booster"))
     @CdtCheck.is_supporter()
+    @checktest.command(aliases=("supporter", "patron", "booster"))
     async def supporters(self,ctx):
         """Check registered Supporters: Boosters & Patrons"""
         await ctx.send("supporter test")
