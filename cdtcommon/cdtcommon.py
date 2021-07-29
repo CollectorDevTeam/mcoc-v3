@@ -62,7 +62,7 @@ class CdtCommon(CdtCheck, commands.Cog):
         # self.config.init_custom("checks", 1) # need to initialize first
         # self.config.register_custom("checks", **_config_structure["checks"])
 
-    @commands.group(hidden=True, aliases=("ctest",))
+    @commands.group(aliases=("ctest",))
     async def checktest(self, ctx):
         """Check priviledge groups from CollectorDevTeam guild"""
 
@@ -70,26 +70,35 @@ class CdtCommon(CdtCheck, commands.Cog):
     @CdtCheck.is_collectordevteam()
     async def cdt(self,ctx):
         """Check CollectorDevTeam"""
+        await ctx.send("Dev Team test")
+
 
     @checktest.command()
     @CdtCheck.is_collectorsupportteam()
     async def cst(self,ctx):
         """Check CollectorSupportTeam"""
+        await ctx.send("Support Team test")
+
 
     @checktest.command(aliases=("go",))
     @CdtCheck.is_guildowners()
     async def guildowner(self,ctx):
         """Check registered GuildOwners"""
+        await ctx.send("GuildOwner test")
+
 
     @checktest.command(aliases=("fo",))
     @CdtCheck.is_familyowners()
     async def familyowners(self,ctx):
         """Check registered FamilyOwners"""
+        await ctx.send("supporter test")
+
 
     @checktest.command(aliases=("supporter", "patron", "booster"))
     @CdtCheck.is_supporter()
     async def supporters(self,ctx):
-        pass
+        """Check registered Supporters: Boosters & Patrons"""
+        await ctx.send("supporter test")
 
 
 
