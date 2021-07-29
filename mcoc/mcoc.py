@@ -151,9 +151,13 @@ class Champions(commands.Cog):
             answer = await CdtCommon.get_user_confirmation(self, ctx, "Do you want to delete {} dataset?".format(dataset))
         if answer:
             if dataset is "snapshot" or dataset is "snapshots":
-                await self.config.snapshots.clear()
+                await self.config.snapshots.clear_all()
+                async with self.config.snapshots() as snapshots:
+                    await ctx.send("Snapshots should be cleared.  {} keys registered".format(len(snapshots.keys())))
             elif dataset is "words":
-                await self.config.words.clear()
+                await self.config.words.clear_all()
+                async with self.config.words() as words:
+                    await ctx.send("Snapshots should be cleared.  {} keys registered".format(len(words.keys())))
         return
     
 
