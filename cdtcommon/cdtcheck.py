@@ -86,7 +86,7 @@ class CdtCheck(CogCommandMixin):
             channel=cdtguild.get_channel(TATTLETALES) #default to tattletales
         data = await Embed.create(ctx, title="CDT Tattletales", description=message)
         data.add_field(name="Who", value="{0.name} [{0.id}]".format(ctx.author))
-        data.add_field(name="What", value="{0.content}".format(ctx.author))
+        data.add_field(name="What", value="{0.content}".format(ctx.message))
         data.add_field(name="Where", value="{0.name} [{0.id}]".format(ctx.author))
         data.add_field(name="When", value="{0}".format(ctx.author))
         await channel.send(embed=data)
