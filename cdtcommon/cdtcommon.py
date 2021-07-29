@@ -65,6 +65,7 @@ class CdtCommon(CdtCheck, commands.Cog):
     @commands.group(aliases=("ctest",))
     async def checktest(self, ctx):
         """Check priviledge groups from CollectorDevTeam guild"""
+        await ctx.send("uh oh")
 
     @checktest.command()
     @CdtCheck.is_collectordevteam()
