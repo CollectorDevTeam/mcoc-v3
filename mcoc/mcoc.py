@@ -153,13 +153,14 @@ class Champions(commands.Cog):
                 answer2 = await CdtCommon.get_user_confirmation(self, ctx, "Are you sure?  This is a delete you moron.")
                 if answer2:
                     if dataset is "snapshot" or dataset is "snapshots":
-                        async with self.config.snapshots() as snapshots:
-                            snapshots.clear()
-                            await ctx.send("Snapshots should be cleared.  {} keys registered".format(len(snapshots.keys())))
+                        # async with self.config.snapshots() as snapshots:
+                        #     snapshots.clear_all_globals()
+                        await self.config.snapshots.clear_all_globals()
+                        await ctx.send("Snapshots should be cleared.  {} keys registered".format(len(snapshots.keys())))
                     elif dataset is "words":
-                        async with self.config.words() as words:
-                            words.clear()
-                            await ctx.send("Snapshots should be cleared.  {} keys registered".format(len(words.keys())))
+                        # async with self.config.words() as words:
+                        await self.config.words.clear_all_globals()
+                        await ctx.send("Snapshots should be cleared.  {} keys registered".format(len(words.keys())))
         return
     
 
