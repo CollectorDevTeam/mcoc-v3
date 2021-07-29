@@ -1,7 +1,8 @@
 import aiohttp
 import discord
-from cdtcommon.cdtcommon import CdtCommon
-from cdtcommon.cdtembed import Embed
+from cdtcommon.cdtcommon import CdtCommon, CdtCheck, Embed
+# from cdtcommon.cdtembed import Embed
+# from cdtcommon.cdtcheck import CdtCheck
 
 from redbot.core import commands, Config
 from redbot.core.bot import Red
@@ -77,7 +78,8 @@ class Alliance(Validator, commands.Cog, metaclass=AllianceMeta):
             self.bot.remove_dev_env_value("alliance")
 
     @commands.group(invoke_without_command=True)
-    @commands.has_role(CdtCommon.COLLECTORDEVTEAM)  # Pre-Alpha only
+    @CdtCheck.is_collectordevteam()
+    # @commands.has_role(CdtCommon.COLLECTORDEVTEAM)  # Pre-Alpha only
     async def alliance(self, ctx: commands.Context, user: Optional[discord.User]):
         """View a user's alliance!
 
