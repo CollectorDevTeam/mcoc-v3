@@ -210,30 +210,38 @@ class CdtCommon(commands.Cog):
 
 
     def is_collectordevteam():
-        async def chk_cdt(ctx: commands.Context):
-            return await CdtCommon.cdtcheck(ctx, CdtCommon.COLLECTORDEVTEAM)
+        async def pred(ctx: commands.Context):
+            checkrole = CdtCommon.COLLECTORDEVTEAM
+            await CdtCommon.cdtcheck(ctx, checkrole)
+            return commands.check(pred)
     
     def is_collectorsupportteam():
-        async def chk_cst(ctx: commands.Context):
-            return await CdtCommon.cdtcheck(ctx, CdtCommon.COLLECTORSUPPORTTEAM)
+        async def pred(ctx: commands.Context):
+            checkrole = CdtCommon.COLLECTORSUPPORTTEAM
+            await CdtCommon.cdtcheck(ctx, checkrole)
+            return commands.check(pred)
+
 
     def is_guildowners():
-        async def chk_go(ctx: commands.Context):
-            return await CdtCommon.cdtcheck(ctx, CdtCommon.GUILDOWNERS)
+        async def pred(ctx: commands.Context):
+            checkrole = CdtCommon.GUILDOWNERS
+            await CdtCommon.cdtcheck(ctx, checkrole)
+            return commands.check(pred)
 
     def is_familyowners():
-        async def chk_fo(ctx: commands.Context):
-            return await CdtCommon.cdtcheck(ctx, CdtCommon.FAMILYOWNERS)
+        async def pred(ctx: commands.Context):
+            checkrole = CdtCommon.FAMILYOWNERS
+            await CdtCommon.cdtcheck(ctx, checkrole)
+            return commands.check(pred)
 
     def is_supporter():
-        async def chk_bopcp(ctx: commands.Context):
+        async def pred(ctx: commands.Context):
             booster = await CdtCommon.cdtcheck(ctx, CdtCommon.CDTBOOSTERS)
             patron = await CdtCommon.cdtcheck(ctx, CdtCommon.PATRONS)
             credited_patron = await CdtCommon.cdtcheck(ctx, CdtCommon.CREDITED_PATRONS)
             if booster or patron or credited_patron:
                 return True
-            else:
-                return False
+            return commands.check(pred)
 
 
 

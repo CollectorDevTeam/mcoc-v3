@@ -114,7 +114,7 @@ class Champions(commands.Cog):
 
     @champions.group(aliases=("data",), hidden=True)
     # @commands.has_role(CdtCommon.COLLECTORDEVTEAM) 
-    @CdtCommon.is_collectordevteam()
+    @commands.CdtCommon.is_collectordevteam()
     async def champions_data(self, ctx):
         """Data commands""" 
 
