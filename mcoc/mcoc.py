@@ -141,9 +141,11 @@ class Champions(commands.Cog):
                 await ctx.send("Version {}".format(words[json_key]['vn']))
             else:
                 await ctx.send("{} not found in words".format(json_key))
+        return
 
-    @champions_data.commands(name="purge")
-    async def dataset_delete(self, ctx, dataset):
+
+    @champions_data.commands(name="delete", aliases=("purge",))
+    async def champions_data_delete(self, ctx, dataset):
         """MCOC data purge"""
         if dataset in ("snapshot", "snapshots", "words"):
             answer = await CdtCommon.get_user_confirmation(self, ctx, "Do you want to delete {} dataset?".format(dataset))
@@ -152,6 +154,7 @@ class Champions(commands.Cog):
                 await self.config.snapshots.clear()
             elif dataset is "words":
                 await self.config.words.clear()
+        return
     
     
     @champions_data.group(name="import")
