@@ -29,14 +29,20 @@ class CdtCheck(CogCommandMixin):
         if member is None:
             await CdtCheck.tattle(ctx, message="User is not member on CDT")
             return False
+        result = False
+        checked_roles = []
+        message = ""
         for role_id in role_ids:
             checkrole = cdtguild.get_role(role_id)
+            checked_roles.append(checkrole)
             if checkrole in member.roles:
-                await CdtCheck.tattle(ctx, message="User is authorized as **{0}**".format(checkrole.mention))
-                return True
+                message+="User is authorized as {0}\n.".format(checkrole.mention)
+                result = True
             else:
-                await CdtCheck.tattle(ctx, message="User is not authorized!")
-                return False
+                message+="User is not authorized as {0}!\n".format(checkrole.mention)
+        
+        await CdtCheck.tattle(ctx, message)
+        return result
             
 
     def is_collectordevteam():
