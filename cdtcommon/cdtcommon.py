@@ -88,7 +88,7 @@ class CdtCommon(CdtCheck, commands.Cog):
 
     @checktest.command(aliases=("supporter", "patron", "booster"))
     @CdtCheck.is_supporter()
-    async def supporter(self,ctx):
+    async def supporters(self,ctx):
         pass
 
 
