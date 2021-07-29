@@ -1,6 +1,6 @@
 import aiohttp
 import discord
-from cdtcommon.cdtcommon import CdtCommon as cdtcommon
+from cdtcommon.cdtcommon import CdtCommon
 from cdtcommon.cdtembed import Embed
 
 from redbot.core import commands, Config
@@ -16,24 +16,23 @@ from .validator import Validator
 
 import logging
 
-CDTGUILD = 215271081517383682
-COLLECTORDEVTEAM = 390253643330355200
-COLLECTORSUPPORTTEAM = 390253719125622807
-GUILDOWNERS = 391667615497584650
-FAMILYOWNERS = 731197047562043464
 
 _config_structure = {
     "guild": {
-        "alliances" : {},  
+        "alliances": {},
     },
     "alliance": {
-        "guild_id": None, #int guild id
-        "name": None, # str
-        "tag" : None, # str
-        "officers": None, # int For the role id
-        "members": None, # int For the role id
-        "poster": None, # str An image link, NOTE use aiohttp for this
-        "summary": None, # str The summary of the alliance
+        "guild_id": None,  # int guild id
+        "name": "Default Name",  # str
+        "tag": "ABCDE",  # str
+        "leader" : None,
+        "officers": None,  # int For the role id
+        "members": None,  # int For the role id
+        "bg1": None,
+        "bg2": None,
+        "bg3": None,
+        "poster": None,  # str An image link, NOTE use aiohttp for this
+        "summary": None,  # str The summary of the alliance
         "registered": False,
         "creation_date": None,
         "invite_url": None,
@@ -78,6 +77,7 @@ class Alliance(Validator, commands.Cog, metaclass=AllianceMeta):
             self.bot.remove_dev_env_value("alliance")
 
     @commands.group(invoke_without_command=True)
+    @commands.has_role(CdtCommon.COLLECTORDEVTEAM)  # Pre-Alpha only
     async def alliance(self, ctx: commands.Context, user: Optional[discord.User]):
         """View a user's alliance!
 
@@ -97,7 +97,8 @@ class Alliance(Validator, commands.Cog, metaclass=AllianceMeta):
         name = guild_data["name"]
         summary = guild_data["summary"] or "No summary"
         poster = guild_data["poster"]
-        creation = f"<t:{int(cd)}:d>" if (cd := guild_data["creation_date"]) else "No creation date given"
+        creation = f"<t:{int(cd)}:d>" if (
+            cd := guild_data["creation_date"]) else "No creation date given"
         invite = guild_data["invite_url"]
         if await ctx.embed_requested():
             embed = discord.Embed(
@@ -106,7 +107,8 @@ class Alliance(Validator, commands.Cog, metaclass=AllianceMeta):
                 colour=discord.Colour.gold(),
                 timestamp=datetime.utcnow(),
             )
-            embed.set_author(name=ctx.author.name, icon_url=ctx.author.avatar_url)
+            embed.set_author(name=ctx.author.name,
+                             icon_url=ctx.author.avatar_url)
             embed.set_thumbnail(url=guild.icon_url)
             embed.set_footer(text="CDT Alliance System")
             embed.add_field(name="Founded on", value=creation)
@@ -125,9 +127,9 @@ class Alliance(Validator, commands.Cog, metaclass=AllianceMeta):
 
         await ctx.send(**kwargs)
 
-    @alliance.command(name="join")
-    @commands.guild_only()
-    async def alliance_join(self, ctx: commands.Context):
+    # @alliance.command(name="join")
+    # @commands.guild_only()
+    # async def alliance_join(self, ctx: commands.Context):
     #     """Join an alliance"""
     #     data = await self.config.user(ctx.author).all()
     #     guild_data = await self.config.guild(ctx.guild).all()
@@ -176,7 +178,8 @@ class Alliance(Validator, commands.Cog, metaclass=AllianceMeta):
             f"5. Visit the {cdt_invite} to get support"
         )
 
-        kwargs = {"content": f"**Alliance Server Creation Tool**\n\n{msg}\n<t:{int(datetime.now().timestamp())}>"}
+        kwargs = {
+            "content": f"**Alliance Server Creation Tool**\n\n{msg}\n<t:{int(datetime.now().timestamp())}>"}
 
         if await ctx.embed_requested():
             embed = discord.Embed(
@@ -185,51 +188,65 @@ class Alliance(Validator, commands.Cog, metaclass=AllianceMeta):
                 colour=discord.Colour.gold(),
                 timestamp=datetime.utcnow(),
             )
-            embed.set_thumbnail(url="https://cdn.discordapp.com/icons/215271081517383682/a_d1fe1587f1981c8d2e0ebc353784f78a.gif?size=1024")
+            embed.set_thumbnail(
+                url="https://cdn.discordapp.com/icons/215271081517383682/a_d1fe1587f1981c8d2e0ebc353784f78a.gif?size=1024")
             embed.set_footer(text="Brought to you by the CollectorDevTeam™")
             kwargs = {"embed": embed}
         await ctx.send(**kwargs)
 
-    @commands.command(hidden=True, aliases=("atest",))
-    async def alliance_test(self, ctx):
-        """validate cdt check & tattletales"""
-        await ctx.send("initiating alliance test")
-        cdt = await cdtcommon.check_collectordevteam(self, ctx)
-        cst = await cdtcommon.check_collectorsupportteam(self, ctx)
-        guildies = await cdtcommon.check_guildowners(self, ctx)
-        fam = await cdtcommon.check_familyowners(self, ctx)
-        await ctx.send("cdt check {0}.\ncst check {1}.\nguildies check {2}.\nfam check {3}.".format(cdt, cst, guildies, fam))
-
-
-    # @alliance.command(name="add", aliases=["create"])
+    @alliance.command(name="add", aliases=["create"])
     # @commands.guild_only()
-    # @commands.guildowner_or_permissions(administrator=True)
-    # async def alliance_add(self, ctx: commands.Context, *, alliance_role: discord.Role, officer_role: discord.Role, name: str):
-    #     """Create an alliance guild.
-    #     An Alliance Role is required to create an alliance.
-    #     An Officer Role is required to create an alliance.
-    #     Only Guild Owners or Administrators may create an alliance.
-    #     Only Alliance Officers may edit properties of an alliance.
+    @commands.has_role(CdtCommon.GUILDOWNERS)
+    @commands.guildowner_or_permissions(administrator=True)
+    async def alliance_add(self, ctx: commands.Context, alliance_role: discord.Role, officer_role: discord.Role = None):
+        """Create an alliance guild.
+        An Alliance Role is required to create an alliance.
+        Only Guild Owners or Administrators may create an alliance.
 
-    #     """
+        An Officer Role is required to set alliance information.
+        Only Alliance Officers may edit properties of an alliance.
 
-    #     # if alliance_role is None:
-    #         # prompt for alliance_role
+        """
 
-    #     # if officer_role is None:
-    #         # prompt for officer_role
+        # if alliance_role is None:
+        # prompt for alliance_role
 
-    #     if await alliance_role.id in self.config.guild(ctx.guild).alliances():
-    #         return await ctx.send("Alliance with id {} is already registered.".format(alliance_role.id))
-    #     await self.config.guild(ctx.guild).register_custom(**_config_structure["alliance"], alliance_role.id)
-    #     await self.config.guild(ctx.guild).alliances(alliance_role.id).members.set(alliance_role.id)
-    #     if officer_role is not None:
-    #         await self.config.guild(ctx.guild).alliances(alliance_role.id).officers.set(officer_role.id)
-    #     else:
-    #         for r in ctx.guild.roles:
-    #             if r.name is "officers" or r.name is "Officers":
-    #                 await confirm_role
-        
+        # if officer_role is None:
+        # prompt for officer_role
+
+        if await alliance_role.id in self.config.guild(ctx.guild).alliances():
+            return await ctx.send("Alliance with id {} is already registered.".format(alliance_role.id))
+
+        allianceseed = None
+        new = {}
+
+        for r in ctx.guild.roles:
+            if r.name.lower() == "alliance":
+                answer = CdtCommon.get_user_confirmation(
+                    ctx, "Do you wish to bind the role {} as the default alliance membership role?".format(r.mention))
+                if answer:
+                    allianceseed = r
+                    new.update({"alliance": {"name": r.name,"id" : r.id}})
+                else:
+                    data = Embed.create(ctx, title="Alliance creation aborted",
+                                        description="Alliance creation requires a default alliance membership role.  \nRerun the ``/alliance create <alliance_role>`` command with an alliance role")
+                    await ctx.send(embed=data)
+                    return
+            elif r.name.lower() in ("officers", "bg1", "bg2", "bg3"):
+                answer = CdtCommon.get_user_confirmation(
+                    ctx, "Do you wish to bind the the role {0} as the {1} group role role?".format(r.mention, r.name.title()))
+                if answer:
+                    new.update({r.name.lower(): {"name": r.name,"id" : r.id}})
+
+        answer = CdtCommon.get_user_confirmation("Final alliance creation notice confirmation: \nAlliance member role: {} \nOfficer role : {}  \nBattlegroup 1 role: {} \nBattlegroup 2 role: {} \nBattlegroup 3 role: {}").format(
+            new["alliance"]["name"], new["officers"]["name"], new["bg1"]["name"], new["bg2"]["name"], new["bg3"]["name"])
+        await self.config.guild(ctx.guild).register_custom(**_config_structure["alliance"], allianceseed.id)
+        with self.config.guild(ctx.guild).alliances(allianceseed) as alliance:
+            alliance.update(new)
+
+        data = Embed.create(ctx, title="New Alliance Advisory", 
+            description="Only registered GuildOwners may create an Alliance.\nOnly guild members with an Alliance registered Officer role may set Alliance details.")
+
         # Jojo's code, bypassing
         # if await self.config.guild(ctx.guild).registered():
         #     return await ctx.send("This guild is already registered!")
