@@ -19,11 +19,6 @@ import json
 
 __version__ = "32.0.0"
 
-CDTGUILD = 215271081517383682
-COLLECTORDEVTEAM = 390253643330355200
-COLLECTORSUPPORTTEAM = 390253719125622807
-GUILDOWNERS = 391667615497584650
-FAMILYOWNERS = 731197047562043464
 
 _config_structure = {
     "global" : {
@@ -118,7 +113,8 @@ class Champions(commands.Cog):
         
 
     @champions.group(aliases=("data",), hidden=True)
-    @commands.has_role(COLLECTORDEVTEAM)
+    # @commands.has_role(CdtCommon.COLLECTORDEVTEAM) 
+    @CdtCommon.is_collectordevteam()
     async def champions_data(self, ctx):
         """Data commands""" 
 

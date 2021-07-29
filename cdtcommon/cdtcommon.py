@@ -18,11 +18,7 @@ from cdtcommon.cdtembed import Embed
 
 import logging
 
-CDTGUILD = 215271081517383682
-COLLECTORDEVTEAM = 390253643330355200
-COLLECTORSUPPORTTEAM = 390253719125622807
-GUILDOWNERS = 391667615497584650
-FAMILYOWNERS = 731197047562043464
+
 
 log = logging.getLogger("red.CollectorDevTeam.cdtcommon")
 
@@ -31,20 +27,32 @@ _config_structure = {
         "name" : None,
         "reporting_channel": None,  
     },
-    "checks" :{
+    "cdtcheck" :{
+        "cdtguild" : 215271081517383682,
         "cdt" : 390253643330355200,
         "cst" : 390253719125622807,
         "guildowners" : 391667615497584650,
         "familyowners" : 731197047562043464,
         "tattletales" : 537330789332025364,
+        "patrons": 408414956497666050,
+        "credited_patrons": 428627905233420288,
+        "cdt_boosters" : 736631216035594302
     }
 }
 
 class CdtCommon(commands.Cog):
     """
-    Common Files
+    CollectorDevTeam Common Files & Functions
     """
-
+    CDTGUILD = 215271081517383682
+    COLLECTORDEVTEAM = 390253643330355200
+    COLLECTORSUPPORTTEAM = 390253719125622807
+    GUILDOWNERS = 391667615497584650
+    FAMILYOWNERS = 731197047562043464
+    PATRONS: 408414956497666050
+    CREDITED_PATRONS: 428627905233420288
+    CDTBOOSTERS = 736631216035594302
+    TATTLETALES = 537330789332025364
 
     def __init__(self, bot: Red):
         self.bot = bot
@@ -54,7 +62,7 @@ class CdtCommon(commands.Cog):
             identifier=8675309,
             force_registration=True,
         )
-        self.config.register_global(**_config_structure["checks"])
+        self.config.register_global(**_config_structure["cdtcheck"])
 
 
         # self.config.init_custom("checks", 1) # need to initialize first
@@ -198,6 +206,65 @@ class CdtCommon(commands.Cog):
             if await self.check_cdt(ctx):
                 await ctx.send("If this message printed, then checktest passed cdt")
 
+
+
+
+    def is_collectordevteam():
+        async def chk_cdt(ctx: commands.Context):
+            return await CdtCommon.cdtcheck(ctx, CdtCommon.COLLECTORDEVTEAM)
+    
+    def is_collectorsupportteam():
+        async def chk_cst(ctx: commands.Context):
+            return await CdtCommon.cdtcheck(ctx, CdtCommon.COLLECTORSUPPORTTEAM)
+
+    def is_guildowners():
+        async def chk_go(ctx: commands.Context):
+            return await CdtCommon.cdtcheck(ctx, CdtCommon.GUILDOWNERS)
+
+    def is_familyowners():
+        async def chk_fo(ctx: commands.Context):
+            return await CdtCommon.cdtcheck(ctx, CdtCommon.FAMILYOWNERS)
+
+    def is_supporter():
+        async def chk_bopcp(ctx: commands.Context):
+            booster = await CdtCommon.cdtcheck(ctx, CdtCommon.CDTBOOSTERS)
+            patron = await CdtCommon.cdtcheck(ctx, CdtCommon.PATRONS)
+            credited_patron = await CdtCommon.cdtcheck(ctx, CdtCommon.CREDITED_PATRONS)
+            if booster or patron or credited_patron:
+                return True
+            else:
+                return False
+
+
+
+
+    async def cdtcheck(ctx, role_id):
+        """Check for privileged role from CDT guild"""
+        cdtguild = ctx.bot.get_guild(CdtCommon.CDTGUILD)
+        checkrole = cdtguild.get_role(role_id)
+        member = cdtguild.get_member(ctx.author.id)
+        if member is None:
+            CdtCommon.tattle(ctx, channel=cdtguild.get_channel(CdtCommon.TATTLETALES), message="User is not authorized")
+            return False
+        elif checkrole in member.roles:
+            return True
+        else:
+            return True
+
+    async def tattle(ctx, channel, message):
+        """"Someone's been a naughty boy/girl/it/zey/zim"""
+        data = Embed.create(title="CDT Tattletales", description=message)
+        data.add_field(name="Who", value="{ctx.author.name} [{ctx.author.id}]")
+        data.add_field(name="What", value="{ctx.message.content}")
+        data.add_field(name="Where", value="{ctx.guild.name} [{ctx.guild.id}]")
+        data.add_field(name="When", value="{ctx.timestamp}")
+        await ctx.bot.send(embed=data, channel=channel)
+
+    #     officer_role = await ctx.cog.config.guild(ctx.guild).officers()
+    #     if officer_role is None:
+    #         return False
+    #     return officer_role in [r.id for r in ctx.author.roles]
+    # return commands.check(pred)
 
     # @checks.is_collectordevteam()
     # async def check_cdt(self, ctx):
