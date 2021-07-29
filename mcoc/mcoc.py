@@ -8,7 +8,7 @@ from redbot.core import Config, commands
 from redbot.core.bot import Red
 from redbot.core.utils import chat_formatting, menus
 
-from cdtcommon.cdtcommon import CdtCommon
+from cdtcommon.cdtcommon import CdtCommon, CdtCheck
 from cdtcommon.cdtembed import Embed
 from cdtcommon.fetch_data import FetchData
 
@@ -114,7 +114,7 @@ class Champions(commands.Cog):
 
     @champions.group(aliases=("data",), hidden=True)
     # @commands.has_role(CdtCommon.COLLECTORDEVTEAM) 
-    @commands.CdtCommon.is_collectordevteam()
+    @CdtCheck.is_collectordevteam()
     async def champions_data(self, ctx):
         """Data commands""" 
 

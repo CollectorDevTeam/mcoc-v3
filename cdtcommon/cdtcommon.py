@@ -209,55 +209,11 @@ class CdtCommon(commands.Cog):
 
 
 
-    def is_collectordevteam():
-        async def pred(ctx: commands.Context):
-            checkrole = CdtCommon.COLLECTORDEVTEAM
-            await CdtCommon.cdtcheck(ctx, checkrole)
-            return commands.check(pred)
-    
-    def is_collectorsupportteam():
-        async def pred(ctx: commands.Context):
-            checkrole = CdtCommon.COLLECTORSUPPORTTEAM
-            await CdtCommon.cdtcheck(ctx, checkrole)
-            return commands.check(pred)
-
-
-    def is_guildowners():
-        async def pred(ctx: commands.Context):
-            checkrole = CdtCommon.GUILDOWNERS
-            await CdtCommon.cdtcheck(ctx, checkrole)
-            return commands.check(pred)
-
-    def is_familyowners():
-        async def pred(ctx: commands.Context):
-            checkrole = CdtCommon.FAMILYOWNERS
-            await CdtCommon.cdtcheck(ctx, checkrole)
-            return commands.check(pred)
-
-    def is_supporter():
-        async def pred(ctx: commands.Context):
-            booster = await CdtCommon.cdtcheck(ctx, CdtCommon.CDTBOOSTERS)
-            patron = await CdtCommon.cdtcheck(ctx, CdtCommon.PATRONS)
-            credited_patron = await CdtCommon.cdtcheck(ctx, CdtCommon.CREDITED_PATRONS)
-            if booster or patron or credited_patron:
-                return True
-            return commands.check(pred)
 
 
 
 
-    async def cdtcheck(ctx, role_id):
-        """Check for privileged role from CDT guild"""
-        cdtguild = ctx.bot.get_guild(CdtCommon.CDTGUILD)
-        checkrole = cdtguild.get_role(role_id)
-        member = cdtguild.get_member(ctx.author.id)
-        if member is None:
-            CdtCommon.tattle(ctx, channel=cdtguild.get_channel(CdtCommon.TATTLETALES), message="User is not authorized")
-            return False
-        elif checkrole in member.roles:
-            return True
-        else:
-            return True
+
 
     async def tattle(ctx, channel, message):
         """"Someone's been a naughty boy/girl/it/zey/zim"""
@@ -268,89 +224,7 @@ class CdtCommon(commands.Cog):
         data.add_field(name="When", value="{ctx.timestamp}")
         await ctx.bot.send(embed=data, channel=channel)
 
-    #     officer_role = await ctx.cog.config.guild(ctx.guild).officers()
-    #     if officer_role is None:
-    #         return False
-    #     return officer_role in [r.id for r in ctx.author.roles]
-    # return commands.check(pred)
 
-    # @checks.is_collectordevteam()
-    # async def check_cdt(self, ctx):
-    #     return True
-
-    # async def check_collectordevteam(self, ctx, user=None):
-    #     """Checks if User is in CollectorDevTeam"""
-    #     cdtguild = self.bot.get_guild(215271081517383682)
-    #     checkrole = await self.config.checks("cdt")
-    #     data = Embed.create(ctx, title="Checking CollectorDevTeam")
-    #     if user is None:
-    #         user = ctx.author
-    #     data.description = "user: {0.name}\nid: {0.id}:\nguild: {1.name}\nguild id: {1.id}\n".format(ctx.author, ctx.guild)
-    #     role = await discord.utils.get(cdtguild.roles, id=checkrole)
-    #     if role is None:
-    #         data.description+="Role check failed as None"
-    #         await ctx.send(embed=data, channel=await self.config.tattletales())
-    #         return False
-    #     else:
-    #         checkuser = await discord.utils.get(cdtguild.members, id=user.id)
-    #         if role in checkuser.roles:
-    #             data.description += "User is CollectorDevTeam"
-    #             await ctx.send(embed=data, channel=await self.config.tattletales())
-    #             return True
-    #         else:
-    #             data.description += "User is not CollectorDevTeam"
-    #             channel=await self.config.tattletales()
-    #             await ctx.send(embed=data, channel=await self.config.tattletales())
-    #             return False
-
-    # async def check_collectorsupportteam(self, ctx, user=None):
-    #     """Checks if User is in CollectorSupportTeam"""
-    #     cdtguild = self.bot.get_guild(215271081517383682)
-    #     role = await discord.utils.get(cdtguild.roles, id=await self.config.checks().cst())
-    #     print("CST role found")
-    #     if user is None:
-    #         user = ctx.author
-    #         print("Message.author is user")
-    #     checkuser = discord.utils.get(cdtguild.members, id=user.id)
-    #     if checkuser is None:
-    #         # print("User not found on CDT Guild")
-    #         return False
-    #     else:
-    #         # print("User found on CDT guild")
-    #         if role in checkuser.roles:
-    #             return True # print("CollectorSupporTeam Authenticated")
-    #         else :
-    #             await ctx.send("CST Authentication attempt failed, {0.name}{0.id} on {1.name}{1.id}".format(user, ctx.guild), 
-    #         channel=await self.config.checks().tattletales())
-    #             return await self.check_collectordevteam(ctx, user)
-
-    # async def check_guildowners(self, ctx, user=None):
-    #     """Checks if User is Registered GuildOwner in CollectorDevTeam"""
-    #     cdtguild = self.bot.get_guild(215271081517383682)
-    #     role = await discord.utils.get(cdtguild.roles, id=await self.config.cdt_roles("guildowners"))
-    #     if user is None:
-    #         user = ctx.author
-    #     checkuser = await discord.utils.get(cdtguild.members, id=user.id)
-    #     if role in checkuser.roles:
-    #         return True
-    #     else:
-    #         await ctx.send("CDT Authentication attempt failed, {0.name}{0.id} on {1.name}{1.id}".format(user, ctx.guild), 
-    #         channel=await self.config.cdt_roles().tattletales())
-    #         return False
-
-    # async def check_familyowners(self, ctx, user=None):
-    #     """Checks if User is Registered GuildOwner in CollectorDevTeam"""
-    #     cdtguild = self.bot.get_guild(215271081517383682)
-    #     role = await discord.utils.get(cdtguild.roles, id=await self.config.cdt_roles("familyowners"))
-    #     if user is None:
-    #         user = ctx.author
-    #     checkuser = await discord.utils.get(cdtguild.members, id=user.id)
-    #     if role in checkuser.roles:
-    #         return True
-    #     else:
-    #         await ctx.send("CDT Authentication attempt failed, {0.name}{0.id} on {1.name}{1.id}".format(user, ctx.guild),   
-    #         channel=await self.config.cdt_roles("tattletales"))
-    #         return False
 
     async def get_user_confirmation(self, ctx, question):
         """Pass user a question, returns True or False"""
@@ -422,3 +296,52 @@ class CdtCommon(commands.Cog):
                 p.title(title)
             menupages.append(p)
         return menupages
+
+    async def cdtcheck(ctx, role_id):
+        """Check for privileged role from CDT guild"""
+        cdtguild = ctx.bot.get_guild(CdtCommon.CDTGUILD)
+        checkrole = cdtguild.get_role(role_id)
+        member = cdtguild.get_member(ctx.author.id)
+        if member is None:
+            CdtCommon.tattle(ctx, channel=cdtguild.get_channel(CdtCommon.TATTLETALES), message="User is not authorized")
+            return False
+        elif checkrole in member.roles:
+            return True
+        else:
+            return True
+
+class CdtCheck(commands):
+    def is_collectordevteam():
+        async def pred(ctx: commands.Context):
+            checkrole = CdtCommon.COLLECTORDEVTEAM
+            await CdtCommon.cdtcheck(ctx, checkrole)
+            return commands.check(pred)
+    
+    def is_collectorsupportteam():
+        async def pred(ctx: commands.Context):
+            checkrole = CdtCommon.COLLECTORSUPPORTTEAM
+            await CdtCommon.cdtcheck(ctx, checkrole)
+            return commands.check(pred)
+
+
+    def is_guildowners():
+        async def pred(ctx: commands.Context):
+            checkrole = CdtCommon.GUILDOWNERS
+            await CdtCommon.cdtcheck(ctx, checkrole)
+            return commands.check(pred)
+
+    def is_familyowners():
+        async def pred(ctx: commands.Context):
+            checkrole = CdtCommon.FAMILYOWNERS
+            await CdtCommon.cdtcheck(ctx, checkrole)
+            return commands.check(pred)
+
+    def is_supporter():
+        async def pred(ctx: commands.Context):
+            booster = await CdtCommon.cdtcheck(ctx, CdtCommon.CDTBOOSTERS)
+            patron = await CdtCommon.cdtcheck(ctx, CdtCommon.PATRONS)
+            credited_patron = await CdtCommon.cdtcheck(ctx, CdtCommon.CREDITED_PATRONS)
+            if booster or patron or credited_patron:
+                return True
+            return commands.check(pred)
+
