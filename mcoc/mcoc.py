@@ -8,14 +8,12 @@ from redbot.core import Config, commands
 from redbot.core.bot import Red
 from redbot.core.utils import chat_formatting, menus
 
-from cdtcommon.cdtcommon import CdtCommon, CdtCheck, Embed
+from cdtcommon.cdtcommon import CDTCommon as CDT
+
 # from cdtcommon.cdtembed import Embed
-from cdtcommon.fetch_data import FetchData
+# from cdtcommon.fetch_data import FetchData
 
-import requests
-# from mcoc.champion import ChampionFactory
-
-import json
+# import json
 
 __version__ = "32.0.0"
 
@@ -108,13 +106,13 @@ class Champions(commands.Cog):
 
     @commands.group(aliases=("champ","champion","mcoc"))
     async def champions(self, ctx):
-        data = await Embed.create(ctx, title="Marvel Contest of Champions")
+        data = await CDT.create_embed(ctx, title="Marvel Contest of Champions")
         data.description = "dummy group"
         
 
     @champions.group(aliases=("data",), hidden=True)
     # @commands.has_role(CdtCommon.COLLECTORDEVTEAM) 
-    @CdtCheck.is_collectordevteam()
+    @CDT.is_collectordevteam()
     async def champions_data(self, ctx):
         """Data commands""" 
 
@@ -126,11 +124,11 @@ class Champions(commands.Cog):
                 await ctx.send("There are currently {} json keys registered.".format(len(keys)))
             if json_key is None and len(keys) > 0:
                 question = "json_key_check: There are currently {} json_keys registered.\nDo you want a listing?".format(len(keys))
-                answer = await CdtCommon.get_user_confirmation(self, ctx, question)
+                answer = await CDT.confirm(self, ctx, question)
                 if answer:
                     listing = "\n".join(k for k in keys)
                     pages = list(chat_formatting.pagify(listing, page_length=1000))
-                    await menus.menu(ctx, pages=pages, controls=CdtCommon.get_controls())
+                    await menus.menu(ctx, pages=pages, controls=CDT.get_controls(len(pages))) 
             elif json_key is not None and json_key in keys:
                 await ctx.send("keys found.  testing")
                 await ctx.send("{}".format(words[json_key]['v'])) # should be a dict of {"v": <something>, "vn": }

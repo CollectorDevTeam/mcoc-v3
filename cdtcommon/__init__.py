@@ -1,9 +1,8 @@
-# from .calculator import Calculator
-from .cdtcommon import CdtCommon
-# from .fetch_data import FetchData
+from redbot.core.bot import Red
+from .cdtcommon import CDT
 
 
-def setup(bot):
-    bot.add_cog(CdtCommon(bot))
-    # bot.add_cog(FetchData(bot))
-    # bot.add_cog(Calculator(bot))
+def setup(bot: Red):
+    cog = CDT(bot)
+    bot.add_cog(cog)
+    await cog.initialize()
