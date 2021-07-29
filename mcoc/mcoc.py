@@ -122,11 +122,10 @@ class Champions(commands.Cog):
     async def champions_data(self, ctx):
         """Data commands""" 
 
-    @champions_data.command(name="check")
+    @champions_data.command(name="check", aliases=("words",))
     async def json_key_check(self, ctx, json_key=None):
         async with self.config.words() as words:
             keys = words.keys()
-            await ctx.send("Processing {}".format(keys))
             if json_key is None and len(keys) == 0:
                 await ctx.send("There are currently {} json keys registered.".format(len(keys)))
             if json_key is None and len(keys) > 0:
@@ -134,11 +133,11 @@ class Champions(commands.Cog):
                 answer = await CdtCommon.get_user_confirmation(self, ctx, question)
                 if answer:
                     listing = "\n".join(k for k in keys)
-                    pages = chat_formatting.pagify(listing, page_length=1000)
+                    pages = list(chat_formatting.pagify(listing, page_length=1000))
                     await menus.menu(ctx, pages=pages, controls=CdtCommon._get_controls())
             elif json_key is not None and json_key in keys:
                 await ctx.send("keys found.  testing")
-                await ctx.send("{}".format(words[json_key]["v"]))
+                await ctx.send("{}".format(words[json_key])) # should be a dict of {"v": <something>, "vn": }
             else:
                 await ctx.send("{} not found in words".format(json_key))
 
@@ -234,35 +233,7 @@ class Champions(commands.Cog):
 
 
 
-    ## import functions
-    async def loadjson(self, ctx, config_key: str):
-        """Read in JSON file, return dict"""
-        snapshot_file = {"meta": {}, "strings": {}}
-        await ctx.send("loadjson: reading {} json file".format(config_key))
-        cwd = os.getcwd()
-        relative_path = await self.config.snapshots.relative_path()
-        filepath = "{}\\{}\\{}.json".format(cwd, relative_path, config_key)
-        await ctx.send("loadjson: checking file path exists = {}".format(os.path.isfile(filepath)))
-        if os.path.isfile(filepath):
-            await ctx.send("loadjson: os filepath is valid file")
-            with open(filepath, 'r') as f:
-                array = json.load(f)
-                stringlist = array["strings"] #list of strings
-                await ctx.send("loadjson: crawling {} json_strings".format(len(stringlist)))
-                strings = {}
-                for i in len(stringlist):
-                    for k, v in stringlist[i]:
-                        if "vn" in pkg.keys():
-                            vn = pkg["vn"]
-                            if isinstance(vn, int):
-                                vn = str(vn)
-                        else:
-                            vn = "0.0.0"
-                        pkg = {k : {"v" : v , "vn": vn}}
-                        strings.update(pkg)
-                        await ctx.send("```json\n{}```".format(pkg))
-                snapshot_file.update({"meta" : array["meta"], "strings": strings})
-        return snapshot_file
+
 
     
 
