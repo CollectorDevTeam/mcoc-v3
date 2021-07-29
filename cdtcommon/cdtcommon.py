@@ -62,7 +62,7 @@ class CdtCommon(CdtCheck, commands.Cog):
         # self.config.init_custom("checks", 1) # need to initialize first
         # self.config.register_custom("checks", **_config_structure["checks"])
 
-    @commands.group(aliases=("ctest",))
+    @commands.group(aliases=("ctest",), invoke_without_command=True)
     async def checktest(self, ctx: commands.Context):
         """Check priviledge groups from CollectorDevTeam guild"""
 
