@@ -1,4 +1,3 @@
-from cdtcommon.cdtcommon import CdtCommon
 import aiohttp
 import json
 import re
@@ -83,8 +82,11 @@ class FetchData():
 
     
     def bcg_recompile(self, str_data):
+        """Scrape out the color decorators from Kabam JSON file"""
         hex_re = re.compile(r'\[[0-9a-f]{6,8}\](.+?)\[-\]', re.I)
         return hex_re.sub(r'\1', str_data)
+
+        
 # class FetchCdtData(commands.Cog):
 #     """
 #     Fetch data from CDT

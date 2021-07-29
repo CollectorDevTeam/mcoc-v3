@@ -15,7 +15,6 @@ from redbot.core.utils.predicates import MessagePredicate, ReactionPredicate
 from functools import wraps
 
 from cdtcommon.cdtembed import Embed
-from cdtcommon.fetch_data import FetchData
 
 import logging
 
