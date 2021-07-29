@@ -86,7 +86,7 @@ class CdtCheck(CogCommandMixin):
         cdtguild = ctx.bot.get_guild(CDTGUILD)
         if channel is None:
             channel=cdtguild.get_channel(TATTLETALES) #default to tattletales
-        data = Embed.create(ctx, title="CDT Tattletales", description=message)
+        data = await Embed.create(ctx, title="CDT Tattletales", description=message)
         data.add_field(name="Who", value="{ctx.author.name} [{ctx.author.id}]")
         data.add_field(name="What", value="{ctx.message.content}")
         data.add_field(name="Where", value="{ctx.guild.name} [{ctx.guild.id}]")
