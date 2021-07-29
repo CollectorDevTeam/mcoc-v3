@@ -91,5 +91,5 @@ class CdtCheck(CogCommandMixin):
         data.add_field(name="What", value="{ctx.message.content}")
         data.add_field(name="Where", value="{ctx.guild.name} [{ctx.guild.id}]")
         data.add_field(name="When", value="{ctx.timestamp}")
-        await ctx.bot.send(embed=data, channel=channel)
+        await ctx.send(embed=data, channel=channel)
         return
