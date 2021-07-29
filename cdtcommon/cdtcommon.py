@@ -83,7 +83,7 @@ class CdtCommon(CdtCheck, commands.Cog):
 
     @checktest.command(aliases=("fo",))
     @CdtCheck.is_familyowners()
-    async def cdt(self,ctx):
+    async def familyowners(self,ctx):
         pass
 
     @checktest.command()
