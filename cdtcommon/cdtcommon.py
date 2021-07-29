@@ -3,6 +3,7 @@ from pickle import decode_long
 import random
 from typing import Optional
 import asyncio
+import re
 
 import discord
 from discord.ext.commands.context import Context
@@ -348,3 +349,7 @@ class CdtCommon(commands.Cog):
                 p.title(title)
             menupages.append(p)
         return menupages
+
+    def bcg_recompile(self, str_data):
+        hex_re = re.compile(r'\[[0-9a-f]{6,8}\](.+?)\[-\]', re.I)
+        return hex_re.sub(r'\1', str_data)
