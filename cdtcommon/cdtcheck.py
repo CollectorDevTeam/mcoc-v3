@@ -22,20 +22,21 @@ class CdtCheck(CogCommandMixin):
     
 
 
-    async def cdtcheck(ctx, role_id):
+    async def cdtcheck(ctx, role_ids):
         """Check for privileged role from CDT guild"""
         cdtguild = ctx.bot.get_guild(CDTGUILD)
-        checkrole = cdtguild.get_role(role_id)
         member = cdtguild.get_member(ctx.author.id)
         if member is None:
             await CdtCheck.tattle(ctx, message="User is not member on CDT")
             return False
-        elif checkrole in member.roles:
-            await CdtCheck.tattle(ctx, message="User is authorized")
-            return True
-        else:
-            await CdtCheck.tattle(ctx, message="User is not authorized")
-            return False
+        for role_id in role_ids:
+            checkrole = cdtguild.get_role(role_id)
+            if checkrole in member.roles:
+                await CdtCheck.tattle(ctx, message="User is authorized as {0}".format(checkrole.mention))
+                return True
+            else:
+                await CdtCheck.tattle(ctx, message="User is not authorized!")
+                return False
             
 
     def is_collectordevteam():
@@ -87,9 +88,9 @@ class CdtCheck(CogCommandMixin):
         if channel is None:
             channel=cdtguild.get_channel(TATTLETALES) #default to tattletales
         data = await Embed.create(ctx, title="CDT Tattletales", description=message)
-        data.add_field(name="Who", value="{ctx.author.name} [{ctx.author.id}]".format())
-        data.add_field(name="What", value="{ctx.message.content}".format())
-        data.add_field(name="Where", value="{ctx.guild.name} [{ctx.guild.id}]".format())
-        data.add_field(name="When", value="{ctx.timestamp}".format())
+        data.add_field(name="Who", value="{0.name} [{0.id}]".format(ctx.author))
+        data.add_field(name="What", value="{0.content}".format(ctx.author))
+        data.add_field(name="Where", value="{0.name} [{0.id}]".format(ctx.author))
+        data.add_field(name="When", value="{0}".format(ctx.author))
         await channel.send(embed=data)
         return
