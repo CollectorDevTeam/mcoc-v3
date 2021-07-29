@@ -134,7 +134,7 @@ class Champions(commands.Cog):
                 if answer:
                     listing = "\n".join(k for k in keys)
                     pages = list(chat_formatting.pagify(listing, page_length=1000))
-                    await menus.menu(ctx, pages=pages, controls=CdtCommon._get_controls())
+                    await menus.menu(ctx, pages=pages, controls=CdtCommon.get_controls())
             elif json_key is not None and json_key in keys:
                 await ctx.send("keys found.  testing")
                 await ctx.send("{}".format(words[json_key])) # should be a dict of {"v": <something>, "vn": }
