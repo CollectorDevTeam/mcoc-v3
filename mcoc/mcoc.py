@@ -152,11 +152,13 @@ class Champions(commands.Cog, metaclass=CdtMeta):
                         # async with self.config.snapshots() as snapshots:
                         #     snapshots.clear_all_globals()
                         await self.config.snapshots.clear_all_globals()
-                        await ctx.send("Snapshots should be cleared.  {} keys registered".format(len(snapshots.keys())))
+                        async with self.config.snapshots() as snapshots:
+                            await ctx.send("Snapshots should be cleared.  {} keys registered".format(len(snapshots.keys())))
                     elif dataset is "words":
                         # async with self.config.words() as words:
                         await self.config.words.clear_all_globals()
-                        await ctx.send("Snapshots should be cleared.  {} keys registered".format(len(words.keys())))
+                        async with self.config.words() as words:
+                            await ctx.send("Snapshots should be cleared.  {} keys registered".format(len(words.keys())))
         return
     
 
