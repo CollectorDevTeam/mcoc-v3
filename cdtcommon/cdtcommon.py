@@ -84,7 +84,7 @@ class CdtCommon(CdtCheck, commands.Cog):
     @checktest.command(aliases=("fo",))
     @CdtCheck.is_familyowners()
     async def familyowners(self,ctx):
-        """Check registered FamilyOwners"
+        """Check registered FamilyOwners"""
 
     @checktest.command(aliases=("supporter", "patron", "booster"))
     @CdtCheck.is_supporter()
