@@ -1,6 +1,7 @@
 from cdtcommon.cdtcommon import CdtCommon
 import aiohttp
 import json
+import re
 from redbot.core.bot import Red
 
 
@@ -20,7 +21,7 @@ class FetchData():
             if response.status != 200:
                 await ctx.send("Response Status: {response.status}")
             filetext = await response.text()
-            filetext = CdtCommon.bcg_recompile(filetext) #cleanup the [15fkas] stuff
+            filetext = FetchData.bcg_recompile(filetext) #cleanup the [15fkas] stuff
             prettytext = FetchData.prettyprint(filetext)
             if prettytext is not None:
                 return prettytext
@@ -34,7 +35,7 @@ class FetchData():
             if response.status != 200:
                 await ctx.send("Response Status: {response.status}")
             filetext = await response.text()
-            filetext = CdtCommon.bcg_recompile(filetext)
+            filetext = FetchData.bcg_recompile(filetext)
             prettytext = FetchData.prettyprint(filetext)
             jsonfile = json.loads(prettytext)
             return jsonfile
@@ -79,6 +80,11 @@ class FetchData():
         if jtext is not None:
             result = json.dumps(jtext, indent=4, sort_keys=True)
         return result
+
+    
+    def bcg_recompile(self, str_data):
+        hex_re = re.compile(r'\[[0-9a-f]{6,8}\](.+?)\[-\]', re.I)
+        return hex_re.sub(r'\1', str_data)
 # class FetchCdtData(commands.Cog):
 #     """
 #     Fetch data from CDT
