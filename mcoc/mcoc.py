@@ -137,7 +137,8 @@ class Champions(commands.Cog):
                     await menus.menu(ctx, pages=pages, controls=CdtCommon.get_controls())
             elif json_key is not None and json_key in keys:
                 await ctx.send("keys found.  testing")
-                await ctx.send("{}".format(words[json_key])) # should be a dict of {"v": <something>, "vn": }
+                await ctx.send("{}".format(words[json_key]['v'])) # should be a dict of {"v": <something>, "vn": }
+                await ctx.send("Version {}".format(words[json_key]['vn']))
             else:
                 await ctx.send("{} not found in words".format(json_key))
 
