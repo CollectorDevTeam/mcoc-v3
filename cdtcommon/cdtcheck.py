@@ -36,7 +36,7 @@ class CdtCheck(CogCommandMixin):
             checkrole = cdtguild.get_role(role_id)
             checked_roles.append(checkrole)
             if checkrole in member.roles:
-                message+="User is authorized as {0}\n.".format(checkrole.mention)
+                message+="User is authorized as {0}.\n".format(checkrole.mention)
                 result = True
             else:
                 message+="User is not authorized as {0}!\n".format(checkrole.mention)

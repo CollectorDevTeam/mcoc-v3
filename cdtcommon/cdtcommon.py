@@ -64,27 +64,27 @@ class CdtCommon(CdtCheck, commands.Cog):
 
     @commands.group(hidden=True, aliases=("ctest",))
     async def checktest(self, ctx):
-        pass
+        """Check priviledge groups from CollectorDevTeam guild"""
 
     @checktest.command()
     @CdtCheck.is_collectordevteam()
     async def cdt(self,ctx):
-        pass
+        """Check CollectorDevTeam"""
 
     @checktest.command()
     @CdtCheck.is_collectorsupportteam()
     async def cst(self,ctx):
-        pass
+        """Check CollectorSupportTeam"""
 
     @checktest.command(aliases=("go",))
     @CdtCheck.is_guildowners()
     async def guildowner(self,ctx):
-        pass
+        """Check registered GuildOwners"""
 
     @checktest.command(aliases=("fo",))
     @CdtCheck.is_familyowners()
     async def familyowners(self,ctx):
-        pass
+        """Check registered FamilyOwners"
 
     @checktest.command(aliases=("supporter", "patron", "booster"))
     @CdtCheck.is_supporter()
