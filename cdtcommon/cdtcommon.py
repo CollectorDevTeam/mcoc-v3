@@ -62,7 +62,7 @@ class CdtCommon(CdtCheck, commands.Cog):
         # self.config.init_custom("checks", 1) # need to initialize first
         # self.config.register_custom("checks", **_config_structure["checks"])
 
-    @commands.group(hidden=True)
+    @commands.group(hidden=True, aliases=("ctest",))
     async def checktest(self, ctx):
         pass
 
