@@ -22,7 +22,7 @@ class CdtCheck(CogCommandMixin):
     
 
 
-    async def cdtcheck(ctx, role_ids):
+    async def cdtcheck(ctx, role_ids:list):
         """Check for privileged role from CDT guild"""
         cdtguild = ctx.bot.get_guild(CDTGUILD)
         member = cdtguild.get_member(ctx.author.id)
@@ -32,7 +32,7 @@ class CdtCheck(CogCommandMixin):
         for role_id in role_ids:
             checkrole = cdtguild.get_role(role_id)
             if checkrole in member.roles:
-                await CdtCheck.tattle(ctx, message="User is authorized as {0}".format(checkrole.mention))
+                await CdtCheck.tattle(ctx, message="User is authorized as **{0}**".format(checkrole.mention))
                 return True
             else:
                 await CdtCheck.tattle(ctx, message="User is not authorized!")
@@ -41,7 +41,7 @@ class CdtCheck(CogCommandMixin):
 
     def is_collectordevteam():
         async def pred(ctx: commands.Context):
-            checkrole = COLLECTORDEVTEAM
+            checkrole = [COLLECTORDEVTEAM]
             chk = await CdtCheck.cdtcheck(ctx, checkrole)
             if chk:
                 return chk
@@ -49,7 +49,7 @@ class CdtCheck(CogCommandMixin):
     
     def is_collectorsupportteam():
         async def pred(ctx: commands.Context):
-            checkrole = COLLECTORSUPPORTTEAM
+            checkrole = [COLLECTORSUPPORTTEAM, COLLECTORDEVTEAM]
             chk = await  CdtCheck.cdtcheck(ctx, checkrole)
             if chk:
                 return chk
@@ -57,7 +57,7 @@ class CdtCheck(CogCommandMixin):
 
     def is_guildowners():
         async def pred(ctx: commands.Context):
-            checkrole = GUILDOWNERS
+            checkrole = [GUILDOWNERS]
             chk = await CdtCheck.cdtcheck(ctx, checkrole)
             if chk:
                 return chk
@@ -65,7 +65,7 @@ class CdtCheck(CogCommandMixin):
 
     def is_familyowners():
         async def pred(ctx: commands.Context):
-            checkrole = FAMILYOWNERS
+            checkrole = [FAMILYOWNERS]
             chk = await CdtCheck.cdtcheck(ctx, checkrole)
             if chk:
                 return chk
@@ -73,13 +73,10 @@ class CdtCheck(CogCommandMixin):
 
     def is_supporter():
         async def pred(ctx: commands.Context):
-            booster = await CdtCheck.cdtcheck(ctx, CDTBOOSTERS)
-            patron = await CdtCheck.cdtcheck(ctx, PATRONS)
-            credited_patron = await CdtCheck.cdtcheck(ctx, CREDITED_PATRONS)
-            if booster or patron or credited_patron:
-                return True
-            else:
-                return False
+            checkrole = [CDTBOOSTERS, PATRONS, CREDITED_PATRONS, COLLECTORSUPPORTTEAM, COLLECTORDEVTEAM]
+            chk = await CdtCheck.cdtcheck(ctx, checkrole)
+            if chk:
+                return chk
         return commands.check(pred)
 
     async def tattle(ctx, message, channel=None):
