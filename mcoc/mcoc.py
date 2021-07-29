@@ -98,7 +98,7 @@ _config_structure = {
 
 # class Champion - champion factory with all champion properties defined.
 
-class Champions(commands.Cog, metaclass=CdtMeta):
+class Champions(commands.Cog):
     """A CollectorDevTeam package for Marvel"s Contest of Champions"""
 
     def __init__(self, bot: Red):
