@@ -5,6 +5,7 @@ from typing import Optional
 import asyncio
 
 import discord
+from abc import ABC
 from discord.ext.commands.context import Context
 from redbot.core import commands
 from redbot.core.bot import Red
@@ -15,6 +16,7 @@ from redbot.core.utils.predicates import MessagePredicate, ReactionPredicate
 from functools import wraps
 
 from cdtcommon.cdtembed import Embed
+from cdtcommon.cdtcheck import CdtCheck
 
 import logging
 
@@ -40,19 +42,11 @@ _config_structure = {
     }
 }
 
-class CdtCommon(commands.Cog):
+class CdtCommon(CdtCheck, commands.Cog):
     """
     CollectorDevTeam Common Files & Functions
     """
-    CDTGUILD = 215271081517383682
-    COLLECTORDEVTEAM = 390253643330355200
-    COLLECTORSUPPORTTEAM = 390253719125622807
-    GUILDOWNERS = 391667615497584650
-    FAMILYOWNERS = 731197047562043464
-    PATRONS: 408414956497666050
-    CREDITED_PATRONS: 428627905233420288
-    CDTBOOSTERS = 736631216035594302
-    TATTLETALES = 537330789332025364
+
 
     def __init__(self, bot: Red):
         self.bot = bot
@@ -68,15 +62,19 @@ class CdtCommon(commands.Cog):
         # self.config.init_custom("checks", 1) # need to initialize first
         # self.config.register_custom("checks", **_config_structure["checks"])
 
-
+    @commands.command(hidden=True)
+    @CdtCheck.is_collectordevteam()
+    async def cdt_test(self,ctx):
+        await ctx.send("Passed I guess")
 
     @commands.command(hidden=True, name="promote", aliases=("promo",))
-    @commands.guild_only()
+    # @commands.guild_only()
+    @CdtCheck.is_collectordevteam()
     async def cdt_promote(self, ctx, channel: discord.TextChannel, *, content):
         """Content will fill the embed description.
         title;content will split the message into Title and Content.
         An image attachment added to this command will replace the image embed."""
-        authorized = self.check_collectorsupportteam(ctx)
+        authorized = CdtCheck.is_collectorsupportteam()
         if authorized is not True:
             return
         else:
@@ -199,12 +197,12 @@ class CdtCommon(commands.Cog):
         }
         return controls
 
-    @commands.command(hidden=True)
-    @commands.has_role(COLLECTORDEVTEAM)
-    async def checktest(self, ctx, checking):
-        if checking in ("cdt", "collectordevteam"):
-            if await self.check_cdt(ctx):
-                await ctx.send("If this message printed, then checktest passed cdt")
+    # @commands.command(hidden=True)
+    # @commands.has_role(COLLECTORDEVTEAM)
+    # async def checktest(self, ctx, checking):
+    #     if checking in ("cdt", "collectordevteam"):
+    #         if await self.check_cdt(ctx):
+    #             await ctx.send("If this message printed, then checktest passed cdt")
 
 
 
@@ -215,14 +213,7 @@ class CdtCommon(commands.Cog):
 
 
 
-    async def tattle(ctx, channel, message):
-        """"Someone's been a naughty boy/girl/it/zey/zim"""
-        data = Embed.create(title="CDT Tattletales", description=message)
-        data.add_field(name="Who", value="{ctx.author.name} [{ctx.author.id}]")
-        data.add_field(name="What", value="{ctx.message.content}")
-        data.add_field(name="Where", value="{ctx.guild.name} [{ctx.guild.id}]")
-        data.add_field(name="When", value="{ctx.timestamp}")
-        await ctx.bot.send(embed=data, channel=channel)
+
 
 
 
@@ -297,51 +288,5 @@ class CdtCommon(commands.Cog):
             menupages.append(p)
         return menupages
 
-    async def cdtcheck(ctx, role_id):
-        """Check for privileged role from CDT guild"""
-        cdtguild = ctx.bot.get_guild(CdtCommon.CDTGUILD)
-        checkrole = cdtguild.get_role(role_id)
-        member = cdtguild.get_member(ctx.author.id)
-        if member is None:
-            CdtCommon.tattle(ctx, channel=cdtguild.get_channel(CdtCommon.TATTLETALES), message="User is not authorized")
-            return False
-        elif checkrole in member.roles:
-            return True
-        else:
-            return True
 
-class CdtCheck(commands):
-    def is_collectordevteam():
-        async def pred(ctx: commands.Context):
-            checkrole = CdtCommon.COLLECTORDEVTEAM
-            await CdtCommon.cdtcheck(ctx, checkrole)
-            return commands.check(pred)
-    
-    def is_collectorsupportteam():
-        async def pred(ctx: commands.Context):
-            checkrole = CdtCommon.COLLECTORSUPPORTTEAM
-            await CdtCommon.cdtcheck(ctx, checkrole)
-            return commands.check(pred)
-
-
-    def is_guildowners():
-        async def pred(ctx: commands.Context):
-            checkrole = CdtCommon.GUILDOWNERS
-            await CdtCommon.cdtcheck(ctx, checkrole)
-            return commands.check(pred)
-
-    def is_familyowners():
-        async def pred(ctx: commands.Context):
-            checkrole = CdtCommon.FAMILYOWNERS
-            await CdtCommon.cdtcheck(ctx, checkrole)
-            return commands.check(pred)
-
-    def is_supporter():
-        async def pred(ctx: commands.Context):
-            booster = await CdtCommon.cdtcheck(ctx, CdtCommon.CDTBOOSTERS)
-            patron = await CdtCommon.cdtcheck(ctx, CdtCommon.PATRONS)
-            credited_patron = await CdtCommon.cdtcheck(ctx, CdtCommon.CREDITED_PATRONS)
-            if booster or patron or credited_patron:
-                return True
-            return commands.check(pred)
 

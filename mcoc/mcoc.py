@@ -8,8 +8,8 @@ from redbot.core import Config, commands
 from redbot.core.bot import Red
 from redbot.core.utils import chat_formatting, menus
 
-from cdtcommon.cdtcommon import CdtCommon, CdtCheck
-from cdtcommon.cdtembed import Embed
+from cdtcommon.cdtcommon import CdtCommon, CdtCheck, Embed
+# from cdtcommon.cdtembed import Embed
 from cdtcommon.fetch_data import FetchData
 
 import requests
@@ -98,7 +98,7 @@ _config_structure = {
 
 # class Champion - champion factory with all champion properties defined.
 
-class Champions(commands.Cog):
+class Champions(commands.Cog, metaclass=CdtMeta):
     """A CollectorDevTeam package for Marvel"s Contest of Champions"""
 
     def __init__(self, bot: Red):
