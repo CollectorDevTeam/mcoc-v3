@@ -199,7 +199,7 @@ class Champions(commands.Cog):
                     if jsonfile is not None:
                         async with self.config.words() as words:
                             words.update(jsonfile["strings"])
-                        async with self.config.snapshots as snapshots:
+                        async with self.config.snapshots() as snapshots:
                             snapshots.update({j : jsonfile})
                     else:
                         await ctx.send("textfile_to_json did not return json/dict")
