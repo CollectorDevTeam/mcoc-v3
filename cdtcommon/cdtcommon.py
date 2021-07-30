@@ -50,7 +50,7 @@ class CDTCog(CDTCalculator, CDTDiagnostics, CDTMixin, commands.Cog, metaclass=Co
 
     @commands.command(name="modok", hidden=True)
     async def modok_says(self, ctx):
-        await CDT.raw_modok_says(ctx)
+        await CDT.raw_modok_says(self, ctx)
         
 
     @cdtcommands.command(name="promote", aliases=("promo",))
