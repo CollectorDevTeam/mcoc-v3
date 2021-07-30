@@ -51,7 +51,7 @@ class Embed(MixinMeta):
         if image is not None:
             print(image)
             async with session.get(image) as re:
-                if re.status != 200:
+                if re.status == 200:
                     data.set_image(url=image)
         if thumbnail != COLLECTOR_SQUINT:
             async with session.get(thumbnail) as re:
