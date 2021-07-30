@@ -16,7 +16,7 @@ CDT_ICON = "https://raw.githubusercontent.com/CollectorDevTeam/assets/master/dat
 # session = aiohttp.ClientSession()
 
 class Embed(MixinMeta):
-    """Creates a CDT Embed and returns it to you"""
+    """Creates a CDT flavored discord.Embed and returns it to you"""
 
     @staticmethod
     async def create_embed(
@@ -25,7 +25,7 @@ class Embed(MixinMeta):
         title: str = "",
         description: str = "",
         image: str = None,
-        thumbnail: str = None,
+        thumbnail: str = COLLECTOR_SQUINT,
         url: str = None,
         footer_text: str = "Collector | Contest of Champions | CollectorDevTeam",
         footer_url: str = "https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/cdt_logo.png",
@@ -37,15 +37,6 @@ class Embed(MixinMeta):
         description = String, sets description.
         image = String url.  Validator checks for valid url.
         thumbnail = String url. Validator checks for valid url."""
-        # COLLECTOR_ICON = (
-        #     "https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/cdt_icon.png"
-        # )
-        # PATREON = "https://patreon.com/collectorbot"
-        # CDT_LOGO = (
-        #     "https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/cdt_logo.png"
-        # )
-
-
         if (
             isinstance(ctx.channel, discord.abc.GuildChannel)
             and str(ctx.author.colour) != "#000000"
@@ -60,18 +51,12 @@ class Embed(MixinMeta):
         if image:
             async with MixinMeta.session.get(image) as re:
                 if re.status != 200:
-                    # log.info(f"Image URL Failure, code {re.status}")
-                    # log.info(f"Attempted URL:\n{image}")
-                # else:
                     data.set_image(url=image)
-        thumbnail = thumbnail or COLLECTOR_SQUINT
-        if thumbnail and thumbnail != COLLECTOR_SQUINT:
+        if thumbnail != COLLECTOR_SQUINT:
             async with MixinMeta.session.get(thumbnail) as re:
                 if re.status != 200:
-                    # log.info(f"Thumbnail URL Failure, code {re.status}")
-                    # log.info(f"Attempted URL:\n{thumbnail}")
                     thumbnail = COLLECTOR_SQUINT
+                    #might need additional validation on that url
         data.set_thumbnail(url=thumbnail)
         data.set_footer(text=footer_text, icon_url=footer_url)
-        # await session.close()
         return data
