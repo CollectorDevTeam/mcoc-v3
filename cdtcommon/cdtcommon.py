@@ -48,7 +48,7 @@ class CDTCog(CDTCalculator, CDTDiagnostics, CDTMixin, commands.Cog, metaclass=Co
     @CDT.is_collectorsupportteam()
     async def cdt_promote(self, ctx, channel: discord.TextChannel, *, content):
         """Content will fill the embed description.
-        title;content will split the message into Title and Content.
+        title; content will split the message into Title and Content.
         An image attachment added to this command will replace the image embed."""
         pages = []
         if len(ctx.message.attachments) > 0:

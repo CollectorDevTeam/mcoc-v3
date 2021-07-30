@@ -8,7 +8,7 @@ from cdtcommon.abc.abc import MixinMeta
 class CDTDiagnostics(MixinMeta):
     """Collector Dev Team diagnostic commands"""
    
-    @cdtcommands.group(name="check", aliases=("ctest",), invoke_without_command=True)
+    @cdtcommands.group(name="check", aliases=("ctest",))
     async def checktest(self, ctx: commands.Context):
         """Check priviledge groups from CollectorDevTeam guild"""
         pass
@@ -38,7 +38,7 @@ class CDTDiagnostics(MixinMeta):
     @CDT.is_familyowners()
     async def familyowners(self,ctx):
         """Check registered FamilyOwners"""
-        await ctx.send("supporter test")
+        await ctx.send("Family test")
 
 
     @checktest.command(aliases=("supporter", "patron", "booster"))

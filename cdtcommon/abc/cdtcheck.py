@@ -23,23 +23,22 @@ class CdtCheck(MixinMeta):
         """Check for privileged role from CDT guild"""
         cdtguild = ctx.bot.get_guild(CDTGUILD)
         member = cdtguild.get_member(ctx.author.id)
+        result = False
+        message = ""
         if member is None:
             await CdtCheck.tattle(ctx, message="User is not member on CDT")
-            return False
-        result = False
-        checked_roles = []
-        message = ""
-        for role_id in role_ids:
-            checkrole = cdtguild.get_role(role_id)
-            checked_roles.append(checkrole)
-            if checkrole in member.roles:
-                message+="User is authorized as {0}.\n".format(checkrole.mention)
-                result = True
-                next
-            else:
-                message+="User is not authorized as {0}!\n".format(checkrole.mention)
-                next
-
+            return result
+        else:
+            for role_id in role_ids:
+                checkrole = cdtguild.get_role(role_id)
+                # checked_roles.append(checkrole)
+                if checkrole in member.roles:
+                    message+="User is authorized as {0}.\n".format(checkrole.mention)
+                    result = True
+                    next
+                else:
+                    message+="User is not authorized as {0}!\n".format(checkrole.mention)
+                    next
         await CdtCheck.tattle(ctx, message)
         return result
             
