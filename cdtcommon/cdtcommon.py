@@ -1,3 +1,4 @@
+import aiohttp
 from cdtcommon.abc.modokerror import MODOKError
 from cdtcommon.abc.mixin import CDTMixin, cdtcommands
 from abc import ABC
@@ -47,6 +48,7 @@ class CDTCog(CDTCalculator, CDTDiagnostics, CDTMixin, commands.Cog, metaclass=Co
             identifier=8675309,
             force_registration=True,
         )
+        self.session = aiohttp.ClientSession
 
     @commands.command(name="modok", hidden=True)
     async def modok_says(self, ctx):

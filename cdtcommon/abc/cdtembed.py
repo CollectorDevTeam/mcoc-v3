@@ -13,7 +13,7 @@ COLLECTOR_ICON = "https://raw.githubusercontent.com/CollectorDevTeam/assets/mast
 PATREON = "https://patreon.com/collectorbot"
 CDT_ICON = "https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/cdt_logo.png"
 
-# session = aiohttp.ClientSession()
+session = aiohttp.ClientSession()
 
 class Embed(MixinMeta):
     """Creates a CDT flavored discord.Embed and returns it to you"""
@@ -50,11 +50,11 @@ class Embed(MixinMeta):
                         icon_url=ctx.author.avatar_url)
         if image is not None:
             print(image)
-            async with MixinMeta.session.get(image) as re:
+            async with session.get(image) as re:
                 if re.status != 200:
                     data.set_image(url=image)
         if thumbnail != COLLECTOR_SQUINT:
-            async with MixinMeta.session.get(thumbnail) as re:
+            async with session.get(thumbnail) as re:
                 if re.status != 200:
                     thumbnail = COLLECTOR_SQUINT
                     #might need additional validation on that url
