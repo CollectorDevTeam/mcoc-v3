@@ -1,6 +1,6 @@
-from cdtcommon.abc.cdt import CDT
 from cdtcommon.abc.mixin import cdtcommands
 from cdtcommon.abc.abc import MixinMeta
+from cdtcommon.abc.cdt import CDT 
 import math
 import re
 
