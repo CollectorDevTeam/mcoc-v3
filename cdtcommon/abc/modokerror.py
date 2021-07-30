@@ -21,14 +21,13 @@ class MODOKError(QuietUserError):
     pass
 
 class MODOKSays(MixinMeta):
-    def raw_modok_image(self, ctx):
+    def raw_modok_image():
         word = random.choice(MODOKSAYS)
         modokimage = "{}images/modok/{}.png".format(remote_data_basepath, word)
         return modokimage
     
-    async def raw_modok_says(ctx, word=None):
-        if not word or word not in MODOKSAYS:
-            word = random.choice(MODOKSAYS)
+    async def raw_modok_says(self, ctx):
+        word = random.choice(MODOKSAYS)
         modokimage = "{}images/modok/{}.png".format(remote_data_basepath, word)
         data = Embed.create_embed(ctx, color=discord.Color(0x0b8c13), title="M.O.D.O.K. says", image=modokimage)
         await ctx.send(embed=data)
