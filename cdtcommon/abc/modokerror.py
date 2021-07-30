@@ -20,7 +20,7 @@ class AmbiguousArgError(QuietUserError):
 class MODOKError(QuietUserError):
     pass
 
-async def raw_modok_says(ctx, channel: Optional [discord.Message.channel], word= Optional [str]):
+async def raw_modok_says(ctx, channel: Optional [discord.Message.channel], word=None):
     if not word or word not in MODOKSAYS:
         word = random.choice(MODOKSAYS)
     modokimage = "{}images/modok/{}.png".format(remote_data_basepath, word)
