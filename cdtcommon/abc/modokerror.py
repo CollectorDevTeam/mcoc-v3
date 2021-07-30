@@ -29,7 +29,7 @@ class MODOKSays(MixinMeta):
     async def raw_modok_says(self, ctx):
         word = random.choice(MODOKSAYS)
         modokimage = "{}images/modok/{}.png".format(remote_data_basepath, word)
-        data = Embed.create_embed(ctx, color=discord.Color(0x0b8c13), title="M.O.D.O.K. says", image=modokimage)
+        data = await Embed.create_embed(ctx, color=discord.Color(0x0b8c13), title="M.O.D.O.K. says", image=modokimage)
         await ctx.send(embed=data)
 
 
