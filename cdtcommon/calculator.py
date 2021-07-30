@@ -17,8 +17,8 @@ class Calculator(MixinMeta):
         self.thumbnail = "https://www.ebuyer.com/blog/wp-content/uploads/2014/07/buttons-on-a-calculator-header1.jpg"
 
     @cdtcommands.group()
-    @commands.command(name="calculator")
-    async def calc(self, ctx, *, m):
+    @commands.command(name="calculator", aliases=("calc",))
+    async def cdt_calc(self, ctx, *, m):
         """Math is fun!
         Type math, get fun."""
         m = "".join(m)
@@ -43,13 +43,13 @@ class Calculator(MixinMeta):
             em.add_field(name="Type Math", value="Get Fun")
             await ctx.send(embed=em)
 
-    @calc.command(aliases=("p2f","\%\2f"),)
+    @cdt_calc.command(aliases=("p2f","\%\2f"),)
     async def per2flat(self, ctx, per: float, ch_rating: int = 100):
         """Convert Percentage to MCOC Flat Value"""
         await ctx.send(CDT.to_flat(per, ch_rating))
 
     # , aliases=('f2p')) --> this was translating as "flat | f | 2 | p"
-    @calc.command(pass_context=True, name="flat")
+    @cdt_calc.command(pass_context=True, name="flat")
     async def flat2per(self, ctx, *, m):
         """Convert MCOC Flat Value to Percentge
         <equation> [challenger rating = 100]"""
@@ -79,7 +79,7 @@ class Calculator(MixinMeta):
         data.add_field(name="Percentage:", value="{}\%".format(p))
         await ctx.send(embed=data)
 
-    @calc.command(aliases=["compf", "cfrac"], hidden=True)
+    @cdt_calc.command(aliases=["compf", "cfrac"], hidden=True)
     async def compound_frac(self, ctx, base: float, exp: int):
         # On second thought, I'm not gonna touch this
         # - Jojo
