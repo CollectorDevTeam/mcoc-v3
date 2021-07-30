@@ -48,7 +48,8 @@ class Embed(MixinMeta):
             data.description = description
         data.set_author(name=ctx.author.display_name,
                         icon_url=ctx.author.avatar_url)
-        if image:
+        if image is not None:
+            print(image)
             async with MixinMeta.session.get(image) as re:
                 if re.status != 200:
                     data.set_image(url=image)
