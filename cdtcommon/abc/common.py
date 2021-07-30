@@ -1,4 +1,3 @@
-from cdtcommon.abc.mixin import CDTMixin
 import discord
 from redbot.core.utils import menus
 from redbot.core.utils.predicates import MessagePredicate, ReactionPredicate
@@ -8,6 +7,7 @@ import contextlib
 from redbot.core import commands
 from redbot.core.commands import Context
 from cdtcommon.abc.abc import MixinMeta
+from cdtcommon.abc.cdt import CDT
 
 class CommonFunctions(MixinMeta):
     """common functions that are not {prefix} commands"""
