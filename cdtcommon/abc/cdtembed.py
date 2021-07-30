@@ -2,7 +2,7 @@
 
 from cdtcommon.abc.abc import MixinMeta
 
-# import aiohttp
+import aiohttp
 import discord
 from redbot.core.commands import Context
 
