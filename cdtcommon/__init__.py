@@ -1,6 +1,6 @@
 from redbot.core.bot import Red
-from .cdtcommon import CDT
+from .cdtcommon import CDTCog
 
 
 def setup(bot: Red):
-    bot.add_cog(CDT(bot))
+    bot.add_cog(CDTCog(bot))

@@ -3,11 +3,11 @@
         "JJW"
     ],
     "install_msg": "This library provides core common functions for the CollectorDevTeam cog series.",
-    "name": "CDT",
+    "name": "CDT Cog",
     "disabled": false,
-    "short": "",
+    "short": "CollectorDevTeam stuff",
     "description": "CDT Common functions and diagnostic tools",
     "tags": [],
     "requirements": [],
-    "hidden": true
+    "hidden": false
 }
