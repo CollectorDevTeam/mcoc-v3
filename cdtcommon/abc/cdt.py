@@ -1,3 +1,5 @@
+from typing import Optional
+from cdtcommon.abc.modokerror import MODOKError
 import discord
 from redbot.core.utils import menus
 from redbot.core.utils.predicates import MessagePredicate, ReactionPredicate
@@ -10,14 +12,28 @@ from cdtcommon.abc.abc import MixinMeta
 from cdtcommon.abc.cdtembed import Embed
 from cdtcommon.abc.cdtcheck import CdtCheck
 from cdtcommon.abc.fetch_data import FetchData
+from cdtcommon.abc.emoji_assets import CDTEmoji
 # from cdtcommon.abc.common import CommonFunctions
 
        
 # class CDT(CommonFunctions, Embed, FetchData, CdtCheck, MixinMeta):
 #     """will this work?"""
 
-class CDT(Embed, FetchData, CdtCheck, MixinMeta):
+class CDT(CDTEmoji, Embed, FetchData, CdtCheck, MixinMeta, MODOKError):
     """common functions that are not {prefix} commands"""
+
+    CLASS_COLORS = {
+        "Cosmic": discord.Color(0x2799f7), 
+        "Tech": discord.Color(0x0033ff),
+        "Mutant": discord.Color(0xffd400), 
+        "Skill": discord.Color(0xdb1200),
+        "Science": discord.Color(0x0b8c13), 
+        "Mystic": discord.Color(0x7f0da8),
+        "All": discord.Color(0x03f193), 
+        "Superior": discord.Color(0x03f193), 
+        "default": discord.Color.light_grey(),
+    }
+
 
     @staticmethod
     def from_flat(flat, ch_rating):
@@ -85,7 +101,7 @@ class CDT(Embed, FetchData, CdtCheck, MixinMeta):
 
         return pred.result
 
-    def get_controls(int = None):
+    def get_controls(int : Optional):
         controls = {
             # "<:arrowleft:735628703610044488>": menus.prev_page,
             # "<:circlex:735628703530483814>": menus.close_menu,

@@ -1,6 +1,10 @@
+from logging import exception, raiseExceptions
 from cdtcommon.abc.abc import MixinMeta
 from cdtcommon.abc.cdtembed import Embed
 from redbot.core import commands
+from redbot.core.bot import Red 
+from redbot.core.config import Config
+from typing import Optional
 
 CDTGUILD = 215271081517383682
 COLLECTORDEVTEAM = 390253643330355200
@@ -12,35 +16,62 @@ CREDITED_PATRONS: 428627905233420288
 CDTBOOSTERS = 736631216035594302
 TATTLETALES = 537330789332025364
 
+UNAUTHORIZED_GENERIC = "No."
+UNAUTHORIZED_CDT = "This command is reserved for {0.mention}"
+UNAUTHORIZED_GUILDOWNERS = "Sorry sweetheart.  These commands are reserved for **registered** {0.mention} only.\nIf you own or operate a guild, visit CDT and register."
+UNAUTHORIZED_SUPPORTERS = "This command is reserved for Collector supporters.\n"  \
+    "<:NitroBoost:870692021004812379>CDT {0.mention} get access to Perks chat & beta commands.\n"  \
+    "<:patreon:548632991367168000>{1.mention} & {2.mention} get access to perks chat & beta commands.\n"
+
 # class CdtCheck(CogCommandMixin):
 class CdtCheck(MixinMeta):
     """Tools to check priveleges from CDT guild"""
-    # def __init__(self, *_args):
-    #     self.config: Config
-    #     self.bot: Red
+    def __init__(self, *_args):
+        self.config: Config
+        self.bot: Red
+        self.cdtguild = self.bot.get_guild(CDTGUILD)
+        self.cdt = self.guild.get_role(COLLECTORDEVTEAM)
+        self.notcdt = UNAUTHORIZED_CDT.format(self.cdt)
+
+    def get_a_role(ctx, guildid, roleid):
+        """With guild.id and role.id find role"""
+        guild = ctx.bot.get_guild(guildid)
+        if guild is not None:
+            role = guild.get_role(roleid)
+            if role is not None:
+                return role
+        return None
+            # else:
+            #     exception
+
+
     
-    async def cdtcheck(ctx, role_ids:list):
+    async def cdtcheck(ctx, role_id):
         """Check for privileged role from CDT guild"""
         cdtguild = ctx.bot.get_guild(CDTGUILD)
         member = cdtguild.get_member(ctx.author.id)
         result = False
-        message = ""
         if member is None:
-            await CdtCheck.tattle(ctx, message="User is not member on CDT")
             return result
         else:
-            for role_id in role_ids:
-                checkrole = cdtguild.get_role(role_id)
-                # checked_roles.append(checkrole)
-                if checkrole in member.roles:
-                    message+="User is authorized as {0}.\n".format(checkrole.mention)
-                    result = True
-                    next
-                else:
-                    message+="User is not authorized as {0}!\n".format(checkrole.mention)
-                    next
-        await CdtCheck.tattle(ctx, message)
+            checkrole = cdtguild.get_role(role_id)
+            if checkrole in member.roles:
+                result = True
         return result
+        
+        # else:
+        #     for role_id in role_ids:
+        #         checkrole = cdtguild.get_role(role_id)
+        #         # checked_roles.append(checkrole)
+        #         if checkrole in member.roles:
+        #             message+="User is authorized as {0}.\n".format(checkrole.mention)
+        #             result = True
+        #             next
+        #         else:
+        #             message+="User is not authorized as {0}!\n".format(checkrole.mention)
+        #             next
+        # await CdtCheck.tattle(ctx, message)
+        # return result
             
 
     def is_collectordevteam():
@@ -50,6 +81,8 @@ class CdtCheck(MixinMeta):
             chk = await CdtCheck.cdtcheck(ctx, checkrole)
             if chk:
                 return chk
+            else:
+                await CdtCheck.tattle(ctx, message=self.notcdt)
         return commands.check(pred)
     
     def is_collectorsupportteam():
@@ -88,7 +121,7 @@ class CdtCheck(MixinMeta):
                 return chk
         return commands.check(pred)
 
-    async def tattle(ctx, message, channel=None):
+    async def tattle(ctx, message="User is unauthorized.", channel=None):
         """"Someone's been a naughty boy/girl/it/zey/zim"""
         cdtguild = ctx.bot.get_guild(CDTGUILD)
         if channel is None:
