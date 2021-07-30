@@ -19,8 +19,6 @@ class CdtCheck(MixinMeta):
     #     self.config: Config
     #     self.bot: Red
     
-
-
     async def cdtcheck(ctx, role_ids:list):
         """Check for privileged role from CDT guild"""
         cdtguild = ctx.bot.get_guild(CDTGUILD)
@@ -37,9 +35,11 @@ class CdtCheck(MixinMeta):
             if checkrole in member.roles:
                 message+="User is authorized as {0}.\n".format(checkrole.mention)
                 result = True
+                next
             else:
                 message+="User is not authorized as {0}!\n".format(checkrole.mention)
-        
+                next
+
         await CdtCheck.tattle(ctx, message)
         return result
             

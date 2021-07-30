@@ -34,7 +34,6 @@ class CDTCalculator(MixinMeta):
             em = await CDT.create_embed(
                 ctx,
                 title="CollectorDevTeam Calculator",
-                thumbnail=self.thumbnail,
                 description="**Input**\n`{}`\n\n**Result**\n`{}`".format(m, calculate_stuff),
             )
             em.add_field(name="Type Math", value="Get Fun")
