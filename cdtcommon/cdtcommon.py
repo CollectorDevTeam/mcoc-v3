@@ -12,9 +12,13 @@ from redbot.core.bot import Red
 from redbot.core.config import Config
 from redbot.core.utils import chat_formatting, menus
 
-
+## this import of CDT is easy to import to other cogs as
+## from cdtcomm.cdtcommon import CDT
 from cdtcommon.abc.cdt import CDT
+
+## Calculator type commands
 from cdtcommon.calculator import CDTCalculator
+## Diagnostic commands
 from cdtcommon.cdtdiagnostics import CDTDiagnostics
 
 class CompositeMetaClass(type(commands.Cog), type(ABC)):

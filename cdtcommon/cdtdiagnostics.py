@@ -11,7 +11,7 @@ class CDTDiagnostics(MixinMeta):
     @cdtcommands.group(name="check", aliases=("ctest",))
     async def checktest(self, ctx: commands.Context):
         """Check priviledge groups from CollectorDevTeam guild"""
-        pass
+        # pass
 
     @checktest.command()
     @CDT.is_collectordevteam()
