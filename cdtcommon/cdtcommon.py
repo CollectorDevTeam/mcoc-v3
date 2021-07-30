@@ -37,18 +37,12 @@ class CDTCog(CDTCalculator, CDTDiagnostics, CDTMixin, commands.Cog, metaclass=Co
     __version__="0.0.1"
     def __init__(self, bot: Red):
         self.bot = bot
-        # self.cdtguild = self.bot.get_guild(215271081517383682)
         self.config = Config.get_conf(
             self,
             identifier=8675309,
             force_registration=True,
         )
 
-
-        # self.config.init_custom("checks", 1) # need to initialize first
-        # self.config.register_custom("checks", **_config_structure["checks"])
-
-    # diagnostic checking commands to verify checks work
 
     @cdtcommands.command(name="promote", aliases=("promo",))
     @CDT.is_collectorsupportteam()
