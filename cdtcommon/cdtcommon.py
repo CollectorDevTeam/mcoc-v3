@@ -14,7 +14,7 @@ from redbot.core.utils import chat_formatting, menus
 
 
 from cdtcommon.abc.cdt import CDT
-from cdtcommon.calculator import CDTCalcClass
+# from cdtcommon.calculator import CDTCalcClass
 from cdtcommon.cdtdiagnostics import CDTDiagnostics
 
 _config_structure = {
@@ -24,7 +24,7 @@ _config_structure = {
     },
 }
 
-class CDTCommon(CDT, CDTCalcClass, CDTDiagnostics, commands.Cog):
+class CDTCommon(CDT, CDTDiagnostics, commands.Cog):
     """
     CollectorDevTeam Common Files & Functions
     """
