@@ -1,3 +1,4 @@
+from cdtcommon.abc.modokerror import MODOKError
 from cdtcommon.abc.mixin import CDTMixin, cdtcommands
 from abc import ABC
 
@@ -47,6 +48,10 @@ class CDTCog(CDTCalculator, CDTDiagnostics, CDTMixin, commands.Cog, metaclass=Co
             force_registration=True,
         )
 
+    @commands.command(name="modok", hidden=True)
+    async def modok_says(self, ctx):
+        await CDT.raw_modok_says(self, ctx)
+        
 
     @cdtcommands.command(name="promote", aliases=("promo",))
     @CDT.is_collectorsupportteam()

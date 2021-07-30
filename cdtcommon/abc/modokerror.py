@@ -1,7 +1,7 @@
+from cdtcommon.abc.abc import MixinMeta
 from redbot.core import commands
 from cdtcommon.abc.cdtembed import Embed
 import random
-from typing import Optional
 import discord
 
 remote_data_basepath = "https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/"
@@ -20,11 +20,19 @@ class AmbiguousArgError(QuietUserError):
 class MODOKError(QuietUserError):
     pass
 
-async def raw_modok_says(ctx, channel: Optional [discord.Message.channel], word=None):
-    if not word or word not in MODOKSAYS:
+class MODOKSays(MixinMeta):
+    def raw_modok_image(self, ctx):
         word = random.choice(MODOKSAYS)
-    modokimage = "{}images/modok/{}.png".format(remote_data_basepath, word)
-    data = Embed.create_embed(ctx, color=discord.Color(0x0b8c13), title="M.O.D.O.K. says", image=modokimage)
-    channel.send(embed=data)
+        modokimage = "{}images/modok/{}.png".format(remote_data_basepath, word)
+        return modokimage
+    
+    async def raw_modok_says(ctx, word=None):
+        if not word or word not in MODOKSAYS:
+            word = random.choice(MODOKSAYS)
+        modokimage = "{}images/modok/{}.png".format(remote_data_basepath, word)
+        data = Embed.create_embed(ctx, color=discord.Color(0x0b8c13), title="M.O.D.O.K. says", image=modokimage)
+        await ctx.send(embed=data)
+
+
 
 

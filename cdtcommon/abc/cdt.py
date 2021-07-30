@@ -1,5 +1,5 @@
 from typing import Optional
-from cdtcommon.abc.modokerror import MODOKError
+from cdtcommon.abc.modokerror import MODOKError, MODOKSays
 import discord
 from redbot.core.utils import menus
 from redbot.core.utils.predicates import MessagePredicate, ReactionPredicate
@@ -19,7 +19,7 @@ from cdtcommon.abc.emoji_assets import CDTEmoji
 # class CDT(CommonFunctions, Embed, FetchData, CdtCheck, MixinMeta):
 #     """will this work?"""
 
-class CDT(CDTEmoji, Embed, FetchData, CdtCheck, MixinMeta, MODOKError):
+class CDT(CDTEmoji, Embed, FetchData, CdtCheck, MODOKSays, MODOKError, MixinMeta):
     """common functions that are not {prefix} commands"""
 
     CLASS_COLORS = {
