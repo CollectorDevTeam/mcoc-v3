@@ -31,7 +31,7 @@ class MODOKSays(MixinMeta):
         modokimage = "{}images/modok/{}.png".format(remote_data_basepath, word)
         print(modokimage)
         data = await Embed.create_embed(ctx, color=discord.Color(0x0b8c13), title="M.O.D.O.K. says", image=modokimage)
-        data.set_thumbnail(url=None)
+        data.set_thumbnail(url="")
         await ctx.send(embed=data)
 
 
