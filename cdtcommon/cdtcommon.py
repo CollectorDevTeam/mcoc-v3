@@ -7,7 +7,6 @@ from typing import Optional
 
 import discord
 
-from discord.ext.commands.context import Context
 from redbot.core import commands
 from redbot.core.bot import Red
 from redbot.core.config import Config
@@ -30,7 +29,7 @@ _config_structure = {
     },
 }
 # CDTCalculator, CDTDiagnostics, 
-class CDTCommon(CDTCalculator, CDTDiagnostics, CDTMixin, commands.Cog, metaclass=CompositeMetaClass):
+class CDTCog(CDTCalculator, CDTDiagnostics, CDTMixin, commands.Cog, metaclass=CompositeMetaClass):
     """
     CollectorDevTeam Common Files & Functions
     """
