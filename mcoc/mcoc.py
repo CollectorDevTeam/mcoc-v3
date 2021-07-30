@@ -8,7 +8,7 @@ from redbot.core import Config, commands
 from redbot.core.bot import Red
 from redbot.core.utils import chat_formatting, menus
 
-from cdtcommon.cdtcommon import CDTCommon as CDT
+from cdtcommon.cdtcommon import CDT
 
 # from cdtcommon.cdtembed import Embed
 # from cdtcommon.fetch_data import FetchData
