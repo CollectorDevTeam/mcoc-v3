@@ -50,6 +50,7 @@ class CDTCog(CDTCalculator, CDTDiagnostics, CDTMixin, commands.Cog, metaclass=Co
         )
         self.session = aiohttp.ClientSession
 
+
     @commands.command(name="modok", hidden=True)
     async def modok_says(self, ctx):
         await CDT.raw_modok_says(self, ctx)
@@ -120,6 +121,7 @@ class CDTCog(CDTCalculator, CDTDiagnostics, CDTMixin, commands.Cog, metaclass=Co
 
     @commands.command(name="listmembers", aliases=("listusers", "roleroster", "rr"))
     async def _users_by_role(self, ctx, use_alias: Optional[bool] = True, *, role: discord.Role):
+    
         """Embed a list of server users by Role"""
         guild = ctx.guild
         pages = []
@@ -144,3 +146,7 @@ class CDTCog(CDTCalculator, CDTDiagnostics, CDTMixin, commands.Cog, metaclass=Co
                 await menus.menu(ctx=ctx, pages=pages, controls=CDT.get_controls(len(pages)), message=msg)
         else:
             await ctx.send(f"I could not find any members with the role {role.name}.")
+
+    
+    def cog_unload(self):
+        self.bot.loop.create_task(self.session.close())
