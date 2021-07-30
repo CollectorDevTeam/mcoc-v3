@@ -132,18 +132,3 @@ class CDTCommon(CDT, Calculator, CDTDiagnostics, commands.Cog):
                 await menus.menu(ctx=ctx, pages=pages, controls=CDT.get_controls(), message=msg)
         else:
             await ctx.send(f"I could not find any members with the role {role.name}.")
-
-
-
-
-    async def initialize(self):
-            config = await self.config.all_guilds()
-            for k, v in config.items():
-                self.configcache[k] = v
-
-
-
-
-
-
-

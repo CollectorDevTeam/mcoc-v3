@@ -8,6 +8,6 @@
     "short": "",
     "description": "CDT Common functions and diagnostic tools",
     "tags": [],
-    "requirements": ["json","re","aiohttp", "discord"],
+    "requirements": [],
     "hidden": true
 }
