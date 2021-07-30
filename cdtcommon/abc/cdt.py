@@ -1,5 +1,6 @@
 
 
+from cdtcommon.abc.mixin import CDTMixin
 import discord
 from redbot.core.utils import chat_formatting, menus
 from redbot.core.utils.predicates import MessagePredicate, ReactionPredicate
@@ -13,8 +14,7 @@ from cdtcommon.abc.cdtembed import Embed
 from cdtcommon.abc.cdtcheck import CdtCheck
 from cdtcommon.abc.fetch_data import FetchData
 
-
-class CDT(Embed, CdtCheck, FetchData, MixinMeta):
+class CommonFunctions(MixinMeta):
     """common functions that are not {prefix} commands"""
 
     @staticmethod
@@ -143,7 +143,8 @@ class CDT(Embed, CdtCheck, FetchData, MixinMeta):
         return await menus.menu(ctx, pages, controls, message=message, page=page, timeout=timeout)
 
         
-
+class CDT(CommonFunctions, Embed, FetchData, CdtCheck):
+    """will this work?"""
 
 
     

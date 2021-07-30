@@ -1,6 +1,6 @@
 from cdtcommon.abc.mixin import cdtcommands
 from cdtcommon.abc.abc import MixinMeta
-from cdtcommon.abc.cdt import CDT 
+from cdtcommon.abc.cdt import CDT
 import math
 import re
 
@@ -85,12 +85,12 @@ class CDTCalculator(MixinMeta):
         if base > 1:
             base = base / 100
         compound = 1 - (1 - base) ** exp
-        em = await CDT.create_embed(
+        data = await CDT.create_embed(
             ctx,
             color=discord.Color.gold(),
             title="Compounded Fractions",
             thumbnail=self.thumbnail,
             description="{:.2%} compounded {} times".format(base, exp),
         )
-        em.add_field(name="Expected Chance", value="{:.2%}".format(compound))
-        await ctx.send(embed=em)
+        data.add_field(name="Expected Chance", value="{:.2%}".format(compound))
+        await ctx.send(embed=data)

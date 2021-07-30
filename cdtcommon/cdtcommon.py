@@ -29,8 +29,8 @@ _config_structure = {
         "reporting_channel": None,  
     },
 }
-
-class CDTCommon(CDT, CDTCalculator, CDTDiagnostics, commands.Cog, metaclass=CompositeMetaClass):
+# CDTCalculator, CDTDiagnostics, 
+class CDTCommon(CDTCalculator, CDTDiagnostics, CDTMixin, commands.Cog, metaclass=CompositeMetaClass):
     """
     CollectorDevTeam Common Files & Functions
     """
