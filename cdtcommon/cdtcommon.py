@@ -1,5 +1,5 @@
 from cdtcommon.abc.mixin import CDTMixin, cdtcommands
-from abc.abc import ABC
+from abc import ABC
 
 from pickle import decode_long
 import random
