@@ -98,7 +98,7 @@ class CDTCog(CDTCalculator, CDTDiagnostics, CDTMixin, commands.Cog, metaclass=Co
 
     @commands.command()
     @commands.guild_only()
-    async def showtopic(self, ctx, channel: discord.TextChannel = None):
+    async def showtopic(self, ctx, channel: Optional [discord.TextChannel]):
         """Show the Channel Topic in the chat channel as a CDT Embed."""
         channel = channel or ctx.channel
         topic = channel.topic
@@ -116,7 +116,7 @@ class CDTCog(CDTCalculator, CDTDiagnostics, CDTMixin, commands.Cog, metaclass=Co
         """Embed a list of server users by Role"""
         guild = ctx.guild
         pages = []
-        members = CDT.list_role_members(ctx, role, guild)
+        members = CDT.list_role_members(self, ctx, role, guild)
         # members = guild.get_members()
         if members:
             if use_alias:
@@ -133,7 +133,7 @@ class CDTCog(CDTCalculator, CDTDiagnostics, CDTMixin, commands.Cog, metaclass=Co
                 pages.append(data)
             msg = await ctx.send(embed=pages[0])
             if len(pages) > 1:
-                menus.start_adding_reactions(msg, self.get_controls())
-                await menus.menu(ctx=ctx, pages=pages, controls=CDT.get_controls(), message=msg)
+                menus.start_adding_reactions(msg, CDT.get_controls(len(pages)))
+                await menus.menu(ctx=ctx, pages=pages, controls=CDT.get_controls(len(pages)), message=msg)
         else:
             await ctx.send(f"I could not find any members with the role {role.name}.")

@@ -49,12 +49,18 @@ class CDTCalculator(MixinMeta):
     async def flat2per(self, ctx, *, m):
         """Convert MCOC Flat Value to Percentge
         <equation> [challenger rating = 100]"""
-        if " " in m:
+        if "cr" in m:
+            m, cr = m.rsplit("cr", 1)
+
+        elif " " in m:
             m, cr = m.rsplit(" ", 1)
             challenger_rating = int(cr)
         else:
             challenger_rating = 100
         m = "".join(m)
+        # cr_filter = re.findall(
+        #     r""
+        # )
         math_filter = re.findall(
             r"[\[\]\-()*+/0-9=.,% ]"
             + r"|acos|acosh|asin|asinh"
