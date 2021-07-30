@@ -1,4 +1,5 @@
-from cdtcommon.abc.mixin import cdtcommands
+from cdtcommon.abc.mixin import CDTMixin, cdtcommands
+from abc.abc import ABC
 
 from pickle import decode_long
 import random
@@ -14,8 +15,13 @@ from redbot.core.utils import chat_formatting, menus
 
 
 from cdtcommon.abc.cdt import CDT
-# from cdtcommon.calculator import CDTCalcClass
+from cdtcommon.calculator import CDTCalculator
 from cdtcommon.cdtdiagnostics import CDTDiagnostics
+
+class CompositeMetaClass(type(commands.Cog), type(ABC)):
+    """This allows the metaclass used for proper type detection to coexist with discord.py's
+    metaclass."""
+
 
 _config_structure = {
     "commands": {
@@ -24,10 +30,12 @@ _config_structure = {
     },
 }
 
-class CDTCommon(CDT, CDTDiagnostics, commands.Cog):
+class CDTCommon(CDT, CDTCalculator, CDTDiagnostics, commands.Cog, metaclass=CompositeMetaClass):
     """
     CollectorDevTeam Common Files & Functions
     """
+    
+    __version__="0.0.1"
     def __init__(self, bot: Red):
         self.bot = bot
         # self.cdtguild = self.bot.get_guild(215271081517383682)
@@ -43,7 +51,7 @@ class CDTCommon(CDT, CDTDiagnostics, commands.Cog):
 
     # diagnostic checking commands to verify checks work
 
-    @commands.command(name="promote", aliases=("promo",))
+    @cdtcommands.command(name="promote", aliases=("promo",))
     @CDT.is_collectorsupportteam()
     async def cdt_promote(self, ctx, channel: discord.TextChannel, *, content):
         """Content will fill the embed description.

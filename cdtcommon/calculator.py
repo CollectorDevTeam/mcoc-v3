@@ -7,7 +7,7 @@ import re
 import discord
 from redbot.core import commands
 
-class CDTCalcClass(MixinMeta):
+class CDTCalculator(MixinMeta):
     """Calculator"""
 
     def __init__(self, bot):
