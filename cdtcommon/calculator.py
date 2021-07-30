@@ -14,8 +14,7 @@ class CDTCalculator(MixinMeta):
         self.bot = bot
         self.thumbnail = "https://www.ebuyer.com/blog/wp-content/uploads/2014/07/buttons-on-a-calculator-header1.jpg"
 
-    @cdtcommands.group()
-    @commands.command(name="calculator", aliases=("calc",))
+    @cdtcommands.group(name="calculator", aliases=("calc",))
     async def cdt_calc(self, ctx, *, m):
         """Math is fun!
         Type math, get fun."""
