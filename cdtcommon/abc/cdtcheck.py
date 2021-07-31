@@ -16,7 +16,6 @@ CREDITED_PATRONS: 428627905233420288
 CDTBOOSTERS = 736631216035594302
 TATTLETALES = 537330789332025364
 
-
 AUTHORIZATION = "Authorized as {0.mention}: {1}\n"
 UNAUTHORIZED_GENERIC = "No."
 UNAUTHORIZED_CDT = "This command is reserved for {0.mention}"
@@ -40,8 +39,6 @@ class CdtCheck(MixinMeta):
             if role is not None:
                 return role
         return None
-            # else:
-            #     exception
 
 
     
@@ -52,6 +49,7 @@ class CdtCheck(MixinMeta):
         checkrole = cdtguild.get_role(role_id)
         result = False
         if member is not None and checkrole in member.roles:
+            await 
             result = True
         return result, checkrole
         
@@ -114,7 +112,7 @@ class CdtCheck(MixinMeta):
     def is_supporter():
         """Message caller has a supporter role: CDT Booster, Patrons, Credited Patrons"""
         async def pred(ctx: commands.Context):
-            checkrole = [CDTBOOSTERS, PATRONS, CREDITED_PATRONS, COLLECTORSUPPORTTEAM, COLLECTORDEVTEAM]
+            checkrole = [CDTBOOSTERS, PATRONS, CREDITED_PATRONS]
             msg =""
             allowed=False
             for rid in checkrole:
