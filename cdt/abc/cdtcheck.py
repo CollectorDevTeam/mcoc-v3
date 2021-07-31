@@ -103,12 +103,55 @@ class CdtCheck(MixinMeta):
             return bool(allowed)
         return commands.check(pred)
 
+    def is_patron():
+        """Message caller has Patron role on CDT"""
+        async def pred(ctx: commands.Context):
+            for rid in (PATRONS, CREDITED_PATRONS):
+                chk, role = await CdtCheck.cdtcheck(ctx, rid)
+                msg = AUTHORIZATION.format(role, chk)
+                allowed=False
+                if chk:
+                    allowed=chk
+                if not allowed:
+                    await CdtCheck.tattle(ctx, message=msg)
+                return bool(allowed)
+        return commands.check(pred)
+
+    def is_booster():
+        """Message caller has Server Booster role on CDT"""
+        async def pred(ctx: commands.Context):
+            chk, role = await CdtCheck.cdtcheck(ctx, CDTBOOSTERS)
+            msg = AUTHORIZATION.format(role, chk)
+            allowed=False
+            if chk:
+                allowed=chk
+            if not allowed:
+                await CdtCheck.tattle(ctx, message=msg)
+            return bool(allowed)
+        return commands.check(pred)
+
     def is_supporter():
         """Message caller has a supporter role: CDT Booster, Patrons, Credited Patrons"""
         async def pred(ctx: commands.Context):
             msg =""
             allowed=False
             for rid in (CDTBOOSTERS, PATRONS, CREDITED_PATRONS):
+                chk, role = await CdtCheck.cdtcheck(ctx, rid)
+                msg += AUTHORIZATION.format(role, chk)
+                if chk:
+                    allowed=chk
+            if not allowed:
+                await CdtCheck.tattle(ctx, message=msg)
+            return bool(allowed)
+        return commands.check(pred)
+
+    
+    def is_any_priviledged():
+        """Message caller has a supporter role: CDT Booster, Patrons, Credited Patrons"""
+        async def pred(ctx: commands.Context):
+            msg =""
+            allowed=False
+            for rid in (CDTBOOSTERS, PATRONS, CREDITED_PATRONS, COLLECTORDEVTEAM, COLLECTORSUPPORTTEAM):
                 chk, role = await CdtCheck.cdtcheck(ctx, rid)
                 msg += AUTHORIZATION.format(role, chk)
                 if chk:

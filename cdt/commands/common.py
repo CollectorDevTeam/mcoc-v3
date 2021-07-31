@@ -1,5 +1,5 @@
 
-from cdt.abc.modokerror import MODOKError
+from cdt.abc.exceptions import MODOKError
 from ..abc.mixin import CDTMixin
 from ..abc.cdt import CDT
 

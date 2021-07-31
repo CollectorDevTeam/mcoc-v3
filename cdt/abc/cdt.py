@@ -12,9 +12,9 @@ from .cdtembed import Embed
 from .cdtcheck import CdtCheck
 from .fetch_data import FetchData
 from .emoji_assets import CDTEmoji
-from .modokerror import MODOKError, MODOKSays
+from .exceptions import MODOKSays
        
-class CDT(CDTEmoji, Embed, FetchData, CdtCheck, MODOKSays, MODOKError, MixinMeta):
+class CDT(CDTEmoji, Embed, FetchData, CdtCheck, MODOKSays, MixinMeta):
     """common functions that are not {prefix} commands"""
 
     CLASS_COLORS = {
