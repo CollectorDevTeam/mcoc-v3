@@ -7,7 +7,7 @@ from cdtcommon.abc.cdt import CDT
 from cdtcommon.abc.abc import MixinMeta
 
 DIAGNOSTICS = 871079325825376327
-
+DIAGMSG = "{0.author.name} {0.author.id}\n{0.guild.name}{0.guild.id}\n```{0.message.content}```"
 
 class CDTDiagnostics(MixinMeta):
     """Collector Dev Team diagnostic commands"""
@@ -16,14 +16,15 @@ class CDTDiagnostics(MixinMeta):
         self.bot: Red
         self.diagnostics = self.bot.get_channel(DIAGNOSTICS)
 
+    async def diaglog(self, ctx):
+        await self.bot.get_channel(DIAGNOSTICS).send(DIAGMSG.format(ctx))
+
+
     @cdtcommands.group(name="check", aliases=("ctest",))
     async def checkgroup(self, ctx: commands.Context):
         """Check priviledge groups from CollectorDevTeam guild"""
-        #send command to check diagnostics channel
-        await self.bot.get_channel(DIAGNOSTICS).send(ctx.message.content)
-        return
-        # pass
-
+        await self.diaglog(ctx)
+    
     @checkgroup.command(name="cdt")
     @CDT.is_collectordevteam()
     async def checkgroupcdt(self, ctx):
