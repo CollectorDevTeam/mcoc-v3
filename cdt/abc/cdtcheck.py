@@ -65,11 +65,10 @@ class CdtCheck(MixinMeta):
     def is_collectorsupportteam():
         """Message caller has CollectorSupportTeam or CollectorDevTeam on CDT"""
         async def pred(ctx: commands.Context):
-            checkrole = [COLLECTORSUPPORTTEAM, COLLECTORDEVTEAM]
+            checkrole = (COLLECTORSUPPORTTEAM, COLLECTORDEVTEAM)
             allowed=False
             msg = ""
-            for i in checkrole:
-                rid = checkrole[i]
+            for rid in checkrole:
                 chk, role = await CdtCheck.cdtcheck(ctx, rid)
                 msg += AUTHORIZATION.format(role, chk)
             if chk:
@@ -108,11 +107,10 @@ class CdtCheck(MixinMeta):
     def is_supporter():
         """Message caller has a supporter role: CDT Booster, Patrons, Credited Patrons"""
         async def pred(ctx: commands.Context):
-            checkrole = [CDTBOOSTERS, PATRONS, CREDITED_PATRONS]
+            checkrole = (CDTBOOSTERS, PATRONS, CREDITED_PATRONS)
             msg =""
             allowed=False
-            for i in checkrole:
-                rid = checkrole[i]
+            for rid in checkrole:
                 chk, role = await CdtCheck.cdtcheck(ctx, rid)
                 msg += AUTHORIZATION.format(role, chk)
                 if chk:

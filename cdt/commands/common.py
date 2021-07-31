@@ -1,4 +1,5 @@
 
+from cdt.abc.modokerror import MODOKError
 from ..abc.mixin import CDTMixin
 from ..abc.cdt import CDT
 
@@ -13,6 +14,11 @@ class CDTCommon(CDTMixin):
     async def modok_says(self, ctx):
         await CDT.raw_modok_says(self, ctx)
         
+    @commands.command(name="modokerror")
+    async def modok_error(self, ctx):
+        raise MODOKError("test error!!")
+    
+
     @commands.command()
     @commands.guild_only()
     async def showtopic(self, ctx, channel: Optional [discord.TextChannel]):
