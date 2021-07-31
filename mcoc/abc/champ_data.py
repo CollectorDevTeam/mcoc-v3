@@ -3,7 +3,7 @@ from redbot.core.bot import Red
 from redbot.core.config import Config
 from mcoc.abc.abc import MCOCMixinMeta
 from mcoc.abc.mixin import mcoccommands
-from cdtcommon.cdtcommon import CDT
+from cdtcommon.cdtcog import CDT
 
 
 

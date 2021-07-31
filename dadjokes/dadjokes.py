@@ -2,8 +2,8 @@
 import json
 import logging
 import random
-from cdtcommon.cdtdiagnostics import DIAGNOSTICS
-from cdtcommon.cdtembed import Embed
+from cdtcommon.cdtcog import DIAGNOSTICS
+from cdtcommon.cdtcog import CDT
 
 import aiohttp
 import discord
@@ -47,7 +47,7 @@ class DadJokes(commands.Cog):
         image = random.choice(self.dadjoke_images)
         kwargs = {"content": f"{image}\n\n{joke}"}
         #if await ctx.embed_requested():
-        data = await Embed.create(ctx, title="CollectorVerse Dad Jokes:sparkles:", description=joke, image=image, footer_text="Dad Jokes | CollectorDevTeam")
+        data = await CDT.create_embed(ctx, title="CollectorVerse Dad Jokes:sparkles:", description=joke, image=image, footer_text="Dad Jokes | CollectorDevTeam")
         await ctx.send(embed=data)
 
     async def get_joke(self):

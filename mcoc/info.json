@@ -11,6 +11,7 @@
     "short": "Collector Cogs designed to provide information for Marvel Contest of Champions by Kabam.",
     "description": "This repo contains a suite of cogs designed to power Collector, a RED instance.\nMCOC provides champion information for Marvel Contest of Champions.",
     "requirements": [],
-
+    "required_cogs": {},
+    "end_user_data_statement": "This cog uses user ID to store and manage MCOC roster information",
     "type": "COG"
 }
