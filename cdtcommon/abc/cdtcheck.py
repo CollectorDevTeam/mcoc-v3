@@ -49,7 +49,6 @@ class CdtCheck(MixinMeta):
         checkrole = cdtguild.get_role(role_id)
         result = False
         if member is not None and checkrole in member.roles:
-            await 
             result = True
         return result, checkrole
         
