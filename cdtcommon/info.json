@@ -7,7 +7,10 @@
     "disabled": false,
     "short": "CollectorDevTeam stuff",
     "description": "CDT Common functions and diagnostic tools",
-    "tags": [],
+    "min_python_version":[3, 8, 10],
+    "required_cogs": {},
     "requirements": [],
-    "hidden": false
+    "tags": ["cdt"],
+    "hidden": false,
+    "end_user_data_statement": "CDTCog provides access to the CDT class and CDT diagnostic tools.  No user data is storedd by CDTCog."  
 }

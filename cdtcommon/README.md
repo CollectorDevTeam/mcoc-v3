@@ -4,6 +4,7 @@ Reference: https://docs.discord.red/en/stable/getting_started.html
 Special thanks to members of the CollectorDevTeam
 DeltaSigma
 JoJo 
+DSC
 
 Special thanks to members of the CollectorSupportTeam
 Geddre
@@ -15,7 +16,6 @@ Bloo
 The Mad Titan | Verified Phone
 Metalignus
 Zlobber
-DSC
 suprmatt
 taoness
 Deacon OTR

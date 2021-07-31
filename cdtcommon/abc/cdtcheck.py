@@ -17,7 +17,7 @@ CDTBOOSTERS = 736631216035594302
 TATTLETALES = 537330789332025364
 
 
-AUTHORIZATION = "Authorized as {0.mention}: {1}"
+AUTHORIZATION = "Authorized as {0.mention}: {1}\n"
 UNAUTHORIZED_GENERIC = "No."
 UNAUTHORIZED_CDT = "This command is reserved for {0.mention}"
 UNAUTHORIZED_GUILDOWNERS = "Sorry sweetheart.  These commands are reserved for **registered** {0.mention} only.\nIf you own or operate a guild, visit CDT and register."
@@ -76,61 +76,70 @@ class CdtCheck(MixinMeta):
             rid = COLLECTORDEVTEAM
             chk, role = await CdtCheck.cdtcheck(ctx, rid)
             msg = AUTHORIZATION.format(role, chk)
+            allowed=False
             if chk:
-                return chk
-            else:
+                allowed=chk
+            if not allowed:
                 await CdtCheck.tattle(ctx, message=msg)
+            return bool(allowed)
         return commands.check(pred)
     
     def is_collectorsupportteam():
         """Message caller has CollectorSupportTeam or CollectorDevTeam on CDT"""
         async def pred(ctx: commands.Context):
             checkrole = [COLLECTORSUPPORTTEAM, COLLECTORDEVTEAM]
+            allowed=False
             msg = ""
             for rid in checkrole:
                 chk, role = await CdtCheck.cdtcheck(ctx, rid)
-                msg = AUTHORIZATION.format(role, chk)
-                if chk:
-                    return chk
-            await CdtCheck.tattle(ctx, message=msg)
-            return False
+                msg += AUTHORIZATION.format(role, chk)
+            if chk:
+                allowed=chk
+            if not allowed:
+                await CdtCheck.tattle(ctx, message=msg)
+            return bool(allowed)
         return commands.check(pred)
 
     def is_guildowners():
         """Message caller has GuildOwners role on CDT"""
         async def pred(ctx: commands.Context):
-            rid = GUILDOWNERS
-            chk, role = await CdtCheck.cdtcheck(ctx, rid)
+            chk, role = await CdtCheck.cdtcheck(ctx, GUILDOWNERS)
             msg = AUTHORIZATION.format(role, chk)
+            allowed=False
             if chk:
-                return chk
-            else:
+                allowed=chk
+            if not allowed:
                 await CdtCheck.tattle(ctx, message=msg)
+            return bool(allowed)
         return commands.check(pred)
 
     def is_familyowners():
         """Message caller has FamilyOwners role on CDT"""
         async def pred(ctx: commands.Context):
-            rid = FAMILYOWNERS
-            chk, role = await CdtCheck.cdtcheck(ctx, rid)
+            chk, role = await CdtCheck.cdtcheck(ctx, FAMILYOWNERS)
             msg = AUTHORIZATION.format(role, chk)
+            allowed=False
             if chk:
-                return chk
-            else:
+                allowed=chk
+            if not allowed:
                 await CdtCheck.tattle(ctx, message=msg)
+            return bool(allowed)
         return commands.check(pred)
 
     def is_supporter():
         """Message caller has a supporter role: CDT Booster, Patrons, Credited Patrons"""
         async def pred(ctx: commands.Context):
             checkrole = [CDTBOOSTERS, PATRONS, CREDITED_PATRONS, COLLECTORSUPPORTTEAM, COLLECTORDEVTEAM]
+            msg =""
+            allowed=False
             for rid in checkrole:
                 chk, role = await CdtCheck.cdtcheck(ctx, rid)
-                msg = AUTHORIZATION.format(role, chk)
+                msg += AUTHORIZATION.format(role, chk)
                 if chk:
-                    return chk
-            await CdtCheck.tattle(ctx, message=msg)
-            return False
+                    allowed=chk
+            if not allowed:
+                await CdtCheck.tattle(ctx, message=msg)
+            return bool(allowed)
         return commands.check(pred)
 
     async def tattle(ctx, message="User is unauthorized.", channel=None):
