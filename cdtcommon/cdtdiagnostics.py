@@ -1,17 +1,27 @@
 from redbot.core import commands
+from redbot.core.bot import Red 
+from redbot.core.config import Config
 
 from cdtcommon.abc.mixin import cdtcommands
 from cdtcommon.abc.cdt import CDT
 from cdtcommon.abc.abc import MixinMeta
 
+DIAGNOSTICS = 871079325825376327
+
 
 class CDTDiagnostics(MixinMeta):
     """Collector Dev Team diagnostic commands"""
-   
+    def __init__(self, *_args):
+        self.config: Config
+        self.bot: Red
+        self.diagnostics = self.bot.get_channel(DIAGNOSTICS)
+
     @cdtcommands.group(name="check", aliases=("ctest",))
     async def checkgroup(self, ctx: commands.Context):
         """Check priviledge groups from CollectorDevTeam guild"""
-        print("checkgroup")
+        #send command to check diagnostics channel
+        await self.diagnostics.send(ctx.message.content)
+        return
         # pass
 
     @checkgroup.command(name="cdt")
