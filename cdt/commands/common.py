@@ -16,7 +16,10 @@ class CDTCommon(CDTMixin):
         
     @commands.command(name="modokerror")
     async def modok_error(self, ctx):
-        raise MODOKError("test error!!")
+        try:
+            a = (1/0)
+        except:
+            raise MODOKError("!!error!! YOU CANNOT DIVIDE BY ZERO !!error!!")
     
 
     @commands.command()
