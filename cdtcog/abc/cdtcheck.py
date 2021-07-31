@@ -14,7 +14,7 @@ COLLECTORDEVTEAM = 390253643330355200
 COLLECTORSUPPORTTEAM = 390253719125622807
 GUILDOWNERS = 391667615497584650
 FAMILYOWNERS = 731197047562043464
-PATRONS: 4084149564976660501
+PATRONS: 408414956497666050
 CREDITED_PATRONS: 428627905233420288
 CDTBOOSTERS = 736631216035594302
 TATTLETALES = 537330789332025364
@@ -68,7 +68,8 @@ class CdtCheck(MixinMeta):
             checkrole = [COLLECTORSUPPORTTEAM, COLLECTORDEVTEAM]
             allowed=False
             msg = ""
-            for rid in checkrole:
+            for i in checkrole:
+                rid = checkrole[i]
                 chk, role = await CdtCheck.cdtcheck(ctx, rid)
                 msg += AUTHORIZATION.format(role, chk)
             if chk:
@@ -110,7 +111,8 @@ class CdtCheck(MixinMeta):
             checkrole = [CDTBOOSTERS, PATRONS, CREDITED_PATRONS]
             msg =""
             allowed=False
-            for rid in checkrole:
+            for i in checkrole:
+                rid = checkrole[i]
                 chk, role = await CdtCheck.cdtcheck(ctx, rid)
                 msg += AUTHORIZATION.format(role, chk)
                 if chk:
