@@ -15,32 +15,32 @@ class CDTDiagnostics(MixinMeta):
     async def diaglog(self, ctx):
         await self.bot.get_channel(DIAGNOSTICS).send(DIAGMSG.format(ctx))
 
-    @cdtcommands.group(name="check")
+    @cdtcommands.group(name="check", invoke_without_command=True)
     async def checkgroup(ctx: commands.Context):
         """Check priviledge groups from CollectorDevTeam guild"""
 
 
-    @checkgroup.command(name="cdt")
     @CDT.is_collectordevteam()
+    @checkgroup.command(name="cdt")
     async def checkgroupcdt(self, ctx):
         """Check CollectorDevTeam"""
         await ctx.send("Dev Team test")
 
 
-    @checkgroup.command(name="cst")
     @CDT.is_collectorsupportteam()
+    @checkgroup.command(name="cst")
     async def checkgroupcst(self, ctx):
         """Check CollectorSupportTeam"""
         await ctx.send("Support Team test")
 
-    @checkgroup.command(name="guildowner", aliases=("go",))
     @CDT.is_guildowners()
+    @checkgroup.command(name="guildowner", aliases=("go",))
     async def checkgroupguildowner(self, ctx):
         """Check registered GuildOwners"""
         await ctx.send("GuildOwner test")
 
-    @checkgroup.command(name="familyowners", aliases=("fo",))
     @CDT.is_familyowners()
+    @checkgroup.command(name="familyowners", aliases=("fo",))
     async def checkgroupfamilyowners(self, ctx):
         """Check registered FamilyOwners"""
         await ctx.send("Family test")

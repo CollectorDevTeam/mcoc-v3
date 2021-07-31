@@ -6,7 +6,6 @@ import asyncio
 import contextlib
 
 from redbot.core import commands
-from redbot.core.commands import Context
 from .abc import MixinMeta
 from .cdtembed import Embed
 from .cdtcheck import CdtCheck

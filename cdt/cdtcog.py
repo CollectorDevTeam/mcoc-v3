@@ -1,5 +1,5 @@
 import aiohttp
-from .abc.modokerror import MODOKError
+from .abc.exceptions import MODOKError
 from .abc.mixin import CDTMixin, cdtcommands
 from abc import ABC
 
@@ -52,9 +52,6 @@ class CDT_Cog(
             force_registration=True,
         )
         self.session = aiohttp.ClientSession
-
-
-
-    
+   
     def cog_unload(self):
         self.bot.loop.create_task(self.session.close())

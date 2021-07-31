@@ -7,7 +7,7 @@ from redbot.core import commands
 # from typing import Optional
 # import discord
 
-from .modokerror import MODOKError
+from .exceptions import MODOKError
 
 CDTGUILD = 215271081517383682
 COLLECTORDEVTEAM = 390253643330355200
