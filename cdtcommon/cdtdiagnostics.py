@@ -14,16 +14,14 @@ class CDTDiagnostics(MixinMeta):
     def __init__(self, *_args):
         self.config: Config
         self.bot: Red
-        self.diagnostics = self.bot.get_channel(DIAGNOSTICS)
 
     async def diaglog(self, ctx):
         await self.bot.get_channel(DIAGNOSTICS).send(DIAGMSG.format(ctx))
 
-
-    @cdtcommands.group(name="check", aliases=("ctest",))
+    @cdtcommands.group(name="check")
     async def checkgroup(self, ctx: commands.Context):
         """Check priviledge groups from CollectorDevTeam guild"""
-        await self.diaglog(ctx)
+        # await self.diaglog(ctx)
     
     @checkgroup.command(name="cdt")
     @CDT.is_collectordevteam()
