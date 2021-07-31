@@ -13,5 +13,6 @@
     "requirements": [
         "aiohttp"
     ],
+    "end_user_data_statement": "This cog does not track user data",
     "hidden": false
 }
