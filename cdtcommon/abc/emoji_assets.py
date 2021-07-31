@@ -11,8 +11,8 @@ class CDTEmoji(MixinMeta):
 
     emoji = cdt_emoji
 
-    def __init__(self, bot: Red):
-        self.bot = bot
+    # def __init__(self, bot: Red):
+    #     self.bot = bot
     #     self.emoji = set()
 
     # def update_emoji(self):

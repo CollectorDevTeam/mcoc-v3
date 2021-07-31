@@ -15,6 +15,6 @@ class MixinMeta(ABC):
     #Single session used in all CDTClasses
     session = aiohttp.ClientSession
 
-    def __init__(self, *_args):
+    def __init__(self, bot: Red):
         self.config: Config
         self.bot: Red
