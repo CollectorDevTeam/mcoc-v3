@@ -1,5 +1,5 @@
 
-from cdtcommon.abc.mixin import CDTMixin
+from ..abc.mixin import CDTMixin
 from ..abc.cdt import CDT
 
 import discord
