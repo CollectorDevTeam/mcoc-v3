@@ -5,6 +5,7 @@ from redbot.core import commands
 from redbot.core.bot import Red 
 from redbot.core.config import Config
 from typing import Optional
+import discord
 
 CDTGUILD = 215271081517383682
 COLLECTORDEVTEAM = 390253643330355200
@@ -31,26 +32,24 @@ class CdtCheck(MixinMeta):
         self.config: Config
         self.bot: Red
 
-    def get_a_role(ctx, guildid, roleid):
-        """With guild.id and role.id find role"""
-        guild = ctx.bot.get_guild(guildid)
-        if guild is not None:
-            role = guild.get_role(roleid)
-            if role is not None:
-                return role
-        return None
-
-
-    
     async def cdtcheck(ctx, role_id):
         """Check for privileged role from CDT guild"""
         cdtguild = ctx.bot.get_guild(CDTGUILD)
         member = cdtguild.get_member(ctx.author.id)
-        checkrole = cdtguild.get_role(role_id)
+        checkrole = discord.Role(cdtguild.get_role(role_id))
         result = False
         if member is not None and checkrole in member.roles:
             result = True
         return result, checkrole
+
+    # def get_a_role(ctx, guildid, roleid):
+    #     """With guild.id and role.id find role"""
+    #     guild = ctx.bot.get_guild(guildid)
+    #     if guild is not None:
+    #         role = guild.get_role(roleid)
+    #         if role is not None:
+    #             return role
+    #     return None
         
     def is_collectordevteam():
         """Message caller is CollectorDevTeam"""
