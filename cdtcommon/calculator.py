@@ -15,10 +15,10 @@ class CDTCalculator(MixinMeta):
         self.thumbnail = "https://www.ebuyer.com/blog/wp-content/uploads/2014/07/buttons-on-a-calculator-header1.jpg"
 
     @cdtcommands.group(name="calculator", aliases=("calc",))
-    async def cdt_calc(self, ctx, *, m):
+    async def cdt_calc(self, ctx, m=None):
         """Math is fun!
         Type math, get fun."""
-        m = "".join(m)
+        # m = "".join(m)
         math_filter = re.findall(
             r"[\[\]\-()*+/0-9=.,% ]|>|<|==|>=|<=|\||&|~|!=|^|sum"
             + "|range|random|randint|choice|randrange|True|False|if|and|or|else"
