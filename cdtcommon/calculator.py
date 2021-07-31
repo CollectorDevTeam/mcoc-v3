@@ -7,12 +7,13 @@ import re
 import discord
 from redbot.core import commands
 
+CALC_THUMBNAIL = "https://www.ebuyer.com/blog/wp-content/uploads/2014/07/buttons-on-a-calculator-header1.jpg"
 class CDTCalculator(MixinMeta):
     """Calculator"""
 
-    def __init__(self, bot):
-        self.bot = bot
-        self.thumbnail = "https://www.ebuyer.com/blog/wp-content/uploads/2014/07/buttons-on-a-calculator-header1.jpg"
+    # def __init__(self, bot):
+    #     self.bot = bot
+    #     self.thumbnail 
 
     @cdtcommands.group(name="calculator", aliases=("calc",))
     async def cdt_calc(self, ctx, m=None):
@@ -75,7 +76,7 @@ class CDTCalculator(MixinMeta):
         data = await CDT.create_embed(
             ctx,
             title="FlatValue:",
-            thumbnail=self.thumbnail,
+            thumbnail=CALC_THUMBNAIL,
             description="{}".format(flat_val),
         )
         data.add_field(name="Percentage:", value="{}\%".format(p))
@@ -93,7 +94,7 @@ class CDTCalculator(MixinMeta):
             ctx,
             color=discord.Color.gold(),
             title="Compounded Fractions",
-            thumbnail=self.thumbnail,
+            thumbnail=CALC_THUMBNAIL,
             description="{:.2%} compounded {} times".format(base, exp),
         )
         data.add_field(name="Expected Chance", value="{:.2%}".format(compound))

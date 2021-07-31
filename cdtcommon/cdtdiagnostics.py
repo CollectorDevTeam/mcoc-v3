@@ -7,13 +7,13 @@ from cdtcommon.abc.cdt import CDT
 from cdtcommon.abc.abc import MixinMeta
 
 DIAGNOSTICS = 871079325825376327
-DIAGMSG = "{0.author.name} {0.author.id}\n{0.guild.name}{0.guild.id}\n```{0.message.content}```"
+DIAGMSG = "who: {0.author.name} {0.author.id}\nwhere: {0.guild.name} {0.guild.id}\ncontent:```{0.message.content}```"
 
 class CDTDiagnostics(MixinMeta):
     """Collector Dev Team diagnostic commands"""
-    def __init__(self, *_args):
-        self.config: Config
-        self.bot: Red
+    # def __init__(self, *_args):
+    #     self.config: Config
+    #     self.bot: Red
 
     async def diaglog(self, ctx):
         await self.bot.get_channel(DIAGNOSTICS).send(DIAGMSG.format(ctx))

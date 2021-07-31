@@ -28,9 +28,10 @@ UNAUTHORIZED_SUPPORTERS = "This command is reserved for Collector supporters.\n"
 # class CdtCheck(CogCommandMixin):
 class CdtCheck(MixinMeta):
     """Tools to check priveleges from CDT guild"""
-    def __init__(self, *_args):
-        self.config: Config
-        self.bot: Red
+    
+    # def __init__(self, *_args):
+    #     self.config: Config
+    #     self.bot: Red
 
     async def cdtcheck(ctx, role_id):
         """Check for privileged role from CDT guild"""
