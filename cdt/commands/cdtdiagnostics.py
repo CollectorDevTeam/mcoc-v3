@@ -33,13 +33,11 @@ class CDTDiagnostics(MixinMeta):
         """Check CollectorSupportTeam"""
         await ctx.send("Support Team test")
 
-
     @checkgroup.command(name="guildowner", aliases=("go",))
     @CDT.is_guildowners()
     async def checkgroupguildowner(self, ctx):
         """Check registered GuildOwners"""
         await ctx.send("GuildOwner test")
-
 
     @checkgroup.command(name="familyowners", aliases=("fo",))
     @CDT.is_familyowners()
@@ -47,24 +45,23 @@ class CDTDiagnostics(MixinMeta):
         """Check registered FamilyOwners"""
         await ctx.send("Family test")
 
-    @checkgroup.command(name="supporters", aliases=("supporter", "patron", "booster"))
+    @checkgroup.command(name="supporters", aliases=("supporter", ))
     @CDT.is_supporter()
     async def checkgroupsupporters(self, ctx):
         """Check registered Supporters: Boosters & Patrons"""
         await ctx.send("Supporter test")
 
-    @checkgroup.command(name="patron")
+    @checkgroup.command(name="patron", aliases=("patrons",))
     @CDT.is_patron()
     async def checkgrouppatrons(self, ctx):
         """Check registered Patrons or Credited Patrons"""
         await ctx.send("Patron test")
 
-    @checkgroup.command(name="booster")
+    @checkgroup.command(name="booster", aliases=("boosters"))
     @CDT.is_booster()
     async def checkgroupboosters(self, ctx):
         """Check registered Server Boosters"""
         await ctx.send("Booster test")
-
 
     @checkgroup.command(name="all", aliases=("any",))
     @CDT.is_any_priviledged()
