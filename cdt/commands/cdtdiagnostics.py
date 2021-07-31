@@ -57,7 +57,7 @@ class CDTDiagnostics(MixinMeta):
         """Check registered Patrons or Credited Patrons"""
         await ctx.send("Patron test")
 
-    @checkgroup.command(name="booster", aliases=("boosters"))
+    @checkgroup.command(name="booster", aliases=("boosters",))
     @CDT.is_booster()
     async def checkgroupboosters(self, ctx):
         """Check registered Server Boosters"""
