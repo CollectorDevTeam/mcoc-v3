@@ -20,7 +20,7 @@ class CDTDiagnostics(MixinMeta):
     async def checkgroup(self, ctx: commands.Context):
         """Check priviledge groups from CollectorDevTeam guild"""
         #send command to check diagnostics channel
-        await self.diagnostics.send(ctx.message.content)
+        await self.bot.get_channel(DIAGNOSTICS).send(ctx.message.content)
         return
         # pass
 
