@@ -42,7 +42,8 @@ class CdtCheck(MixinMeta):
         try:
             checkrole = cdtguild.get_role(role_id)
         except:
-            raise MODOKError("cdtcheck: role {} not found!".format(role_id)) 
+            raise "role not found"
+            # raise MODOKError("cdtcheck: role {} not found!".format(role_id)) 
         result = False
         if member is not None and checkrole in member.roles:
             result = True
@@ -51,8 +52,7 @@ class CdtCheck(MixinMeta):
     def is_collectordevteam():
         """Message caller is CollectorDevTeam"""
         async def pred(ctx: commands.Context):
-            rid = COLLECTORDEVTEAM
-            chk, role = await CdtCheck.cdtcheck(ctx, rid)
+            chk, role = await CdtCheck.cdtcheck(ctx, COLLECTORDEVTEAM)
             msg = AUTHORIZATION.format(role, chk)
             allowed=False
             if chk:
@@ -65,10 +65,9 @@ class CdtCheck(MixinMeta):
     def is_collectorsupportteam():
         """Message caller has CollectorSupportTeam or CollectorDevTeam on CDT"""
         async def pred(ctx: commands.Context):
-            checkrole = (COLLECTORSUPPORTTEAM, COLLECTORDEVTEAM)
             allowed=False
             msg = ""
-            for rid in checkrole:
+            for rid in (COLLECTORSUPPORTTEAM, COLLECTORDEVTEAM):
                 chk, role = await CdtCheck.cdtcheck(ctx, rid)
                 msg += AUTHORIZATION.format(role, chk)
             if chk:
@@ -107,10 +106,9 @@ class CdtCheck(MixinMeta):
     def is_supporter():
         """Message caller has a supporter role: CDT Booster, Patrons, Credited Patrons"""
         async def pred(ctx: commands.Context):
-            checkrole = (CDTBOOSTERS, PATRONS, CREDITED_PATRONS)
             msg =""
             allowed=False
-            for rid in checkrole:
+            for rid in (CDTBOOSTERS, PATRONS, CREDITED_PATRONS):
                 chk, role = await CdtCheck.cdtcheck(ctx, rid)
                 msg += AUTHORIZATION.format(role, chk)
                 if chk:
