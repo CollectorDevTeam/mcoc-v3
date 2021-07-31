@@ -9,40 +9,40 @@ class CDTDiagnostics(MixinMeta):
     """Collector Dev Team diagnostic commands"""
    
     @cdtcommands.group(name="check", aliases=("ctest",))
-    async def checktest(self, ctx: commands.Context):
+    async def checkgroup(self, ctx: commands.Context):
         """Check priviledge groups from CollectorDevTeam guild"""
         # pass
 
-    @checktest.command()
+    @checkgroup.command(name="cdt")
     @CDT.is_collectordevteam()
-    async def cdt(self,ctx):
+    async def checkgroupcdt(self, ctx):
         """Check CollectorDevTeam"""
         await ctx.send("Dev Team test")
 
 
-    @checktest.command()
+    @checkgroup.command(name="cst")
     @CDT.is_collectorsupportteam()
-    async def cst(self,ctx):
+    async def checkgroupcst(self,ctx):
         """Check CollectorSupportTeam"""
         await ctx.send("Support Team test")
 
 
-    @checktest.command(aliases=("go",))
+    @checkgroup.command(name="guildowner", aliases=("go",))
     @CDT.is_guildowners()
-    async def guildowner(self,ctx):
+    async def checkgroupguildowner(self,ctx):
         """Check registered GuildOwners"""
         await ctx.send("GuildOwner test")
 
 
-    @checktest.command(aliases=("fo",))
+    @checkgroup.command(name="familyowners", aliases=("fo",))
     @CDT.is_familyowners()
-    async def familyowners(self,ctx):
+    async def checkgroupfamilyowners(self,ctx):
         """Check registered FamilyOwners"""
         await ctx.send("Family test")
 
 
-    @checktest.command(aliases=("supporter", "patron", "booster"))
+    @checkgroup.command(name="supporters", aliases=("supporter", "patron", "booster"))
     @CDT.is_supporter()
-    async def supporters(self,ctx):
+    async def checkgroupsupporters(self,ctx):
         """Check registered Supporters: Boosters & Patrons"""
         await ctx.send("supporter test")
