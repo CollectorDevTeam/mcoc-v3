@@ -7,6 +7,8 @@ from redbot.core.config import Config
 from typing import Optional
 import discord
 
+from cdtcommon.abc.modokerror import MODOKError
+
 CDTGUILD = 215271081517383682
 COLLECTORDEVTEAM = 390253643330355200
 COLLECTORSUPPORTTEAM = 390253719125622807
@@ -37,7 +39,10 @@ class CdtCheck(MixinMeta):
         """Check for privileged role from CDT guild"""
         cdtguild = ctx.bot.get_guild(CDTGUILD)
         member = cdtguild.get_member(ctx.author.id)
-        checkrole = cdtguild.get_role(role_id)
+        try:
+            checkrole = cdtguild.get_role(role_id)
+        except:
+            raise MODOKError("cdtcheck: role {} not found!".format(role_id)) 
         result = False
         if member is not None and checkrole in member.roles:
             result = True
