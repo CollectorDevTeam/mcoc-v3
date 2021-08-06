@@ -1,27 +1,33 @@
 import discord
-from redbot.core.bot import Red
-from redbot.core.config import Config
 from redbot.core.utils import chat_formatting, menus
-from ..abc import CompositeMetaClass, MixinMeta, mcoccommands
-from ..cdtcore import CDT
+from .abc import Red, Config, commands, Context, MixinMeta, CompositeMetaClass, CDT, mcocgroup
 
+
+json_urls = {
+    "bcg_en": "https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/json/snapshots/en/Standard/bcg_en.json",
+    "bcg_stat_en": "https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/json/snapshots/en/Standard/bcg_stat_en.json",
+    "special_attacks_en": "https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/json/snapshots/en/Standard/special_attacks_en.json",
+    "masteries_en": "https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/json/snapshots/en/Standard/masteries_en.json",
+    "character_bios_en": "https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/json/snapshots/en/Standard/character_bios_en.json",
+    "cutscenes_en": "https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/json/snapshots/en/Standard/cutscenes_en.json",
+},
 class ChampData(MixinMeta, metaclass=CompositeMetaClass):
     """A CollectorDevTeam package for Marvel"s Contest of Champions"""
 
-    # @mcoccommands.group(aliases=("champ","champion","mcoc"))
+    # @mcocgroup.group(aliases=("champ","champion","mcoc"))
     # async def champions(self, ctx):
     #     data = await CDT.create_embed(ctx, title="Marvel Contest of Champions")
     #     data.description = "dummy group"
         
 
-    @mcoccommands.group(name="data", hidden=True)
+    @mcocgroup.group(name="data", hidden=True)
     @CDT.is_collectordevteam()
-    async def champions_data(self, ctx):
+    async def champions_data(self, ctx: Context):
         """Data commands""" 
 
     @champions_data.command(name="check", aliases=("words",))
     async def json_key_check(self, ctx, json_key=None):
-        async with self.config.words() as words:
+        async with self.config.mcoc.words() as words:
             keys = words.keys()
             if json_key is None and len(keys) == 0:
                 await ctx.send("There are currently {} json keys registered.".format(len(keys)))
@@ -42,7 +48,7 @@ class ChampData(MixinMeta, metaclass=CompositeMetaClass):
 
 
     @champions_data.command(name="delete", aliases=("purge",))
-    async def champions_data_delete(self, ctx, dataset):
+    async def champions_data_delete(self, ctx:Context, dataset):
         """MCOC data purge"""
         if dataset in ("snapshot", "snapshots", "words"):
             answer = await CDT.get_user_confirmation(self, ctx, "Do you want to delete {} dataset?".format(dataset))
@@ -57,21 +63,21 @@ class ChampData(MixinMeta, metaclass=CompositeMetaClass):
                             await ctx.send("Snapshots should be cleared.  {} keys registered".format(len(snapshots.keys())))
                     elif dataset is "words":
                         # async with self.config.words() as words:
-                        await self.config.words.clear_all_globals()
+                        await self.config.words.clear()
                         async with self.config.words() as words:
                             await ctx.send("Snapshots should be cleared.  {} keys registered".format(len(words.keys())))
         return
     
 
     @champions_data.group(name="import")
-    async def champions_import(self, ctx):
+    async def champions_import(self, ctx: Context):
         """Data import commands
         snapshot - scrape data from translation files"""
 
     @champions_import.command(name="json")
-    async def champions_import_json(self, ctx, json_file=None):
+    async def champions_import_json(self, ctx: Context, json_file=None):
         async with self.config.urls() as urls:
-            jkeys = urls.keys()
+            jkeys = json_urls.keys()
             if json_file in jkeys:
                 jkeys = [json_file] 
             for j in jkeys:
@@ -81,9 +87,9 @@ class ChampData(MixinMeta, metaclass=CompositeMetaClass):
                 if filetext is not None:
                     jsonfile = await CDT.convert_kabamfile_to_json(ctx, filetext)
                     if jsonfile is not None:
-                        async with self.config.words() as words:
+                        async with self.config.mcoc.words() as words:
                             words.update(jsonfile["strings"])
-                        async with self.config.snapshots() as snapshots:
+                        async with self.config.mcoc.snapshots() as snapshots:
                             snapshots.update({j : jsonfile})
                     else:
                         await ctx.send("textfile_to_json did not return json/dict")

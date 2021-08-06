@@ -1,9 +1,13 @@
 import aiohttp
+import discord
 from .commands import Commands
 from .cdtcore import CDT
 from .abc import CompositeMetaClass
 from redbot.core.bot import Red
 from redbot.core.config import Config
+import logging
+
+# log = logging.getLogger('red.CollectorDevTeam.mcoc')
 
 default_champion =  {
     "id" : None, #str unique champion id
@@ -32,45 +36,44 @@ default_champion =  {
 }
 
 default_user = {
-    "roster" : [], # List of champion dict
-    "auntmai": None, #str auntmai key,
-    "settings": {
-        "hide_t1" : False,
-        "hide_t2" : False,
-        "hide_t3" : False,
-        "hide_t4" : False,
-        "hide_t5" : False,
-        "hide_t6" : False
+    "profile": {
+        "roster" : [], # List of champion dict
+        "roster_screenshots": [],
+        "alliance_ids": [],
+        "ingame": None,
+        "paths": {
+            "aq5":[],
+            "aq6":[],
+            "aq7":[],
+            "aw": [],
         },
-        "profile":{},
+        "settings": {
+            "auntmai": None, #str auntmai key,
+            "hide_t1" : False,
+            "hide_t2" : False,
+            "hide_t3" : False,
+            "hide_t4" : False,
+            "hide_t5" : False,
+            "hide_t6" : False,    
+            "mastery_offense_screenshot":None,
+            "mastery_defense_screenshot": None,
+            "mastery_utility-screenshot": None,
+            "mastery_collage_screenshot": None,
+            "ingame": None,
+            "started": None
+        },
+    },
 },
 
+alliance_registry = {
+    "family" : {},
+    "alliances" : {},
+},
 
-default_global = {
-    "alliances": {},
-    "families": {},
-    "champions": {
+default_mcoc = {
+    "xref_champions": {
     },
     "synergies" : None, #dictionary of {synergy_key: {}} 
-    "classes": {
-        "Cosmic": discord.Color(0x2799f7), 
-        "Tech": discord.Color(0x0033ff),
-        "Mutant": discord.Color(0xffd400), 
-        "Skill": discord.Color(0xdb1200),
-        "Science": discord.Color(0x0b8c13), 
-        "Mystic": discord.Color(0x7f0da8),
-        "All": discord.Color(0x03f193), 
-        "Superior": discord.Color(0x03f193), 
-        "default": discord.Color.light_grey(),
-    }, 
-    "urls": {
-        "bcg_en": "https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/json/snapshots/en/Standard/bcg_en.json",
-        "bcg_stat_en": "https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/json/snapshots/en/Standard/bcg_stat_en.json",
-        "special_attacks_en": "https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/json/snapshots/en/Standard/special_attacks_en.json",
-        "masteries_en": "https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/json/snapshots/en/Standard/masteries_en.json",
-        "character_bios_en": "https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/json/snapshots/en/Standard/character_bios_en.json",
-        "cutscenes_en": "https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/json/snapshots/en/Standard/cutscenes_en.json",
-    },
     "snapshots" : {
         "bcg_en" : {
             "meta": {},
@@ -98,34 +101,21 @@ default_roster_champion = {
     "sigLvl": 0
 }
 
-default_alliance = {
-    "guild": None,  # int guild id
-    "name": "Default Name",  # str
-    "tag": "ABCDE",  # str
-    "leader" : None,
-    "officers": None,  # int For the role id
-    "members": None,  # int For the role id
-    "bg1": None,
-    "bg2": None,
-    "bg3": None,
-    "poster": None,  # str An image link, NOTE use aiohttp for this
-    "summary": None,  # str The summary of the alliance
-    "registered": False,
-    "creation_date": None,
-    "invite_url": None,
-}
-
 class MCOCCog(Commands, CDT, metaclass=CompositeMetaClass):
     """Marvel Contest of Champions"""
 
     __version__="3.0.0a"
+
     def __init__(self, bot: Red):
         super().__init__(bot)
         self.config = Config.get_conf(self, identifier=1978198120172018)
         self.config.register_user(**default_user)
-        self.config.register_global(**default_global)
+        # self.config.register_global(**default_global)
+        # self.config.init_custom("mcoc", 2017201819811978)
+        self.config.register_global("mcoc", **default_mcoc)
+        self.config.register_global("alliances_registry", **alliance_registry)
         self.session = aiohttp.ClientSession
-        self.default_user = default_user
+        self.default_user_profile = default_user
     
     def cog_unload(self):
         self.bot.loop.create_task(self.session.close())

@@ -1,6 +1,6 @@
 import discord
-from ..abc import rostergroup, MixinMeta, CompositeMetaClass
-from ..cdtcore import CDT
+
+from .abc import Red, Config, commands, Context, MixinMeta, CompositeMetaClass, CDT, mcocgroup
 
 import json
 
@@ -8,18 +8,27 @@ import json
 class RosterData(MixinMeta, metaclass=CompositeMetaClass):
     """Roster management class for MCOC"""
 
+    
+    @mcocgroup.group(name="roster")
+    @CDT.is_collectordevteam()
+    @CDT.is_supporter()
+    async def rostergroup(self, ctx: Context):
+        """MCOC Roster commands"""
+        pass
+
+
     @rostergroup.command(name="create")
     async def roster_create():
         roster = "abc"
 
     @rostergroup.command(name="read")
-    async def roster_read(self, ctx, user : discord.User=None):
+    async def roster_read(self, ctx: Context, user : discord.User=None):
         if user is None:
             user = ctx.message.author
         roster = self.config.user(user.id).all()
 
     @rostergroup.command(name="upate", aliases=("add"))
-    async def roster_update(self, ctx, champion_list:list):
+    async def roster_update(self, ctx: Context, champion_list:list):
         """Add champion to roster"""
         if ctx.author not in self.config():
             answer = await CDT.confirm(ctx, "No MCOC roster detected.\nWould you like to create a roster?")
@@ -34,7 +43,7 @@ class RosterData(MixinMeta, metaclass=CompositeMetaClass):
             # 
 
     @rostergroup.command(name="delete", aliases=("remove", "rm"))
-    async def roster_delete(self, ctx, champion_list:list):
+    async def roster_delete(self, ctx: Context, champion_list:list):
         # champions = parse_champion_list(champion_list)  #need a champion parser
         # delete_champions = "\n".join(champion.name for champion in champions)
         delete_champions = "bogus champion"
@@ -43,7 +52,7 @@ class RosterData(MixinMeta, metaclass=CompositeMetaClass):
             await self.config.user(ctx.author.id).clear()
 
     @rostergroup.command(name="purge")
-    async def roster_purge(self, ctx):
+    async def roster_purge(self, ctx: Context):
         answer = CDT.confirm(ctx, "Are you sure you want to purge your MCOC roster?\nThis action cannot be reversed.")
         if answer:
             await self.config.user(ctx.author).clear()
@@ -51,31 +60,31 @@ class RosterData(MixinMeta, metaclass=CompositeMetaClass):
             await ctx.send(embed=data)
 
     @rostergroup.command(name="download")
-    async def roster_download(self, ctx):
+    async def roster_download(self, ctx: Context):
         """Roster download as [tbd]"""
 
     @rostergroup.command(name="import", aliases=("auntmai", "auntm.ai",))
-    async def roster_auntmai_import():
+    async def roster_auntmai_import(self, ctx):
         """Import roster from Auntm.ai"""
 
     ## ROSTER SETTINGS COMMAND GROUP
     @rostergroup.group(name="settings", aliases=("set"))
-    async def rostersettingsgroup(self, ctx):
+    async def rostersettingsgroup(self, ctx: Context):
         """MCOC Roster settings"""
         # if nothing, show user settings
 
     @rostersettingsgroup.command(name="show")
-    async def rostersettings_read(self, ctx):
+    async def rostersettings_read(self, ctx: Context):
         """Show current roster settings"""
         settings = await self.config.user(ctx.author).settings.all()
         await ctx.send(json.dumps(settings))
 
     @rostersettingsgroup.group(name="set")
-    async def rosterupdategroup(self, ctx):
+    async def rosterupdategroup(self, ctx: Context):
         """Set roster settings"""
 
     @rosterupdategroup(name="auntmai", hidden=True)
-    async def set_auntmai_key(self, ctx, auntmai:str=None):
+    async def set_auntmai_key(self, ctx: Context, auntmai:str=None):
         """Set Auntmai intregration key"""
         currentkey = await self.config.user(ctx.author).settings.autnmai()
         if auntmai is not None:

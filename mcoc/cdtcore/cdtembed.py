@@ -3,7 +3,8 @@
 import asyncio
 import contextlib
 from redbot.core.utils.predicates import MessagePredicate, ReactionPredicate
-from ..abc import MixinMeta
+from .abc import MixinMeta
+from .discord_assets import Branding
 
 import aiohttp
 import discord
@@ -11,11 +12,6 @@ from redbot.core.commands import Context
 from redbot.core.utils import menus
 
 #BRANDING
-CDTLOGO = "https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/cdt_logo.png"
-COLLECTOR_SQUINT = "https://cdn.discordapp.com/attachments/391330316662341632/867885227603001374/collectorbota.gif"
-COLLECTOR_ICON = "https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/cdt_icon.png"
-PATREON = "https://patreon.com/collectorbot"
-CDT_ICON = "https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/cdt_logo.png"
 
 session = aiohttp.ClientSession
 
@@ -29,7 +25,7 @@ class Embed(MixinMeta):
         title: str = "",
         description: str = "",
         image: str = None,
-        thumbnail: str = COLLECTOR_SQUINT,
+        thumbnail: str = Branding.COLLECTOR_SQUINT,
         url: str = None,
         footer_text: str = "Collector | Contest of Champions | CollectorDevTeam",
         footer_url: str = "https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/cdt_logo.png",
@@ -46,7 +42,7 @@ class Embed(MixinMeta):
             and str(ctx.author.colour) != "#000000"
         ):
             color = ctx.author.color
-        url = url or PATREON
+        url = url or Branding.PATREON
         data = discord.Embed(color=color, title=title, url=url)
         if description and len(description) < 2048:
             data.description = description
@@ -57,10 +53,10 @@ class Embed(MixinMeta):
             async with session.get(image) as re:
                 if re.status == 200:
                     data.set_image(url=image)
-        if thumbnail != COLLECTOR_SQUINT:
+        if thumbnail != Branding.COLLECTOR_SQUINT:
             async with session.get(thumbnail) as re:
                 if re.status != 200:
-                    thumbnail = COLLECTOR_SQUINT
+                    thumbnail = Branding.COLLECTOR_SQUINT
                     #might need additional validation on that url
         data.set_thumbnail(url=thumbnail)
         data.set_footer(text=footer_text, icon_url=footer_url)
@@ -165,3 +161,5 @@ class Embed(MixinMeta):
         else:
             page = page - 5
         return await menus.menu(ctx, pages, controls, message=message, page=page, timeout=timeout)
+
+

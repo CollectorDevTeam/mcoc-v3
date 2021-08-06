@@ -11,6 +11,7 @@
     "short": "Collector Cogs designed to provide information for Marvel Contest of Champions by Kabam.",
     "description": "This repo contains a suite of cogs designed to power Collector, a RED instance.\nMCOC provides champion information for Marvel Contest of Champions.",
     "required_cogs": {},
+    "requires": ["gspread"],
     "min_python_version":[3, 8, 10],
     "tags": ["mcoc","umcoc", "cdt", "champions"],
     "hidden": false,

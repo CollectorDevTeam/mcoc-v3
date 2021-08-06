@@ -1,10 +1,7 @@
 from abc import ABC, abstractmethod
 
-from redbot.core import commands
+from redbot.core import Config, commands
 from redbot.core.bot import Red
-from redbot.core.config import Config
-from redbot.core.commands import Context
-
 
 ## blatantely learning from / stealing from / Toxic-Cogs ##
 

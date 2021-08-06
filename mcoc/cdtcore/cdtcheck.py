@@ -1,7 +1,6 @@
 from logging import exception, raiseExceptions
-from ..abc import MixinMeta
+from .abc import MixinMeta, commands, Context
 from .cdtembed import Embed
-from redbot.core import commands
 
 
 CDTGUILD = 215271081517383682
@@ -25,12 +24,9 @@ UNAUTHORIZED_SUPPORTERS = "This command is reserved for Collector supporters.\n"
 # class CdtCheck(CogCommandMixin):
 class CdtCheck(MixinMeta):
     """Tools to check priveleges from CDT guild"""
-    
-    # def __init__(self, *_args):
-    #     self.config: Config
-    #     self.bot: Red
 
-    async def cdtcheck(ctx, role_id):
+
+    async def cdtcheck(ctx: Context , role_id):
         """Check for privileged role from CDT guild"""
         cdtguild = ctx.bot.get_guild(CDTGUILD)
         member = cdtguild.get_member(ctx.author.id)
@@ -46,7 +42,7 @@ class CdtCheck(MixinMeta):
         
     def is_collectordevteam():
         """Message caller is CollectorDevTeam"""
-        async def pred(ctx: commands.Context):
+        async def pred(ctx: Context):
             chk, role = await CdtCheck.cdtcheck(ctx, COLLECTORDEVTEAM)
             msg = AUTHORIZATION.format(role, chk)
             allowed=False
@@ -59,7 +55,7 @@ class CdtCheck(MixinMeta):
     
     def is_collectorsupportteam():
         """Message caller has CollectorSupportTeam or CollectorDevTeam on CDT"""
-        async def pred(ctx: commands.Context):
+        async def pred(ctx: Context):
             allowed=False
             msg = ""
             for rid in (COLLECTORSUPPORTTEAM, COLLECTORDEVTEAM):
@@ -74,7 +70,7 @@ class CdtCheck(MixinMeta):
 
     def is_guildowners():
         """Message caller has GuildOwners role on CDT"""
-        async def pred(ctx: commands.Context):
+        async def pred(ctx: Context):
             chk, role = await CdtCheck.cdtcheck(ctx, GUILDOWNERS)
             msg = AUTHORIZATION.format(role, chk)
             allowed=False
@@ -87,7 +83,7 @@ class CdtCheck(MixinMeta):
 
     def is_familyowners():
         """Message caller has FamilyOwners role on CDT"""
-        async def pred(ctx: commands.Context):
+        async def pred(ctx: Context):
             chk, role = await CdtCheck.cdtcheck(ctx, FAMILYOWNERS)
             msg = AUTHORIZATION.format(role, chk)
             allowed=False
@@ -100,7 +96,7 @@ class CdtCheck(MixinMeta):
 
     def is_patron():
         """Message caller has Patron role on CDT"""
-        async def pred(ctx: commands.Context):
+        async def pred(ctx: Context):
             for rid in (PATRONS, CREDITED_PATRONS):
                 chk, role = await CdtCheck.cdtcheck(ctx, rid)
                 msg = AUTHORIZATION.format(role, chk)
@@ -114,7 +110,7 @@ class CdtCheck(MixinMeta):
 
     def is_booster():
         """Message caller has Server Booster role on CDT"""
-        async def pred(ctx: commands.Context):
+        async def pred(ctx: Context):
             chk, role = await CdtCheck.cdtcheck(ctx, CDTBOOSTERS)
             msg = AUTHORIZATION.format(role, chk)
             allowed=False
@@ -127,7 +123,7 @@ class CdtCheck(MixinMeta):
 
     def is_supporter():
         """Message caller has a supporter role: CDT Booster, Patrons, Credited Patrons"""
-        async def pred(ctx: commands.Context):
+        async def pred(ctx: Context):
             msg =""
             allowed=False
             for rid in (CDTBOOSTERS, PATRONS, CREDITED_PATRONS):
@@ -143,7 +139,7 @@ class CdtCheck(MixinMeta):
     
     def is_any_priviledged():
         """Message caller has a supporter role: CDT Booster, Patrons, Credited Patrons"""
-        async def pred(ctx: commands.Context):
+        async def pred(ctx: Context):
             msg =""
             allowed=False
             for rid in (CDTBOOSTERS, PATRONS, CREDITED_PATRONS, COLLECTORDEVTEAM, COLLECTORSUPPORTTEAM):
