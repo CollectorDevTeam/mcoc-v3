@@ -1,13 +1,10 @@
-#
-# framework for storing maps urls and playing them into chat
-
-from .abc import Red, Config, commands, Context, MixinMeta, CompositeMetaClass, CDT, mcocgroup
-
+from ..abc import Red, Config, commands, Context, MixinMeta, CompositeMetaClass
+from ..cdt_core import CDT
 
 class MapData(MixinMeta, metaclass=CompositeMetaClass):
     """MCOC Maps commands"""
 
-    @mcocgroup.group(name="maps")
+    @commands.group(name="maps")
     @CDT.is_collectordevteam()
     async def mapgroup(self, ctx: Context):
         """MCOC Maps commands"""

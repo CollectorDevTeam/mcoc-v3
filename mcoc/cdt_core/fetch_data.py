@@ -1,8 +1,8 @@
-from .abc import MixinMeta
+from ..abc import MixinMeta
 import json
 import re
-from redbot.core.bot import Red
 
+    
 class FetchData(MixinMeta):
     """CDT FetchData functions"""
     ## No cog dependencies##
@@ -83,4 +83,4 @@ class FetchData(MixinMeta):
     def bcg_recompile(str_data):
         """Scrape out the color decorators from Kabam JSON file"""
         hex_re = re.compile(r'\[[0-9a-f]{6,8}\](.+?)\[-\]', re.I)
-        return hex_re.sub(r'\1', str_data)
+        return hex_re.sub(r'**\1**', str_data)

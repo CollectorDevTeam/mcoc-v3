@@ -1,66 +1,74 @@
-from typing import Optional
-import discord
-from redbot.core.utils import menus
-from redbot.core.utils.predicates import MessagePredicate, ReactionPredicate
+# import logging
+
 import asyncio
 import contextlib
+from redbot.core.utils.predicates import MessagePredicate, ReactionPredicate
+from ..abc import MixinMeta, Context
+from .discord_assets import Branding
 
-from redbot.core import commands
-from .abc import MixinMeta
-from .cdtembed import Embed
-from .cdtcheck import CdtCheck
-from .fetch_data import FetchData
-from .emoji_assets import CDTEmoji
-from .exceptions import MODOKSays
-       
-class CDT(CDTEmoji, Embed, FetchData, CdtCheck, MODOKSays, MixinMeta):
-    """common functions that are not {prefix} commands"""
+import aiohttp
+import discord
 
-    CLASS_COLORS = {
-        "Cosmic": discord.Color(0x2799f7), 
-        "Tech": discord.Color(0x0033ff),
-        "Mutant": discord.Color(0xffd400), 
-        "Skill": discord.Color(0xdb1200),
-        "Science": discord.Color(0x0b8c13), 
-        "Mystic": discord.Color(0x7f0da8),
-        "All": discord.Color(0x03f193), 
-        "Superior": discord.Color(0x03f193), 
-        "default": discord.Color.light_grey(),
-    }
+from redbot.core.utils import menus
 
+#BRANDING
+PATREON = 'https://www.patreon.com/collectorbot'
+JJW_TIPJAR = ''
+COLLECTOR_SQUINT = "https://cdn.discordapp.com/attachments/391330316662341632/867885227603001374/collectorbota.gif"
+
+class Embed(MixinMeta):
+    """Creates a CDT flavored discord.Embed and returns it to you"""
 
     @staticmethod
-    def from_flat(flat, ch_rating):
-        denom = 5 * ch_rating + 1500 + flat
-        return round(100 * flat / denom, 2)
-
-    @staticmethod
-    def to_flat(per, ch_rating):
-        num = (5 * ch_rating + 1500) * per
-        return round(num / (100 - per), 2)
-
-    # def menupagify(self, ctx: Context, intext: str, title=None):
-    #     """chat format string to pages, and set in embed object descriptions"""
-    #     textpages = list(chat_formatting.pagify(text=intext, page_length=1800))
-    #     menupages = []
-    #     for page in textpages:
-    #         p = CDT.create_embed(ctx, description=page)
-    #         if title is not None:
-    #             p.title(title)
-    #         menupages.append(p)
-    #     return menupages
-
-    def list_role_members(self, ctx, role: discord.Role, guild: discord.guild):
-        """Given guild & role, return list of members with role"""
-        members = [m for m in guild.members if role in m.roles]
-        return members or None
+    async def create_embed(
+        ctx: Context,
+        color: discord.Colour = discord.Color.gold(),
+        title: str = "",
+        description: str = "",
+        image: str = None,
+        thumbnail: str = COLLECTOR_SQUINT,
+        url: str = PATREON,
+        footer_text: str = "Collector | Contest of Champions | CollectorDevTeam",
+        footer_url: str = "https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/cdt_logo.png",
+    ) -> discord.Embed:
+        """Return a color styled embed with CDT footer, and optional title or description.
+        user_id = user id string. If none provided, takes message author.
+        color = manual override, otherwise takes gold for private channels, or author color for guild.
+        title = String, sets title.
+        description = String, sets description.
+        image = String url.  Validator checks for valid url.
+        thumbnail = String url. Validator checks for valid url."""
+        if (
+            isinstance(ctx.channel, discord.abc.GuildChannel)
+            and str(ctx.author.colour) != "#000000"
+        ):
+            color = ctx.author.color
+        # url = url or Branding.PATREON
+        data = discord.Embed(color=color, title=title, url=url)
+        if description and len(description) < 2048:
+            data.description = description
+        data.set_author(name=ctx.author.display_name,
+                        icon_url=ctx.author.avatar_url)
+        
+        if image is not None:
+            data.set_image(url=image)
+        if thumbnail is not None:
+            data.set_thumbnail(url=thumbnail)
+        # if thumbnail != Branding.COLLECTOR_SQUINT:
+        #     async with self.session.get(thumbnail) as re:
+        #         if re.status != 200:
+        #             thumbnail = Branding.COLLECTOR_SQUINT
+        #             #might need additional validation on that url
+        # data.set_thumbnail(thumbnail)
+        data.set_footer(text=footer_text, icon_url=footer_url)
+        return data
 
     async def confirm(self, ctx, question): #might need to remove self
         """Pass user a question, returns True or False"""
         can_react = ctx.channel.permissions_for(ctx.me).add_reactions
         if not can_react:
             question += " (y/n)"
-        data = await CDT.create_embed(
+        data = await Embed.create_embed(
                     ctx,
                     title="Confirmation Request :sparkles:",
                     description=question,
@@ -105,18 +113,38 @@ class CDT(CDTEmoji, Embed, FetchData, CdtCheck, MODOKSays, MixinMeta):
             "▶️": menus.next_page,
         }
         big_controls = {
-            "⏪": CDT.page_minus_five,
+            "⏪": Embed.page_minus_five,
             "◀️": menus.prev_page,
             "❌": menus.close_menu,
             "▶️": menus.next_page,
-            "⏩": CDT.page_plus_five,
+            "⏩": Embed.page_plus_five,
         }
         if int is not None and int > 8:
             return big_controls
         return controls
 
     async def page_minus_five(
-        ctx: commands.Context,
+        ctx: Context,
+        pages: list,
+        controls: dict,
+        message: discord.Message,
+        page: int,
+        timeout: float,
+        emoji: str,
+    ):
+        """Extending Red menu controls to page +5 at a time for large pages menus"""
+        perms = message.channel.permissions_for(ctx.me)
+        if perms.manage_messages:  # Can manage messages, so remove react
+            with contextlib.suppress(discord.NotFound):
+                await message.remove_reaction(emoji, ctx.author)
+        if page == len(pages) - 1:
+            page = 0  # Loop around to the first item
+        else:
+            page = page + 5
+        return await menus.menu(ctx, pages, controls, message=message, page=page, timeout=timeout)
+
+    async def page_plus_five(
+        ctx: Context,
         pages: list,
         controls: dict,
         message: discord.Message,
@@ -135,23 +163,4 @@ class CDT(CDTEmoji, Embed, FetchData, CdtCheck, MODOKSays, MixinMeta):
             page = page - 5
         return await menus.menu(ctx, pages, controls, message=message, page=page, timeout=timeout)
 
-    async def page_plus_five(
-        ctx: commands.Context,
-        pages: list,
-        controls: dict,
-        message: discord.Message,
-        page: int,
-        timeout: float,
-        emoji: str,
-    ):
-        perms = message.channel.permissions_for(ctx.me)
-        if perms.manage_messages:  # Can manage messages, so remove react
-            with contextlib.suppress(discord.NotFound):
-                await message.remove_reaction(emoji, ctx.author)
-        if page == len(pages) - 1:
-            page = 0  # Loop around to the first item
-        else:
-            page = page + 5
-        return await menus.menu(ctx, pages, controls, message=message, page=page, timeout=timeout)
 
- 

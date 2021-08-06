@@ -1,15 +1,21 @@
 import discord
-
-from .abc import Red, Config, commands, Context, MixinMeta, CompositeMetaClass, CDT, mcocgroup
-
 import json
 
+from ..abc import Red, Config, commands, Context, MixinMeta, CompositeMetaClass
+from ..cdt_core import CDT
+
+
+default_roster_champion = {
+    "bid": None,
+    "rank": 1,
+    "sigLvl": 0
+}
 
 class RosterData(MixinMeta, metaclass=CompositeMetaClass):
     """Roster management class for MCOC"""
 
     
-    @mcocgroup.group(name="roster")
+    @commands.group(name="roster")
     @CDT.is_collectordevteam()
     @CDT.is_supporter()
     async def rostergroup(self, ctx: Context):
@@ -27,7 +33,7 @@ class RosterData(MixinMeta, metaclass=CompositeMetaClass):
             user = ctx.message.author
         roster = self.config.user(user.id).all()
 
-    @rostergroup.command(name="upate", aliases=("add"))
+    @rostergroup.command(name="upate", aliases=("add",))
     async def roster_update(self, ctx: Context, champion_list:list):
         """Add champion to roster"""
         if ctx.author not in self.config():
@@ -68,7 +74,7 @@ class RosterData(MixinMeta, metaclass=CompositeMetaClass):
         """Import roster from Auntm.ai"""
 
     ## ROSTER SETTINGS COMMAND GROUP
-    @rostergroup.group(name="settings", aliases=("set"))
+    @rostergroup.group(name="settings", aliases=("set",))
     async def rostersettingsgroup(self, ctx: Context):
         """MCOC Roster settings"""
         # if nothing, show user settings
@@ -83,7 +89,7 @@ class RosterData(MixinMeta, metaclass=CompositeMetaClass):
     async def rosterupdategroup(self, ctx: Context):
         """Set roster settings"""
 
-    @rosterupdategroup(name="auntmai", hidden=True)
+    @rosterupdategroup.command(name="auntmai", hidden=True)
     async def set_auntmai_key(self, ctx: Context, auntmai:str=None):
         """Set Auntmai intregration key"""
         currentkey = await self.config.user(ctx.author).settings.autnmai()

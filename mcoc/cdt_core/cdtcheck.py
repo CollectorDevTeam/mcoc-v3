@@ -1,5 +1,5 @@
 from logging import exception, raiseExceptions
-from .abc import MixinMeta, commands, Context
+from ..abc import MixinMeta, commands, Context
 from .cdtembed import Embed
 
 

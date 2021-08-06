@@ -1,4 +1,4 @@
-from .abc import MixinMeta
+from ..abc import MixinMeta
 
 class McocMath(MixinMeta):
 

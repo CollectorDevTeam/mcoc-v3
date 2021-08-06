@@ -1,6 +1,5 @@
-from .abc import MixinMeta
+from ..abc import MixinMeta
 import gspread
-from redbot.core.commands import Context
 # from gsheets import Sheets
 
 XREF = '1JSiGo-oGbPdmlegmGTH7hcurd_HYtkpTnZGY1mN_XCE'
@@ -20,7 +19,7 @@ class GoogleSheets(MixinMeta):
         Return the GSpread connection.
 
         Returns:
-            [type]: [description]
+            list_of_dicts [list]: list of dictionaries [ {}, {}, {} ] 
         """
         async with self.config.get_shared_api_tokens("CDTgspread") as shared_api_keys:
 
@@ -42,23 +41,23 @@ class GoogleSheets(MixinMeta):
         return sheets
 
 
-    async def cdt_get_xref(self, ctx: Context):
+    async def cdt_get_xref(self):
         """Retrieve Champion crossreference id mapping
 
         Args:
             ctx ([type]): [description]
 
         Returns:
-            [type]: [description]
+            list_of_dicts [list]: list of dictionaries [ {}, {}, {} ] 
         """
-        sheets = await self.gs_service_account(self, ctx)
+        sheets = await self.gs_service_account(self)
         gs = sheets.open_by_key(XREF)
         ws = gs.worksheet("export_xref")
 
         list_of_dicts = ws.get_all_records()
         return list_of_dicts
 
-    async def cdt_get_info(self, ctx: Context):
+    async def cdt_get_info(self):
         """Retrieve Champion crossreference id mapping
 
         Args:
@@ -66,48 +65,57 @@ class GoogleSheets(MixinMeta):
 
         Returns:
             [type]: [description]
+            
+        Returns:
+            list_of_dicts [list]: list of dictionaries [ {}, {}, {} ] 
         """
-        sheets = await self.gs_service_account(self, ctx)
+        sheets = await self.gs_service_account(self)
         gs = sheets.open_by_key(XREF)
         ws = gs.worksheet("export_info")
 
         list_of_dicts = ws.get_all_records()
         return list_of_dicts
 
-    async def cdt_get_auntmai_prestige(self, ctx: Context):
+    async def cdt_get_auntmai_prestige(self):
         """Retrieve list of dictionaries of Auntmai prestige
 
         Args:
             ctx ([type]): [description]
+            
+        Returns:
+            list_of_dicts [list]: list of dictionaries [ {}, {}, {} ] 
         """
-        sheets = await self.gs_service_account(self, ctx)
+        sheets = await self.gs_service_account(self)
         gs = sheets.open_by_key(AUNTMAI_PRESTIGE)
         ws = gs.worksheet("export_prestige")
         list_of_dicts = ws.get_all_records()
         return list_of_dicts
 
-    async def cdt_get_auntmai_stats(self, ctx: Context):
+    async def cdt_get_auntmai_stats(self):
         """Retrieve list of dictionaries of Auntmai stats
 
         Args:
             ctx ([type]): [description]
+            
+        Returns:
+            list_of_dicts [list]: list of dictionaries [ {}, {}, {} ] 
         """
-        sheets = await self.gs_service_account(self, ctx)
+        sheets = await self.gs_service_account(self)
         gs = sheets.open_by_key(AUNTMAI_STATS)
         ws = gs.worksheet("export_stats")
         list_of_dicts = ws.get_all_records()
         return list_of_dicts
 
-    async def cdt_get_schedule(self, ctx: Context):
+    async def cdt_get_schedule(self):
         """Retrieve Champion crossreference id mapping
 
         Args:
             ctx ([type]): [description]
 
         Returns:
-            [type]: [description]
+            list_of_dicts [list]: list of dictionaries [ {}, {}, {} ] 
         """
-        sheets = await self.gs_service_account(self, ctx)
+        sheets = await self.gs_service_account(self)
         gs = sheets.open_by_key(SCHEDULE)
         ws = gs.worksheet("TinySchedule")
 

@@ -1,6 +1,8 @@
+from ..config_structure import config_structure
 from .. import exceptions
 
-from .abc import Red, Config, commands, Context, MixinMeta, CompositeMetaClass, CDT, mcocgroup
+from ..abc import Red, Config, commands, Context, MixinMeta, CompositeMetaClass
+from ..cdt_core import CDT
 
 import discord
 from typing import Union, Optional
@@ -39,8 +41,13 @@ default_alliance = {
 class AllianceData(MixinMeta, metaclass=CompositeMetaClass):
     """Alliance Data by CollectorDevTeam"""
 
+    def __init__(self, bot: Red):
+        super().__init__(bot)
+        self.config = Config.get_conf(self, identifier=1978198120172018)
+        self.config.register_guild(**config_structure["default_guild"])
 
-    @mcocgroup.group(name="alliance")
+
+    @commands.group(name="alliance")
     @CDT.is_supporter()
     @commands.guild_only()
     async def alliancegroup(self, ctx: Context):
@@ -111,7 +118,7 @@ class AllianceData(MixinMeta, metaclass=CompositeMetaClass):
 
     @alliancegroup.command(name="create", aliases=("register",))
     @commands.guild_only()
-    @commands.admin()
+    @commands.admin_or_permissions(manage_guild=True)
     async def alliance_create(self, ctx, alliance_role: Optional[discord.Role]):
         """Create a CollectorVerse alliance
         Args:

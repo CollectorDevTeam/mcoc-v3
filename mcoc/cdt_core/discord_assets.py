@@ -1,4 +1,4 @@
-from .abc import MixinMeta
+from ..abc import MixinMeta
 import discord
 
 class Branding(MixinMeta):
@@ -9,9 +9,6 @@ class Branding(MixinMeta):
     CDTLOGO = "https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/cdt_logo.png"
     CDT_ICON = "https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/cdt_logo.png"
     ASSET_BASEPATH = "https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/"
-
-
-
 
 class Emoji(MixinMeta):
     """discord emoji
@@ -32,7 +29,7 @@ class Emoji(MixinMeta):
         "default": "",
         }
 
-class CDTColor(MixinMeta):
+class CDTColor:
     
     COLORCOSMIC = discord.Color(0x2799f7)
     COLORTECH = discord.Color(0x0033ff)

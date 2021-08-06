@@ -1,6 +1,7 @@
 import discord
 from redbot.core.utils import chat_formatting, menus
-from .abc import Red, Config, commands, Context, MixinMeta, CompositeMetaClass, CDT, mcocgroup
+from ..abc import Red, Config, commands, Context, MixinMeta, CompositeMetaClass
+from ..cdt_core import CDT
 
 
 json_urls = {
@@ -20,7 +21,7 @@ class ChampData(MixinMeta, metaclass=CompositeMetaClass):
     #     data.description = "dummy group"
         
 
-    @mcocgroup.group(name="data", hidden=True)
+    @commands.group(name="data", hidden=True)
     @CDT.is_collectordevteam()
     async def champions_data(self, ctx: Context):
         """Data commands""" 

@@ -5,7 +5,7 @@ from collections import UserDict, defaultdict, ChainMap, namedtuple, OrderedDict
 import re
 import logging
 import datetime
-from ..cdtcore import CDT
+from ..cdt_core import CDT
 from .championclass import Champion
 
 logger = logging.getLogger('red.CollectorDevTeam.mcoc')

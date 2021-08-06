@@ -1,11 +1,37 @@
-from .abc import MixinMeta
+from ..abc import MixinMeta
 import datetime
 from .. import exceptions
-from ..cdtcore import CDT
+from ..cdt_core import CDT
 import re
 import logging
 
 log = logging.getLogger('red.CollectorDevTeam.mcoc')
+
+default_champion =  {
+    "id" : None, #str unique champion id
+    "bid" : None, #str unique auntm.ai champion file id
+    "uid" : None, #str unique auntm.ai url id
+    "json_bio": [], #list of json keys 
+    "json_description" : [], #list of json keys 
+    "json_sp1": [], #list of json keys 
+    "json_sp2" : [], #list of json keys 
+    "json_sp3" : [], #list of json keys 
+    "json_abilities": [], #list of json keys 
+    "aliases" : [], #all known aliases, check against known for clashes
+    "name": None, #formal name
+    "class": None, 
+    "release_date": None, #date
+    "prerelease_date": None, 
+    "tags": [], #list of tags
+    "weaknesses": [], #list of weaknesses
+    "strengths" : [], #list of strengths
+    "t1_release" : None, #release_date + x
+    "t2_release" : None, #release_date + x
+    "t3_release" : None, #release_date + x
+    "t4_release" : None, #release_date + x
+    "t5_release" : None, #release_date + x
+    "t6_release" : None #release_date + x
+}
 
 REMOTE_ASSETS = "https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/"
 STAR_GLYPH = "★"

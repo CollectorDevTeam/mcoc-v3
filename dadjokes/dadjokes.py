@@ -2,8 +2,8 @@
 import json
 import logging
 import random
-from cdtcommon.cdtcog import DIAGNOSTICS
-from cdtcommon.cdtcog import CDT
+from mcoc.cdtcore import DIAGNOSTICS
+from mcoc.cdtcore import CDT
 
 import aiohttp
 import discord
