@@ -3,15 +3,21 @@
 config_structure = {
     "default_user" : {
         "profile": {
+            "description" : None, #string < 1000
             "roster" : [], # List of champion dict
-            "roster_screenshots": [],
+            "roster_ss": [],
             "alliance_ids": [],
+            "alliance_tag": None,
             "started": None,
             "ingame": None,
             "aq5_paths":[],
             "aq6_paths":[],
             "aq7_paths":[],
             "aw": [],
+            "offense": None,
+            "defense": None,
+            "utility": None,
+            "collage": None,
         },
         "settings": {
             "auntmai": None, #str auntmai key,
@@ -21,10 +27,7 @@ config_structure = {
             "hide_t4" : False,
             "hide_t5" : False,
             "hide_t6" : False,    
-            "mastery_offense_screenshot":None,
-            "mastery_defense_screenshot": None,
-            "mastery_utility-screenshot": None,
-            "mastery_collage_screenshot": None,
+            
         },
     },
     "default_guild": {

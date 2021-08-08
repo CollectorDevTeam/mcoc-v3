@@ -40,15 +40,25 @@ class CDTColor:
     COLORALL = discord.Color(0x03f193)
     COLORCOLLECTOR = discord.Color.gold()
     COLORDEFAULT = discord.Color.light_grey()
+    COLOROFFENSE = discord.Color.red()
+    COLORDEFENSE = discord.Color.blue()
+    COLORUTILITY = discord.Color.green()
+
+    MasteryColors = { 
+        "offense": discord.Color.dark_red(),
+        "defense": discord.Color.dark_blue(),
+        "utility": discord.Color.dark_green(),
+        "collage": discord.Color.dark_gold(),
+    }
 
     ClassColors = {
-        "Cosmic": COLORCOSMIC, 
-        "Tech": COLORTECH,
-        "Mutant": COLORMUTANT, 
-        "Skill": COLORSKILL,
-        "Science": COLORSCIENCE, 
-        "Mystic": COLORMYSTIC,
-        "All": COLORALL, 
-        "Superior": COLORALL, 
-        "default": COLORDEFAULT,
+        "Cosmic": discord.Color(0x2799f7), 
+        "Tech": discord.Color(0x0033ff),
+        "Mutant": discord.Color(0xffd400), 
+        "Skill": discord.Color(0xdb1200),
+        "Science": discord.Color(0x0b8c13), 
+        "Mystic": discord.Color(0x7f0da8),
+        "All": discord.Color(0x03f193), 
+        "Superior": discord.Color(0x03f193), 
+        "default": discord.Color.light_grey(),
     }

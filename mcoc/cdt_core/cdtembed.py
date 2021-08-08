@@ -2,6 +2,7 @@
 
 import asyncio
 import contextlib
+from typing import Optional
 from redbot.core.utils.predicates import MessagePredicate, ReactionPredicate
 from ..abc import MixinMeta, Context
 from .discord_assets import Branding
@@ -63,7 +64,7 @@ class Embed(MixinMeta):
         data.set_footer(text=footer_text, icon_url=footer_url)
         return data
 
-    async def confirm(self, ctx, question): #might need to remove self
+    async def confirm(self, ctx, question, image = None): #might need to remove self
         """Pass user a question, returns True or False"""
         can_react = ctx.channel.permissions_for(ctx.me).add_reactions
         if not can_react:
@@ -73,10 +74,10 @@ class Embed(MixinMeta):
                     title="Confirmation Request :sparkles:",
                     description=question,
                 )
-        
-        pages = []
-        pages.append(data)    
-        query = await ctx.send(embed=pages[0])
+        if image is not None:
+            data.set_image(url=image)
+
+        query = await ctx.send(embed=data)
         if can_react:
             menus.start_adding_reactions(query, ReactionPredicate.YES_OR_NO_EMOJIS)
             pred = ReactionPredicate.yes_or_no(query, ctx.author)
@@ -88,79 +89,25 @@ class Embed(MixinMeta):
              await ctx.bot.wait_for(event, check=pred, timeout=30)
         except asyncio.TimeoutError:
             await query.delete()
+            data.description="You couldn't even answer one simple question..."
+            await ctx.send(embed=data)
             return
 
-        if not pred.result:
+        if pred is not None:
+            await query.delete()
+            return pred.result
+
+        elif not pred.result:
             if can_react:
                 await query.delete()
+                data.description = "You couldn't even answer one simple question..."
+                await ctx.send(embed=data)
             else:
-                await ctx.send("Ok then. :sparkles:")
+                await ctx.send("No reaction detected.  Nothing changes, peon. :sparkles:")
             return
-        else:
-            if can_react:
-                with contextlib.suppress(discord.Forbidden):
-                    await query.clear_reactions()
-
-        return pred.result
-
-    def get_controls(int = 0):
-        controls = {
-            # "<:arrowleft:735628703610044488>": menus.prev_page,
-            # "<:circlex:735628703530483814>": menus.close_menu,
-            # "<:arrowright:735628703840600094>": menus.next_page,
-            "◀️": menus.prev_page,
-            "❌": menus.close_menu,
-            "▶️": menus.next_page,
-        }
-        big_controls = {
-            "⏪": Embed.page_minus_five,
-            "◀️": menus.prev_page,
-            "❌": menus.close_menu,
-            "▶️": menus.next_page,
-            "⏩": Embed.page_plus_five,
-        }
-        if int is not None and int > 8:
-            return big_controls
-        return controls
-
-    async def page_minus_five(
-        ctx: Context,
-        pages: list,
-        controls: dict,
-        message: discord.Message,
-        page: int,
-        timeout: float,
-        emoji: str,
-    ):
-        """Extending Red menu controls to page +5 at a time for large pages menus"""
-        perms = message.channel.permissions_for(ctx.me)
-        if perms.manage_messages:  # Can manage messages, so remove react
-            with contextlib.suppress(discord.NotFound):
-                await message.remove_reaction(emoji, ctx.author)
-        if page == len(pages) - 1:
-            page = 0  # Loop around to the first item
-        else:
-            page = page + 5
-        return await menus.menu(ctx, pages, controls, message=message, page=page, timeout=timeout)
-
-    async def page_plus_five(
-        ctx: Context,
-        pages: list,
-        controls: dict,
-        message: discord.Message,
-        page: int,
-        timeout: float,
-        emoji: str,
-    ):
-        """Extending Red menu controls to page +5 at a time for large pages menus"""
-        perms = message.channel.permissions_for(ctx.me)
-        if perms.manage_messages:  # Can manage messages, so remove react
-            with contextlib.suppress(discord.NotFound):
-                await message.remove_reaction(emoji, ctx.author)
-        if page == len(pages) - 1:
-            page = 0  # Loop around to the first item
-        else:
-            page = page - 5
-        return await menus.menu(ctx, pages, controls, message=message, page=page, timeout=timeout)
+        # else:
+        #     if can_react:
+        #         with contextlib.suppress(discord.Forbidden):
+        #             await query.clear_reactions()
 
 
