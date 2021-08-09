@@ -1,5 +1,6 @@
 # from ..cdtcore.gsheet_data import GoogleSheets
 from redbot.core.utils import chat_formatting
+from redbot.core.config import Config
 from collections import UserDict, defaultdict, ChainMap, namedtuple, OrderedDict
 
 import re
@@ -32,11 +33,10 @@ class ChampionFactory():
     created from user function calls off of the dynamic classes.'''
     ## Created by DeltaSigma
 
-
     def __init__(self, *args, **kwargs):
         # self.cooldown_delta = 5 * 60
         # self.cooldown = time.time() - self.cooldown_delta - 1
-        self.needs_init = True
+        # self.needs_init = True
         super().__init__(*args, **kwargs)
         # self.bot.loop.create_task(self.update_local())  # async init
         logger.debug('ChampionFactory Init')
@@ -45,7 +45,7 @@ class ChampionFactory():
         logger.info('Preparing data structures')
         self._prepare_aliases()
         self._prepare_prestige_data()
-        self.needs_init = False
+        # self.needs_init = False
 
     # async def update_local(self):
     #     now = datetime.time()
@@ -57,10 +57,10 @@ class ChampionFactory():
     #         self.data_struct_init()
 
     async def create_champion_class(self, bot, alias_set, **kwargs):
-        if not kwargs['champ'.strip()]: #empty line
+        if not kwargs['cdt_champion_id'.strip()]: #empty line
             return
-        kwargs['bot'] = bot
-        kwargs['alias_set'] = alias_set
+        kwargs['bot'] = bot # ?? 
+        kwargs['alias_set'] = alias_set # 
         kwargs['klass'] = kwargs.pop('class', 'default')
 
         if not kwargs['champ'].strip():  #empty line
@@ -88,14 +88,16 @@ class ChampionFactory():
                 kwargs[key] = None
 
         champion = type(kwargs['cdt_champion_id'], (Champion,), kwargs)
-        self.champions[tuple(alias_set)] = champion
+        async with self.config.mcoc.champions() as champions:
+            champions[tuple(alias_set)] = champion
         logger.debug('Creating Champion class {}'.format(kwargs['cdt_champion_id']))
         return champion
 
     async def get_champion(self, name_id, attrs=None):
         '''straight alias lookup followed by new champion object creation'''
         #await self.update_local()
-        return self.champions[name_id](attrs)
+        async with self.config.mcoc.champions(name_id) as champion:
+            return champion(attrs)
 
     async def search_champions(self, search_str, attrs=None):
         '''searching through champion aliases and allowing partial matches.
@@ -103,10 +105,11 @@ class ChampionFactory():
         #await self.update_local()
         re_str = re.compile(search_str)
         champs = []
-        for champ in self.champions.values():
-            if any([re_str.search(alias) is not None
-                    for alias in champ.alias_set]):
-                champs.append(champ(attrs))
+        async with self.config.mcoc.champions() as champions:
+            for champ in champions.values():
+                if any([re_str.search(alias) is not None
+                        for alias in champ.alias_set]):
+                    champs.append(champ(attrs))
         return champs
 
     # async def verify_cache_remote_files(self, verbose=False, force_cache=False):
@@ -173,33 +176,65 @@ class ChampionFactory():
     #     return remote_check
 
 
+    ##
+    ##  Ok so the workflow should basically be:
+    #   retrieve xref column 1 for champion index
+    #   retrieve xref for aliases dictionary
+    #   retrieve champion info 
+    #   compile into a champion object - set the champion object in the config
+    #   
+    #   then for each champion+tier+rankmax 
+    #   retrieve stats
+    #   retrieve prestige
+    #   set tier-champ-rank
+    ##
+
+
 
     async def _prepare_aliases(self):
         '''Create a python friendly data structure from the aliases json'''
         logger.debug('Preparing aliases')
         self.champions = AliasDict()
         # raw_data = load_csv(data_files['crossreference']['local'])
-        await xref = CDT.cdt_get_xref(self, ctx)
+        gs_xref = await CDT.cdt_gspread_get_xref(self)
+        gs_info = await CDT.cdt_gspread_get_info(self)
         ### THIS is what I need to replace w/ gspread
         punc_strip = re.compile(r'[\s)(-]')
         champs = []
         all_aliases = set()
-        id_index = raw_data.fieldnames.index('status')
-        alias_index = raw_data.fieldnames[:id_index]
-        for row in raw_data:
-            if all([not i for i in row.values()]):
-                continue    # empty row check
+
+        # id_index = raw_data.fieldnames.index('status')
+        # alias_index = raw_data.fieldnames[:id_index]
+        
+        for i in len(gs_xref):
             alias_set = set()
-            for col in alias_index:
-                if row[col]:
-                    alias_set.add(row[col].lower())
-            alias_set.add(punc_strip.sub('', row['champ'].lower()))
+            item = gs_xref[i]
+            info = gs_info[i]
+            for v in item.values():
+                alias_set.add(punc_strip.sub('', v.lower()))
             if all_aliases.isdisjoint(alias_set):
                 all_aliases.union(alias_set)
             else:
                 raise KeyError("There are aliases that conflict with previous aliases."
-                        + "  First occurance with champ {}.".format(row['champ']))
-            await self.create_champion_class(self.bot, alias_set, **row)
+                        + "  First occurance with champ {}.".format(item["cdt_champion_id"]))
+            
+            await self.create_champion_class(self, alias_set, **info)
+
+
+        # for row in raw_data:
+        #     if all([not i for i in row.values()]):
+        #         continue    # empty row check  
+        #     alias_set = set()
+        #     for col in alias_index:
+        #         if row[col]:
+        #             alias_set.add(row[col].lower())
+        #     alias_set.add(punc_strip.sub('', row['champ'].lower()))
+        #     if all_aliases.isdisjoint(alias_set):
+        #         all_aliases.union(alias_set)
+        #     else:
+        #         raise KeyError("There are aliases that conflict with previous aliases."
+        #                 + "  First occurance with champ {}.".format(row['champ']))
+        #     await self.create_champion_class(self.bot, alias_set, **row)
 
     # def _prepare_prestige_data(self):
     #     logger.debug('Preparing prestige')
