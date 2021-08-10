@@ -1,0 +1,19 @@
+{
+    "name": "alliance",
+    "short": "Keep track of your alliance in MCOC",
+    "description": "Keep track of your alliance and recruit for it in MCOC",
+    "end_user_data_statement": "This cog does not store end user data.",
+    "install_msg": "Thank you for install CDT's alliance cog.",
+    "author": [
+        "Jojo#7791"
+    ],
+    "required_cogs": {},
+    "requirements": [],
+    "tags": [
+        "mcoc", "alliance"
+    ],
+    "min_bot_version": "3.4.6",
+    "hidden": false,
+    "disabled": false,
+    "type": "COG"
+}

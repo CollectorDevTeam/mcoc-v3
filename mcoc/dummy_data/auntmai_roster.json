@@ -1,0 +1,117 @@
+{
+    "champions": [
+        {
+            "bid": "antman_leg",
+            "rank": 1,
+            "sigLvl": 0
+        },
+        {
+            "bid": "colossus_leg",
+            "rank": 1,
+            "sigLvl": 0
+        },
+        {
+            "bid": "hawkeye_leg",
+            "rank": 1,
+            "sigLvl": 0
+        },
+        {
+            "bid": "captainmarvel_leg",
+            "rank": 1,
+            "sigLvl": 0
+        }, {
+            "bid": "magik_leg",
+            "rank": 1,
+            "sigLvl": 0
+        }, {
+            "bid": "beast_leg",
+            "rank": 1,
+            "sigLvl": 0
+        }, {
+            "bid": "drax_leg",
+            "rank": 1,
+            "sigLvl": 0
+        }, {
+            "bid": "hulk_leg",
+            "rank": 1,
+            "sigLvl": 0
+        }, {
+            "bid": "hyperion_leg",
+            "rank": 1,
+            "sigLvl": 0
+        }, {
+            "bid": "thor_janefoster_leg",
+            "rank": 1,
+            "sigLvl": 0
+        }, {
+            "bid": "hood_leg",
+            "rank": 1,
+            "sigLvl": 0
+        }, {
+            "bid": "guillotine_leg",
+            "rank": 1,
+            "sigLvl": 0
+        }, {
+            "bid": "mistersinister_leg",
+            "rank": 1,
+            "sigLvl": 0
+        }, {
+            "bid": "x23_leg",
+            "rank": 1,
+            "sigLvl": 0
+        }, {
+            "bid": "ghost_leg",
+            "rank": 1,
+            "sigLvl": 0
+        }, {
+            "bid": "heimdall_leg",
+            "rank": 1,
+            "sigLvl": 0
+        }, {
+            "bid": "captainamerica_movie_leg",
+            "rank": 1,
+            "sigLvl": 0
+        }, {
+            "bid": "gambit_leg",
+            "rank": 1,
+            "sigLvl": 0
+        }, {
+            "bid": "hulk_ragnarok_leg",
+            "rank": 1,
+            "sigLvl": 0
+        }, {
+            "bid": "hela_leg",
+            "rank": 1,
+            "sigLvl": 0
+        }, {
+            "bid": "gwenpool_leg",
+            "rank": 1,
+            "sigLvl": 0
+        }, {
+            "bid": "quake_leg",
+            "rank": 1,
+            "sigLvl": 0
+        }, {
+            "bid": "karnak_leg",
+            "rank": 1,
+            "sigLvl": 0
+        }, {
+            "bid": "medusa_leg",
+            "rank": 1,
+            "sigLvl": 0
+        }, {
+            "bid": "corvusglaive_leg",
+            "rank": 1,
+            "sigLvl": 0
+        }, {
+            "bid": "spiderman_movie_leg",
+            "rank": 1,
+            "sigLvl": 0
+        }, {
+            "bid": "nightcrawler_t6",
+            "rank": 1,
+            "sigLvl": 0
+        }
+    ],
+    "expires": 1627670171960
+}

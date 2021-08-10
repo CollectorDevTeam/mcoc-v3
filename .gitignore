@@ -107,3 +107,16 @@ venv.bak/
 # IDE
 .idea/
 .vscode/
+
+# distribution / packaging
+.git
+
+# ide
+.idea/
+.vscode/
+redenv/
+
+alliance/alliance-v2.py
+mcocv3-workspace.code-workspace
+mcoc/cdtcore/collectorbot-service-account.json
+mcoc/cdt_commands/credential prep
