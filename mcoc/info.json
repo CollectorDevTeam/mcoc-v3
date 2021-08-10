@@ -2,18 +2,18 @@
     "author": [
         "CollectorDevTeam",
         "JJW",
-        "DeltaSigma"
+        "DeltaSigma",
+        "Jojo",
+        "DSC"
     ],
     "install_msg": "Thank you for installing our repo.  Cogs within the mcoc repo are for Marvel's Contest of Champions",
     "name": "MCOC",
     "short": "Collector Cogs designed to provide information for Marvel Contest of Champions by Kabam.",
     "description": "This repo contains a suite of cogs designed to power Collector, a RED instance.\nMCOC provides champion information for Marvel Contest of Champions.",
-    "requirements": [],
-    "min_python_version": [
-        3,
-        8,
-        0
-    ],
-    "min_bot_version": "3.3.0",
-    "type": "COG"
+    "requires": ["gspread"],
+    "min_python_version":[3, 8, 10],
+    "tags": ["mcoc","umcoc", "cdt", "champions"],
+    "hidden": false,
+    "end_user_data_statement": "MCOC uses the user ID to store roster and progress information related to Marvel Contest of Champions."  
+
 }

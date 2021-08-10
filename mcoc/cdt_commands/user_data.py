@@ -112,7 +112,6 @@ class ProfileData(MixinMeta, metaclass=CompositeMetaClass):
                 if profile[sskey] is not None:
                     sscolor = CDT.MasteryColors[sskey]
                     data = await CDT.create_embed(ctx, title="{0} Mastery Rig :sparkles:".format(sskey.title()), footer_text=PROFILE_FOOTER, image=profile[sskey])
-                    # data.set_image(profile[sskey])
                     data.color=sscolor
                     profile_pages.append(data)
         
