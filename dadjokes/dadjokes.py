@@ -2,8 +2,8 @@
 import json
 import logging
 import random
-from mcoc.cdtcore import DIAGNOSTICS
-from mcoc.cdtcore import CDT
+from mcoc.cdt_core import DIAGNOSTICS
+from mcoc.cdt_core import CDT
 
 import aiohttp
 import discord
@@ -42,12 +42,13 @@ class DadJokes(commands.Cog):
     )
     async def dadjoke(self, ctx):
         """Gets a random dad joke."""
-        author = ctx.message.author
+        # author = ctx.message.author
         joke = await self.get_joke()
         image = random.choice(self.dadjoke_images)
-        kwargs = {"content": f"{image}\n\n{joke}"}
+        # kwargs = {"content": f"{image}\n\n{joke}"}
         #if await ctx.embed_requested():
-        data = await CDT.create_embed(ctx, title="CollectorVerse Dad Jokes:sparkles:", description=joke, image=image, footer_text="Dad Jokes | CollectorDevTeam")
+        data = await discord.Embed(title="CollectorVerse Dad Jokes:sparkles:",description=joke, image=image, footer_text="Dad Jokes | CollectorDevTeam", footer_url=CDT_LOGO, author=ctx.author)
+        # data = await CDT.create_embed(ctx, title="CollectorVerse Dad Jokes:sparkles:", description=joke, image=image, footer_text="Dad Jokes | CollectorDevTeam")
         await ctx.send(embed=data)
 
     async def get_joke(self):
