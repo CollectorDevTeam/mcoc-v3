@@ -111,8 +111,9 @@ class ProfileData(MixinMeta, metaclass=CompositeMetaClass):
             for sskey in ("offense", "defense", "utility", "collage"):
                 if profile[sskey] is not None:
                     sscolor = CDT.MasteryColors[sskey]
-                    data = await CDT.create_embed(ctx, title="{0} Mastery Rig :sparkles:".format(sskey.title()), footer_text=PROFILE_FOOTER)
+                    data = await CDT.create_embed(ctx, title="{0} Mastery Rig :sparkles:".format(sskey.title()), footer_text=PROFILE_FOOTER, image=profile[sskey])
                     data.color=sscolor
+                    profile_pages.append(data)
         
 
         # Until I map out more complex controls, I will just append Mastery to the end of Roster pages
