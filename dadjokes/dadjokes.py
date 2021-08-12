@@ -2,8 +2,8 @@
 import json
 import logging
 import random
-from mcoc.cdt_core import DIAGNOSTICS
-from mcoc.cdt_core import CDT
+# from mcoc.cdt_core import DIAGNOSTICS
+# from mcoc.cdt_core import CDT
 
 import aiohttp
 import discord
@@ -19,7 +19,7 @@ class DadJokes(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
-        self.diagnostics = DIAGNOSTICS(self.bot)
+        # self.diagnostics = DIAGNOSTICS(self.bot)
         self.dadjoke_images = [
             "https://cdn.discordapp.com/attachments/391330316662341632/865819301326880768/dadjoke5.png",
             "https://cdn.discordapp.com/attachments/391330316662341632/865819305693675541/dadjoke6.png",
@@ -47,8 +47,10 @@ class DadJokes(commands.Cog):
         image = random.choice(self.dadjoke_images)
         # kwargs = {"content": f"{image}\n\n{joke}"}
         #if await ctx.embed_requested():
-        data = await discord.Embed(title="CollectorVerse Dad Jokes:sparkles:",description=joke, image=image, footer_text="Dad Jokes | CollectorDevTeam", footer_url=CDT_LOGO, author=ctx.author)
+        data = discord.Embed(title="CollectorVerse Dad Jokes:sparkles:", color=discord.Color.gold(), description=joke, author=ctx.author)
         # data = await CDT.create_embed(ctx, title="CollectorVerse Dad Jokes:sparkles:", description=joke, image=image, footer_text="Dad Jokes | CollectorDevTeam")
+        data.set_footer(text="Dad Jokes | CollectorDevTeam", icon_url=CDT_LOGO)
+        data.set_image(url=image)
         await ctx.send(embed=data)
 
     async def get_joke(self):
