@@ -1,5 +1,5 @@
 from .dadjokes import DadJokes
 
-def setup(bot):
+async def setup(bot):
     cog = DadJokes(bot)
-    bot.add_cog(cog)
+    await bot.add_cog(cog)

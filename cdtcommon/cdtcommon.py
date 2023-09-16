@@ -75,7 +75,7 @@ class CdtCommon(commands.Cog):
             )
             data.set_author(
                 name="{} of CollectorDevTeam".format(ctx.author.display_name),
-                icon_url=ctx.author.avatar_url,
+                icon_url=ctx.author.avatar.url,
             )
             data.add_field(
                 name="Alliance Template",
@@ -108,7 +108,7 @@ class CdtCommon(commands.Cog):
             data = await Embed.create(
                 ctx, title="#{} Topic :sparkles:".format(channel.name), description=topic
             )
-            data.set_thumbnail(url=ctx.message.guild.icon_url)
+            data.set_thumbnail(url=ctx.message.guild.icon.url)
             await ctx.send(embed=data)
         else:
             await ctx.send("That channel does not have a topic")

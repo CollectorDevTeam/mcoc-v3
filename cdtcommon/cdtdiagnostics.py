@@ -44,5 +44,5 @@ class DIAGNOSTICS:
         return message
 
 
-def setup(bot):
-    bot.add_cog(DIAGNOSTICS)
+async def setup(bot):
+    await bot.add_cog(DIAGNOSTICS)

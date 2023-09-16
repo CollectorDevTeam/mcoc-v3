@@ -48,7 +48,7 @@ class Embed:
         if description and len(description) < 2048:
             data.description = description
         data.set_author(name=ctx.author.display_name,
-                        icon_url=ctx.author.avatar_url)
+                        icon_url=ctx.author.avatar.url)
         if image:
             async with client.get(image) as re:
                 if re.status != 200:

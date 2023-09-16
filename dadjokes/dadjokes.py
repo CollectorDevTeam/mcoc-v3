@@ -7,7 +7,7 @@ from cdtcommon.cdtembed import Embed
 
 import aiohttp
 import discord
-from redbot.core import checks, commands
+from redbot.core import checks, commands, appcommands
 from redbot.core.config import Config
 
 log = logging.getLogger("red.CollectorDevTeam.dadjokes")
@@ -30,10 +30,10 @@ class DadJokes(commands.Cog):
         ]
         self.session = aiohttp.ClientSession()
 
-    def cog_unload(self):
-        self.bot.loop.create_task(self.session.close())
+    async def cog_unload(self):
+        await self.bot.loop.create_task(self.session.close())
 
-    @commands.command(
+    @commands.hybrid_command(
         aliases=(
             "joke",
             "dadjokes",
@@ -60,6 +60,6 @@ class DadJokes(commands.Cog):
                 joke = attachments["text"]
         return joke
 
-def setup(bot):
+async def setup(bot):
     n = DadJokes(bot)
-    bot.add_cog(n)
+    await bot.add_cog(n)
