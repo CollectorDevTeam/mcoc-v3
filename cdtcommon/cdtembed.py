@@ -47,8 +47,11 @@ class Embed:
         data = discord.Embed(color=color, title=title, url=url)
         if description and len(description) < 2048:
             data.description = description
-        data.set_author(name=ctx.author.display_name,
-                        icon_url=ctx.author.avatar.url)
+        if(ctx.author.avatar.url):
+            data.set_author(name=ctx.author.display_name,
+                            icon_url=ctx.author.avatar.url)
+        else:
+            data.set_author(name=ctx.author.display_name)
         if image:
             async with client.get(image) as re:
                 if re.status != 200:
