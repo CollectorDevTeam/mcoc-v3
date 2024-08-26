@@ -73,11 +73,13 @@ class CdtCommon(commands.Cog):
             data = await Embed.create(
                 ctx, title="CollectorVerse Tips:sparkles:", description=content, image=imgurl
             )
-            if(ctx.author.avatar.url):
+            if hasattr(ctx.author.avatar, "url"):
                 data.set_author(
                     name="{} of CollectorDevTeam".format(ctx.author.display_name),
                     icon_url=ctx.author.avatar.url,
                 )
+            else :
+                data.set_author(name="{}".format(ctx.author.display_name))
             data.add_field(
                 name="Alliance Template",
                 value="[Make an Alliance Guild](https://discord.new/gtzuXHq2kCg4)\nRoles, Channels & Permissions pre-defined",

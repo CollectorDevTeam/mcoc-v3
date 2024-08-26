@@ -47,7 +47,8 @@ class Embed:
         data = discord.Embed(color=color, title=title, url=url)
         if description and len(description) < 2048:
             data.description = description
-        if(ctx.author.avatar.url):
+      
+        if hasattr(ctx.author.avatar, 'url'):
             data.set_author(name=ctx.author.display_name,
                             icon_url=ctx.author.avatar.url)
         else:
