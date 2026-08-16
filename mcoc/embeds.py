@@ -4,6 +4,9 @@ CDT_LOGO = "https://raw.githubusercontent.com/CollectorDevTeam/assets/master/dat
 CDT_ICON = "https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/cdt_icon.png"
 PATREON = "https://patreon.com/collectorbot"
 
+# ---------------------------------------------------------
+# Base CDT Embed
+# ---------------------------------------------------------
 async def cdt_embed(
     ctx,
     *,
@@ -33,5 +36,106 @@ async def cdt_embed(
         text="Collector | Contest of Champions | CollectorDevTeam",
         icon_url=CDT_LOGO
     )
+
+    return embed
+
+
+# ---------------------------------------------------------
+# Champion Info Embed
+# ---------------------------------------------------------
+async def champion_embed(ctx, champ):
+    desc = (
+        f"Class: {champ.get('class','?').title()}\n"
+        f"Tags: {', '.join(champ.get('tags', [])) or 'None'}"
+    )
+
+    embed = await cdt_embed(
+        ctx,
+        title=champ["name"],
+        description=desc,
+        thumbnail=champ.get("images", {}).get("portrait")
+    )
+
+    # Abilities
+    abilities = champ.get("abilities", [])
+    if abilities:
+        lines = []
+        for a in abilities:
+            t = a.get("type", "full")
+            name = a.get("name", "?")
+            lines.append(f"• {name} ({t})")
+        embed.add_field(name="Abilities", value="\n".join(lines), inline=False)
+
+    # Immunities
+    immunities = champ.get("immunities", [])
+    if immunities:
+        lines = []
+        for i in immunities:
+            t = i.get("type", "full")
+            name = i.get("name", "?")
+            note = i.get("note")
+            if note:
+                lines.append(f"• {name} ({t}) — {note}")
+            else:
+                lines.append(f"• {name} ({t})")
+        embed.add_field(name="Immunities", value="\n".join(lines), inline=False)
+
+    return embed
+
+
+# ---------------------------------------------------------
+# Abilities Embed
+# ---------------------------------------------------------
+async def abilities_embed(ctx, champ):
+    embed = await cdt_embed(
+        ctx,
+        title=f"{champ['name']} — Abilities",
+        thumbnail=champ.get("images", {}).get("portrait")
+    )
+
+    for ability in champ.get("abilities", []):
+        name = ability.get("name", "?")
+        t = ability.get("type", "full")
+        note = ability.get("note")
+
+        desc = f"Type: {t}"
+        if note:
+            desc += f"\nNote: {note}"
+
+        embed.add_field(name=name, value=desc, inline=False)
+
+    return embed
+
+
+# ---------------------------------------------------------
+# Synergy Embed
+# ---------------------------------------------------------
+async def synergy_embed(ctx, champ, synergies):
+    embed = await cdt_embed(
+        ctx,
+        title=f"{champ['name']} — Synergies",
+        thumbnail=champ.get("images", {}).get("portrait")
+    )
+
+    for syn in synergies:
+        name = syn.get("name", "?")
+        desc = syn.get("description", "No description.")
+        embed.add_field(name=name, value=desc, inline=False)
+
+    return embed
+
+
+# ---------------------------------------------------------
+# Tag List Embed
+# ---------------------------------------------------------
+async def tag_list_embed(ctx, tag, champions):
+    embed = await cdt_embed(
+        ctx,
+        title=f"Champions with #{tag}",
+        description=f"{len(champions)} champions match this tag."
+    )
+
+    lines = [c["name"] for c in champions]
+    embed.add_field(name="Matches", value="\n".join(lines), inline=False)
 
     return embed
