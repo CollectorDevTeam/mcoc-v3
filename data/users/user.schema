@@ -1,0 +1,21 @@
+{
+  "user_id": "123456789",
+  "roster": [
+    {
+      "champion": "doom",
+      "rarity": 6,
+      "rank": 4,
+      "sig": 0,
+      "tags": []
+    }
+  ],
+  "privacy": {
+    "mode": "private",            // private | alliance | guild | public
+    "share_with_alliance": true,
+    "share_with_guilds": ["987654321"]
+  },
+  "alliances": {
+    "987654321": "Alliance A",    // guild_id : alliance_name
+    "123123123": "Alliance B"
+  }
+}

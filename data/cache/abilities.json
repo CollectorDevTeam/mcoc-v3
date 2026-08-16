@@ -1,0 +1,9 @@
+{
+  "version": "sample456",
+  "abilities": [
+    { "id": "shock", "name": "Shock", "champion_count": 42 },
+    { "id": "stagger", "name": "Stagger", "champion_count": 18 },
+    { "id": "neurotoxin", "name": "Neurotoxin", "champion_count": 7 },
+    { "id": "bleed", "name": "Bleed", "champion_count": 120 }
+  ]
+}

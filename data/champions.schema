@@ -1,0 +1,23 @@
+{
+  "version": 42,
+  "last_sync": "2026-08-16T15:09:00Z",
+  "champions": {
+    "doom": {
+      "id": 123,
+      "name": "Doctor Doom",
+      "slug": "doom",
+      "class": "Mystic",
+      "tags": ["metal", "villain"],
+      "abilities": ["shock", "stagger"],
+      "stats": { ... },
+      "signature": { ... },
+      "specials": { ... },
+      "synergies": [ ... ],
+      "images": {
+        "portrait": "...",
+        "full": "...",
+        "icon": "..."
+      }
+    }
+  }
+}
