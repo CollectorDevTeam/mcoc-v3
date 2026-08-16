@@ -139,3 +139,32 @@ async def tag_list_embed(ctx, tag, champions):
     embed.add_field(name="Matches", value="\n".join(lines), inline=False)
 
     return embed
+
+# ---------------------------------------------------------
+# Roster Entry Embed
+# ---------------------------------------------------------
+async def roster_entry_embed(ctx, champ, entry):
+    """
+    champ: champion object from cache
+    entry: user roster entry dict
+    """
+    rarity = entry.get("rarity", "?")
+    rank = entry.get("rank", "?")
+    sig = entry.get("sig", "?")
+    tags = entry.get("tags", [])
+
+    desc = (
+        f"Rarity: {rarity}★\n"
+        f"Rank: {rank}\n"
+        f"Signature: {sig}\n"
+        f"Tags: {', '.join(tags) if tags else 'None'}"
+    )
+
+    embed = await cdt_embed(
+        ctx,
+        title=champ["name"],
+        description=desc,
+        thumbnail=champ.get("images", {}).get("portrait")
+    )
+
+    return embed
