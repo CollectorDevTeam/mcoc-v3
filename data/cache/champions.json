@@ -1,0 +1,32 @@
+{
+  "version": "sample123",
+  "champions": {
+    "doctor-doom": {
+      "id": "doctor-doom",
+      "name": "Doctor Doom",
+      "class": "mystic",
+      "tags": ["villain", "metal"],
+      "abilities": [
+        { "name": "shock", "type": "full" },
+        { "name": "stagger", "type": "full" }
+      ],
+      "immunities": [
+        { "name": "poison-immunity", "type": "full" }
+      ]
+    },
+
+    "archangel": {
+      "id": "archangel",
+      "name": "Archangel",
+      "class": "mutant",
+      "tags": ["bleed", "poison"],
+      "abilities": [
+        { "name": "neurotoxin", "type": "full" },
+        { "name": "bleed", "type": "full" }
+      ],
+      "immunities": [
+        { "name": "bleed-immunity", "type": "partial", "note": "only while Apocalypse synergy is active", "source": "synergy" }
+      ]
+    }
+  }
+}

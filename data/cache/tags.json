@@ -1,0 +1,9 @@
+{
+  "version": "sample789",
+  "tags": [
+    { "id": "villain", "name": "Villain" },
+    { "id": "metal", "name": "Metal" },
+    { "id": "bleed", "name": "Bleed" },
+    { "id": "poison", "name": "Poison" }
+  ]
+}

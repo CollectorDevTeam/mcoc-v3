@@ -1,0 +1,7 @@
+{
+  "version": "sample999",
+  "immunities": [
+    { "id": "bleed-immunity", "name": "Bleed Immunity" },
+    { "id": "poison-immunity", "name": "Poison Immunity" }
+  ]
+}
