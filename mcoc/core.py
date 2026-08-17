@@ -43,23 +43,44 @@ class MCOC(commands.Cog):
     # Cog Load (async init)
     # ---------------------------------------------------------
     async def cog_load(self):
+        try:
+            raise Exception("TRACE: cog_load started")
+        except Exception:
+            import traceback
+            traceback.print_exc()
+
         api_key = await self.config.api_key()
 
         if api_key:
-            # Live mode
             self.api = MCOCHubAPI(api_key)
             self.sync_task = self.bot.loop.create_task(self._sync_loop())
         else:
-            # Offline mode
             self.api = None
             await self.bot.send_to_owners(
                 "⚠️ MCOCHUB API key not set. CollectorBot is running in offline mode using local cache only."
             )
 
-        # Register slash command groups
-        self.bot.tree.add_command(self.champions_slash)
-        self.bot.tree.add_command(self.roster_slash)
-        self.bot.tree.add_command(self.admin_slash)
+        # Register slash groups with forced TRACE logging
+        for name, group in [
+            ("champ", self.champions_slash),
+            ("roster", self.roster_slash),
+            ("admin", self.admin_slash),
+        ]:
+            try:
+                self.bot.tree.add_command(group)
+                raise Exception(f"TRACE: added slash group {name}")
+            except Exception:
+                import traceback
+                traceback.print_exc()
+
+        # Force a sync and capture errors
+        try:
+            await self.bot.tree.sync()
+            raise Exception("TRACE: tree sync completed")
+        except Exception:
+            import traceback
+            traceback.print_exc()
+
 
     # ---------------------------------------------------------
     # Background Sync Loop
