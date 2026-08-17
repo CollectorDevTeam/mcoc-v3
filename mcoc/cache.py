@@ -3,19 +3,20 @@ import hashlib
 import pathlib
 import datetime
 import logging
-from mcoc.cacheindex import CacheIndex
+from .cacheindex import CacheIndex
 
 log = logging.getLogger("red.mcoc.cache")
 
 CACHE_DIR = pathlib.Path("data/cache")
 CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
+
 class CacheManager:
     def __init__(self):
         self.metadata_file = CACHE_DIR / "metadata.json"
         self.metadata = self._load_metadata()
 
-        # build index
+        # Build index AFTER metadata loads
         self.index = CacheIndex(self)
 
     # -----------------------------
@@ -24,14 +25,13 @@ class CacheManager:
     def _load_metadata(self):
         if not self.metadata_file.exists():
             return {
-                "version": 0,
-                "last_sync": None,
-                "hashes": {
+                "versions": {
                     "champions": None,
                     "tags": None,
                     "abilities": None,
                     "immunity": None,
-                }
+                },
+                "last_sync": None
             }
         return json.load(open(self.metadata_file, "r"))
 
@@ -65,19 +65,15 @@ class CacheManager:
 
         log.info(f"Updated cache for {name}.")
 
-        # rebuild index after updating cache
+        # Rebuild index
         self.index.rebuild()
-        
-        return True
 
+        return True
 
     # -----------------------------
     # Public sync method
     # -----------------------------
     async def sync(self, api):
-        """
-        api: instance of MCOCHubAPI
-        """
         updated = False
 
         champions = await api.get_champions()
@@ -96,7 +92,7 @@ class CacheManager:
         else:
             log.info("Cache unchanged; metadata not updated.")
 
-        # rebuild index after sync
+        # Rebuild index after sync
         self.index.rebuild()
 
         return updated
@@ -119,23 +115,25 @@ class CacheManager:
 
         return None
 
-def get_all_tags(self):
-    data = self._load_file("tags")
-    return data.get("tags", [])
+    def get_all_tags(self):
+        data = self._load_file("tags")
+        return data.get("tags", [])
 
-def get_all_abilities(self):
-    data = self._load_file("abilities")
-    return data.get("abilities", [])
+    def get_all_abilities(self):
+        data = self._load_file("abilities")
+        return data.get("abilities", [])
 
-def get_all_immunities(self):
-    data = self._load_file("immunity")
-    return data.get("immunity", [])
+    def get_all_immunities(self):
+        data = self._load_file("immunity")
+        return data.get("immunity", [])
 
-def get_all_champions(self):
-    data = self._load_file("champions")
-    return list(data.get("champions", {}).values())
+    def get_all_champions(self):
+        data = self._load_file("champions")
+        return list(data.get("champions", {}).values())
 
-
+    # -----------------------------
+    # File loader
+    # -----------------------------
     def _load_file(self, name):
         path = CACHE_DIR / f"{name}.json"
         if not path.exists():
