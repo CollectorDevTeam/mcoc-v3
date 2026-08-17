@@ -2,6 +2,7 @@ import discord
 from discord import app_commands
 
 from .embeds import champion_embed, abilities_embed, synergy_embed, tag_list_embed
+from .pagination import PagesMenu
 
 
 class ChampionSlash(app_commands.Group):
@@ -195,30 +196,39 @@ class ChampionSlash(app_commands.Group):
     # ---------------------------------------------------------
     @app_commands.command(name="search", description="Search champions using filters")
     @app_commands.describe(
-        name="Name contains...",
-        class_="Champion class (cosmic, tech, mutant, skill, mystic, science)",
-        rarity="Filter by rarity (1–7 stars)",
-        tag="Filter by tag",
-        ability="Filter by ability",
-        immunity="Filter by immunity",
-        synergy="Filter by synergy partner"
+        champ_name="Name contains...",
+        champ_class="Champion class (cosmic, tech, mutant, skill, mystic, science)",
+        champ_rarity="Filter by rarity (1–7 stars)",
+        champ_tag="Filter by tag",
+        champ_ability="Filter by ability",
+        champ_immunity="Filter by immunity",
+        champ_synergy="Filter by synergy partner"
+    )
+    @app_commands.rename(
+        champ_name="name",
+        champ_class="class",
+        champ_rarity="rarity",
+        champ_tag="tag",
+        champ_ability="ability",
+        champ_immunity="immunity",
+        champ_synergy="synergy"
     )
     @app_commands.autocomplete(
-        tag=tag_autocomplete,
-        ability=ability_autocomplete,
-        immunity=immunity_autocomplete,
-        synergy=champion_autocomplete
+        champ_tag=tag_autocomplete,
+        champ_ability=ability_autocomplete,
+        champ_immunity=immunity_autocomplete,
+        champ_synergy=champion_autocomplete
     )
     async def search(
         self,
         interaction: discord.Interaction,
-        name: str = None,
-        class_: str = None,
-        rarity: int = None,
-        tag: str = None,
-        ability: str = None,
-        immunity: str = None,
-        synergy: str = None
+        champ_name: str = None,
+        champ_class: str = None,
+        champ_rarity: int = None,
+        champ_tag: str = None,
+        champ_ability: str = None,
+        champ_immunity: str = None,
+        champ_synergy: str = None
     ):
         """
         Search champions using multiple filters.
@@ -230,34 +240,34 @@ class ChampionSlash(app_commands.Group):
 
         for champ in champs:
             # Name filter
-            if name and name.lower() not in champ["name"].lower():
+            if champ_name and champ_name.lower() not in champ["name"].lower():
                 continue
 
             # Class filter
-            if class_ and champ.get("class", "").lower() != class_.lower():
+            if champ_class and champ.get("class", "").lower() != champ_class.lower():
                 continue
 
             # Rarity filter
-            if rarity and rarity not in champ.get("rarities", []):
+            if champ_rarity and champ_rarity not in champ.get("rarities", []):
                 continue
 
             # Tag filter
-            if tag and tag not in champ.get("tags", []):
+            if champ_tag and champ_tag not in champ.get("tags", []):
                 continue
 
             # Ability filter
-            if ability and ability not in champ.get("abilities", []):
+            if champ_ability and champ_ability not in champ.get("abilities", []):
                 continue
 
             # Immunity filter
-            if immunity and immunity not in champ.get("immunities", []):
+            if champ_immunity and champ_immunity not in champ.get("immunities", []):
                 continue
 
             # Synergy partner filter
-            if synergy:
+            if champ_synergy:
                 synergies = champ.get("synergies", [])
                 partner_ids = [s["partner"] for s in synergies]
-                if synergy not in partner_ids:
+                if champ_synergy not in partner_ids:
                     continue
 
             results.append(champ)
@@ -287,10 +297,10 @@ class ChampionSlash(app_commands.Group):
     # ---------------------------------------------------------
     @app_commands.command(name="calcstats", description="Calculate champion stats for a given rarity, rank, sig, and ascension")
     @app_commands.describe(
-        rarity="Star rarity (1–7)",
-        rank="Rank (1–5)",
-        sig="Signature level (0–200)",
-        ascended="Ascension level (0–5)",
+        champ_rarity="Star rarity (1–7)",
+        champ_rank="Rank (1–5)",
+        champ_sig="Signature level (0–200)",
+        champ_ascended="Ascension level (0–5)",
         use_roster="Use your roster entry instead of manual inputs"
     )
     @app_commands.autocomplete(champion=champion_autocomplete)
@@ -298,10 +308,10 @@ class ChampionSlash(app_commands.Group):
         self,
         interaction: discord.Interaction,
         champion: str,
-        rarity: int = None,
-        rank: int = None,
-        sig: int = None,
-        ascended: int = 0,
+        champ_rarity: int = None,
+        champ_rank: int = None,
+        champ_sig: int = None,
+        champ_ascended: int = 0,
         use_roster: bool = False
     ):
         """
@@ -329,13 +339,13 @@ class ChampionSlash(app_commands.Group):
                 )
                 return
 
-            rarity = entry["rarity"]
-            rank = entry["rank"]
-            sig = entry["sig"]
-            ascended = entry.get("ascended", 0)
+            champ_rarity = entry["rarity"]
+            champ_rank = entry["rank"]
+            champ_sig = entry["sig"]
+            champ_ascended = entry.get("ascended", 0)
 
         # Validate inputs
-        if rarity is None or rank is None:
+        if champ_rarity is None or champ_rank is None:
             await interaction.response.send_message(
                 "You must specify rarity and rank (or enable `use_roster`).",
                 ephemeral=True
@@ -343,19 +353,19 @@ class ChampionSlash(app_commands.Group):
             return
 
         stats_table = champ.get("stats", {})
-        rarity_table = stats_table.get(str(rarity))
+        rarity_table = stats_table.get(str(champ_rarity))
 
         if not rarity_table:
             await interaction.response.send_message(
-                f"No stat data available for {rarity}★ {champ['name']}.",
+                f"No stat data available for {champ_rarity}★ {champ['name']}.",
                 ephemeral=True
             )
             return
 
         # Handle ascension
-        rank_key = str(rank)
-        if ascended > 0:
-            asc_key = f"{rank}A{ascended}"
+        rank_key = str(champ_rank)
+        if champ_ascended > 0:
+            asc_key = f"{champ_rank}A{champ_ascended}"
             if asc_key in rarity_table:
                 rank_key = asc_key
 
@@ -370,15 +380,15 @@ class ChampionSlash(app_commands.Group):
 
         # Build embed
         embed = discord.Embed(
-            title=f"{champ['name']} — {rarity}★ Rank {rank}{' Ascended ' + str(ascended) if ascended else ''}",
+            title=f"{champ['name']} — {champ_rarity}★ Rank {champ_rank}{' Ascended ' + str(champ_ascended) if champ_ascended else ''}",
             color=discord.Color.gold()
         )
 
         embed.add_field(name="Attack", value=statline.get("attack", "N/A"))
         embed.add_field(name="Health", value=statline.get("health", "N/A"))
 
-        if sig is not None:
-            embed.add_field(name="Signature Level", value=str(sig))
+        if champ_sig is not None:
+            embed.add_field(name="Signature Level", value=str(champ_sig))
 
         embed.set_thumbnail(url=champ.get("portrait", ""))
 

@@ -95,7 +95,7 @@ class RosterSlash(app_commands.Group):
         rank = parsed["ranks"][0] if parsed["ranks"] else None
         sig = parsed["sigs"][0] if parsed["sigs"] else 0
         tags = parsed["tags"]
-        ascended = parsed["ascensions"][0] if parsed["ascensions"] else 0
+        ascended = parsed["ascended"][0] if parsed["ascended"] else 0
 
         if rarity is None or rank is None:
             await interaction.response.send_message(
@@ -160,7 +160,7 @@ class RosterSlash(app_commands.Group):
         rank = parsed["ranks"][0] if parsed["ranks"] else None
         sig = parsed["sigs"][0] if parsed["sigs"] else None
         tags = parsed["tags"] if parsed["tags"] else None
-        ascended = parsed["ascensions"][0] if parsed["ascensions"] else 0
+        ascended = parsed["ascended"][0] if parsed["ascended"] else 0
 
         if rarity is None:
             await interaction.response.send_message(
