@@ -103,4 +103,4 @@ class MCOC(commands.Cog):
 
 
 async def setup(bot):
-    await bot.add_cog(CollectorBot(bot))
+    await bot.add_cog(MCOC(bot))
