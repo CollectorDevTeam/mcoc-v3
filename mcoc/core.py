@@ -10,7 +10,7 @@ from .roster import RosterSlash
 from .admin import AdminSlash
 
 
-class CollectorBot(commands.Cog):
+class MCOC(commands.Cog):
     """CollectorBot: MCOC data, roster tools, and admin controls."""
 
     def __init__(self, bot):
