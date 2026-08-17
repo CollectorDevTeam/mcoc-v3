@@ -204,10 +204,10 @@ class ChampionSlash(app_commands.Group):
         synergy="Filter by synergy partner"
     )
     @app_commands.autocomplete(
-        tag=ChampionSlash.tag_autocomplete,
-        ability=ChampionSlash.ability_autocomplete,
-        immunity=ChampionSlash.immunity_autocomplete,
-        synergy=ChampionSlash.champion_autocomplete
+        tag=tag_autocomplete,
+        ability=ability_autocomplete,
+        immunity=immunity_autocomplete,
+        synergy=champion_autocomplete
     )
     async def search(
         self,
@@ -293,7 +293,7 @@ class ChampionSlash(app_commands.Group):
         ascended="Ascension level (0–5)",
         use_roster="Use your roster entry instead of manual inputs"
     )
-    @app_commands.autocomplete(champion=ChampionSlash.champion_autocomplete)
+    @app_commands.autocomplete(champion=champion_autocomplete)
     async def calcstats(
         self,
         interaction: discord.Interaction,
