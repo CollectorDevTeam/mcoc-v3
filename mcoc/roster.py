@@ -1,131 +1,216 @@
-from redbot.core import commands
 import discord
+from discord import app_commands
 
 from .userdata import UserDataManager
 from .hargs import parse_hargs
 from .embeds import roster_entry_embed
 from .pagination import PagesMenu
 
-class RosterCommands(commands.Cog):
+
+class RosterSlash(app_commands.Group):
+    """
+    Slash command group: /roster
+    """
+
     def __init__(self, core):
+        super().__init__(
+            name="roster",
+            description="Manage your personal champion roster"
+        )
         self.core = core
-        self.bot = core.bot
-        self.cache = core.cache
         self.users = UserDataManager()
 
-    # ----------------------------------------
-    # /mcoc roster group
-    # ----------------------------------------
-    @commands.group()
-    async def roster(self, ctx):
-        """User roster commands."""
-        pass
+    # ---------------------------------------------------------
+    # Autocomplete: champion names
+    # ---------------------------------------------------------
+    async def champion_autocomplete(self, interaction: discord.Interaction, current: str):
+        current = current.lower()
+        champs = self.core.cache.get_all_champions()
 
-    # ----------------------------------------
-    # /mcoc roster add <champion> <hargs>
-    # ----------------------------------------
-    @roster.command()
-    async def add(self, ctx, champion: str, *, hargs: str = None):
+        matches = [
+            app_commands.Choice(name=c["name"], value=c["id"])
+            for c in champs
+            if current in c["name"].lower() or current in c["id"].lower()
+        ]
+
+        return matches[:25]
+
+    # ---------------------------------------------------------
+    # Autocomplete: hargs
+    # ---------------------------------------------------------
+    async def hargs_autocomplete(self, interaction: discord.Interaction, current: str):
+        current = current.lower()
+
+        presets = [
+            "7*",
+            "7*r1",
+            "7*r2",
+            "7*r3",
+            "7*r4",
+            "7*r5",
+            "6*",
+            "6*r1",
+            "6*r2",
+            "6*r3",
+            "6*r4",
+            "6*r5",
+            "5*",
+            "5*r1",
+            "5*r2",
+            "5*r3",
+            "5*r4",
+            "5*r5",
+            "r1", "r2", "r3", "r4", "r5",
+            "s0", "s20", "s40", "s80", "s120", "s200",
+            "#bleed", "#poison", "#shock", "#incinerate",
+        ]
+
+        matches = [
+            app_commands.Choice(name=p, value=p)
+            for p in presets
+            if current in p.lower()
+        ]
+
+        return matches[:25]
+
+
+
+    # ---------------------------------------------------------
+    # /roster add <champion> <hargs>
+    # ---------------------------------------------------------
+    @app_commands.command(name="add", description="Add a champion to your roster")
+    @app_commands.autocomplete(champion=champion_autocomplete, hargs=hargs_autocomplete)
+    async def add(self, interaction: discord.Interaction, champion: str, hargs: str):
         parsed = parse_hargs(hargs or "")
 
-        champ = self.cache.get_champion(champion)
+        champ = self.core.cache.get_champion(champion)
         if not champ:
-            await ctx.send(f"Champion `{champion}` not found.")
+            await interaction.response.send_message(
+                f"Champion `{champion}` not found.",
+                ephemeral=True
+            )
             return
 
         rarity = parsed["rarities"][0] if parsed["rarities"] else None
         rank = parsed["ranks"][0] if parsed["ranks"] else None
         sig = parsed["sigs"][0] if parsed["sigs"] else 0
         tags = parsed["tags"]
+        ascended = parsed["ascensions"][0] if parsed["ascensions"] else 0
 
         if rarity is None or rank is None:
-            await ctx.send("Adding a champion requires rarity and rank (e.g., `6*r3`).")
+            await interaction.response.send_message(
+                "Adding a champion requires rarity and rank (e.g., `6*r3`).",
+                ephemeral=True
+            )
             return
 
         self.users.add_champion(
-            ctx.author.id,
-            champ_slug=champ["slug"],
+            interaction.user.id,
+            champ_slug=champ["id"],
             rarity=rarity,
             rank=rank,
             sig=sig,
-            tags=tags
+            tags=tags,
+            ascended=ascended
         )
 
-        embed = await roster_entry_embed(ctx, champ, {
+        embed = await roster_entry_embed(interaction, champ, {
             "rarity": rarity,
             "rank": rank,
             "sig": sig,
-            "tags": tags
+            "tags": tags,
+            "ascended": ascended
         })
 
-        await ctx.send(f"Added **{champ['name']}** to your roster.", embed=embed)
+        await interaction.response.send_message(
+            f"Added **{champ['name']}** to your roster.",
+            embed=embed
+        )
 
-    # ----------------------------------------
-    # /mcoc roster remove <champion> <hargs?>
-    # ----------------------------------------
-    @roster.command()
-    async def remove(self, ctx, champion: str, *, hargs: str = None):
+    # ---------------------------------------------------------
+    # /roster remove <champion> <hargs?>
+    # ---------------------------------------------------------
+    @app_commands.command(name="remove", description="Remove a champion from your roster")
+    @app_commands.autocomplete(champion=champion_autocomplete)
+    async def remove(self, interaction: discord.Interaction, champion: str, hargs: str = None):
         parsed = parse_hargs(hargs or "")
         rarity = parsed["rarities"][0] if parsed["rarities"] else None
 
-        removed = self.users.remove_champion(ctx.author.id, champion, rarity)
+        removed = self.users.remove_champion(interaction.user.id, champion, rarity)
 
         if removed == 0:
-            await ctx.send("No matching champion found in your roster.")
+            await interaction.response.send_message(
+                "No matching champion found in your roster.",
+                ephemeral=True
+            )
         else:
-            await ctx.send(f"Removed {removed} entries for `{champion}`.")
+            await interaction.response.send_message(
+                f"Removed {removed} entries for `{champion}`."
+            )
 
-    # ----------------------------------------
-    # /mcoc roster update <champion> <hargs>
-    # ----------------------------------------
-    @roster.command()
-    async def update(self, ctx, champion: str, *, hargs: str):
+    # ---------------------------------------------------------
+    # /roster update <champion> <hargs>
+    # ---------------------------------------------------------
+    @app_commands.command(name="update", description="Update a champion entry in your roster")
+    @app_commands.autocomplete(champion=champion_autocomplete)
+    async def update(self, interaction: discord.Interaction, champion: str, hargs: str):
         parsed = parse_hargs(hargs)
 
         rarity = parsed["rarities"][0] if parsed["rarities"] else None
         rank = parsed["ranks"][0] if parsed["ranks"] else None
         sig = parsed["sigs"][0] if parsed["sigs"] else None
         tags = parsed["tags"] if parsed["tags"] else None
+        ascended = parsed["ascensions"][0] if parsed["ascensions"] else 0
 
         if rarity is None:
-            await ctx.send("Updating a champion requires rarity (e.g., `6*`).")
+            await interaction.response.send_message(
+                "Updating a champion requires rarity (e.g., `6*`).",
+                ephemeral=True
+            )
             return
 
         updated = self.users.update_champion(
-            ctx.author.id,
+            interaction.user.id,
             champ_slug=champion,
             rarity=rarity,
             rank=rank,
             sig=sig,
-            tags=tags
+            tags=tags,
+            ascended=ascended
         )
 
         if not updated:
-            await ctx.send("Champion not found in your roster.")
+            await interaction.response.send_message(
+                "Champion not found in your roster.",
+                ephemeral=True
+            )
             return
 
-        champ = self.cache.get_champion(champion)
-        embed = await roster_entry_embed(ctx, champ, {
+        champ = self.core.cache.get_champion(champion)
+        embed = await roster_entry_embed(interaction, champ, {
             "rarity": rarity,
             "rank": rank or 0,
             "sig": sig or 0,
-            "tags": tags or []
+            "tags": tags or [],
+            "ascended": ascended or 0
         })
 
-        await ctx.send(f"Updated **{champ['name']}**.", embed=embed)
+        await interaction.response.send_message(
+            f"Updated **{champ['name']}**.",
+            embed=embed
+        )
 
-    # ----------------------------------------
-    # /mcoc roster list <hargs?>
-    # ----------------------------------------
-    @roster.command()
-    async def list(self, ctx, *, hargs: str = None):
+    # ---------------------------------------------------------
+    # /roster list <hargs?>
+    # ---------------------------------------------------------
+    @app_commands.command(name="list", description="List your roster with optional filters")
+    async def list(self, interaction: discord.Interaction, hargs: str = None):
         parsed = parse_hargs(hargs or "")
-        roster = self.users.list_roster(ctx.author.id)
+        roster = self.users.list_roster(interaction.user.id)
 
-        # Filter using hargs
         results = []
         for entry in roster:
-            champ = self.cache.get_champion(entry["champion"])
+            champ = self.core.cache.get_champion(entry["champion"])
             if not champ:
                 continue
 
@@ -143,31 +228,40 @@ class RosterCommands(commands.Cog):
                 results.append((champ, entry))
 
         if not results:
-            await ctx.send("No roster entries match your filters.")
+            await interaction.response.send_message(
+                "No roster entries match your filters.",
+                ephemeral=True
+            )
             return
 
         pages = []
         for champ, entry in results:
-            embed = await roster_entry_embed(ctx, champ, entry)
+            embed = await roster_entry_embed(interaction, champ, entry)
             pages.append(embed)
 
         pages = PagesMenu.add_page_numbers(pages)
-        champ, entry = results[0]
-        embed = await roster_entry_embed(ctx, champ, entry)
-        await ctx.send(embed=embed, view=PagesMenu(pages, ctx.author))
 
-    # ----------------------------------------
-    # /mcoc roster export
-    # ----------------------------------------
-    @roster.command()
-    async def export(self, ctx):
-        data = self.users.export(ctx.author.id)
-        await ctx.send(f"Your roster data:\n```json\n{json.dumps(data, indent=2)}\n```")
+        await interaction.response.send_message(
+            embed=pages[0],
+            view=PagesMenu(pages, interaction.user)
+        )
 
-    # ----------------------------------------
-    # /mcoc roster clear
-    # ----------------------------------------
-    @roster.command()
-    async def clear(self, ctx):
-        self.users.delete_user(ctx.author.id)
-        await ctx.send("Your roster has been cleared.")
+    # ---------------------------------------------------------
+    # /roster export
+    # ---------------------------------------------------------
+    @app_commands.command(name="export", description="Export your roster as JSON")
+    async def export(self, interaction: discord.Interaction):
+        data = self.users.export(interaction.user.id)
+        json_text = discord.utils.escape_markdown(str(data))
+
+        await interaction.response.send_message(
+            f"Your roster data:\n```json\n{json_text}\n```"
+        )
+
+    # ---------------------------------------------------------
+    # /roster clear
+    # ---------------------------------------------------------
+    @app_commands.command(name="clear", description="Clear your entire roster")
+    async def clear(self, interaction: discord.Interaction):
+        self.users.delete_user(interaction.user.id)
+        await interaction.response.send_message("Your roster has been cleared.")

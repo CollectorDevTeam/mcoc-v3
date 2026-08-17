@@ -1,13 +1,13 @@
 from redbot.core import commands, Config
-import discord
 import asyncio
 
 from .api import MCOCHubAPI
 from .cache import CacheManager
-from .champions import ChampionsCommands
-from .roster import RosterCommands
-from .admin import AdminCommands
-from .alliance import AllianceCommands
+
+# Slash groups
+from .champions import ChampionSlash
+from .roster import RosterSlash
+from .admin import AdminSlash
 
 
 class CollectorBot(commands.Cog):
@@ -16,7 +16,7 @@ class CollectorBot(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-        # API client will be initialized in cog_load()
+        # API client (initialized in cog_load)
         self.api = None
 
         # Cache manager
@@ -25,53 +25,41 @@ class CollectorBot(commands.Cog):
         # Persistent config
         self.config = Config.get_conf(self, identifier=9876543210)
         self.config.register_global(
-            api_key=None,                 # <-- API key stored here
-            sync_interval=24,             # hours
+            api_key=None,
+            sync_interval=24,
             cache_version=0,
             collector_devteam_role=None
         )
 
-        # Submodules
-        self.champions = ChampionsCommands(self)
-        self.roster = RosterCommands(self)
-        self.admin = AdminCommands(self)
-        self.alliance = AllianceCommands(self)
+        # Slash command groups
+        self.champions_slash = ChampionSlash(self)
+        self.roster_slash = RosterSlash(self)
+        self.admin_slash = AdminSlash(self)
 
         # Background sync task placeholder
         self.sync_task = None
-
 
     # ---------------------------------------------------------
     # Cog Load (async init)
     # ---------------------------------------------------------
     async def cog_load(self):
-        # Load API key
         api_key = await self.config.api_key()
-        if not api_key:
-            raise RuntimeError(
-                "MCOCHUB API key is not set. Use: [mcocadmin setapikey YOURKEY]"
+
+        if api_key:
+            # Live mode
+            self.api = MCOCHubAPI(api_key)
+            self.sync_task = self.bot.loop.create_task(self._sync_loop())
+        else:
+            # Offline mode
+            self.api = None
+            await self.bot.send_to_owners(
+                "⚠️ MCOCHUB API key not set. CollectorBot is running in offline mode using local cache only."
             )
 
-        # Initialize API client
-        self.api = MCOCHubAPI(api_key)
-
-        # Start background sync loop
-        self.sync_task = self.bot.loop.create_task(self._sync_loop())
-
-        # Register slash commands
-        self.bot.tree.add_command(self.champions.info)
-        self.bot.tree.add_command(self.champions.abilities)
-        self.bot.tree.add_command(self.champions.synergies)
-        self.bot.tree.add_command(self.champions.tags)
-        self.bot.tree.add_command(self.champions.stats)
-
-        self.bot.tree.add_command(self.roster.add)
-        self.bot.tree.add_command(self.roster.remove)
-        self.bot.tree.add_command(self.roster.update)
-        self.bot.tree.add_command(self.roster.list)
-        self.bot.tree.add_command(self.roster.export)
-        self.bot.tree.add_command(self.roster.clear)
-
+        # Register slash command groups
+        self.bot.tree.add_command(self.champions_slash)
+        self.bot.tree.add_command(self.roster_slash)
+        self.bot.tree.add_command(self.admin_slash)
 
     # ---------------------------------------------------------
     # Background Sync Loop
@@ -80,21 +68,28 @@ class CollectorBot(commands.Cog):
         await self.bot.wait_until_ready()
 
         while True:
+            api_key = await self.config.api_key()
+            if not api_key:
+                # Offline mode → skip syncing
+                await asyncio.sleep(3600)
+                continue
+
             interval = await self.config.sync_interval()
             await self.sync_data()
             await asyncio.sleep(interval * 3600)
-
 
     # ---------------------------------------------------------
     # Sync Data from MCOCHUB
     # ---------------------------------------------------------
     async def sync_data(self):
+        if not self.api:
+            return False  # offline mode
+
         champions = await self.api.get_champions()
         abilities = await self.api.get_abilities()
         tags = await self.api.get_tags()
         immunities = await self.api.get_immunities()
 
-        # Version-based diff + save
         self.cache._diff_and_save("champions", champions)
         self.cache._diff_and_save("abilities", abilities)
         self.cache._diff_and_save("tags", tags)
@@ -102,20 +97,6 @@ class CollectorBot(commands.Cog):
 
         self.cache._save_metadata()
         return True
-
-
-    # ---------------------------------------------------------
-    # Command Groups
-    # ---------------------------------------------------------
-    @commands.group()
-    async def mcoc(self, ctx):
-        """MCOC commands."""
-        pass
-
-    @commands.group()
-    async def mcocadmin(self, ctx):
-        """Admin commands."""
-        pass
 
 
 async def setup(bot):

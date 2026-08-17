@@ -3,6 +3,7 @@ import hashlib
 import pathlib
 import datetime
 import logging
+from mcoc.cacheindex import CacheIndex
 
 log = logging.getLogger("red.mcoc.cache")
 
@@ -13,6 +14,9 @@ class CacheManager:
     def __init__(self):
         self.metadata_file = CACHE_DIR / "metadata.json"
         self.metadata = self._load_metadata()
+
+        # build index
+        self.index = CacheIndex(self)
 
     # -----------------------------
     # Metadata
@@ -60,6 +64,10 @@ class CacheManager:
         self.metadata["last_sync"] = datetime.datetime.utcnow().isoformat()
 
         log.info(f"Updated cache for {name}.")
+
+        # rebuild index after updating cache
+        self.index.rebuild()
+        
         return True
 
 
@@ -88,6 +96,9 @@ class CacheManager:
         else:
             log.info("Cache unchanged; metadata not updated.")
 
+        # rebuild index after sync
+        self.index.rebuild()
+
         return updated
 
     # -----------------------------
@@ -108,9 +119,22 @@ class CacheManager:
 
         return None
 
+def get_all_tags(self):
+    data = self._load_file("tags")
+    return data.get("tags", [])
 
-    def get_all_champions(self):
-        return list(self._load_file("champions").get("champions", {}).values())
+def get_all_abilities(self):
+    data = self._load_file("abilities")
+    return data.get("abilities", [])
+
+def get_all_immunities(self):
+    data = self._load_file("immunity")
+    return data.get("immunity", [])
+
+def get_all_champions(self):
+    data = self._load_file("champions")
+    return list(data.get("champions", {}).values())
+
 
     def _load_file(self, name):
         path = CACHE_DIR / f"{name}.json"
