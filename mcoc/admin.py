@@ -5,13 +5,13 @@ from discord import app_commands
 class AdminSlash(app_commands.Group):
     """
     Slash command group: /mcocadmin
-    Admin-only controls for CollectorBot.
+    Admin-only controls for MCOC.
     """
 
     def __init__(self, core):
         super().__init__(
             name="mcocadmin",
-            description="Admin commands for CollectorBot"
+            description="Admin commands for MCOC"
         )
         self.core = core
         self.config = core.config
