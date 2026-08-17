@@ -85,6 +85,9 @@ class CollectorBot(commands.Cog):
         if not self.api:
             return False  # offline mode
 
+        if not self.api:
+            return False  # offline mode
+
         champions = await self.api.get_champions()
         abilities = await self.api.get_abilities()
         tags = await self.api.get_tags()
