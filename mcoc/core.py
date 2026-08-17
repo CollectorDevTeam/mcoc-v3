@@ -45,18 +45,20 @@ class CollectorBot(commands.Cog):
     # Cog Load (async init)
     # ---------------------------------------------------------
     async def cog_load(self):
-        # Load API key
+        # Try to load API key
         api_key = await self.config.api_key()
-        if not api_key:
-            raise RuntimeError(
-                "MCOCHUB API key is not set. Use: [mcocadmin setapikey YOURKEY]"
+
+        if api_key:
+            # Real API key → enable live sync
+            self.api = MCOCHubAPI(api_key)
+            self.sync_task = self.bot.loop.create_task(self._sync_loop())
+        else:
+            # No API key → safe load mode
+            self.api = None
+            # Do NOT start sync loop
+            await self.bot.send_to_owners(
+                "⚠️ MCOCHUB API key not set. CollectorBot is running in offline mode using local cache only."
             )
-
-        # Initialize API client
-        self.api = MCOCHubAPI(api_key)
-
-        # Start background sync loop
-        self.sync_task = self.bot.loop.create_task(self._sync_loop())
 
         # Register slash commands
         self.bot.tree.add_command(self.champions.info)
@@ -80,6 +82,12 @@ class CollectorBot(commands.Cog):
         await self.bot.wait_until_ready()
 
         while True:
+            # If no API key, skip syncing entirely
+            api_key = await self.config.api_key()
+            if not api_key:
+                await asyncio.sleep(3600)
+                continue
+
             interval = await self.config.sync_interval()
             await self.sync_data()
             await asyncio.sleep(interval * 3600)
@@ -89,12 +97,14 @@ class CollectorBot(commands.Cog):
     # Sync Data from MCOCHUB
     # ---------------------------------------------------------
     async def sync_data(self):
+        if not self.api:
+            return False  # offline mode
+
         champions = await self.api.get_champions()
         abilities = await self.api.get_abilities()
         tags = await self.api.get_tags()
         immunities = await self.api.get_immunities()
 
-        # Version-based diff + save
         self.cache._diff_and_save("champions", champions)
         self.cache._diff_and_save("abilities", abilities)
         self.cache._diff_and_save("tags", tags)
