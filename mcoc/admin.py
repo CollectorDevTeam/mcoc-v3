@@ -15,6 +15,12 @@ class AdminSlash(app_commands.Group):
         )
         self.core = core
         self.config = core.config
+        try:
+            raise Exception("TRACE: AdminSlash init")
+        except Exception:
+            import traceback
+            traceback.print_exc()
+
 
     # ---------------------------------------------------------
     # Permission check helper

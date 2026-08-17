@@ -19,6 +19,12 @@ class RosterSlash(app_commands.Group):
         )
         self.core = core
         self.users = UserDataManager()
+        try:
+            raise Exception("TRACE: RosterSlash init")
+        except Exception:
+            import traceback
+            traceback.print_exc()
+
 
     # ---------------------------------------------------------
     # Autocomplete: champion names

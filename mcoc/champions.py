@@ -16,6 +16,11 @@ class ChampionSlash(app_commands.Group):
             description="Champion information commands"
         )
         self.core = core
+        try:
+            raise Exception("TRACE: ChampionSlash init")
+        except Exception:
+            import traceback
+            traceback.print_exc()
 
     # ---------------------------------------------------------
     # Autocomplete: champion names
