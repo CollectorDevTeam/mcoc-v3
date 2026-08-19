@@ -218,7 +218,7 @@ class MCOC(commands.Cog):
 
         # Schedule a deferred sync task instead of awaiting it inline (prevents blocking)
         try:
-            self._post_load_sync_task = self.bot.loop.create_task(self._deferred_post_load_sync(delay=1.0))
+            self._post_load_sync_task = self.bot.loop.create_task(self._deferred_post_load_sync(delay=3.0))
             log.debug("Scheduled deferred post-load tree sync task: %s", getattr(self, "_post_load_sync_task", None))
         except Exception:
             log.exception("Failed to schedule deferred post-load sync task")
