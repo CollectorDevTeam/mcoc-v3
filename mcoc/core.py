@@ -3,8 +3,9 @@ from redbot.core import commands, Config
 import asyncio
 import logging
 
-from .api import MCOCHubAPI
+from .api import MCOCHubAPI, UnauthenticatedError, RateLimitedError
 from .cache import CacheManager
+
 
 log = logging.getLogger("red.mcoc.core")
 
@@ -40,7 +41,7 @@ class MCOC(commands.Cog):
     # Cog Load (async init)
     # ---------------------------------------------------------
     async def cog_load(self):
-        # Minimal trace for debugging
+        log.info("MCOC cog_load starting")
         log.debug("TRACE: cog_load started")
 
         # Create slash groups now (avoid import-time side effects)
@@ -48,29 +49,37 @@ class MCOC(commands.Cog):
         from .roster import RosterSlash
         from .admin import AdminSlash
 
+        log.debug("Instantiating slash groups")
         self.champions_slash = ChampionSlash(self)
         self.roster_slash = RosterSlash(self)
         self.admin_slash = AdminSlash(self)
+        log.debug("Slash groups instantiated")
 
         # Key getter that reads Red's shared API tokens
         async def _get_mcochub_key():
             try:
                 shared = await self.bot.get_shared_api_tokens()
+                log.debug("bot.get_shared_api_tokens returned type=%s", type(shared).__name__)
                 if isinstance(shared, dict):
                     # use the exact service name you set with ///set api <service> <token>
-                    return shared.get("mcochub")
+                    token = shared.get("mcochub")
+                    log.debug("Shared token present: %s", bool(token))
+                    return token
             except Exception:
                 log.exception("Failed to read shared API tokens")
             return None
 
         # Create API client that resolves the key at request time
         self.api = MCOCHubAPI(key_getter=_get_mcochub_key)
+        log.info("MCOCHubAPI client created (key_getter attached)")
 
         # If a token exists now, start the sync loop; otherwise do not start it
         token_now = await _get_mcochub_key()
         if token_now:
+            log.info("MCOCHUB token found; starting background sync task")
             self.sync_task = self.bot.loop.create_task(self._sync_loop())
         else:
+            log.warning("MCOCHUB API token not found in shared tokens; running in offline mode")
             await self.bot.send_to_owners(
                 "⚠️ MCOCHUB API token not found in Red shared API tokens. Use `///set api mcochub <token>` to provide it."
             )
@@ -91,6 +100,7 @@ class MCOC(commands.Cog):
         try:
             res = await self.bot.tree.sync()
             log.debug("TRACE: tree sync completed; result: %s", res)
+            log.info("Application command tree sync completed; %d entries", len(res) if hasattr(res, "__len__") else 0)
         except Exception:
             log.exception("Error during tree.sync()")
 
@@ -98,22 +108,28 @@ class MCOC(commands.Cog):
     # Cog Unload (cleanup)
     # ---------------------------------------------------------
     async def cog_unload(self):
+        log.info("Unloading MCOC cog; cleaning up background tasks and sessions")
+
         # Cancel background task
         if self.sync_task:
+            log.debug("Cancelling sync_task")
             self.sync_task.cancel()
             try:
                 await asyncio.wait_for(self.sync_task, timeout=10)
+                log.debug("sync_task finished cleanly")
             except asyncio.TimeoutError:
                 log.warning("sync_task did not finish within timeout; continuing unload.")
             except asyncio.CancelledError:
-                pass
+                log.debug("sync_task cancelled")
             except Exception:
                 log.exception("Exception while awaiting sync_task during unload")
 
         # Close API session if present
         if self.api:
             try:
+                log.debug("Closing MCOCHubAPI session")
                 await self.api.close()
+                log.debug("MCOCHubAPI session closed")
             except Exception:
                 log.exception("Error closing MCOCHubAPI session")
             finally:
@@ -123,20 +139,32 @@ class MCOC(commands.Cog):
     # Background Sync Loop
     # ---------------------------------------------------------
     async def _sync_loop(self):
+        log.info("Sync loop starting")
         await self.bot.wait_until_ready()
+        log.debug("Bot ready; entering sync loop")
+
         while True:
             try:
+                log.debug("Sync loop iteration starting")
                 if not self.api:
+                    log.debug("No API client available; sleeping 1 hour")
                     await asyncio.sleep(3600)
                     continue
 
                 try:
+                    log.debug("Invoking cache.sync()")
                     updated = await self.cache.sync(self.api)
+                    log.debug("cache.sync() returned: %s", updated)
                 except UnauthenticatedError:
                     log.error("Stopping sync loop: unauthenticated API key.")
+                    # notify owners once
+                    try:
+                        await self.bot.send_to_owners("MCOCHub API key unauthenticated; sync loop stopped.")
+                    except Exception:
+                        log.exception("Failed to notify owners about unauthenticated key")
                     break
                 except RateLimitedError:
-                    log.warning("Rate limited; backing off 1 hour.")
+                    log.warning("Rate limited by MCOCHub; backing off for 1 hour.")
                     await asyncio.sleep(3600)
                     continue
 
@@ -155,6 +183,7 @@ class MCOC(commands.Cog):
             # Normal interval wait
             try:
                 interval = await self.config.sync_interval()
+                log.debug("Sleeping for %s hours until next sync", interval)
                 await asyncio.sleep(interval * 3600)
             except asyncio.CancelledError:
                 log.debug("Sync loop cancelled during sleep.")
@@ -165,8 +194,10 @@ class MCOC(commands.Cog):
     # ---------------------------------------------------------
     async def sync_data(self):
         if not self.api:
+            log.debug("sync_data called but API client is not available")
             return False  # offline mode
 
+        log.debug("Manual sync_data invoked")
         champions = await self.api.get_champions()
         abilities = await self.api.get_abilities()
         tags = await self.api.get_tags()
@@ -178,6 +209,7 @@ class MCOC(commands.Cog):
         self.cache._diff_and_save("immunities", immunities)
 
         self.cache._save_metadata()
+        log.info("Manual sync_data completed")
         return True
 
 
