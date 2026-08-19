@@ -32,47 +32,97 @@ class CacheIndex:
     # Rebuild the entire index from cache files
     # ---------------------------------------------------------
     def rebuild(self):
-        log.info("Rebuilding CacheIndex...")
-
-        # Load raw data
-        champs = self.cache._load_file("champions").get("champions", {})
-        tags = self.cache._load_file("tags").get("tags", [])
-        abilities = self.cache._load_file("abilities").get("abilities", [])
-        immunities = self.cache._load_file("immunity").get("immunity", [])
-
-        self.champions = list(champs.values())
-        self.tags = tags
-        self.abilities = abilities
-        self.immunities = immunities
-
-        # Clear reverse lookup tables
-        self.champions_by_id.clear()
-        self.champions_by_name.clear()
-        self.champions_by_tag.clear()
-        self.champions_by_ability.clear()
-        self.champions_by_immunity.clear()
-
-        # Build champion lookup tables
-        for champ in self.champions:
-            cid = champ["id"]
-            name = champ["name"].lower()
-
-            self.champions_by_id[cid] = champ
-            self.champions_by_name[name] = champ
-
-            # Tags
-            for tag in champ.get("tags", []):
-                self.champions_by_tag.setdefault(tag, []).append(champ)
+        try:
+            champs_raw = self.cache._load_file("champions").get("champions", {})
+            # Accept list or dict; normalize to dict keyed by id/name
+            if isinstance(champs_raw, list):
+                mapped = {}
+                for i, item in enumerate(champs_raw):
+                    if isinstance(item, dict):
+                        key = item.get("id") or item.get("champion_id") or item.get("name", "").lower() or str(i)
+                    else:
+                        key = str(i)
+                    mapped[str(key)] = item
+                champs_raw = mapped
+            if isinstance(champs_raw, dict):
+                self.champions = list(champs_raw.values())
+            else:
+                self.champions = []
 
             # Abilities
-            for ability in champ.get("abilities", []):
-                self.champions_by_ability.setdefault(ability, []).append(champ)
+            abilities_raw = self.cache._load_file("abilities").get("abilities", {})
+            if isinstance(abilities_raw, list):
+                mapped = {}
+                for i, item in enumerate(abilities_raw):
+                    key = item.get("id") if isinstance(item, dict) else str(i)
+                    mapped[str(key)] = item
+                abilities_raw = mapped
+            self.abilities = list(abilities_raw.values()) if isinstance(abilities_raw, dict) else []
 
             # Immunities
-            for immunity in champ.get("immunities", []):
-                self.champions_by_immunity.setdefault(immunity, []).append(champ)
+            immunities_raw = self.cache._load_file("immunities").get("immunities", {})
+            if isinstance(immunities_raw, list):
+                mapped = {}
+                for i, item in enumerate(immunities_raw):
+                    key = item.get("id") if isinstance(item, dict) else str(i)
+                    mapped[str(key)] = item
+                immunities_raw = mapped
+            self.immunities = list(immunities_raw.values()) if isinstance(immunities_raw, dict) else []
 
-        log.info("CacheIndex rebuilt successfully.")
+            # Tags
+            tags_raw = self.cache._load_file("tags").get("tags", {})
+            if isinstance(tags_raw, list):
+                mapped = {}
+                for i, item in enumerate(tags_raw):
+                    key = item.get("id") if isinstance(item, dict) else str(i)
+                    mapped[str(key)] = item
+                tags_raw = mapped
+            # For tags we might want a list of names
+            if isinstance(tags_raw, dict):
+                self.tags = [t.get("name", str(k)) for k, t in tags_raw.items()]
+            elif isinstance(tags_raw, list):
+                self.tags = tags_raw
+            else:
+                self.tags = []
+
+            # Rebuild reverse lookup tables defensively
+            self.champions_by_id = {}
+            self.champions_by_name = {}
+            self.champions_by_tag = {}
+            self.champions_by_ability = {}
+            self.champions_by_immunity = {}
+
+            for champ in self.champions:
+                if not isinstance(champ, dict):
+                    continue
+                cid = champ.get("id")
+                name = champ.get("name")
+                if cid:
+                    self.champions_by_id[str(cid)] = champ
+                if name:
+                    self.champions_by_name[name.lower()] = champ
+                for tag in champ.get("tags", []):
+                    self.champions_by_tag.setdefault(tag, []).append(champ)
+                for ability in champ.get("abilities", []):
+                    aid = ability.get("name") if isinstance(ability, dict) else ability
+                    self.champions_by_ability.setdefault(aid, []).append(champ)
+                for imm in champ.get("immunities", []):
+                    iid = imm.get("name") if isinstance(imm, dict) else imm
+                    self.champions_by_immunity.setdefault(iid, []).append(champ)
+
+        except Exception:
+            log.exception("Failed to rebuild CacheIndex")
+            # Reset to safe defaults
+            self.champions = []
+            self.tags = []
+            self.abilities = []
+            self.immunities = []
+            self.champions_by_id = {}
+            self.champions_by_name = {}
+            self.champions_by_tag = {}
+            self.champions_by_ability = {}
+            self.champions_by_immunity = {}
+
 
     # ---------------------------------------------------------
     # Autocomplete helpers

@@ -147,3 +147,4 @@ class MCOCHubAPI:
     async def close(self):
         if not self._external_session and self.session and not self.session.closed:
             await self.session.close()
+        self.session = None

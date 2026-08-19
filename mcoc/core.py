@@ -102,57 +102,63 @@ class MCOC(commands.Cog):
         if self.sync_task:
             self.sync_task.cancel()
             try:
-                await self.sync_task
+                await asyncio.wait_for(self.sync_task, timeout=10)
+            except asyncio.TimeoutError:
+                log.warning("sync_task did not finish within timeout; continuing unload.")
             except asyncio.CancelledError:
                 pass
+            except Exception:
+                log.exception("Exception while awaiting sync_task during unload")
 
-        # Close API session if owned by the API client
+        # Close API session if present
         if self.api:
             try:
                 await self.api.close()
             except Exception:
                 log.exception("Error closing MCOCHubAPI session")
+            finally:
+                self.api = None
 
     # ---------------------------------------------------------
     # Background Sync Loop
     # ---------------------------------------------------------
     async def _sync_loop(self):
         await self.bot.wait_until_ready()
-
         while True:
             try:
-                # If API client is None, try to create or skip
                 if not self.api:
-                    log.debug("No API client available; skipping sync loop iteration.")
                     await asyncio.sleep(3600)
                     continue
 
-                # Attempt a sync; this may raise UnauthenticatedError or RateLimitedError
-                updated = await self.cache.sync(self.api)
+                try:
+                    updated = await self.cache.sync(self.api)
+                except UnauthenticatedError:
+                    log.error("Stopping sync loop: unauthenticated API key.")
+                    break
+                except RateLimitedError:
+                    log.warning("Rate limited; backing off 1 hour.")
+                    await asyncio.sleep(3600)
+                    continue
+
                 if updated:
                     log.info("Cache updated by sync loop.")
                 else:
                     log.debug("No update performed this iteration.")
 
-            except UnauthenticatedError:
-                # Stop the loop permanently until token is fixed
-                log.error("Stopping sync loop: API key unauthenticated. Fix token and reload cog.")
+            except asyncio.CancelledError:
+                log.debug("Sync loop cancelled.")
                 break
-
-            except RateLimitedError:
-                # Back off aggressively: wait 1 hour before retrying
-                log.warning("Rate limited by MCOCHub; backing off for 1 hour.")
-                await asyncio.sleep(3600)
-                continue
-
             except Exception:
-                log.exception("Unexpected error in sync loop; sleeping 1 hour before retry.")
+                log.exception("Unexpected error in sync loop; sleeping 1 hour.")
                 await asyncio.sleep(3600)
-                continue
 
             # Normal interval wait
-            interval = await self.config.sync_interval()
-            await asyncio.sleep(interval * 3600)
+            try:
+                interval = await self.config.sync_interval()
+                await asyncio.sleep(interval * 3600)
+            except asyncio.CancelledError:
+                log.debug("Sync loop cancelled during sleep.")
+                break
 
     # ---------------------------------------------------------
     # Sync Data from MCOCHUB
