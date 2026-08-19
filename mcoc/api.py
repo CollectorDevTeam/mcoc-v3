@@ -50,22 +50,30 @@ class MCOCHubAPI:
             return None
 
         headers = {
-            "Authorization": f"Bearer {api_key}",
             "Accept": "application/json",
         }
 
+        params = {"api_key": api_key}
+
         try:
-            async with self.session.get(url, headers=headers) as resp:
+            async with self.session.get(url, headers=headers, params=params) as resp:
+                text = await resp.text()
                 if resp.status != 200:
-                    text = await resp.text()
-                    log.warning("MCOCHUB API error %s for %s: %s", resp.status, url, text)
+                    # log body for debugging
+                    log.warning("MCOCHUB API error %s for %s?api_key=REDACTED: %s", resp.status, url, text)
                     return None
-                return await resp.json()
+                try:
+                    return await resp.json()
+                except Exception:
+                    # If JSON parsing fails, log and return raw text
+                    log.exception("Failed to parse JSON from %s: %s", url, text)
+                    return None
         except asyncio.CancelledError:
             raise
         except Exception as e:
             log.exception("MCOCHUB API exception for %s: %s", url, e)
             return None
+
 
     # -----------------------------
     # Champions (full list only)
