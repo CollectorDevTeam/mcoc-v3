@@ -15,11 +15,22 @@ class AdminSlash(app_commands.Group):
         )
         self.core = core
         self.config = core.config
+        self._init_failed = False
+
         try:
-            raise Exception("TRACE: AdminSlash init")
+            # Put only lightweight setup here (no network calls).
+            # Example: set attributes, prepare local helpers, register state.
+            # Do NOT raise exceptions for tracing; log instead.
+            # (If you previously registered subcommands here, keep only definitions,
+            #  but avoid anything that can throw at import time.)
+            pass
+
         except Exception:
-            import traceback
-            traceback.print_exc()
+            import logging
+            log = logging.getLogger("red.mcoc.core")
+            log.exception("ChampionSlash constructor failed; continuing without slash group")
+            # mark failure so core can skip adding this group
+            self._init_failed = True
 
 
     # ---------------------------------------------------------

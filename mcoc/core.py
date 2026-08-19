@@ -50,9 +50,24 @@ class MCOC(commands.Cog):
         from .admin import AdminSlash
 
         log.debug("Instantiating slash groups")
+
         self.champions_slash = ChampionSlash(self)
+        if self.champions_slash and not getattr(self.champions_slash, "_init_failed", False):
+            self.bot.tree.add_command(self.champions_slash)
+        else:
+            log.warning("ChampionSlash not added due to init failure")
+
         self.roster_slash = RosterSlash(self)
+        if self.roster_slash and not getattr(self.roster_slash, "_init_failed", False):
+            self.bot.tree.add_command(self.roster_slash)
+        else:
+            log.warning("RosterSlash not added due to init failure")
+
         self.admin_slash = AdminSlash(self)
+        if self.admin_slash and not getattr(self.admin_slash, "_init_failed", False):
+            self.bot.tree.add_command(self.admin_slash)
+        else:
+            log.warning("AdminSlash not added due to init failure")
         log.debug("Slash groups instantiated")
 
         log.debug("Prefix Commands backup")
