@@ -28,16 +28,44 @@ class MCOCHubAPI:
         self.session = session or aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=timeout))
 
     async def _resolve_key(self) -> Optional[str]:
+        # Prefer static key if provided
         if self._static_key:
-            return self._static_key
+            return str(self._static_key)
+
         if self._key_getter:
             try:
                 key = await self._key_getter()
-                return key
             except Exception as e:
                 log.exception("Error while fetching MCOCHub API key from key_getter: %s", e)
                 return None
+
+            # If the getter returned None, bail
+            if not key:
+                return None
+
+            # If it's already a string/number, return it
+            if isinstance(key, (str, int, float)):
+                return str(key)
+
+            # If it's a dict, try common shapes: {"api": "token"}, {"token": "..."}, {"key": "..."}
+            if isinstance(key, dict):
+                for candidate in ("api", "token", "key", "value"):
+                    if candidate in key and isinstance(key[candidate], (str, int, float)):
+                        return str(key[candidate])
+                # If dict has a single value that's a string, return it
+                vals = [v for v in key.values() if isinstance(v, (str, int, float))]
+                if len(vals) == 1:
+                    return str(vals[0])
+
+            # Last resort: try to stringify (not ideal, but prevents crash)
+            try:
+                return str(key)
+            except Exception:
+                log.warning("Unable to coerce MCOCHub API key to string; got type %s", type(key))
+                return None
+
         return None
+
 
     # -----------------------------
     # Generic fetch helper
