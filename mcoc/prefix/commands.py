@@ -150,3 +150,17 @@ class MCOCPrefix(commands.Cog):
         logging.getLogger("red.mcoc.cacheindex").setLevel(level)
         await ctx.send(f"Verbose logging {'enabled' if val else 'disabled'}.")
         log.info("Owner set verbose logging to %s", val)
+
+    @commands.command()
+    @commands.is_owner()
+    async def debug_tree(self, ctx, guild_id: int = None):
+        """Print local tree and optionally sync to a guild."""
+        out = []
+        out.append(f"Local commands: {[c.name for c in self.bot.tree.get_commands()]}")
+        for c in self.bot.tree.get_commands():
+            children = getattr(c, "children", None) or getattr(c, "commands", None)
+            out.append(f"{c.name} -> {[ch.name for ch in children] if children else []}")
+        if guild_id:
+            res = await self.bot.tree.sync(guild=discord.Object(id=guild_id))
+            out.append(f"Synced to guild {guild_id}: {len(res)} commands")
+        await ctx.send("```\n" + "\n".join(out) + "\n```")
