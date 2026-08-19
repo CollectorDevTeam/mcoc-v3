@@ -48,34 +48,47 @@ class MCOC(commands.Cog):
         from .champions import ChampionSlash
         from .roster import RosterSlash
         from .admin import AdminSlash
+        from .prefix.commands import MCOCPrefix
 
         log.debug("Instantiating slash groups")
 
-        self.champions_slash = ChampionSlash(self)
-        if self.champions_slash and not getattr(self.champions_slash, "_init_failed", False):
-            self.bot.tree.add_command(self.champions_slash)
-        else:
-            log.warning("ChampionSlash not added due to init failure")
+        # Instantiate groups defensively (do not let constructor exceptions bubble)
+        try:
+            self.champions_slash = ChampionSlash(self)
+            if getattr(self.champions_slash, "_init_failed", False):
+                log.warning("ChampionSlash reported init failure during construction")
+                self.champions_slash = None
+        except Exception:
+            log.exception("ChampionSlash constructor raised; skipping slash group")
+            self.champions_slash = None
 
-        self.roster_slash = RosterSlash(self)
-        if self.roster_slash and not getattr(self.roster_slash, "_init_failed", False):
-            self.bot.tree.add_command(self.roster_slash)
-        else:
-            log.warning("RosterSlash not added due to init failure")
+        try:
+            self.roster_slash = RosterSlash(self)
+            if getattr(self.roster_slash, "_init_failed", False):
+                log.warning("RosterSlash reported init failure during construction")
+                self.roster_slash = None
+        except Exception:
+            log.exception("RosterSlash constructor raised; skipping slash group")
+            self.roster_slash = None
 
-        self.admin_slash = AdminSlash(self)
-        if self.admin_slash and not getattr(self.admin_slash, "_init_failed", False):
-            self.bot.tree.add_command(self.admin_slash)
-        else:
-            log.warning("AdminSlash not added due to init failure")
+        try:
+            self.admin_slash = AdminSlash(self)
+            if getattr(self.admin_slash, "_init_failed", False):
+                log.warning("AdminSlash reported init failure during construction")
+                self.admin_slash = None
+        except Exception:
+            log.exception("AdminSlash constructor raised; skipping slash group")
+            self.admin_slash = None
+
         log.debug("Slash groups instantiated")
 
-        log.debug("Prefix Commands backup")
-        from .prefix import MCOCPrefix
-        # register prefix commands as a separate cog, passing self so it reuses api/cache
-        self.prefix_cog = MCOCPrefix(self)
-        await self.bot.add_cog(self.prefix_cog)
-        log.debug("Prefix Commands cog added to bot")
+        # Register prefix commands cog (reuses this cog's api/cache)
+        try:
+            self.prefix_cog = MCOCPrefix(self)
+            await self.bot.add_cog(self.prefix_cog)
+            log.debug("Prefix Commands cog added to bot")
+        except Exception:
+            log.exception("Failed to add prefix commands cog")
 
         # Key getter that reads Red's shared API tokens
         async def _get_mcochub_key():
@@ -83,7 +96,6 @@ class MCOC(commands.Cog):
                 shared = await self.bot.get_shared_api_tokens()
                 log.debug("bot.get_shared_api_tokens returned type=%s", type(shared).__name__)
                 if isinstance(shared, dict):
-                    # use the exact service name you set with ///set api <service> <token>
                     token = shared.get("mcochub")
                     log.debug("Shared token present: %s", bool(token))
                     return token
@@ -102,17 +114,38 @@ class MCOC(commands.Cog):
             self.sync_task = self.bot.loop.create_task(self._sync_loop())
         else:
             log.warning("MCOCHUB API token not found in shared tokens; running in offline mode")
-            await self.bot.send_to_owners(
-                "⚠️ MCOCHUB API token not found in Red shared API tokens. Use `///set api mcochub <token>` to provide it."
-            )
+            try:
+                await self.bot.send_to_owners(
+                    "⚠️ MCOCHUB API token not found in Red shared API tokens. Use `///set api mcochub <token>` to provide it."
+                )
+            except Exception:
+                log.exception("Failed to notify owners about missing API token")
 
-        # Register slash groups
+        # Register slash groups safely: remove any existing registration first to avoid duplicates
         for name, group in [
             ("champ", self.champions_slash),
             ("roster", self.roster_slash),
-            ("admin", self.admin_slash),
+            ("mcocadmin", self.admin_slash),
         ]:
+            if not group:
+                log.debug("Slash group %s is None; skipping add", name)
+                continue
+
             try:
+                existing = None
+                try:
+                    existing = self.bot.tree.get_command(name)
+                except Exception:
+                    existing = None
+
+                if existing:
+                    try:
+                        log.info("Removing previously registered app command '%s' before re-adding", name)
+                        self.bot.tree.remove_command(name)
+                    except Exception:
+                        log.exception("Failed to remove existing app command %s; skipping add", name)
+                        continue
+
                 self.bot.tree.add_command(group)
                 log.debug("TRACE: added slash group %s", name)
             except Exception:
@@ -145,6 +178,8 @@ class MCOC(commands.Cog):
                 log.debug("sync_task cancelled")
             except Exception:
                 log.exception("Exception while awaiting sync_task during unload")
+            finally:
+                self.sync_task = None
 
         # Close API session if present
         if self.api:
@@ -157,13 +192,48 @@ class MCOC(commands.Cog):
             finally:
                 self.api = None
 
+        # Remove app commands (slash groups) from the tree to avoid duplicates on reload
+        try:
+            for name in ("champ", "roster", "admin", "mcocadmin"):
+                try:
+                    cmd = None
+                    try:
+                        cmd = self.bot.tree.get_command(name)
+                    except Exception:
+                        cmd = None
+
+                    if cmd:
+                        try:
+                            self.bot.tree.remove_command(name)
+                            log.info("Removed app command '%s' from tree during unload", name)
+                        except Exception:
+                            log.exception("Failed to remove app command %s during unload", name)
+                except Exception:
+                    log.exception("Unexpected error while attempting to remove app command %s", name)
+        except Exception:
+            log.exception("Error while cleaning up app commands during cog_unload")
+
         # remove prefix cog if present
         try:
             if getattr(self, "prefix_cog", None):
-                await self.bot.remove_cog(self.prefix_cog.__class__.__name__)
-                log.info("MCOC prefix commands cog removed")
+                try:
+                    # remove by cog class name (works with Red's add/remove cog APIs)
+                    cog_name = self.prefix_cog.__class__.__name__
+                    await self.bot.remove_cog(cog_name)
+                    log.info("MCOC prefix commands cog removed")
+                except Exception:
+                    # fallback: try to remove by instance if available
+                    try:
+                        await self.bot.remove_cog(self.prefix_cog)
+                        log.info("MCOC prefix commands cog removed (fallback)")
+                    except Exception:
+                        log.exception("Failed to remove prefix cog during unload")
+                finally:
+                    self.prefix_cog = None
         except Exception:
-            log.exception("Failed to remove prefix cog during unload")
+            log.exception("Failed to remove prefix cog during unload (outer)")
+
+        log.info("MCOC cog_unload complete")
 
     # ---------------------------------------------------------
     # Background Sync Loop
@@ -215,6 +285,11 @@ class MCOC(commands.Cog):
                 interval = await self.config.sync_interval()
                 log.debug("Sleeping for %s hours until next sync", interval)
                 await asyncio.sleep(interval * 3600)
+            except asyncio.CancelledError:
+                log.debug("Sync loop sleep cancelled.")
+                break
+            except Exception:
+                log.exception("Unexpected error during sync loop sleep; continuing.")
             except asyncio.CancelledError:
                 log.debug("Sync loop cancelled during sleep.")
                 break
