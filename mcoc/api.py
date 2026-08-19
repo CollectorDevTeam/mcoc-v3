@@ -6,6 +6,12 @@ from typing import Optional, Callable, Awaitable
 
 log = logging.getLogger("red.mcoc.api")
 
+class UnauthenticatedError(Exception):
+    """Raised when API returns unauthenticated / invalid key (401 or body message)."""
+
+class RateLimitedError(Exception):
+    """Raised when API indicates rate limiting (429 or Too Many Attempts)."""
+
 class MCOCHubAPI:
     BASE_URL = "https://mcochub.insaneskull.com/api/v1"
 
@@ -77,31 +83,39 @@ class MCOCHubAPI:
             log.warning("MCOCHub API key not available; skipping request to %s", url)
             return None
 
-        headers = {
-            "Accept": "application/json",
-        }
-
+        headers = {"Accept": "application/json"}
         params = {"api_key": api_key}
 
         try:
             async with self.session.get(url, headers=headers, params=params) as resp:
                 text = await resp.text()
+                # Explicit auth / rate-limit handling
+                if resp.status == 401 or "Unauthenticated" in text:
+                    log.warning("MCOCHUB API unauthenticated for %s", url)
+                    raise UnauthenticatedError("Unauthenticated")
+                if resp.status == 429 or "Too Many Attempts" in text:
+                    log.warning("MCOCHUB API rate limited for %s", url)
+                    raise RateLimitedError("Rate limited")
+
                 if resp.status != 200:
-                    # log body for debugging
-                    log.warning("MCOCHUB API error %s for %s?api_key=REDACTED: %s", resp.status, url, text)
+                    log.warning("MCOCHUB API error %s for %s: %s", resp.status, url, text)
                     return None
+
                 try:
                     return await resp.json()
                 except Exception:
-                    # If JSON parsing fails, log and return raw text
                     log.exception("Failed to parse JSON from %s: %s", url, text)
                     return None
+
         except asyncio.CancelledError:
+            raise
+        except UnauthenticatedError:
+            raise
+        except RateLimitedError:
             raise
         except Exception as e:
             log.exception("MCOCHUB API exception for %s: %s", url, e)
             return None
-
 
     # -----------------------------
     # Champions (full list only)

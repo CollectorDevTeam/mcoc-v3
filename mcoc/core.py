@@ -120,24 +120,38 @@ class MCOC(commands.Cog):
         await self.bot.wait_until_ready()
 
         while True:
-            # Resolve token each loop iteration
-            shared = None
             try:
-                shared = await self.bot.get_shared_api_tokens()
-            except Exception:
-                log.exception("Failed to read shared API tokens in sync loop")
+                # If API client is None, try to create or skip
+                if not self.api:
+                    log.debug("No API client available; skipping sync loop iteration.")
+                    await asyncio.sleep(3600)
+                    continue
 
-            token = None
-            if isinstance(shared, dict):
-                token = shared.get("mcochub")
+                # Attempt a sync; this may raise UnauthenticatedError or RateLimitedError
+                updated = await self.cache.sync(self.api)
+                if updated:
+                    log.info("Cache updated by sync loop.")
+                else:
+                    log.debug("No update performed this iteration.")
 
-            if not token:
-                # Offline mode → skip syncing
+            except UnauthenticatedError:
+                # Stop the loop permanently until token is fixed
+                log.error("Stopping sync loop: API key unauthenticated. Fix token and reload cog.")
+                break
+
+            except RateLimitedError:
+                # Back off aggressively: wait 1 hour before retrying
+                log.warning("Rate limited by MCOCHub; backing off for 1 hour.")
                 await asyncio.sleep(3600)
                 continue
 
+            except Exception:
+                log.exception("Unexpected error in sync loop; sleeping 1 hour before retry.")
+                await asyncio.sleep(3600)
+                continue
+
+            # Normal interval wait
             interval = await self.config.sync_interval()
-            await self.sync_data()
             await asyncio.sleep(interval * 3600)
 
     # ---------------------------------------------------------

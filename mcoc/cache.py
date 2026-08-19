@@ -1,8 +1,10 @@
+# mcoc/cache.py (imports unchanged)
 import json
 import hashlib
 import pathlib
 import datetime
 import logging
+import tempfile
 from .cacheindex import CacheIndex
 
 log = logging.getLogger("red.mcoc.cache")
@@ -33,10 +35,52 @@ class CacheManager:
                 },
                 "last_sync": None
             }
-        return json.load(open(self.metadata_file, "r"))
+        try:
+            return json.load(open(self.metadata_file, "r"))
+        except Exception:
+            log.exception("Failed to load metadata.json; resetting metadata")
+            return {
+                "versions": {
+                    "champions": None,
+                    "tags": None,
+                    "abilities": None,
+                    "immunity": None,
+                },
+                "last_sync": None
+            }
 
     def _save_metadata(self):
-        json.dump(self.metadata, open(self.metadata_file, "w"), indent=2)
+        self._atomic_write_json(self.metadata_file, self.metadata)
+
+    # -----------------------------
+    # Recency helper
+    # -----------------------------
+    def is_recent(self, hours: int = 24) -> bool:
+        last = self.metadata.get("last_sync")
+        if not last:
+            return False
+        try:
+            last_dt = datetime.datetime.fromisoformat(last)
+        except Exception:
+            return False
+        return (datetime.datetime.utcnow() - last_dt) < datetime.timedelta(hours=hours)
+
+    # -----------------------------
+    # Atomic write helper
+    # -----------------------------
+    def _atomic_write_json(self, path: pathlib.Path, data):
+        # write to temp file then replace to avoid partial writes
+        fd, tmp = tempfile.mkstemp(dir=str(path.parent))
+        try:
+            with open(fd, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=2)
+            pathlib.Path(tmp).replace(path)
+        except Exception:
+            log.exception("Failed atomic write to %s", path)
+            try:
+                pathlib.Path(tmp).unlink()
+            except Exception:
+                pass
 
     # -----------------------------
     # Hash helper
@@ -49,6 +93,10 @@ class CacheManager:
     # Diff + Save
     # -----------------------------
     def _diff_and_save(self, name, new_data):
+        if not new_data:
+            log.warning("No data returned for %s; skipping save.", name)
+            return False
+
         new_version = new_data.get("version")
         old_version = self.metadata["versions"].get(name)
 
@@ -56,8 +104,8 @@ class CacheManager:
             log.info(f"No changes detected for {name}.")
             return False
 
-        # Write new cache file
-        json.dump(new_data, open(CACHE_DIR / f"{name}.json", "w"), indent=2)
+        # Write new cache file atomically
+        self._atomic_write_json(CACHE_DIR / f"{name}.json", new_data)
 
         # Update metadata
         self.metadata["versions"][name] = new_version
@@ -74,31 +122,75 @@ class CacheManager:
     # Public sync method
     # -----------------------------
     async def sync(self, api):
+        """
+        Syncs champions, tags, abilities, immunity from the API.
+        - If last successful sync is within 24 hours, skip network calls.
+        - If API returns UnauthenticatedError or RateLimitedError, abort immediately.
+        """
+        # If we synced recently, skip network calls
+        if self.is_recent(hours=24):
+            log.info("Cache was synced within the last 24 hours; skipping API requests.")
+            # ensure index is built from existing files
+            self.index.rebuild()
+            return False
+
         updated = False
 
-        champions = await api.get_champions()
-        tags = await api.get_tags()
-        abilities = await api.get_abilities()
-        immunity = await api.get_immunity()
+        try:
+            # Serial requests: stop on auth/rate errors
+            champions = await api.get_champions()
+            if champions is None:
+                log.warning("Champions endpoint returned no data; aborting sync to avoid waste.")
+                return False
 
-        updated |= self._diff_and_save("champions", champions)
-        updated |= self._diff_and_save("tags", tags)
-        updated |= self._diff_and_save("abilities", abilities)
-        updated |= self._diff_and_save("immunity", immunity)
+            tags = await api.get_tags()
+            if tags is None:
+                log.warning("Tags endpoint returned no data; aborting sync.")
+                return False
 
-        if updated:
-            self._save_metadata()
-            log.info("Cache sync complete.")
-        else:
-            log.info("Cache unchanged; metadata not updated.")
+            abilities = await api.get_abilities()
+            if abilities is None:
+                log.warning("Abilities endpoint returned no data; aborting sync.")
+                return False
 
-        # Rebuild index after sync
-        self.index.rebuild()
+            immunity = await api.get_immunities()
+            if immunity is None:
+                log.warning("Immunities endpoint returned no data; aborting sync.")
+                return False
 
-        return updated
+            # Only reach here if all calls returned non-None
+            updated |= self._diff_and_save("champions", champions)
+            updated |= self._diff_and_save("tags", tags)
+            updated |= self._diff_and_save("abilities", abilities)
+            updated |= self._diff_and_save("immunity", immunity)
+
+            if updated:
+                self._save_metadata()
+                log.info("Cache sync complete.")
+            else:
+                log.info("Cache unchanged; metadata not updated.")
+
+            # Rebuild index after sync
+            self.index.rebuild()
+            return updated
+
+        except Exception as e:
+            # Let caller decide what to do for auth/rate errors
+            # Re-raise known API exceptions so caller can stop the loop
+            from .api import UnauthenticatedError, RateLimitedError
+            if isinstance(e, UnauthenticatedError):
+                log.error("Sync aborted: unauthenticated API key.")
+                raise
+            if isinstance(e, RateLimitedError):
+                log.error("Sync aborted: rate limited by API.")
+                raise
+
+            # For other exceptions, log and return False (no update)
+            log.exception("Unexpected error during cache sync: %s", e)
+            return False
 
     # -----------------------------
-    # Lookup helpers
+    # Lookup helpers (unchanged)
     # -----------------------------
     def get_champion(self, id_or_name):
         id_or_name = id_or_name.lower()
@@ -138,4 +230,8 @@ class CacheManager:
         path = CACHE_DIR / f"{name}.json"
         if not path.exists():
             return {}
-        return json.load(open(path, "r"))
+        try:
+            return json.load(open(path, "r"))
+        except Exception:
+            log.exception("Failed to load cache file %s", path)
+            return {}
