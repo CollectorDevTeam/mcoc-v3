@@ -151,7 +151,7 @@ class MCOCPrefix(commands.Cog):
         await ctx.send(f"Verbose logging {'enabled' if val else 'disabled'}.")
         log.info("Owner set verbose logging to %s", val)
 
-    @commands.command()
+    @mcoc.command(name="debug")
     @commands.is_owner()
     async def debug_tree(self, ctx, guild_id: int = None):
         """Print local tree and optionally sync to a guild."""
