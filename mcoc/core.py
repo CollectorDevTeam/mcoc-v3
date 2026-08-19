@@ -55,6 +55,13 @@ class MCOC(commands.Cog):
         self.admin_slash = AdminSlash(self)
         log.debug("Slash groups instantiated")
 
+        log.debug("Prefix Commands backup")
+        from .prefix import MCOCPrefix
+        # register prefix commands as a separate cog, passing self so it reuses api/cache
+        self.prefix_cog = MCOCPrefix(self)
+        await self.bot.add_cog(self.prefix_cog)
+        log.debug("Prefix Commands cog added to bot")
+
         # Key getter that reads Red's shared API tokens
         async def _get_mcochub_key():
             try:
@@ -134,6 +141,14 @@ class MCOC(commands.Cog):
                 log.exception("Error closing MCOCHubAPI session")
             finally:
                 self.api = None
+
+        # remove prefix cog if present
+        try:
+            if getattr(self, "prefix_cog", None):
+                await self.bot.remove_cog(self.prefix_cog.__class__.__name__)
+                log.info("MCOC prefix commands cog removed")
+        except Exception:
+            log.exception("Failed to remove prefix cog during unload")
 
     # ---------------------------------------------------------
     # Background Sync Loop
