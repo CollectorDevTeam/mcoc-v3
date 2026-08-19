@@ -1,14 +1,12 @@
+# mcoc/core.py
 from redbot.core import commands, Config
 import asyncio
+import logging
 
 from .api import MCOCHubAPI
 from .cache import CacheManager
 
-# Slash groups
-from .champions import ChampionSlash
-from .roster import RosterSlash
-from .admin import AdminSlash
-
+log = logging.getLogger("red.mcoc.core")
 
 class MCOC(commands.Cog):
     """CollectorBot: MCOC data, roster tools, and admin controls."""
@@ -16,25 +14,24 @@ class MCOC(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-        # API client (initialized in cog_load)
+        # API client (initialized in cog_load via shared token getter)
         self.api = None
 
         # Cache manager
         self.cache = CacheManager()
 
-        # Persistent config
+        # We keep the cog config for other settings, but NOT for the API key
         self.config = Config.get_conf(self, identifier=9876543210)
         self.config.register_global(
-            api_key=None,
             sync_interval=24,
             cache_version=0,
             collector_devteam_role=None
         )
 
-        # Slash command groups
-        self.champions_slash = ChampionSlash(self)
-        self.roster_slash = RosterSlash(self)
-        self.admin_slash = AdminSlash(self)
+        # Slash command groups (created in cog_load)
+        self.champions_slash = None
+        self.roster_slash = None
+        self.admin_slash = None
 
         # Background sync task placeholder
         self.sync_task = None
@@ -43,24 +40,42 @@ class MCOC(commands.Cog):
     # Cog Load (async init)
     # ---------------------------------------------------------
     async def cog_load(self):
-        try:
-            raise Exception("TRACE: cog_load started")
-        except Exception:
-            import traceback
-            traceback.print_exc()
+        # Minimal trace for debugging
+        log.debug("TRACE: cog_load started")
 
-        api_key = await self.config.api_key()
+        # Create slash groups now (avoid import-time side effects)
+        from .champions import ChampionSlash
+        from .roster import RosterSlash
+        from .admin import AdminSlash
 
-        if api_key:
-            self.api = MCOCHubAPI(api_key)
+        self.champions_slash = ChampionSlash(self)
+        self.roster_slash = RosterSlash(self)
+        self.admin_slash = AdminSlash(self)
+
+        # Key getter that reads Red's shared API tokens
+        async def _get_mcochub_key():
+            try:
+                shared = await self.bot.get_shared_api_tokens()
+                if isinstance(shared, dict):
+                    # use the exact service name you set with ///set api <service> <token>
+                    return shared.get("mcochub")
+            except Exception:
+                log.exception("Failed to read shared API tokens")
+            return None
+
+        # Create API client that resolves the key at request time
+        self.api = MCOCHubAPI(key_getter=_get_mcochub_key)
+
+        # If a token exists now, start the sync loop; otherwise do not start it
+        token_now = await _get_mcochub_key()
+        if token_now:
             self.sync_task = self.bot.loop.create_task(self._sync_loop())
         else:
-            self.api = None
             await self.bot.send_to_owners(
-                "⚠️ MCOCHUB API key not set. CollectorBot is running in offline mode using local cache only."
+                "⚠️ MCOCHUB API token not found in Red shared API tokens. Use `///set api mcochub <token>` to provide it."
             )
 
-        # Register slash groups with forced TRACE logging
+        # Register slash groups
         for name, group in [
             ("champ", self.champions_slash),
             ("roster", self.roster_slash),
@@ -68,19 +83,35 @@ class MCOC(commands.Cog):
         ]:
             try:
                 self.bot.tree.add_command(group)
-                raise Exception(f"TRACE: added slash group {name}")
+                log.debug("TRACE: added slash group %s", name)
             except Exception:
-                import traceback
-                traceback.print_exc()
+                log.exception("Failed to add slash group %s", name)
 
         # Force a sync and capture errors
         try:
-            await self.bot.tree.sync()
-            raise Exception("TRACE: tree sync completed")
+            res = await self.bot.tree.sync()
+            log.debug("TRACE: tree sync completed; result: %s", res)
         except Exception:
-            import traceback
-            traceback.print_exc()
+            log.exception("Error during tree.sync()")
 
+    # ---------------------------------------------------------
+    # Cog Unload (cleanup)
+    # ---------------------------------------------------------
+    async def cog_unload(self):
+        # Cancel background task
+        if self.sync_task:
+            self.sync_task.cancel()
+            try:
+                await self.sync_task
+            except asyncio.CancelledError:
+                pass
+
+        # Close API session if owned by the API client
+        if self.api:
+            try:
+                await self.api.close()
+            except Exception:
+                log.exception("Error closing MCOCHubAPI session")
 
     # ---------------------------------------------------------
     # Background Sync Loop
@@ -89,8 +120,18 @@ class MCOC(commands.Cog):
         await self.bot.wait_until_ready()
 
         while True:
-            api_key = await self.config.api_key()
-            if not api_key:
+            # Resolve token each loop iteration
+            shared = None
+            try:
+                shared = await self.bot.get_shared_api_tokens()
+            except Exception:
+                log.exception("Failed to read shared API tokens in sync loop")
+
+            token = None
+            if isinstance(shared, dict):
+                token = shared.get("mcochub")
+
+            if not token:
                 # Offline mode → skip syncing
                 await asyncio.sleep(3600)
                 continue
@@ -103,9 +144,6 @@ class MCOC(commands.Cog):
     # Sync Data from MCOCHUB
     # ---------------------------------------------------------
     async def sync_data(self):
-        if not self.api:
-            return False  # offline mode
-
         if not self.api:
             return False  # offline mode
 
