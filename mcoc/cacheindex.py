@@ -98,6 +98,7 @@ class CacheIndex:
             self.abilities = abilities_list
             self.immunities = immunities_list
             self.tags = tags_list
+            self._tags_lower = [t.lower() for t in tags_list if isinstance(t, str)]
 
             # Rebuild reverse lookup tables efficiently
             champions_by_id = {}
@@ -118,7 +119,10 @@ class CacheIndex:
 
                 # tags
                 for tag in champ.get("tags", []):
-                    champions_by_tag.setdefault(tag, []).append(champ)
+                    if not isinstance(tag, str):
+                        continue
+                    k = tag.lower()
+                    champions_by_tag.setdefault(k, []).append(champ)
 
                 # abilities: ability entries may be dicts or simple ids/names
                 for ability in champ.get("abilities", []):
@@ -126,8 +130,10 @@ class CacheIndex:
                         aid = ability.get("name") or ability.get("id")
                     else:
                         aid = ability
-                    if aid is not None:
-                        champions_by_ability.setdefault(str(aid), []).append(champ)
+                    if aid is None:
+                        continue
+                    ak = str(aid).lower()
+                    champions_by_ability.setdefault(ak, []).append(champ)
 
                 # immunities
                 for imm in champ.get("immunities", []):
@@ -135,8 +141,11 @@ class CacheIndex:
                         iid = imm.get("name") or imm.get("id")
                     else:
                         iid = imm
-                    if iid is not None:
-                        champions_by_immunity.setdefault(str(iid), []).append(champ)
+                    if iid is None:
+                        continue
+                    ik = str(iid).lower()
+                    champions_by_immunity.setdefault(ik, []).append(champ)
+
 
             # Atomically swap in new maps
             self.champions_by_id = champions_by_id
@@ -173,17 +182,17 @@ class CacheIndex:
     # Autocomplete helpers
     # ---------------------------------------------------------
     async def tag_autocomplete(self, interaction, current: str):
-        cur = current.lower()
-        matches = [tag for tag in self.tags if cur in tag.lower()]
+        cur = (current or "").lower()
+        matches = [t for t in self.tags if cur in t.lower()]
         return [interaction.client.app_commands.Choice(name=t, value=t) for t in matches[:25]]
 
     async def ability_autocomplete(self, interaction, current: str):
-        cur = current.lower()
-        # abilities are dicts with 'name' keys
+        cur = (current or "").lower()
         matches = [a for a in self.abilities if cur in (a.get("name") or "").lower()]
         return [interaction.client.app_commands.Choice(name=a.get("name"), value=a.get("id")) for a in matches[:25]]
 
     async def immunity_autocomplete(self, interaction, current: str):
-        cur = current.lower()
+        cur = (current or "").lower()
         matches = [i for i in self.immunities if cur in (i.get("name") or "").lower()]
         return [interaction.client.app_commands.Choice(name=i.get("name"), value=i.get("id")) for i in matches[:25]]
+
