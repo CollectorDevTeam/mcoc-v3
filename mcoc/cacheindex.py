@@ -1,6 +1,7 @@
 import logging
 import threading
 import asyncio
+import discord
 
 log = logging.getLogger("red.mcoc.cacheindex")
 
@@ -179,20 +180,20 @@ class CacheIndex:
         await asyncio.to_thread(self.rebuild)
 
     # ---------------------------------------------------------
-    # Autocomplete helpers
+    # Autocomplete helpers (robust to interaction=None)
     # ---------------------------------------------------------
     async def tag_autocomplete(self, interaction, current: str):
         cur = (current or "").lower()
         matches = [t for t in self.tags if cur in t.lower()]
-        return [interaction.client.app_commands.Choice(name=t, value=t) for t in matches[:25]]
+        # Use discord.app_commands.Choice directly so callers can pass interaction=None
+        return [discord.app_commands.Choice(name=t, value=t) for t in matches[:25]]
 
     async def ability_autocomplete(self, interaction, current: str):
         cur = (current or "").lower()
         matches = [a for a in self.abilities if cur in (a.get("name") or "").lower()]
-        return [interaction.client.app_commands.Choice(name=a.get("name"), value=a.get("id")) for a in matches[:25]]
+        return [discord.app_commands.Choice(name=(a.get("name") or ""), value=a.get("id")) for a in matches[:25]]
 
     async def immunity_autocomplete(self, interaction, current: str):
         cur = (current or "").lower()
         matches = [i for i in self.immunities if cur in (i.get("name") or "").lower()]
-        return [interaction.client.app_commands.Choice(name=i.get("name"), value=i.get("id")) for i in matches[:25]]
-
+        return [discord.app_commands.Choice(name=(i.get("name") or ""), value=i.get("id")) for i in matches[:25]]
