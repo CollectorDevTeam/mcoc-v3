@@ -20,7 +20,7 @@ class MCOCHubAPI:
         api_key: Optional[str] = None,
         key_getter: Optional[Callable[[], Awaitable[Optional[str]]]] = None,
         session: Optional[aiohttp.ClientSession] = None,
-        timeout: int = 30,
+        timeout: int = 30,        
     ):
         """
         - api_key: direct API key string (optional).
@@ -31,13 +31,23 @@ class MCOCHubAPI:
         self._static_key = api_key
         self._key_getter = key_getter
         self._external_session = session is not None
-        self.session = session or aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=timeout))
+        self._session = session
+        self._timeout = timeout
+        self._request_semaphore = asyncio.Semaphore(5)  # Limit concurrent requests to avoid rate limiting
+        # self._session = session or aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=timeout))
 
         log.info("MCOCHubAPI initialized (external_session=%s)", self._external_session)
         if self._static_key:
             log.debug("MCOCHubAPI created with static api_key provided (REDACTED)")
         else:
             log.debug("MCOCHubAPI created with key_getter=%s", bool(self._key_getter))
+
+    async def _ensure_session(self):
+        if self._session is None:
+            # create session lazily when the loop is running
+            self._session = aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=self._timeout))
+            log.debug("Created internal aiohttp ClientSession")
+        return self._session
 
     async def _resolve_key(self) -> Optional[str]:
         # Prefer static key if provided
@@ -91,6 +101,8 @@ class MCOCHubAPI:
     # -----------------------------
     # Generic fetch helper
     # -----------------------------
+    import random, asyncio
+
     async def _fetch(self, endpoint: str):
         url = f"{self.BASE_URL}/{endpoint}"
         api_key = await self._resolve_key()
@@ -100,51 +112,52 @@ class MCOCHubAPI:
 
         headers = {"Accept": "application/json"}
         params = {"api_key": api_key}
-
-        # Log the request (redact key)
         log.debug("MCOCHub request GET %s params=%s", url, {"api_key": "REDACTED"})
 
-        try:
-            async with self.session.get(url, headers=headers, params=params) as resp:
-                text = await resp.text()
-
-                # Explicit auth / rate-limit handling
-                if resp.status == 401 or "Unauthenticated" in text:
-                    log.error("MCOCHUB API unauthenticated for %s; status=%s body=%s", url, resp.status, text[:200])
-                    raise UnauthenticatedError("Unauthenticated")
-
-                if resp.status == 429 or "Too Many Attempts" in text:
-                    log.warning("MCOCHUB API rate limited for %s; status=%s body=%s", url, resp.status, text[:200])
-                    raise RateLimitedError("Rate limited")
-
-                if resp.status != 200:
-                    log.warning("MCOCHUB API error %s for %s: %s", resp.status, url, text[:500])
-                    return None
-
-                try:
-                    result = await resp.json()
-                    # Log a concise success message
-                    if isinstance(result, dict):
-                        log.debug("MCOCHUB API success for %s: returned keys=%s", url, list(result.keys()))
-                    else:
-                        log.debug("MCOCHUB API success for %s: returned type=%s", url, type(result).__name__)
-                    return result
-                except Exception:
-                    log.exception("Failed to parse JSON from %s: %s", url, text[:500])
-                    return None
-
-        except asyncio.CancelledError:
-            log.debug("Request to %s cancelled", url)
-            raise
-        except UnauthenticatedError:
-            # bubble up
-            raise
-        except RateLimitedError:
-            # bubble up
-            raise
-        except Exception as e:
-            log.exception("MCOCHUB API exception for %s: %s", url, e)
-            return None
+        # small retry loop for transient errors
+        attempts = 2
+        backoff_base = 0.5
+        for attempt in range(1, attempts + 1):
+            try:
+                session = await self._ensure_session()
+                # limit concurrency to avoid bursts
+                async with self._request_semaphore:
+                    async with session.get(url, headers=headers, params=params) as resp:
+                        text = await resp.text()
+                        if resp.status == 401 or "Unauthenticated" in text:
+                            log.error("MCOCHUB API unauthenticated for %s; status=%s body=%s", url, resp.status, text[:200])
+                            raise UnauthenticatedError("Unauthenticated")
+                        if resp.status == 429 or "Too Many Attempts" in text:
+                            log.warning("MCOCHUB API rate limited for %s; status=%s", url, resp.status)
+                            raise RateLimitedError("Rate limited")
+                        if resp.status != 200:
+                            log.warning("MCOCHUB API error %s for %s: %s", resp.status, url, text[:200])
+                            return None
+                        try:
+                            result = await resp.json()
+                            if isinstance(result, dict):
+                                log.debug("MCOCHUB API success for %s: returned keys=%s", url, list(result.keys()))
+                            else:
+                                log.debug("MCOCHUB API success for %s: returned type=%s", url, type(result).__name__)
+                            return result
+                        except Exception:
+                            log.exception("Failed to parse JSON from %s: %s", url, text[:200])
+                            # fall through to retry if attempt remains
+            except asyncio.CancelledError:
+                log.debug("Request to %s cancelled", url)
+                raise
+            except UnauthenticatedError:
+                raise
+            except RateLimitedError:
+                raise
+            except Exception as e:
+                log.exception("MCOCHUB API exception for %s on attempt %d: %s", url, attempt, e)
+            # backoff before retry
+            if attempt < attempts:
+                delay = backoff_base * (2 ** (attempt - 1)) + random.random() * 0.1
+                log.debug("Retrying %s after %.2fs", url, delay)
+                await asyncio.sleep(delay)
+        return None
 
     # -----------------------------
     # Champions (full list only)
@@ -179,11 +192,12 @@ class MCOCHubAPI:
     # -----------------------------
     async def close(self):
         log.info("Closing MCOCHubAPI session (external=%s)", self._external_session)
-        if not self._external_session and self.session and not self.session.closed:
+        if not self._external_session and getattr(self, "_session", None) and not self._session.closed:
             try:
-                await self.session.close()
+                await self._session.close()
                 log.debug("aiohttp ClientSession closed")
             except Exception:
                 log.exception("Error closing aiohttp ClientSession")
-        self.session = None
+        self._session = None
         log.debug("MCOCHubAPI.close() complete")
+

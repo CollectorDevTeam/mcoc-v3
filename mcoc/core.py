@@ -14,6 +14,9 @@ class MCOC(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
+        self._post_load_sync_task = None
+        self._post_load_sync_cancelled = False
+
 
         # API client (initialized in cog_load via shared token getter)
         self.api = None
@@ -82,6 +85,24 @@ class MCOC(commands.Cog):
         from .roster import RosterSlash
         from .admin import AdminSlash
         from .prefix.commands import MCOCPrefix
+
+        try:
+            import logging, queue, sys
+            from logging.handlers import QueueHandler, QueueListener
+            # only install once
+            if not getattr(self.bot, "_mcoc_logging_queue_listener", None):
+                q = queue.Queue(-1)
+                qh = QueueHandler(q)
+                logging.getLogger().addHandler(qh)
+                stream_handler = logging.StreamHandler(sys.stdout)
+                stream_handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s"))
+                listener = QueueListener(q, stream_handler, respect_handler_level=True)
+                listener.start()
+                self.bot._mcoc_logging_queue_listener = listener
+                self.bot._mcoc_logging_queue = q
+                log.debug("Installed temporary non-blocking QueueHandler for startup")
+        except Exception:
+            log.exception("Failed to install temporary QueueHandler")
 
         log.debug("Instantiating slash groups")
 
@@ -339,6 +360,21 @@ class MCOC(commands.Cog):
         except Exception:
             log.exception("Failed to remove prefix cog during unload (outer)")
 
+        # stop the temporary queue listener if we started it
+        try:
+            listener = getattr(self.bot, "_mcoc_logging_queue_listener", None)
+            if listener:
+                log.debug("Stopping temporary QueueListener")
+                try:
+                    listener.stop()
+                except Exception:
+                    log.exception("Error stopping QueueListener")
+                finally:
+                    self.bot._mcoc_logging_queue_listener = None
+                    self.bot._mcoc_logging_queue = None
+        except Exception:
+            log.exception("Failed to cleanup temporary QueueListener")
+
         # Final debug: log remaining RedTree internal maps for post-unload inspection (concise)
         try:
             tree = self.bot.tree
@@ -401,13 +437,12 @@ class MCOC(commands.Cog):
                 log.debug("Sleeping for %s hours until next sync", interval)
                 await asyncio.sleep(interval * 3600)
             except asyncio.CancelledError:
-                log.debug("Sync loop sleep cancelled.")
+                log.debug("Sync loop cancelled.")
                 break
             except Exception:
-                log.exception("Unexpected error during sync loop sleep; continuing.")
-            except asyncio.CancelledError:
-                log.debug("Sync loop cancelled during sleep.")
-                break
+                log.exception("Unexpected error in sync loop; sleeping 1 hour.")
+                await asyncio.sleep(3600)
+
 
     # ---------------------------------------------------------
     # Sync Data from MCOCHUB
