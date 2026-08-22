@@ -3,5 +3,22 @@ from .cache import CacheManager
 from .cacheindex import CacheIndex
 from .embeds import champion_embed, cdt_embed
 from .hargs import parse_hargs
+from .champion_helpers import resolve_champion, safe_respond_interaction, safe_send_ctx, lookup_stat, add_page_footers
+from .roster_helpers import ensure_user_manager, extract_entry_from_parsed, build_roster_pages, validate_entry_for_add
 
-__all__ = ("CacheManager", "CacheIndex", "champion_embed", "cdt_embed", "parse_hargs")
+__all__ = (
+    "CacheManager",
+    "CacheIndex",
+    "champion_embed",
+    "cdt_embed",
+    "parse_hargs",
+    "resolve_champion",
+    "safe_respond_interaction",
+    "safe_send_ctx",
+    "lookup_stat",
+    "add_page_footers",
+    "ensure_user_manager",
+    "extract_entry_from_parsed",
+    "build_roster_pages",
+    "validate_entry_for_add",
+)

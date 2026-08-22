@@ -1,4 +1,3 @@
-from .champions_slash import ChampionSlash
-from .roster_slash import RosterSlash
-from .admin_slash import AdminSlash
-__all__ = ("ChampionSlash", "RosterSlash", "AdminSlash")
+# mcoc/slash/__init__.py
+# Keep package import-neutral; individual modules expose async setup(bot).
+__all__ = ()
