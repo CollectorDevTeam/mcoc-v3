@@ -1,4 +1,4 @@
-# mcoc/core.py (good)
+# mcoc/core.py
 import logging
 
 log = logging.getLogger("red.mcoc")
@@ -15,7 +15,7 @@ async def setup(bot):
     except Exception:
         log.exception("Failed to load MCOCPrefix")
 
-    # 2) Diagnostics (owner-only)a
+    # 2) Diagnostics (owner-only)
     try:
         from .diagnostics.diagnostics import Diagnostics
         await bot.add_cog(Diagnostics(bot))
@@ -45,8 +45,7 @@ async def setup(bot):
     except Exception:
         log.exception("Failed to load AdminSlashCog (non-fatal)")
 
-
-    # Prefix cogs for champion and roster text commands
+    # 4) Prefix cogs for champion and roster text commands
     try:
         from .prefix.champions_prefix import ChampionsPrefix
         await bot.add_cog(ChampionsPrefix(bot))
@@ -60,3 +59,20 @@ async def setup(bot):
         log.debug("RosterPrefix loaded")
     except Exception:
         log.exception("Failed to load RosterPrefix (non-fatal)")
+
+    # Ensure the core cog is discoverable by other cogs/registrars.
+    # If your main core cog is named "MCOC" (class name or cog name), prefer to set it here.
+    try:
+        core = bot.get_cog("MCOC")
+        if core:
+            setattr(bot, "mcoc_core", core)
+            log.debug("bot.mcoc_core set from existing cog 'MCOC'")
+        else:
+            # If the core cog is implemented under a different name or created elsewhere,
+            # this is a safe no-op; registrars will still attempt bot.get_cog("MCOC") at runtime.
+            log.debug("No 'MCOC' cog found to attach as bot.mcoc_core")
+    except Exception:
+        log.exception("Failed to set bot.mcoc_core")
+
+    # Done
+    log.debug("mcoc package setup complete")
