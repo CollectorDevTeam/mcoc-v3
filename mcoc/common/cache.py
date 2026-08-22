@@ -1,4 +1,4 @@
-# mcoc/cache.py (imports unchanged)
+# mcoc/cache.py
 import json
 import hashlib
 import pathlib
@@ -7,38 +7,45 @@ import logging
 import tempfile
 import os
 import asyncio
+from typing import Optional, Any, Dict
 from .cacheindex import CacheIndex
-
 
 log = logging.getLogger("red.mcoc.cache")
 
-CACHE_DIR = pathlib.Path("data/cache")
-CACHE_DIR.mkdir(parents=True, exist_ok=True)
+
+# Do NOT create directories at import time. Create them when CacheManager is instantiated.
+DEFAULT_CACHE_DIR = pathlib.Path("data") / "cache"
 
 
 class CacheManager:
-    def __init__(self):
-        self.metadata_file = CACHE_DIR / "metadata.json"
-        # load metadata synchronously at init is OK (startup), but keep it small
+    def __init__(self, cache_dir: Optional[pathlib.Path] = None):
+        self.cache_dir = (cache_dir or DEFAULT_CACHE_DIR)
+        try:
+            self.cache_dir.mkdir(parents=True, exist_ok=True)
+        except Exception:
+            log.exception("Failed to ensure cache directory exists: %s", self.cache_dir)
+
+        self.metadata_file = self.cache_dir / "metadata.json"
+        # load metadata synchronously at init is acceptable (startup), but keep it small
         self.metadata = self._load_metadata()
 
         # Build index AFTER metadata loads
+        # CacheIndex should be import-neutral; pass self so it can access files via this manager
         self.index = CacheIndex(self)
 
         # Prevent concurrent syncs
         self._sync_lock = asyncio.Lock()
 
-
     # -----------------------------
     # Metadata
     # -----------------------------
     @staticmethod
-    def _read_json_file(path):
+    def _read_json_file(path: pathlib.Path) -> Any:
         # helper for to_thread
         with open(path, "r", encoding="utf-8") as f:
             return json.load(f)
 
-    def _load_metadata(self):
+    def _load_metadata(self) -> Dict[str, Any]:
         try:
             if not self.metadata_file.exists():
                 return {
@@ -48,7 +55,7 @@ class CacheManager:
                         "abilities": None,
                         "immunities": None,
                     },
-                    "last_sync": None
+                    "last_sync": None,
                 }
             # synchronous read at startup is acceptable, but keep it safe
             try:
@@ -56,18 +63,26 @@ class CacheManager:
             except Exception:
                 log.exception("Failed to read metadata.json; resetting metadata")
                 return {
-                    "versions": { "champions": None, "tags": None, "abilities": None, "immunities": None },
-                    "last_sync": None
+                    "versions": {
+                        "champions": None,
+                        "tags": None,
+                        "abilities": None,
+                        "immunities": None,
+                    },
+                    "last_sync": None,
                 }
 
             if not isinstance(data, dict):
                 raise ValueError("metadata.json malformed")
-            data.setdefault("versions", {
-                "champions": None,
-                "tags": None,
-                "abilities": None,
-                "immunities": None,
-            })
+            data.setdefault(
+                "versions",
+                {
+                    "champions": None,
+                    "tags": None,
+                    "abilities": None,
+                    "immunities": None,
+                },
+            )
             data.setdefault("last_sync", None)
             return data
         except Exception:
@@ -79,10 +94,10 @@ class CacheManager:
                     "abilities": None,
                     "immunities": None,
                 },
-                "last_sync": None
+                "last_sync": None,
             }
-        
-    def _save_metadata(self):
+
+    def _save_metadata(self) -> None:
         if not isinstance(self.metadata, dict):
             self.metadata = {
                 "versions": {
@@ -91,12 +106,16 @@ class CacheManager:
                     "abilities": None,
                     "immunities": None,
                 },
-                "last_sync": None
+                "last_sync": None,
             }
         try:
-            loop = asyncio.get_event_loop()
-            # schedule the async atomic write; do not await here
-            loop.create_task(self._atomic_write_json(self.metadata_file, self.metadata))
+            # schedule the async atomic write; prefer get_running_loop when available
+            try:
+                loop = asyncio.get_running_loop()
+                loop.create_task(self._atomic_write_json(self.metadata_file, self.metadata))
+            except RuntimeError:
+                # no running loop; fallback to blocking write
+                self._atomic_write_json_blocking(self.metadata_file, self.metadata)
         except Exception:
             # fallback to blocking write if scheduling fails
             try:
@@ -120,8 +139,8 @@ class CacheManager:
     # -----------------------------
     # Atomic write helper
     # -----------------------------
-    @staticmethod   
-    def _atomic_write_json_blocking(path: pathlib.Path, data):
+    @staticmethod
+    def _atomic_write_json_blocking(path: pathlib.Path, data: Any) -> None:
         # blocking helper to be run in a thread
         fd, tmp = tempfile.mkstemp(dir=str(path.parent))
         try:
@@ -136,21 +155,21 @@ class CacheManager:
             except Exception:
                 pass
 
-    async def _atomic_write_json(self, path: pathlib.Path, data):
+    async def _atomic_write_json(self, path: pathlib.Path, data: Any) -> None:
         # async wrapper that offloads the blocking write
         await asyncio.to_thread(self._atomic_write_json_blocking, path, data)
 
     # -----------------------------
     # Hash helper
     # -----------------------------
-    def _hash(self, data):
+    def _hash(self, data: Any) -> str:
         raw = json.dumps(data, sort_keys=True).encode("utf-8")
         return hashlib.sha256(raw).hexdigest()
 
     # -----------------------------
     # Data Shape Helpers
     # -----------------------------
-    def _make_key_from_item(self, item, fallback_index):
+    def _make_key_from_item(self, item: Any, fallback_index: int) -> str:
         if not isinstance(item, dict):
             return str(fallback_index)
         if item.get("id"):
@@ -160,7 +179,7 @@ class CacheManager:
         # stable fallback
         return hashlib.sha256(json.dumps(item, sort_keys=True).encode()).hexdigest()[:12]
 
-    def normalize_list_payload(self, payload, list_key):
+    def normalize_list_payload(self, payload: Optional[Dict[str, Any]], list_key: str) -> Optional[Dict[str, Any]]:
         """
         Generic normalizer for payloads that return a list under list_key.
         Returns canonical dict: {"version":..., "updated_at":..., "<list_key>": {id: item, ...}}
@@ -175,29 +194,29 @@ class CacheManager:
         if isinstance(items, dict):
             return {"version": version, "updated_at": updated_at, list_key: items}
 
-        mapped = {}
+        mapped: Dict[str, Any] = {}
         for i, item in enumerate(items):
             key = self._make_key_from_item(item, i)
             mapped[str(key)] = item
 
         return {"version": version, "updated_at": updated_at, list_key: mapped}
 
-    def normalize_champions_payload(self, payload):
+    def normalize_champions_payload(self, payload: Any) -> Optional[Dict[str, Any]]:
         return self.normalize_list_payload(payload, "champions")
 
-    def normalize_abilities_payload(self, payload):
+    def normalize_abilities_payload(self, payload: Any) -> Optional[Dict[str, Any]]:
         return self.normalize_list_payload(payload, "abilities")
 
-    def normalize_immunities_payload(self, payload):
+    def normalize_immunities_payload(self, payload: Any) -> Optional[Dict[str, Any]]:
         return self.normalize_list_payload(payload, "immunities")
 
-    def normalize_tags_payload(self, payload):
+    def normalize_tags_payload(self, payload: Any) -> Optional[Dict[str, Any]]:
         return self.normalize_list_payload(payload, "tags")
 
     # -----------------------------
     # Diff + Save
     # -----------------------------
-    async def _diff_and_save(self, name, new_data):
+    async def _diff_and_save(self, name: str, new_data: Any) -> bool:
         if not new_data:
             log.warning("No data returned for %s; skipping save.", name)
             return False
@@ -226,7 +245,7 @@ class CacheManager:
 
         # Atomic write off the event loop
         try:
-            await self._atomic_write_json(CACHE_DIR / f"{name}.json", new_data)
+            await self._atomic_write_json(self.cache_dir / f"{name}.json", new_data)
         except Exception:
             log.exception("Failed to write cache file for %s", name)
             return False
@@ -236,7 +255,10 @@ class CacheManager:
         self.metadata["versions"][name] = new_version
         self.metadata["last_sync"] = datetime.datetime.utcnow().isoformat()
         # save metadata off the loop as well
-        await asyncio.to_thread(self._atomic_write_json_blocking, self.metadata_file, self.metadata)
+        try:
+            await asyncio.to_thread(self._atomic_write_json_blocking, self.metadata_file, self.metadata)
+        except Exception:
+            log.exception("Failed to save metadata after updating %s", name)
 
         log.info("Updated cache for %s.", name)
 
@@ -251,12 +273,15 @@ class CacheManager:
     # -----------------------------
     # Public sync method
     # -----------------------------
-    async def sync(self, api):
+    async def sync(self, api) -> bool:
         # If we synced recently, skip network calls
         if self.is_recent(hours=24):
             log.info("Cache was synced within the last 24 hours; skipping API requests.")
             # ensure index is built from existing files (offload if heavy)
-            await asyncio.to_thread(self.index.rebuild)
+            try:
+                await asyncio.to_thread(self.index.rebuild)
+            except Exception:
+                log.exception("Index rebuild failed during short-circuit")
             return False
 
         updated = False
@@ -296,11 +321,15 @@ class CacheManager:
                     log.info("Cache unchanged; metadata not updated.")
 
                 # Rebuild index after sync (already done in _diff_and_save, but keep safe)
-                await asyncio.to_thread(self.index.rebuild)
+                try:
+                    await asyncio.to_thread(self.index.rebuild)
+                except Exception:
+                    log.exception("Index rebuild failed after sync")
                 return updated
 
             except Exception as e:
                 from .api import UnauthenticatedError, RateLimitedError
+
                 if isinstance(e, UnauthenticatedError):
                     log.error("Sync aborted: unauthenticated API key.")
                     raise
@@ -314,7 +343,7 @@ class CacheManager:
     # -----------------------------
     # Lookup helpers (unchanged)
     # -----------------------------
-    def get_champion(self, id_or_name: str):
+    def get_champion(self, id_or_name: str) -> Optional[Dict[str, Any]]:
         id_or_name = id_or_name.lower()
         champs = self._load_file("champions").get("champions", {})
 
@@ -324,33 +353,36 @@ class CacheManager:
 
         # name lookup
         for champ in champs.values():
-            if champ["name"].lower() == id_or_name:
-                return champ
+            try:
+                if champ.get("name", "").lower() == id_or_name:
+                    return champ
+            except Exception:
+                continue
 
         return None
 
-    def get_all_tags(self) -> list[dict]:
+    def get_all_tags(self) -> list:
         data = self._load_file("tags")
         tags = data.get("tags", {})
         if isinstance(tags, dict):
             return list(tags.values())
         return tags or []
 
-    def get_all_abilities(self) -> list[dict]:
+    def get_all_abilities(self) -> list:
         data = self._load_file("abilities")
         abilities = data.get("abilities", {})
         if isinstance(abilities, dict):
             return list(abilities.values())
         return abilities or []
 
-    def get_all_immunities(self) -> list[dict]:
+    def get_all_immunities(self) -> list:
         data = self._load_file("immunities")
         immunities = data.get("immunities", {})
         if isinstance(immunities, dict):
             return list(immunities.values())
         return immunities or []
 
-    def get_all_champions(self) -> list[dict]:
+    def get_all_champions(self) -> list:
         data = self._load_file("champions")
         champs = data.get("champions", {})
         if isinstance(champs, dict):
@@ -359,12 +391,11 @@ class CacheManager:
             return champs
         return []
 
-
     # -----------------------------
     # File loader
     # -----------------------------
-    async def _load_file_async(self, name):
-        path = CACHE_DIR / f"{name}.json"
+    async def _load_file_async(self, name: str) -> Dict[str, Any]:
+        path = self.cache_dir / f"{name}.json"
         if not path.exists():
             return {}
         try:
@@ -377,9 +408,8 @@ class CacheManager:
             return {}
 
     # Keep a synchronous wrapper for callers that expect sync behavior (e.g., command handlers)
-    def _load_file(self, name):
-        # synchronous wrapper that calls the async loader via to_thread to avoid changing callers
-        path = CACHE_DIR / f"{name}.json"
+    def _load_file(self, name: str) -> Dict[str, Any]:
+        path = self.cache_dir / f"{name}.json"
         if not path.exists():
             return {}
         try:
@@ -388,5 +418,3 @@ class CacheManager:
         except Exception:
             log.exception("Failed to load cache file %s", path)
             return {}
-
-

@@ -1,6 +1,2 @@
-"""Prefix command helpers for MCOC (kept separate from app commands)."""
-
-from .commands import MCOCPrefix
-from .diagnostics import Diagnostics
-
-__all__ = ("MCOCPrefix", "Diagnostics")
+from .commands_prefix import MCOCPrefix
+__all__ = ("MCOCPrefix",)

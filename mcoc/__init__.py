@@ -1,6 +1,3 @@
-from .core import MCOC
-
-__all__ = ["MCOC"]
-
-async def setup(bot):
-    await bot.add_cog(MCOC(bot))
+# mcoc/__init__.py
+from .core import setup  # keep core.py as the implementation
+__all__ = ("setup",)

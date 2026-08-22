@@ -2,15 +2,19 @@
 import aiohttp
 import asyncio
 import logging
-from typing import Optional, Callable, Awaitable
+import random
+from typing import Optional, Callable, Awaitable, Any
 
 log = logging.getLogger("red.mcoc.api")
+
 
 class UnauthenticatedError(Exception):
     """Raised when API returns unauthenticated / invalid key (401 or body message)."""
 
+
 class RateLimitedError(Exception):
     """Raised when API indicates rate limiting (429 or Too Many Attempts)."""
+
 
 class MCOCHubAPI:
     BASE_URL = "https://mcochub.insaneskull.com/api/v1"
@@ -20,7 +24,7 @@ class MCOCHubAPI:
         api_key: Optional[str] = None,
         key_getter: Optional[Callable[[], Awaitable[Optional[str]]]] = None,
         session: Optional[aiohttp.ClientSession] = None,
-        timeout: int = 30,        
+        timeout: int = 30,
     ):
         """
         - api_key: direct API key string (optional).
@@ -34,7 +38,6 @@ class MCOCHubAPI:
         self._session = session
         self._timeout = timeout
         self._request_semaphore = asyncio.Semaphore(5)  # Limit concurrent requests to avoid rate limiting
-        # self._session = session or aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=timeout))
 
         log.info("MCOCHubAPI initialized (external_session=%s)", self._external_session)
         if self._static_key:
@@ -42,7 +45,7 @@ class MCOCHubAPI:
         else:
             log.debug("MCOCHubAPI created with key_getter=%s", bool(self._key_getter))
 
-    async def _ensure_session(self):
+    async def _ensure_session(self) -> aiohttp.ClientSession:
         if self._session is None:
             # create session lazily when the loop is running
             self._session = aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=self._timeout))
@@ -59,8 +62,8 @@ class MCOCHubAPI:
             try:
                 key = await self._key_getter()
                 log.debug("key_getter returned type=%s", type(key).__name__)
-            except Exception as e:
-                log.exception("Error while fetching MCOCHub API key from key_getter: %s", e)
+            except Exception:
+                log.exception("Error while fetching MCOCHub API key from key_getter")
                 return None
 
             # If the getter returned None, bail
@@ -97,13 +100,10 @@ class MCOCHubAPI:
         log.debug("No static key and no key_getter available")
         return None
 
-
     # -----------------------------
     # Generic fetch helper
     # -----------------------------
-    import random, asyncio
-
-    async def _fetch(self, endpoint: str):
+    async def _fetch(self, endpoint: str) -> Optional[Any]:
         url = f"{self.BASE_URL}/{endpoint}"
         api_key = await self._resolve_key()
         if not api_key:
@@ -150,8 +150,8 @@ class MCOCHubAPI:
                 raise
             except RateLimitedError:
                 raise
-            except Exception as e:
-                log.exception("MCOCHUB API exception for %s on attempt %d: %s", url, attempt, e)
+            except Exception:
+                log.exception("MCOCHUB API exception for %s on attempt %d", url, attempt)
             # backoff before retry
             if attempt < attempts:
                 delay = backoff_base * (2 ** (attempt - 1)) + random.random() * 0.1
@@ -162,37 +162,37 @@ class MCOCHubAPI:
     # -----------------------------
     # Champions (full list only)
     # -----------------------------
-    async def get_champions(self):
+    async def get_champions(self) -> Optional[Any]:
         log.debug("Fetching champions from MCOCHub")
         return await self._fetch("champions")
 
     # -----------------------------
     # Tags
     # -----------------------------
-    async def get_tags(self):
+    async def get_tags(self) -> Optional[Any]:
         log.debug("Fetching tags from MCOCHub")
         return await self._fetch("tags")
 
     # -----------------------------
     # Abilities
     # -----------------------------
-    async def get_abilities(self):
+    async def get_abilities(self) -> Optional[Any]:
         log.debug("Fetching abilities from MCOCHub")
         return await self._fetch("abilities")
 
     # -----------------------------
     # Immunities
     # -----------------------------
-    async def get_immunities(self):
+    async def get_immunities(self) -> Optional[Any]:
         log.debug("Fetching immunities from MCOCHub")
         return await self._fetch("immunities")
 
     # -----------------------------
     # Cleanup
     # -----------------------------
-    async def close(self):
+    async def close(self) -> None:
         log.info("Closing MCOCHubAPI session (external=%s)", self._external_session)
-        if not self._external_session and getattr(self, "_session", None) and not self._session.closed:
+        if not self._external_session and getattr(self, "_session", None) and not getattr(self._session, "closed", False):
             try:
                 await self._session.close()
                 log.debug("aiohttp ClientSession closed")
@@ -200,4 +200,3 @@ class MCOCHubAPI:
                 log.exception("Error closing aiohttp ClientSession")
         self._session = None
         log.debug("MCOCHubAPI.close() complete")
-

@@ -72,10 +72,19 @@ class Diagnostics(commands.Cog):
     @commands.is_owner()
     async def diag_group(self, ctx, group_name: str):
         """Inspect a group object on the cog by attribute name (e.g., champions_slash)."""
-        cog = self.bot.get_cog("MCOC")
+        # Try common cog names to be tolerant of different prefix module names
+        cog = self.bot.get_cog("MCOC") or self.bot.get_cog("MCOCPrefix") or self.bot.get_cog("MCOCPrefixCog")
+        if not cog:
+            # fallback: search for any cog that looks like MCOC by attribute heuristics
+            for c in self.bot.cogs.values():
+                if hasattr(c, "mcoc_version") or hasattr(c, "is_mcoc_prefix"):
+                    cog = c
+                    break
+
         if not cog:
             await ctx.send("MCOC cog not loaded")
             return
+
         grp = getattr(cog, group_name, None)
         if not grp:
             await ctx.send(f"No attribute `{group_name}` on MCOC cog")

@@ -1,6 +1,4 @@
-# mcoc/prefix/commands.py
-import discord
-import io
+# mcoc/prefix/commands_prefix.py  (replace the __init__ and class header)
 import logging
 from redbot.core import commands
 
@@ -8,14 +6,29 @@ log = logging.getLogger("red.mcoc.prefix")
 
 class MCOCPrefix(commands.Cog):
     """Prefix commands for MCOC (development / fallback)."""
+    is_mcoc_prefix = True
+    mcoc_version = "3.0.0"
 
-    def __init__(self, parent_cog):
+    def __init__(self, bot_or_parent):
         """
-        parent_cog: instance of mcoc.core.MCOC
-        We keep a reference to the main cog so we reuse its api/cache/index.
+        Accept either:
+          - parent_cog (the main mcoc core object) OR
+          - bot (discord.Bot / Red instance)
+        If a bot is passed, we attempt to find a parent core on it (bot.cogs or attribute).
         """
-        self.parent = parent_cog
-        self.bot = parent_cog.bot
+        # If a parent cog was passed (has .bot), use it
+        if hasattr(bot_or_parent, "bot") and hasattr(bot_or_parent, "cache"):
+            self.parent = bot_or_parent
+            self.bot = bot_or_parent.bot
+        else:
+            # assume a Bot/Red instance was passed
+            self.bot = bot_or_parent
+            # try to find a parent mcoc core cog on the bot
+            self.parent = None
+            # common heuristics: attribute or cog name
+            self.parent = getattr(self.bot, "mcoc_core", None) or self.bot.get_cog("MCOC") or self.bot.get_cog("MCOCPrefix")
+            # parent may be None in standalone mode; code must handle that
+
 
     # Top-level group
     @commands.group(name="mcoc", invoke_without_command=True)
@@ -28,6 +41,11 @@ class MCOCPrefix(commands.Cog):
     @mcoc.command(name="status")
     @commands.is_owner()
     async def mcoc_status(self, ctx):
+        # inside mcoc_status and other methods that use parent
+        if not getattr(self, "parent", None):
+            await ctx.send("MCOC core not attached; cache and API unavailable.")
+            return
+       
         try:
             cache = self.parent.cache
             meta = cache.metadata or {}
@@ -58,6 +76,10 @@ class MCOCPrefix(commands.Cog):
     @mcoc.command(name="sync")
     @commands.is_owner()
     async def mcoc_sync(self, ctx, mode: str = "auto"):
+        # inside mcoc_status and other methods that use parent
+        if not getattr(self, "parent", None):
+            await ctx.send("MCOC core not attached; cache and API unavailable.")
+            return
         await ctx.trigger_typing()
         if not self.parent.api:
             await ctx.send("API client not available (offline mode).")
@@ -103,7 +125,11 @@ class MCOCPrefix(commands.Cog):
     # Dump sample of a cache file
     @mcoc.command(name="dump")
     @commands.is_owner()
-    async def mcoc_dump(self, ctx, which: str = "champions"):
+    async def mcoc_dump(self, ctx, which: str = "champions"):# inside mcoc_status and other methods that use parent
+        if not getattr(self, "parent", None):
+            await ctx.send("MCOC core not attached; cache and API unavailable.")
+            return
+            
         which = which.lower()
         if which not in ("champions", "abilities", "tags", "immunities"):
             await ctx.send("Invalid target. Choose champions, abilities, tags, or immunities.")
@@ -164,3 +190,14 @@ class MCOCPrefix(commands.Cog):
             res = await self.bot.tree.sync(guild=discord.Object(id=guild_id))
             out.append(f"Synced to guild {guild_id}: {len(res)} commands")
         await ctx.send("```\n" + "\n".join(out) + "\n```")
+
+def setup(bot):
+    """
+    Allow this file to be loaded as a standalone cog by Red.
+    If you have a separate core cog, prefer loading that instead.
+    """
+    try:
+        bot.add_cog(MCOCPrefix(bot))
+    except Exception:
+        import logging
+        logging.getLogger("red.mcoc.prefix").exception("Failed to add MCOCPrefix")
