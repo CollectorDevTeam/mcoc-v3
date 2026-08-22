@@ -364,8 +364,8 @@ class ChampionSlashCog(commands.Cog):
         return self._group
 
 
-def setup(bot):
+async def setup(bot):
     try:
-        bot.add_cog(ChampionSlashCog(bot))
+        await bot.add_cog(ChampionSlashCog(bot))
     except Exception:
         log.exception("Failed to add ChampionSlashCog")

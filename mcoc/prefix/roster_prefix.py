@@ -187,8 +187,8 @@ class RosterPrefix(commands.Cog):
         await ctx.send("Your roster has been cleared.")
 
 
-def setup(bot):
+async def setup(bot):
     try:
-        bot.add_cog(RosterPrefix(bot))
+        await bot.add_cog(RosterPrefix(bot))
     except Exception:
         log.exception("Failed to add RosterPrefix")

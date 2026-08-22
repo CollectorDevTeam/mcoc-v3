@@ -137,8 +137,8 @@ class AdminSlashCog(commands.Cog):
         return self._group
 
 
-def setup(bot):
+async def setup(bot):
     try:
-        bot.add_cog(AdminSlashCog(bot))
+        await bot.add_cog(AdminSlashCog(bot))
     except Exception:
         log.exception("Failed to add AdminSlashCog")

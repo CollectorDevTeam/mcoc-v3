@@ -191,13 +191,13 @@ class MCOCPrefix(commands.Cog):
             out.append(f"Synced to guild {guild_id}: {len(res)} commands")
         await ctx.send("```\n" + "\n".join(out) + "\n```")
 
-def setup(bot):
+async def setup(bot):
     """
     Allow this file to be loaded as a standalone cog by Red.
     If you have a separate core cog, prefer loading that instead.
     """
     try:
-        bot.add_cog(MCOCPrefix(bot))
+        await bot.add_cog(MCOCPrefix(bot))
     except Exception:
         import logging
         logging.getLogger("red.mcoc.prefix").exception("Failed to add MCOCPrefix")

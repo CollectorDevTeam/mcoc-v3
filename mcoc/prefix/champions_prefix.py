@@ -217,8 +217,8 @@ class ChampionsPrefix(commands.Cog):
             await safe_send_ctx(ctx, "Failed to calculate stats.")
 
 
-def setup(bot):
+async def setup(bot):
     try:
-        bot.add_cog(ChampionsPrefix(bot))
+        await bot.add_cog(ChampionsPrefix(bot))
     except Exception:
         log.exception("Failed to add ChampionsPrefix")

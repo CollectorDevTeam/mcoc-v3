@@ -259,8 +259,8 @@ class RosterSlashCog(commands.Cog):
         return self._group
 
 
-def setup(bot):
+async def setup(bot):
     try:
-        bot.add_cog(RosterSlashCog(bot))
+        await bot.add_cog(RosterSlashCog(bot))
     except Exception:
         log.exception("Failed to add RosterSlashCog")
