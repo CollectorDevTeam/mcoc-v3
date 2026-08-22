@@ -6,6 +6,7 @@ from redbot.core import commands
 
 log = logging.getLogger("red.diagnostics")
 
+
 class Diagnostics(commands.Cog):
     """Prefix diagnostics for app command registration and tree state."""
 
@@ -24,9 +25,28 @@ class Diagnostics(commands.Cog):
             return []
 
     # -----------------------
+    # Top-level diag group
+    # -----------------------
+    @commands.group(name="diag", invoke_without_command=True)
+    @commands.is_owner()
+    async def diag(self, ctx):
+        """Diagnostics group. Use subcommands: status, sync, testgroup, clear_disabled, appinfo, group, perms."""
+        help_text = (
+            "Diagnostics commands (owner only):\n"
+            "`diag status` — show high level diagnostics about app command registration\n"
+            "`diag sync [guild_id]` — attempt a tree sync (global if no guild id)\n"
+            "`diag testgroup [guild_id]` — add a tiny test group and attempt a guild sync\n"
+            "`diag clear_disabled [names...]` — show or remove entries from _disabled_global_commands\n"
+            "`diag appinfo` — show application info and owner details\n"
+            "`diag group <attr>` — inspect a group object on the MCOC cog (e.g., champions_slash)\n"
+            "`diag perms <guild_id>` — show whether bot has Manage Guild and Use Application Commands in a guild"
+        )
+        await ctx.send(help_text)
+
+    # -----------------------
     # Main status command
     # -----------------------
-    @commands.command(name="diag status")
+    @diag.command(name="status")
     @commands.is_owner()
     async def diag_status(self, ctx):
         """Show high level diagnostics about app command registration."""
@@ -48,7 +68,7 @@ class Diagnostics(commands.Cog):
     # -----------------------
     # Inspect group object
     # -----------------------
-    @commands.command(name="diag group")
+    @diag.command(name="group")
     @commands.is_owner()
     async def diag_group(self, ctx, group_name: str):
         """Inspect a group object on the cog by attribute name (e.g., champions_slash)."""
@@ -70,7 +90,7 @@ class Diagnostics(commands.Cog):
     # -----------------------
     # Tree sync diagnostics
     # -----------------------
-    @commands.command(name="diag sync")
+    @diag.command(name="sync")
     @commands.is_owner()
     async def diag_sync(self, ctx, guild_id: int = None):
         """Attempt a guild sync and report results. Pass guild id to sync that guild."""
@@ -92,7 +112,7 @@ class Diagnostics(commands.Cog):
     # -----------------------
     # Test add minimal group
     # -----------------------
-    @commands.command(name="diag testgroup")
+    @diag.command(name="testgroup")
     @commands.is_owner()
     async def diag_testgroup(self, ctx, guild_id: int = None):
         """Add a tiny test group and attempt a guild sync. Cleans up after itself."""
@@ -126,7 +146,7 @@ class Diagnostics(commands.Cog):
     # -----------------------
     # Clear disabled entries
     # -----------------------
-    @commands.command(name="diag clear_disabled")
+    @diag.command(name="clear_disabled")
     @commands.is_owner()
     async def diag_clear_disabled(self, ctx, *names: str):
         """Remove entries from tree._disabled_global_commands. Pass names or none to show current keys."""
@@ -151,7 +171,7 @@ class Diagnostics(commands.Cog):
     # -----------------------
     # Show application info
     # -----------------------
-    @commands.command(name="diag appinfo")
+    @diag.command(name="appinfo")
     @commands.is_owner()
     async def diag_appinfo(self, ctx):
         """Show application info and owner details."""
@@ -161,7 +181,7 @@ class Diagnostics(commands.Cog):
     # -----------------------
     # Show permissions and guild membership
     # -----------------------
-    @commands.command(name="diag perms")
+    @diag.command(name="perms")
     @commands.is_owner()
     async def diag_perms(self, ctx, guild_id: int = None):
         """Show whether bot has Manage Guild and Use Application Commands in a guild."""
@@ -177,7 +197,11 @@ class Diagnostics(commands.Cog):
             await ctx.send("Bot member not found in guild")
             return
         perms = me.guild_permissions
-        await ctx.send(f"Guild {guild_id} perms for bot: manage_guild={perms.manage_guild}, use_application_commands={perms.use_application_commands}, administrator={perms.administrator}")
+        await ctx.send(
+            f"Guild {guild_id} perms for bot: manage_guild={perms.manage_guild}, "
+            f"use_application_commands={perms.use_application_commands}, administrator={perms.administrator}"
+        )
+
 
 def setup(bot):
     bot.add_cog(Diagnostics(bot))
