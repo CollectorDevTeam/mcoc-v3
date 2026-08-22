@@ -1,4 +1,5 @@
 import discord
+import discord.app_commands
 
 class PagesMenu(discord.ui.View):
     def __init__(self, pages, user, timeout=60):
