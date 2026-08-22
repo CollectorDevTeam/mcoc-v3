@@ -29,10 +29,10 @@ class ChampionsPrefix(commands.Cog):
             self.parent = None
             self.bot = bot_or_parent
 
-    def _require_parent(self, ctx) -> bool:
+    async def _require_parent(self, ctx) -> bool:
         if not getattr(self, "parent", None):
             try:
-                ctx.send("MCOC core not attached; cache and API unavailable.")
+                await ctx.send("MCOC core not attached; cache and API unavailable.")
             except Exception:
                 pass
             return False
@@ -44,7 +44,7 @@ class ChampionsPrefix(commands.Cog):
 
     @champ.command(name="info")
     async def champ_info(self, ctx, *, champion: str):
-        if not self._require_parent(ctx):
+        if not await self._require_parent(ctx):
             return
         champ = resolve_champion(self.parent.cache, champion)
         if not champ:
@@ -60,7 +60,7 @@ class ChampionsPrefix(commands.Cog):
 
     @champ.command(name="abilities")
     async def champ_abilities(self, ctx, *, champion: str):
-        if not self._require_parent(ctx):
+        if not await self._require_parent(ctx):
             return
         champ = resolve_champion(self.parent.cache, champion)
         if not champ:
@@ -76,7 +76,7 @@ class ChampionsPrefix(commands.Cog):
 
     @champ.command(name="synergies")
     async def champ_synergies(self, ctx, *, champion: str):
-        if not self._require_parent(ctx):
+        if not await self._require_parent(ctx):
             return
         champ = resolve_champion(self.parent.cache, champion)
         if not champ:
@@ -93,7 +93,7 @@ class ChampionsPrefix(commands.Cog):
 
     @champ.command(name="tags")
     async def champ_tags(self, ctx, *, tag: str):
-        if not self._require_parent(ctx):
+        if not await self._require_parent(ctx):
             return
         try:
             cache = getattr(self.parent, "cache", None)
@@ -111,7 +111,7 @@ class ChampionsPrefix(commands.Cog):
 
     @champ.command(name="stats")
     async def champ_stats(self, ctx, *, champion: str):
-        if not self._require_parent(ctx):
+        if not await self._require_parent(ctx):
             return
         champ = resolve_champion(self.parent.cache, champion)
         if not champ:
@@ -136,7 +136,7 @@ class ChampionsPrefix(commands.Cog):
 
     @champ.command(name="search")
     async def champ_search(self, ctx, *, query: str):
-        if not self._require_parent(ctx):
+        if not await self._require_parent(ctx):
             return
         try:
             cache = getattr(self.parent, "cache", None)
@@ -164,7 +164,7 @@ class ChampionsPrefix(commands.Cog):
 
     @champ.command(name="calcstats")
     async def champ_calcstats(self, ctx, champion: str, rarity: Optional[int] = None, rank: Optional[int] = None, sig: Optional[int] = None, ascended: int = 0, use_roster: bool = False):
-        if not self._require_parent(ctx):
+        if not await self._require_parent(ctx):
             return
         champ = resolve_champion(self.parent.cache, champion)
         if not champ:

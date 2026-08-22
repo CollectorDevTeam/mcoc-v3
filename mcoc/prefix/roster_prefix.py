@@ -28,10 +28,10 @@ class RosterPrefix(commands.Cog):
             self.parent = None
             self.bot = bot_or_parent
 
-    def _require_parent(self, ctx) -> bool:
+    async def _require_parent(self, ctx) -> bool:
         if not getattr(self, "parent", None):
             try:
-                ctx.send("MCOC core not attached; roster unavailable.")
+                await ctx.send("MCOC core not attached; roster unavailable.")
             except Exception:
                 pass
             return False
@@ -43,7 +43,7 @@ class RosterPrefix(commands.Cog):
 
     @roster.command(name="add")
     async def roster_add(self, ctx, champion: str, *, hargs: str):
-        if not self._require_parent(ctx):
+        if not await self._require_parent(ctx):
             return
         parsed = parse_hargs(hargs or "")
         entry = extract_entry_from_parsed(parsed)
@@ -88,7 +88,7 @@ class RosterPrefix(commands.Cog):
 
     @roster.command(name="remove")
     async def roster_remove(self, ctx, champion: str, *, hargs: Optional[str] = None):
-        if not self._require_parent(ctx):
+        if not await self._require_parent(ctx):
             return
         parsed = parse_hargs(hargs or "")
         rarity = parsed["rarities"][0] if parsed["rarities"] else None
@@ -107,7 +107,7 @@ class RosterPrefix(commands.Cog):
 
     @roster.command(name="update")
     async def roster_update(self, ctx, champion: str, *, hargs: str):
-        if not self._require_parent(ctx):
+        if not await self._require_parent(ctx):
             return
         parsed = parse_hargs(hargs or "")
         entry = extract_entry_from_parsed(parsed)
@@ -151,7 +151,7 @@ class RosterPrefix(commands.Cog):
 
     @roster.command(name="list")
     async def roster_list(self, ctx, *, hargs: Optional[str] = None):
-        if not self._require_parent(ctx):
+        if not await self._require_parent(ctx):
             return
         parsed = parse_hargs(hargs or "")
         pages = await build_roster_pages(self.parent, ctx.author.id, parsed)
@@ -181,6 +181,8 @@ class RosterPrefix(commands.Cog):
 
     @roster.command(name="clear")
     async def roster_clear(self, ctx):
+        if not await self._require_parent(ctx):
+            return
         users = ensure_user_manager(self.parent)
         if users:
             users.delete_user(ctx.author.id)
