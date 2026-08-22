@@ -44,3 +44,19 @@ async def setup(bot):
         log.debug("AdminSlashCog loaded")
     except Exception:
         log.exception("Failed to load AdminSlashCog (non-fatal)")
+
+
+    # Prefix cogs for champion and roster text commands
+    try:
+        from .prefix.champions_prefix import ChampionsPrefix
+        await bot.add_cog(ChampionsPrefix(bot))
+        log.debug("ChampionsPrefix loaded")
+    except Exception:
+        log.exception("Failed to load ChampionsPrefix (non-fatal)")
+
+    try:
+        from .prefix.roster_prefix import RosterPrefix
+        await bot.add_cog(RosterPrefix(bot))
+        log.debug("RosterPrefix loaded")
+    except Exception:
+        log.exception("Failed to load RosterPrefix (non-fatal)")
