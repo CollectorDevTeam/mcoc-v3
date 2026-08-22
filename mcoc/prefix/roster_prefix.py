@@ -1,6 +1,6 @@
 # mcoc/prefix/roster_prefix.py
 import logging
-from typing import Optional, Any, Dict
+from typing import Optional, Any
 from redbot.core import commands
 
 log = logging.getLogger("red.mcoc.prefix.roster")
@@ -29,7 +29,15 @@ class RosterPrefix(commands.Cog):
             self.bot = bot_or_parent
 
     async def _require_parent(self, ctx) -> bool:
+        # Try to attach core dynamically if possible
         if not getattr(self, "parent", None):
+            try:
+                core = getattr(self.bot, "mcoc_core", None) or self.bot.get_cog("MCOC")
+                if core:
+                    self.parent = core
+                    return True
+            except Exception:
+                pass
             try:
                 await ctx.send("MCOC core not attached; roster unavailable.")
             except Exception:
@@ -189,8 +197,191 @@ class RosterPrefix(commands.Cog):
         await ctx.send("Your roster has been cleared.")
 
 
-async def setup(bot):
-    try:
-        await bot.add_cog(RosterPrefix(bot))
-    except Exception:
-        log.exception("Failed to add RosterPrefix")
+# Registrar: attach these commands under another group (e.g., ///mcoc roster)
+def register_with_group(group: commands.Group, parent_getter):
+    """
+    Attach roster prefix commands to the provided `group`.
+    parent_getter is a callable returning the core/parent object (or None).
+    """
+
+    # add
+    async def _add(ctx, champion: str, *, hargs: str):
+        parent = parent_getter()
+        if not parent:
+            await ctx.send("MCOC core not attached; roster unavailable.")
+            return
+        parsed = parse_hargs(hargs or "")
+        entry = extract_entry_from_parsed(parsed)
+
+        cache = getattr(parent, "cache", None)
+        champ = cache.get_champion(champion) if cache else None
+        if not champ:
+            await ctx.send(f"Champion `{champion}` not found.")
+            return
+
+        if not validate_entry_for_add(entry):
+            await ctx.send("Adding a champion requires rarity and rank (e.g., `6*r3`).")
+            return
+
+        users = ensure_user_manager(parent)
+        try:
+            users.add_champion(
+                ctx.author.id,
+                champ_slug=champ.get("id") or champ.get("slug"),
+                rarity=entry["rarity"],
+                rank=entry["rank"],
+                sig=entry.get("sig", 0),
+                tags=entry.get("tags", []),
+            )
+        except Exception:
+            log.exception("Failed to add champion to roster")
+            await ctx.send("Failed to add champion to roster.")
+            return
+
+        try:
+            embed = await roster_entry_embed(ctx, champ, {
+                "rarity": entry["rarity"],
+                "rank": entry["rank"],
+                "sig": entry.get("sig", 0),
+                "tags": entry.get("tags", []),
+                "ascended": entry.get("ascended", 0),
+            })
+        except Exception:
+            embed = None
+
+        await ctx.send(f"Added **{champ.get('name','Unknown')}** to your roster.", embed=embed)
+
+    group.command(name="add")(_add)
+
+    # remove
+    async def _remove(ctx, champion: str, *, hargs: Optional[str] = None):
+        parent = parent_getter()
+        if not parent:
+            await ctx.send("MCOC core not attached; roster unavailable.")
+            return
+        parsed = parse_hargs(hargs or "")
+        rarity = parsed["rarities"][0] if parsed["rarities"] else None
+
+        users = ensure_user_manager(parent)
+        try:
+            removed = users.remove_champion(ctx.author.id, champion, rarity)
+        except Exception:
+            log.exception("Failed to remove champion")
+            removed = 0
+
+        if removed == 0:
+            await ctx.send("No matching champion found in your roster.")
+        else:
+            await ctx.send(f"Removed {removed} entries for `{champion}`.")
+
+    group.command(name="remove")(_remove)
+
+    # update
+    async def _update(ctx, champion: str, *, hargs: str):
+        parent = parent_getter()
+        if not parent:
+            await ctx.send("MCOC core not attached; roster unavailable.")
+            return
+        parsed = parse_hargs(hargs or "")
+        entry = extract_entry_from_parsed(parsed)
+
+        if entry.get("rarity") is None:
+            await ctx.send("Updating a champion requires rarity (e.g., `6*`).")
+            return
+
+        users = ensure_user_manager(parent)
+        try:
+            updated = users.update_champion(
+                ctx.author.id,
+                champ_slug=champion,
+                rarity=entry["rarity"],
+                rank=entry.get("rank"),
+                sig=entry.get("sig"),
+                tags=entry.get("tags"),
+            )
+        except Exception:
+            log.exception("Failed to update champion")
+            updated = False
+
+        if not updated:
+            await ctx.send("Champion not found in your roster.")
+            return
+
+        cache = getattr(parent, "cache", None)
+        champ = cache.get_champion(champion) if cache else None
+        try:
+            embed = await roster_entry_embed(ctx, champ, {
+                "rarity": entry["rarity"],
+                "rank": entry.get("rank") or 0,
+                "sig": entry.get("sig") or 0,
+                "tags": entry.get("tags") or [],
+                "ascended": entry.get("ascended") or 0
+            })
+        except Exception:
+            embed = None
+
+        await ctx.send(f"Updated **{champ.get('name','Unknown') if champ else champion}**.", embed=embed)
+
+    group.command(name="update")(_update)
+
+    # list
+    async def _list(ctx, *, hargs: Optional[str] = None):
+        parent = parent_getter()
+        if not parent:
+            await ctx.send("MCOC core not attached; roster unavailable.")
+            return
+        parsed = parse_hargs(hargs or "")
+        pages = await build_roster_pages(parent, ctx.author.id, parsed)
+
+        if not pages:
+            await ctx.send("No roster entries match your filters.")
+            return
+
+        try:
+            from ..common.pagination import PagesMenu
+            try:
+                from ..common.roster_helpers import add_page_footers  # optional
+                pages = add_page_footers(pages)
+            except Exception:
+                pass
+            await ctx.send(embed=pages[0], view=PagesMenu(pages, ctx.author))
+        except Exception:
+            names = [p.get("title") or "Entry" for p in pages][:50]
+            await ctx.send(f"Matches ({len(pages)}): {', '.join(names)}")
+
+    group.command(name="list")(_list)
+
+    # export
+    async def _export(ctx):
+        parent = parent_getter()
+        if not parent:
+            await ctx.send("MCOC core not attached; roster unavailable.")
+            return
+        users = ensure_user_manager(parent)
+        data = users.export(ctx.author.id) if users else {}
+        await ctx.send(f"Your roster data:\n```json\n{data}\n```")
+
+    group.command(name="export")(_export)
+
+    # clear
+    async def _clear(ctx):
+        parent = parent_getter()
+        if not parent:
+            await ctx.send("MCOC core not attached; roster unavailable.")
+            return
+        users = ensure_user_manager(parent)
+        if users:
+            users.delete_user(ctx.author.id)
+        await ctx.send("Your roster has been cleared.")
+
+    group.command(name="clear")(_clear)
+
+
+# Note: if you want this file to register a standalone RosterPrefix cog (top-level ///roster),
+# keep the setup below. If you prefer only to attach these commands under ///mcoc roster via
+# register_with_group, remove or comment out the setup so Red does not create a separate ///roster.
+# async def setup(bot):
+#     try:
+#         await bot.add_cog(RosterPrefix(bot))
+#     except Exception:
+#         log.exception("Failed to add RosterPrefix")

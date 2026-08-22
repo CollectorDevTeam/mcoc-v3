@@ -1,6 +1,6 @@
 # mcoc/prefix/champions_prefix.py
 import logging
-from typing import Optional, Any, Dict, List
+from typing import Optional, Any
 from redbot.core import commands
 
 log = logging.getLogger("red.mcoc.prefix.champions")
@@ -12,6 +12,9 @@ from ..common.champion_helpers import (
     add_page_footers,
 )
 
+# Keep the original Cog so it can still be loaded independently for testing,
+# but we will also provide a registrar function to attach these commands under
+# another group (e.g., ///mcoc champ).
 class ChampionsPrefix(commands.Cog):
     """
     Prefix (text) commands for champion lookups and utilities.
@@ -30,7 +33,15 @@ class ChampionsPrefix(commands.Cog):
             self.bot = bot_or_parent
 
     async def _require_parent(self, ctx) -> bool:
+        # Try to attach core dynamically if possible
         if not getattr(self, "parent", None):
+            try:
+                core = getattr(self.bot, "mcoc_core", None) or self.bot.get_cog("MCOC")
+                if core:
+                    self.parent = core
+                    return True
+            except Exception:
+                pass
             try:
                 await ctx.send("MCOC core not attached; cache and API unavailable.")
             except Exception:
@@ -172,7 +183,7 @@ class ChampionsPrefix(commands.Cog):
             return
 
         if use_roster:
-            roster_sub = getattr(self.parent, "roster_slash", None)
+            roster_sub = getattr(self.parent, "roster_prefix", None) or getattr(self.parent, "roster_slash", None)
             try:
                 roster = roster_sub.users.list_roster(ctx.author.id) if roster_sub else []
             except Exception:
@@ -217,8 +228,186 @@ class ChampionsPrefix(commands.Cog):
             await safe_send_ctx(ctx, "Failed to calculate stats.")
 
 
-async def setup(bot):
-    try:
-        await bot.add_cog(ChampionsPrefix(bot))
-    except Exception:
-        log.exception("Failed to add ChampionsPrefix")
+# Registrar: attach these commands under another group (e.g., ///mcoc champ)
+def register_with_group(group: commands.Group, parent_getter):
+    """
+    Attach champion prefix commands to the provided `group` (a commands.Group).
+    parent_getter is a callable returning the core/parent object (or None).
+    """
+
+    # local imports for embed builders (keeps module import light)
+    from ..common.embeds import champion_embed, abilities_embed, synergy_embed, tag_list_embed
+
+    # info
+    async def _info(ctx, *, champion: str):
+        parent = parent_getter()
+        if not parent:
+            await ctx.send("MCOC core not attached; cache and API unavailable.")
+            return
+        cache = getattr(parent, "cache", None)
+        champ = resolve_champion(cache, champion)
+        if not champ:
+            await ctx.send(f"Champion `{champion}` not found.")
+            return
+        try:
+            embed = await champion_embed(ctx, champ)
+            await ctx.send(embed=embed)
+        except Exception:
+            log.exception("register info failed")
+            await ctx.send(champ.get("name", "Unknown"))
+
+    group.command(name="info")(_info)
+
+    # abilities
+    async def _abilities(ctx, *, champion: str):
+        parent = parent_getter()
+        if not parent:
+            await ctx.send("MCOC core not attached; cache and API unavailable.")
+            return
+        cache = getattr(parent, "cache", None)
+        champ = resolve_champion(cache, champion)
+        if not champ:
+            await ctx.send(f"Champion `{champion}` not found.")
+            return
+        try:
+            embed = await abilities_embed(ctx, champ)
+            await ctx.send(embed=embed)
+        except Exception:
+            log.exception("register abilities failed")
+            await ctx.send("Abilities unavailable.")
+
+    group.command(name="abilities")(_abilities)
+
+    # synergies
+    async def _synergies(ctx, *, champion: str):
+        parent = parent_getter()
+        if not parent:
+            await ctx.send("MCOC core not attached; cache and API unavailable.")
+            return
+        cache = getattr(parent, "cache", None)
+        champ = resolve_champion(cache, champion)
+        if not champ:
+            await ctx.send(f"Champion `{champion}` not found.")
+            return
+        try:
+            synergies = champ.get("synergies", []) or []
+            embed = await synergy_embed(ctx, champ, synergies)
+            await ctx.send(embed=embed)
+        except Exception:
+            log.exception("register synergies failed")
+            await ctx.send("Synergies unavailable.")
+
+    group.command(name="synergies")(_synergies)
+
+    # tags
+    async def _tags(ctx, *, tag: str):
+        parent = parent_getter()
+        if not parent:
+            await ctx.send("MCOC core not attached; cache and API unavailable.")
+            return
+        cache = getattr(parent, "cache", None)
+        champs = cache.get_all_champions() if cache else []
+        matches = [c for c in champs if tag in (c.get("tags") or [])]
+        if not matches:
+            await ctx.send(f"No champions found with tag `{tag}`.")
+            return
+        try:
+            embed = await tag_list_embed(ctx, tag, matches)
+            await ctx.send(embed=embed)
+        except Exception:
+            log.exception("register tags failed")
+            await ctx.send(f"{len(matches)} champions found for tag `{tag}`.")
+
+    group.command(name="tags")(_tags)
+
+    # search (simple)
+    async def _search(ctx, *, query: str):
+        parent = parent_getter()
+        if not parent:
+            await ctx.send("MCOC core not attached; cache and API unavailable.")
+            return
+        cache = getattr(parent, "cache", None)
+        champs = cache.get_all_champions() if cache else []
+        q = (query or "").lower()
+        results = []
+        for c in champs:
+            try:
+                if q in (c.get("name") or "").lower() or q in str(c.get("id") or c.get("slug") or "").lower():
+                    results.append(c)
+            except Exception:
+                continue
+        if not results:
+            await ctx.send("No champions match your search.")
+            return
+        names = [r.get("name", "Unknown") for r in results][:20]
+        await ctx.send(f"Matches ({len(results)}): {', '.join(names)}")
+
+    group.command(name="search")(_search)
+
+    # calcstats (simple wrapper)
+    async def _calcstats(ctx, champion: str, rarity: Optional[int] = None, rank: Optional[int] = None, sig: Optional[int] = None, ascended: int = 0, use_roster: bool = False):
+        parent = parent_getter()
+        if not parent:
+            await ctx.send("MCOC core not attached; cache and API unavailable.")
+            return
+        cache = getattr(parent, "cache", None)
+        champ = resolve_champion(cache, champion)
+        if not champ:
+            await ctx.send(f"Champion `{champion}` not found.")
+            return
+
+        if use_roster:
+            roster_sub = getattr(parent, "roster_prefix", None) or getattr(parent, "roster_slash", None)
+            try:
+                roster = roster_sub.users.list_roster(ctx.author.id) if roster_sub else []
+            except Exception:
+                roster = []
+            entry = next((e for e in roster if e.get("champion") == (champ.get("id") or champ.get("slug"))), None)
+            if not entry:
+                await ctx.send("You do not have this champion in your roster.")
+                return
+            rarity = entry.get("rarity")
+            rank = entry.get("rank")
+            sig = entry.get("sig")
+            ascended = entry.get("ascended", 0)
+
+        if rarity is None or rank is None:
+            await ctx.send("You must specify rarity and rank (or enable use_roster).")
+            return
+
+        statline = lookup_stat(champ, rarity, rank, ascended)
+        if not statline:
+            await ctx.send(f"No stat data available for {rarity}★ {champ.get('name','Unknown')}.")
+            return
+
+        try:
+            import discord
+            embed = discord.Embed(
+                title=f"{champ.get('name','Unknown')} — {rarity}★ Rank {rank}{' Ascended ' + str(ascended) if ascended else ''}",
+                color=discord.Color.gold()
+            )
+            embed.add_field(name="Attack", value=statline.get("attack", "N/A"))
+            embed.add_field(name="Health", value=statline.get("health", "N/A"))
+            if sig is not None:
+                embed.add_field(name="Signature Level", value=str(sig))
+            thumb = (champ.get("images") or {}).get("portrait") or champ.get("portrait") or ""
+            if thumb:
+                try:
+                    embed.set_thumbnail(url=thumb)
+                except Exception:
+                    pass
+            await ctx.send(embed=embed)
+        except Exception:
+            log.exception("register calcstats failed")
+            await ctx.send("Failed to calculate stats.")
+
+# Note: remove or comment out the module-level setup if you do not want this file
+# to register a standalone ChampionsPrefix cog (which would create a top-level ///champ).
+# If you still want the standalone cog for testing, keep the setup below; otherwise
+# remove it to avoid duplicate top-level commands.
+
+# async def setup(bot):
+#     try:
+#         await bot.add_cog(ChampionsPrefix(bot))
+#     except Exception:
+#         log.exception("Failed to add ChampionsPrefix")
