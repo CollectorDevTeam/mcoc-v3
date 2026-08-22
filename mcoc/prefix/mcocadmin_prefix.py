@@ -31,7 +31,7 @@ class MCOCPrefix(commands.Cog):
 
 
     # Top-level group
-    @commands.group(name="mcoc", invoke_without_command=True)
+    @commands.group(name="mcocadmin", invoke_without_command=True)
     @commands.is_owner()
     async def mcoc(self, ctx):
         """MCOC data management commands (owner only)."""

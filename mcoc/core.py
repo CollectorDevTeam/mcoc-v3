@@ -9,16 +9,38 @@ async def setup(bot):
     """
     # 1) Prefix implementation (primary user-facing commands)
     try:
-        from .prefix.commands_prefix import MCOCPrefix
+        from .prefix.mcocadmin_prefix import MCOCPrefix
         await bot.add_cog(MCOCPrefix(bot))
         log.debug("MCOCPrefix loaded")
     except Exception:
         log.exception("Failed to load MCOCPrefix")
 
-    # 2) Diagnostics (owner-only)
+    # 2) Diagnostics (owner-only)a
     try:
         from .diagnostics.diagnostics import Diagnostics
         await bot.add_cog(Diagnostics(bot))
         log.debug("Diagnostics loaded")
     except Exception:
         log.exception("Failed to load Diagnostics (non-fatal)")
+
+    # 3) Slash app command wrapper cogs (register app command Groups on cog_load)
+    try:
+        from .slash.champions_slash import ChampionSlashCog
+        await bot.add_cog(ChampionSlashCog(bot))
+        log.debug("ChampionSlashCog loaded")
+    except Exception:
+        log.exception("Failed to load ChampionSlashCog (non-fatal)")
+
+    try:
+        from .slash.roster_slash import RosterSlashCog
+        await bot.add_cog(RosterSlashCog(bot))
+        log.debug("RosterSlashCog loaded")
+    except Exception:
+        log.exception("Failed to load RosterSlashCog (non-fatal)")
+
+    try:
+        from .slash.admin_slash import AdminSlashCog
+        await bot.add_cog(AdminSlashCog(bot))
+        log.debug("AdminSlashCog loaded")
+    except Exception:
+        log.exception("Failed to load AdminSlashCog (non-fatal)")
