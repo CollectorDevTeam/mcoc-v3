@@ -1,5 +1,9 @@
 # mcoc/prefix/mcocadmin_prefix.py
 import logging
+# inside mcoc/prefix/mcocadmin_prefix.py (or similar admin cog)
+import io
+import json
+from discord import File
 from redbot.core import commands
 
 log = logging.getLogger("red.mcoc.prefix")
@@ -105,3 +109,99 @@ def register_with_group(group: commands.Group, parent_getter):
         await parent.cache._diff_and_save("abilities", abilities)
         await parent.cache._diff_and_save("immunities", immunities)
         await ctx.send("Forced sync complete.")
+
+    @group.command(name="dump", aliases=["raw", "json"])
+    @commands.is_owner()
+    async def _dump(ctx, kind: str, *, key: str):
+        """
+        Dump raw JSON for a single entry from the local cache.
+
+        kind: one of 'champion', 'ability', 'immunity', 'tag'
+        key: id, slug, or name (case-insensitive)
+        Examples:
+        ///mcoc admin dump champion blackbolt
+        ///mcoc admin dump ability armor-break
+        ///mcoc admin dump tag poison-immunity
+        """
+        kind = kind.lower()
+        core = getattr(ctx.bot, "mcoc_core", None)
+        if not core or not getattr(core, "cache", None):
+            await ctx.send("MCOC cache not initialized.")
+            return
+
+        cache = core.cache
+
+        # Resolve the requested object
+        obj = None
+        if kind in ("champion", "champ", "ch"):
+            # try cache API first, then fallback scan
+            try:
+                obj = cache.get_champion(key)
+            except Exception:
+                obj = None
+            if obj is None:
+                # fallback: scan all champions
+                for c in cache.get_all_champions() or []:
+                    if str(c.get("id") or c.get("slug") or "").lower() == key.lower() or str(c.get("name") or "").lower() == key.lower():
+                        obj = c
+                        break
+
+        elif kind in ("ability", "abilities", "abilitys"):
+            try:
+                # if cache exposes get_ability or similar
+                obj = cache.get_ability(key)
+            except Exception:
+                # fallback: scan
+                for a in cache.get_all_abilities() or []:
+                    if str(a.get("id") or a.get("slug") or "").lower() == key.lower() or str(a.get("name") or "").lower() == key.lower():
+                        obj = a
+                        break
+
+        elif kind in ("immunity", "immunities"):
+            try:
+                obj = cache.get_immunity(key)
+            except Exception:
+                for i in cache.get_all_immunities() or []:
+                    if str(i.get("id") or i.get("slug") or "").lower() == key.lower() or str(i.get("name") or "").lower() == key.lower():
+                        obj = i
+                        break
+
+        elif kind in ("tag", "tags"):
+            try:
+                obj = cache.get_tag(key)
+            except Exception:
+                for t in cache.get_all_tags() or []:
+                    if str(t.get("id") or t.get("slug") or "").lower() == key.lower() or str(t.get("name") or "").lower() == key.lower():
+                        obj = t
+                        break
+        else:
+            await ctx.send("Unknown kind. Use one of: champion, ability, immunity, tag.")
+            return
+
+        if not obj:
+            await ctx.send(f"No {kind} found for `{key}`.")
+            return
+
+        # Pretty-print JSON
+        try:
+            payload = json.dumps(obj, indent=2, ensure_ascii=False)
+        except Exception:
+            # fallback: best-effort string conversion
+            payload = str(obj)
+
+        # If small, send inline; otherwise send as file
+        MAX_INLINE = 1500
+        if len(payload) <= MAX_INLINE:
+            # wrap in codeblock for readability
+            await ctx.send(f"```json\n{payload}\n```")
+        else:
+            bio = io.BytesIO(payload.encode("utf-8"))
+            bio.seek(0)
+            filename = f"{kind}-{key}.json"
+            try:
+                await ctx.send(file=File(bio, filename=filename))
+            except Exception:
+                # last resort: send first chunk inline and attach remainder as file
+                await ctx.send(f"Large payload; sending first {MAX_INLINE} chars:\n```json\n{payload[:MAX_INLINE]}\n```")
+                bio.seek(0)
+                await ctx.send(file=File(bio, filename=filename))
