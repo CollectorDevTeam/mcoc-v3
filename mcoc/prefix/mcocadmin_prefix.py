@@ -31,7 +31,6 @@ class MCOCAdminPrefix(commands.Cog):
 
 
     # Status
-    @mcocadmin.command(name="status")
     @commands.is_owner()
     async def mcocadmin_status(self, ctx):
         # inside mcoc_status and other methods that use parent
@@ -66,7 +65,6 @@ class MCOCAdminPrefix(commands.Cog):
             await ctx.send("Failed to get status; check logs.")
 
     # Sync (auto respects recency; force bypasses recency)
-    @mcocadmin.command(name="sync")
     @commands.is_owner()
     async def mcocadmin_sync(self, ctx, mode: str = "auto"):
         # inside mcoc_status and other methods that use parent
@@ -116,7 +114,6 @@ class MCOCAdminPrefix(commands.Cog):
             await ctx.send("Sync failed; check logs for details.")
 
     # Dump sample of a cache file
-    @mcocadmin.command(name="dump")
     @commands.is_owner()
     async def mcocadmin_dump(self, ctx, which: str = "champions"):# inside mcoc_status and other methods that use parent
         if not getattr(self, "parent", None):
@@ -157,7 +154,6 @@ class MCOCAdminPrefix(commands.Cog):
             await ctx.send("Failed to dump cache; check logs.")
 
     # Toggle verbose logging
-    @mcocadmin.command(name="verbose")
     @commands.is_owner()
     async def mcocadmin_verbose(self, ctx, on_off: str):
         val = on_off.lower() in ("1", "true", "on", "yes")
@@ -170,7 +166,6 @@ class MCOCAdminPrefix(commands.Cog):
         await ctx.send(f"Verbose logging {'enabled' if val else 'disabled'}.")
         log.info("Owner set verbose logging to %s", val)
 
-    @mcocadmin.command(name="debug")
     @commands.is_owner()
     async def mcocadmin_debug(self, ctx, guild_id: int = None):
         """Print local tree and optionally sync to a guild."""
