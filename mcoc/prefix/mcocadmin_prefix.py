@@ -1,11 +1,11 @@
-# mcoc/prefix/commands_prefix.py  (replace the __init__ and class header)
+# mcoc/prefix/mcocadmin_prefix.py  (replace the __init__ and class header)
 import logging
 from redbot.core import commands
 
 log = logging.getLogger("red.mcoc.prefix")
 
-class MCOCPrefix(commands.Cog):
-    """Prefix commands for MCOC (development / fallback)."""
+class MCOCAdminPrefix(commands.Cog):
+    """Prefix commands for MCOC admin (development / fallback)."""
     is_mcoc_prefix = True
     mcoc_version = "3.0.0"
 
@@ -32,15 +32,18 @@ class MCOCPrefix(commands.Cog):
 
     # Top-level group
     @commands.group(name="mcocadmin", invoke_without_command=True)
+    async def mcocadmin(self, ctx):
+        """MCOC admin commands (owner only)."""
+        await ctx.send("Use subcommands: `status`, `sync`, `force-sync`, `dump`, `verbose`.")
     @commands.is_owner()
     async def mcoc(self, ctx):
         """MCOC data management commands (owner only)."""
         await ctx.send("Use subcommands: `status`, `sync`, `force-sync`, `dump`, `verbose`.")
 
     # Status
-    @mcoc.command(name="status")
+    @mcocadmin.command(name="status")
     @commands.is_owner()
-    async def mcoc_status(self, ctx):
+    async def mcocadmin_status(self, ctx):
         # inside mcoc_status and other methods that use parent
         if not getattr(self, "parent", None):
             await ctx.send("MCOC core not attached; cache and API unavailable.")
@@ -73,9 +76,9 @@ class MCOCPrefix(commands.Cog):
             await ctx.send("Failed to get status; check logs.")
 
     # Sync (auto respects recency; force bypasses recency)
-    @mcoc.command(name="sync")
+    @mcocadmin.command(name="sync")
     @commands.is_owner()
-    async def mcoc_sync(self, ctx, mode: str = "auto"):
+    async def mcocadmin_sync(self, ctx, mode: str = "auto"):
         # inside mcoc_status and other methods that use parent
         if not getattr(self, "parent", None):
             await ctx.send("MCOC core not attached; cache and API unavailable.")
@@ -114,18 +117,18 @@ class MCOCPrefix(commands.Cog):
                 await ctx.send("No update performed (cache recent or no changes).")
         except self.parent.api.__class__.UnauthenticatedError:
             await ctx.send("API key unauthenticated. Fix shared token and reload cog.")
-            log.error("Owner attempted sync but API key unauthenticated.")
+            log.error("Owner attempted mcocadmin sync but API key unauthenticated.")
         except self.parent.api.__class__.RateLimitedError:
             await ctx.send("API rate limited. Backing off; try again later.")
-            log.warning("Owner attempted sync but API rate limited.")
+            log.warning("Owner attempted mcocadmin sync but API rate limited.")
         except Exception:
-            log.exception("mcoc sync failed")
+            log.exception("mcocadmin sync failed")
             await ctx.send("Sync failed; check logs for details.")
 
     # Dump sample of a cache file
-    @mcoc.command(name="dump")
+    @mcocadmin.command(name="dump")
     @commands.is_owner()
-    async def mcoc_dump(self, ctx, which: str = "champions"):# inside mcoc_status and other methods that use parent
+    async def mcocadmin_dump(self, ctx, which: str = "champions"):# inside mcoc_status and other methods that use parent
         if not getattr(self, "parent", None):
             await ctx.send("MCOC core not attached; cache and API unavailable.")
             return
@@ -164,9 +167,9 @@ class MCOCPrefix(commands.Cog):
             await ctx.send("Failed to dump cache; check logs.")
 
     # Toggle verbose logging
-    @mcoc.command(name="verbose")
+    @mcocadmin.command(name="verbose")
     @commands.is_owner()
-    async def mcoc_verbose(self, ctx, on_off: str):
+    async def mcocadmin_verbose(self, ctx, on_off: str):
         val = on_off.lower() in ("1", "true", "on", "yes")
         level = logging.DEBUG if val else logging.INFO
         logging.getLogger("red.mcoc").setLevel(level)
@@ -177,9 +180,9 @@ class MCOCPrefix(commands.Cog):
         await ctx.send(f"Verbose logging {'enabled' if val else 'disabled'}.")
         log.info("Owner set verbose logging to %s", val)
 
-    @mcoc.command(name="debug")
+    @mcocadmin.command(name="debug")
     @commands.is_owner()
-    async def debug_tree(self, ctx, guild_id: int = None):
+    async def mcocadmin_debug(self, ctx, guild_id: int = None):
         """Print local tree and optionally sync to a guild."""
         out = []
         out.append(f"Local commands: {[c.name for c in self.bot.tree.get_commands()]}")
@@ -197,7 +200,7 @@ async def setup(bot):
     If you have a separate core cog, prefer loading that instead.
     """
     try:
-        await bot.add_cog(MCOCPrefix(bot))
+        await bot.add_cog(MCOCAdminPrefix(bot))
     except Exception:
         import logging
-        logging.getLogger("red.mcoc.prefix").exception("Failed to add MCOCPrefix")
+        logging.getLogger("red.mcoc.prefix").exception("Failed to add MCOCAdminPrefix")
