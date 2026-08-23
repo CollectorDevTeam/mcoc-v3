@@ -12,6 +12,12 @@ from .cacheindex import CacheIndex
 from pathlib import Path
 
 log = logging.getLogger("red.mcoc.cache")
+# near other constants/imports
+PRESTIGE_VERSIONS_URL = "https://mcochub.insaneskull.com/data/versions.json"
+PRESTIGE_ENDPOINT = "https://mcochub.insaneskull.com/data/prestige.json"
+TIERS = [2, 3, 4, 5, 6, 7]
+RANKS = [1, 2, 3, 4, 5]
+ASCENSIONS = [0, 1, 2]
 
 
 # Do NOT create directories at import time. Create them when CacheManager is instantiated.
@@ -138,6 +144,135 @@ class CacheManager:
         return (datetime.datetime.utcnow() - last_dt) < datetime.timedelta(hours=hours)
 
     # -----------------------------
+    # Prestige update
+    # -----------------------------
+    async def check_update_prestige(self, api, force: bool = False) -> bool:
+        """
+        Use api.fetch_versions_public and api.fetch_prestige_public to update prestige.
+        Respects is_recent() guard and writes prestige.json atomically.
+        """
+        if self.is_recent(hours=24) and not force:
+            log.info("Prestige check skipped: recent sync within 24h.")
+            return False
+
+        try:
+            versions = await api.fetch_versions_public()
+            if not versions:
+                log.warning("Failed to fetch versions.json for prestige.")
+                return False
+            prestige_version = versions.get("prestige")
+            if not prestige_version:
+                log.warning("No prestige version in versions.json.")
+                return False
+
+            # If metadata already has same prestige version and not forced, update last_sync and skip
+            old_version = self.metadata.get("versions", {}).get("prestige")
+            if old_version == prestige_version and not force:
+                self.metadata.setdefault("versions", {})["prestige"] = prestige_version
+                self.metadata["last_sync"] = datetime.datetime.utcnow().isoformat()
+                self._save_metadata()
+                log.info("Prestige version unchanged; skipping downloads.")
+                return False
+
+            # Fetch combos
+            combined_rows = []
+            for tier in TIERS:
+                for rank in RANKS:
+                    for asc in ASCENSIONS:
+                        payload = await api.fetch_prestige_public(tier, rank, asc, prestige_version)
+                        if not payload:
+                            log.warning("No prestige payload for %s|%s|%s", tier, rank, asc)
+                            continue
+                        rows = payload.get("rows", []) or []
+                        # annotate rows with combo metadata for later filtering
+                        for r in rows:
+                            r["_tier"] = tier; r["_rank"] = rank; r["_asc"] = asc
+                        combined_rows.extend(rows)
+
+            normalized = {"version": prestige_version, "rows": combined_rows}
+            # write prestige.json atomically
+            await self._atomic_write_json(self.cache_dir / "prestige.json", normalized)
+
+            # update metadata and persist
+            self.metadata.setdefault("versions", {})["prestige"] = prestige_version
+            self.metadata["last_sync"] = datetime.datetime.utcnow().isoformat()
+            await asyncio.to_thread(self._atomic_write_json_blocking, self.metadata_file, self.metadata)
+
+            # rebuild index
+            try:
+                await asyncio.to_thread(self.index.rebuild)
+            except Exception:
+                log.exception("CacheIndex rebuild failed after prestige update")
+
+            log.info("Prestige cache updated (version %s).", prestige_version)
+            return True
+
+        except Exception:
+            log.exception("check_update_prestige failed")
+            return False
+ 
+    def get_prestige_table(self, tier: int, rank: int, asc: int) -> Optional[dict]:
+        data = self._load_file("prestige")
+        if not data:
+            return None
+        rows = [r for r in (data.get("rows") or []) if r.get("_tier")==tier and r.get("_rank")==rank and r.get("_asc")==asc]
+        if not rows:
+            return None
+        return {"version": data.get("version"), "rows": rows}
+
+    def _smooth_sig_value(self, sigs_map: dict, sig: int) -> Optional[int]:
+        """
+        sigs_map: dict of string keys '0','20',... -> int prestige
+        sig: requested signature (0..200)
+        Returns integer prestige via nearest exact or linear interpolation between surrounding keys.
+        """
+        if not sigs_map:
+            return None
+        # convert keys to sorted ints
+        keys = sorted([int(k) for k in sigs_map.keys() if k.isdigit()])
+        if not keys:
+            return None
+        # exact match
+        if sig in keys:
+            return int(sigs_map[str(sig)])
+        # if below smallest key, return smallest
+        if sig < keys[0]:
+            return int(sigs_map[str(keys[0])])
+        # if above largest key, return largest
+        if sig > keys[-1]:
+            return int(sigs_map[str(keys[-1])])
+        # find surrounding keys
+        lower = None
+        upper = None
+        for k in keys:
+            if k < sig:
+                lower = k
+            elif k > sig:
+                upper = k
+                break
+        if lower is None:
+            return int(sigs_map[str(upper)])
+        if upper is None:
+            return int(sigs_map[str(lower)])
+        # linear interpolation
+        v_low = float(sigs_map[str(lower)])
+        v_high = float(sigs_map[str(upper)])
+        t = (sig - lower) / (upper - lower)
+        val = v_low + (v_high - v_low) * t
+        return int(round(val))
+
+    def get_prestige_value(self, slug: str, tier: int, rank: int, asc: int, sig: int = 0) -> Optional[int]:
+        table = self.get_prestige_table(tier, rank, asc)
+        if not table:
+            return None
+        for r in table.get("rows", []):
+            if (r.get("slug") or "").lower() == slug.lower() or (r.get("name") or "").lower() == slug.lower():
+                sigs = r.get("sigs") or {}
+                # smoothing
+                return self._smooth_sig_value(sigs, sig)
+        return None
+
+    # -----------------------------
     # Atomic write helper
     # -----------------------------
     @staticmethod
@@ -208,8 +343,56 @@ class CacheManager:
     def normalize_abilities_payload(self, payload: Any) -> Optional[Dict[str, Any]]:
         return self.normalize_list_payload(payload, "abilities")
 
+    def normalize_hargs_by_tier(stars: int, rank: int, sig: int, asc: int) -> Tuple[int,int,int,int]:
+        """
+        Enforce valid ranges:
+        1★: ranks 1-2, no signature (sig forced 0)
+        2★: ranks 1-3, sig 0-99
+        3★: ranks 1-4, sig 0-99
+        4★: ranks 1-5, sig 0-99
+        5-7★: ranks 1-5, sig 0-200
+        Ascension allowed 0-2.
+        Returns (stars, rank, sig, asc) clamped/validated.
+        """
+        stars = max(1, min(7, int(stars)))
+        if stars == 1:
+            rank = max(1, min(2, int(rank)))
+            sig = 0
+        elif stars == 2:
+            rank = max(1, min(3, int(rank)))
+            sig = max(0, min(99, int(sig)))
+        elif stars == 3:
+            rank = max(1, min(4, int(rank)))
+            sig = max(0, min(99, int(sig)))
+        elif stars == 4:
+            rank = max(1, min(5, int(rank)))
+            sig = max(0, min(99, int(sig)))
+        else:  # 5,6,7
+            rank = max(1, min(5, int(rank)))
+            sig = max(0, min(200, int(sig)))
+        asc = max(0, min(2, int(asc)))
+        return stars, rank, sig, asc
+
+
     def normalize_immunities_payload(self, payload: Any) -> Optional[Dict[str, Any]]:
         return self.normalize_list_payload(payload, "immunities")
+
+    def normalize_prestige_payload(self, payload: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+        """
+        Canonicalize prestige payload into {"version":..., "rows": [...]}
+        If payload already looks canonical, return as-is.
+        """
+        if not payload:
+            return None
+        version = payload.get("version")
+        rows = payload.get("rows") or payload.get("prestige") or []
+        # ensure rows is a list
+        if isinstance(rows, dict):
+            # some endpoints might return dict keyed by slug; convert to list
+            rows = list(rows.values())
+        return {"version": version, "rows": rows}
+
+
 
     def normalize_tags_payload(self, payload: Any) -> Optional[Dict[str, Any]]:
         return self.normalize_list_payload(payload, "tags")

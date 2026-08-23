@@ -33,6 +33,8 @@ class CacheIndex:
         self.champions_by_tag: Dict[str, List[Dict[str, Any]]] = {}
         self.champions_by_ability: Dict[str, List[Dict[str, Any]]] = {}
         self.champions_by_immunity: Dict[str, List[Dict[str, Any]]] = {}
+        # slug -> list of rows (each row: {"tier":..., "rank":..., "asc":..., "row": {...}})
+        self.prestige_index: Dict[str, List[Dict[str, Any]]] = {}
 
         # Protect rebuilds from concurrent execution
         self._rebuild_lock = threading.RLock()
@@ -134,6 +136,15 @@ class CacheIndex:
             else:
                 tags_list = []
 
+            # Prestige (optional file)
+            try:
+                prestige_raw = load_file("prestige") or {}
+                prestige_rows = prestige_raw.get("rows", []) if isinstance(prestige_raw, dict) else []
+            except Exception:
+                log.exception("Failed to load prestige file")
+                prestige_rows = []
+
+
             # Build new maps locally
             champions_by_id: Dict[str, Dict[str, Any]] = {}
             champions_by_name: Dict[str, Dict[str, Any]] = {}
@@ -181,12 +192,30 @@ class CacheIndex:
                     ik = str(iid).lower()
                     champions_by_immunity.setdefault(ik, []).append(champ)
 
+            # Build prestige index
+            prestige_index: Dict[str, List[Dict[str, Any]]] = {}
+            for row in prestige_rows:
+                try:
+                    slug = (row.get("slug") or "").lower()
+                    if not slug:
+                        continue
+                    # store minimal useful info: tier/rank/asc and the row itself
+                    prestige_index.setdefault(slug, []).append({
+                        "tier": row.get("_tier"),
+                        "rank": row.get("_rank"),
+                        "asc": row.get("_asc"),
+                        "row": row
+                    })
+                except Exception:
+                    continue
+
             # Atomically swap in new stores
             self.champions = champions_list
             self.abilities = abilities_list
             self.immunities = immunities_list
             self.tags = tags_list
             self._tags_lower = [t.lower() for t in tags_list if isinstance(t, str)]
+            self.prestige_index = prestige_index
 
             self.champions_by_id = champions_by_id
             self.champions_by_name = champions_by_name
@@ -207,6 +236,7 @@ class CacheIndex:
             self.champions_by_ability = {}
             self.champions_by_immunity = {}
             self._tags_lower = []
+            self.prestige_index = {}
         finally:
             try:
                 self._rebuild_lock.release()
@@ -232,6 +262,47 @@ class CacheIndex:
     # ---------------------------------------------------------
     # Autocomplete helpers (robust to interaction=None)
     # ---------------------------------------------------------
+    def get_prestige_rows_for_slug(self, slug: str) -> List[Dict[str, Any]]:
+        """Return list of prestige row entries for a slug (may be empty)."""
+        if not slug:
+            return []
+        return self.prestige_index.get(slug.lower(), [])
+
+    def get_prestige_row(self, slug: str, tier: Optional[int] = None, rank: Optional[int] = None, asc: Optional[int] = None) -> Optional[Dict[str, Any]]:
+        """
+        Return a single prestige row dict for `slug` that best matches optional filters.
+        If tier/rank/asc are provided, prefer exact matches; otherwise return the first row found.
+        Returns None if no match.
+        """
+        if not slug:
+            return None
+        rows = self.prestige_index.get(slug.lower(), [])
+        if not rows:
+            return None
+        # If all filters provided, try exact match first
+        if tier is not None and rank is not None and asc is not None:
+            for entry in rows:
+                try:
+                    if int(entry.get("tier")) == int(tier) and int(entry.get("rank")) == int(rank) and int(entry.get("asc")) == int(asc):
+                        return entry.get("row")
+                except Exception:
+                    continue
+        # If partial filters provided, prefer entries matching the provided fields
+        if tier is not None or rank is not None or asc is not None:
+            for entry in rows:
+                try:
+                    if tier is not None and int(entry.get("tier")) != int(tier):
+                        continue
+                    if rank is not None and int(entry.get("rank")) != int(rank):
+                        continue
+                    if asc is not None and int(entry.get("asc")) != int(asc):
+                        continue
+                    return entry.get("row")
+                except Exception:
+                    continue
+        # Fallback: return the first available row
+        return rows[0].get("row")
+
     async def tag_autocomplete(self, interaction, current: Optional[str]):
         cur = (current or "").lower()
         if not cur:

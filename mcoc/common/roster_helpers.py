@@ -202,10 +202,12 @@ async def build_roster_pages(core: Any, user_id: int, parsed_filters: Optional[D
                 name = (champ.get("name") if champ else entry.get("champion")) or "Unknown"
                 cls = (champ.get("class") if champ else "").lower() if champ else ""
                 cls_emoji = class_map.get(cls, "<:allclasses:748808348996075540>")
-                stars = int(entry.get("rarity") or entry.get("stars") or 6)
-                rank = int(entry.get("rank") or 1)
-                sig = int(entry.get("sig") or 0)
-                asc = int(entry.get("ascended") or 0)
+                stars, rank, sig, asc = cache.normalize_hargs_by_tier(
+                    int(entry.get("rarity") or entry.get("stars") or 6),
+                    int(entry.get("rank") or 1),
+                    int(entry.get("sig") or 0),
+                    int(entry.get("ascended") or 0)
+                )
 
                 # Star + sig icon rule:
                 # - show numeric star count followed by empty star (☆) when sig == 0
@@ -219,9 +221,9 @@ async def build_roster_pages(core: Any, user_id: int, parsed_filters: Optional[D
                 # Ascension text only when asc > 0
                 asc_text = f" A{asc}" if asc else ""
 
-                # Final line format:
-                # <emoji> <star_display> <bold name> r<rank> s<sig> [A<asc>]
-                line = f"{cls_emoji} {star_display} **{name}** r{rank}{sig_text}{asc_text}"
+                prestige = core.cache.get_prestige_value(slug, stars, rank, asc, sig)
+                prestige_text = f" [{prestige}]" if prestige is not None else ""
+                line = f"{cls_emoji} {star_display} **{name}** r{rank}{sig_text}{asc_text}{prestige_text}"
 
                 lines.append(line)
             except Exception:

@@ -164,6 +164,49 @@ class MCOCHubAPI:
             log.exception("Param fetch failed unexpectedly")
             return None
 
+    # mcoc/api.py  -- add near top with other constants
+    DATA_BASE = "https://mcochub.insaneskull.com/data"
+
+    # -----------------------------
+    # Public data fetch helpers (no bearer)
+    # -----------------------------
+    async def _fetch_public_json(self, url: str, params: Optional[dict] = None, timeout: int = 30) -> Optional[Any]:
+        """
+        Simple public GET for data endpoints (versions.json, prestige.json, etc.)
+        Does not use API key or bearer auth.
+        """
+        session = await self._ensure_session()
+        try:
+            async with self._request_semaphore:
+                async with session.get(url, params=params, timeout=timeout) as resp:
+                    text = await resp.text()
+                    if resp.status == 429:
+                        raise RateLimitedError("Rate limited")
+                    if resp.status != 200:
+                        log.warning("Public fetch %s returned %s: %.200s", url, resp.status, text)
+                        return None
+                    return await resp.json()
+        except RateLimitedError:
+            raise
+        except Exception:
+            log.exception("Public fetch failed for %s", url)
+            return None
+
+    async def fetch_versions_public(self) -> Optional[dict]:
+        """Fetch the canonical versions.json from the public data endpoint."""
+        url = f"{DATA_BASE}/versions.json"
+        return await self._fetch_public_json(url)
+
+    async def fetch_prestige_public(self, tier: int, rank: int, asc: int, version: str) -> Optional[dict]:
+        """
+        Fetch prestige payload for a specific combo from the public data endpoint.
+        Example: /data/prestige.json?tier=7&rank=1&ascension=0&v=<version>
+        """
+        url = f"{DATA_BASE}/prestige.json"
+        params = {"tier": tier, "rank": rank, "ascension": asc, "v": version}
+        return await self._fetch_public_json(url, params=params)
+
+
     # -----------------------------
     # Champions (full list only)
     # -----------------------------
