@@ -57,51 +57,37 @@ class MCOCHubAPI:
         return self._session
 
     async def _resolve_key(self) -> Optional[str]:
-        # Prefer static key if provided
+        # ALWAYS prefer static key if provided
         if self._static_key:
-            log.debug("Using static API key (REDACTED)")
             return str(self._static_key)
 
+        # If no static key, use key_getter
         if self._key_getter:
             try:
                 key = await self._key_getter()
-                log.debug("key_getter returned type=%s", type(key).__name__)
             except Exception:
                 log.exception("Error while fetching MCOCHub API key from key_getter")
                 return None
 
-            # If the getter returned None, bail
-            if not key:
-                log.debug("key_getter returned no key")
-                return None
+            # Must be a string
+            if isinstance(key, str):
+                return key
 
-            # If it's already a string/number, return it
-            if isinstance(key, (str, int, float)):
-                log.debug("Resolved API key from key_getter (REDACTED)")
+            # Accept simple numeric keys
+            if isinstance(key, (int, float)):
                 return str(key)
 
-            # If it's a dict, try common shapes: {"api": "token"}, {"token": "..."}, {"key": "..."}
+            # Accept dicts ONLY if they contain a valid string token
             if isinstance(key, dict):
                 for candidate in ("api", "token", "key", "value"):
-                    if candidate in key and isinstance(key[candidate], (str, int, float)):
-                        log.debug("Extracted API key from dict using candidate '%s' (REDACTED)", candidate)
-                        return str(key[candidate])
-                # If dict has a single value that's a string, return it
-                vals = [v for v in key.values() if isinstance(v, (str, int, float))]
-                if len(vals) == 1:
-                    log.debug("Extracted API key from single-value dict (REDACTED)")
-                    return str(vals[0])
+                    if candidate in key and isinstance(key[candidate], str):
+                        return key[candidate]
+                return None  # do NOT coerce dicts
 
-            # Last resort: try to stringify (not ideal, but prevents crash)
-            try:
-                s = str(key)
-                log.debug("Coerced API key to string from unexpected type (REDACTED)")
-                return s
-            except Exception:
-                log.warning("Unable to coerce MCOCHub API key to string; got type %s", type(key))
-                return None
+            # Reject everything else
+            log.error("Invalid API key type: %s", type(key).__name__)
+            return None
 
-        log.debug("No static key and no key_getter available")
         return None
 
     # -----------------------------
