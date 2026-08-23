@@ -147,6 +147,14 @@ class PagesMenu:
         # build view lazily
         if self._view is None:
             self._view = self._build_view()
+            # after self._view = self._build_view()
+            if len(self.pages) <= 1:
+                for item in self._view.children:
+                    try:
+                        item.disabled = True
+                    except Exception:
+                        pass
+
 
         # send initial message depending on context type
         try:

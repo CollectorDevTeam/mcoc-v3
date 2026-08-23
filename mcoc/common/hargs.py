@@ -167,7 +167,7 @@ def parse_hargs(text: str) -> Dict[str, Any]:
                 n = int(m.group("sig"))
                 result["sigs"].append(n)
             except Exception:
-                pass
+                pass                 
 
         # If token is quoted or contains spaces and not matched above, treat as champion name
         # Also accept a final fallback: any token that doesn't contain flag characters
@@ -182,6 +182,26 @@ def parse_hargs(text: str) -> Dict[str, Any]:
             if result["champion"] is None:
                 result["champion"] = p
             continue
+
+        # If no champion found yet, attempt inline extraction from the original text
+        if result["champion"] is None:
+            # Matches compact forms like: 6*r1, 6r1, 6sr1, 6★r1, 6*r10, etc.
+            INLINE_HARGS_RE = re.compile(r"(?P<rarity>[1-9])[\*\s★]?[sS]?[\*\s]?[rR]?(?P<rank>\d{1,2})")
+            m = INLINE_HARGS_RE.search(text)
+            if m:
+                start, end = m.span()
+                name_part = (text[:start] + text[end:]).strip()
+                # strip quotes and surrounding separators
+                name_part = name_part.strip().strip('"').strip("'")
+                name_part = re.sub(r"^[\s\-\_\,]+|[\s\-\_\,]+$", "", name_part)
+                if name_part:
+                    result["champion"] = name_part
+
+
+        # Champion name normalization: strip quotes if present
+        if isinstance(result["champion"], str):
+            result["champion"] = result["champion"].strip().strip('"').strip("'")
+
 
     # Normalize and deduplicate lists while preserving order
     def _uniq(seq: List[Any]) -> List[Any]:

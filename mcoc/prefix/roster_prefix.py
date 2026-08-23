@@ -171,12 +171,14 @@ class RosterPrefix(commands.Cog):
         try:
             from ..common.pagination import PagesMenu
             # try to add page footers if helper exists
+            menu = PagesMenu(pages, ctx.author)
             try:
                 from ..common.roster_helpers import add_page_footers  # optional
                 pages = add_page_footers(pages)
             except Exception:
                 pass
-            await ctx.send(embed=pages[0], view=PagesMenu(pages, ctx.author))
+            # await ctx.send(embed=pages[0], view=menu)
+            await menu.start(ctx)
         except Exception:
             names = [p.get("title") or "Entry" for p in pages][:50]
             await ctx.send(f"Matches ({len(pages)}): {', '.join(names)}")
@@ -349,12 +351,13 @@ def register_with_group(group: commands.Group, parent_getter):
 
         try:
             from ..common.pagination import PagesMenu
+            menu = PagesMenu(pages, ctx.author)
             try:
                 from ..common.roster_helpers import add_page_footers  # optional
                 pages = add_page_footers(pages)
             except Exception:
                 pass
-            await ctx.send(embed=pages[0], view=PagesMenu(pages, ctx.author))
+            await menu.start(ctx)
         except Exception:
             names = [p.get("title") or "Entry" for p in pages][:50]
             await ctx.send(f"Matches ({len(pages)}): {', '.join(names)}")
