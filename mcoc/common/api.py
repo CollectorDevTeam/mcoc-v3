@@ -114,54 +114,48 @@ class MCOCHubAPI:
             "Accept": "application/json",
             "Authorization": f"Bearer {api_key}"
         }
-        # params = {"api_key": api_key}
-        log.debug("MCOCHub request GET %s params=%s", url, {"api_key": "REDACTED"})
 
-        # small retry loop for transient errors
+        log.debug("MCOCHub request GET %s (Bearer token)", url)
+
         attempts = 2
         backoff_base = 0.5
+
         for attempt in range(1, attempts + 1):
             try:
                 session = await self._ensure_session()
-                # limit concurrency to avoid bursts
                 async with self._request_semaphore:
                     async with session.get(url, headers=headers) as resp:
                         text = await resp.text()
-                        if resp.status == 401 or "Unauthenticated" in text:
-                            log.error("MCOCHUB API unauthenticated for %s; status=%s body=%s", url, resp.status, text[:200])
+
+                        if resp.status == 401:
+                            log.error("MCOCHUB API unauthenticated for %s; status=401 body=%s", url, text[:200])
                             raise UnauthenticatedError("Unauthenticated")
-                        if resp.status == 429 or "Too Many Attempts" in text:
-                            log.warning("MCOCHUB API rate limited for %s; status=%s", url, resp.status)
+
+                        if resp.status == 429:
+                            log.warning("MCOCHUB API rate limited for %s; status=429", url)
                             raise RateLimitedError("Rate limited")
+
                         if resp.status != 200:
                             log.warning("MCOCHUB API error %s for %s: %s", resp.status, url, text[:200])
                             return None
+
                         try:
-                            result = await resp.json()
-                            if isinstance(result, dict):
-                                log.debug("MCOCHUB API success for %s: returned keys=%s", url, list(result.keys()))
-                            else:
-                                log.debug("MCOCHUB API success for %s: returned type=%s", url, type(result).__name__)
-                            return result
+                            return await resp.json()
                         except Exception:
                             log.exception("Failed to parse JSON from %s: %s", url, text[:200])
-                            # fall through to retry if attempt remains
-            except asyncio.CancelledError:
-                log.debug("Request to %s cancelled", url)
-                raise
+
             except UnauthenticatedError:
                 raise
             except RateLimitedError:
                 raise
             except Exception:
                 log.exception("MCOCHUB API exception for %s on attempt %d", url, attempt)
-            # backoff before retry
-            if attempt < attempts:
-                delay = backoff_base * (2 ** (attempt - 1)) + random.random() * 0.1
-                log.debug("Retrying %s after %.2fs", url, delay)
-                await asyncio.sleep(delay)
-        return None
 
+            if attempt < attempts:
+                delay = backoff_base * (2 ** (attempt - 1))
+                await asyncio.sleep(delay)
+
+        return None
     # -----------------------------
     # Champions (full list only)
     # -----------------------------
