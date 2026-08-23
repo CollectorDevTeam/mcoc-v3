@@ -5,12 +5,11 @@ log = logging.getLogger("red.mcoc")
 
 async def setup(bot):
     """
-    Unified loader for all MCOC components.
-    Loads:
-        - Prefix root: MCOCPrefix  (///mcoc ...)
-        - Slash root:  MCOCSlash   (/mcoc ...)
-        - Diagnostics (optional)
-        - Core cog (the one that owns cache/api)
+    Unified loader for MCOC package.
+    - Initialize shared systems (mcoc.common.core.init_common_systems)
+    - Load unified prefix root (mcoc.prefix.core.MCOCPrefix)
+    - Load unified slash root (mcoc.slash.core.MCOCSlash)
+    - Load diagnostics (optional)
     """
     try: 
         from .common.core import  init_common_systems
@@ -19,9 +18,21 @@ async def setup(bot):
     except Exception:
         log.exception("Failed to load Common Core")
 
-    # ---------------------------------------------------------
-    # 1) Load the REAL prefix root: ///mcoc
-    # ---------------------------------------------------------
+    # 1) Initialize shared systems (sets bot.mcoc_core)
+    try:
+        from .common.core import init_common_systems
+        core = init_common_systems(bot)
+        # run optional async init if implemented
+        try:
+            await core.async_init()
+        except Exception:
+            # async_init may be missing or fail; log and continue
+            log.debug("common core async_init skipped or failed", exc_info=True)
+        log.debug("Common systems initialized")
+    except Exception:
+        log.exception("Failed to initialize common systems")
+
+    # 2) Load the unified prefix root: ///mcoc
     try:
         from .prefix.core import MCOCPrefix
         await bot.add_cog(MCOCPrefix(bot))
@@ -29,9 +40,7 @@ async def setup(bot):
     except Exception:
         log.exception("Failed to load MCOCPrefix")
 
-    # ---------------------------------------------------------
-    # 2) Load the REAL slash root: /mcoc
-    # ---------------------------------------------------------
+    # 3) Load the unified slash root: /mcoc
     try:
         from .slash.core import MCOCSlash
         await bot.add_cog(MCOCSlash(bot))
@@ -39,9 +48,7 @@ async def setup(bot):
     except Exception:
         log.exception("Failed to load MCOCSlash (non-fatal)")
 
-    # ---------------------------------------------------------
-    # 3) Load diagnostics (optional)
-    # ---------------------------------------------------------
+    # 4) Diagnostics (optional)
     try:
         from .diagnostics.diagnostics import Diagnostics
         await bot.add_cog(Diagnostics(bot))
@@ -49,19 +56,4 @@ async def setup(bot):
     except Exception:
         log.exception("Failed to load Diagnostics (non-fatal)")
 
-    # ---------------------------------------------------------
-    # 4) Load the REAL core cog (the one that owns cache/api)
-    # ---------------------------------------------------------
-    try:
-        from .core_cog import MCOC
-        core = MCOC(bot)
-        await bot.add_cog(core)
-        bot.mcoc_core = core
-        log.debug("Core MCOC attached as bot.mcoc_core")
-    except Exception:
-        log.exception("Failed to load core MCOC cog")
-
-    # ---------------------------------------------------------
-    # 5) Done
-    # ---------------------------------------------------------
     log.debug("mcoc package setup complete")
