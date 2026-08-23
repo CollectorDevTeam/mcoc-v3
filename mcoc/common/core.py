@@ -4,7 +4,7 @@ import logging
 log = logging.getLogger("red.mcoc.common.core")
 
 from .cache import CacheManager
-from .api import MCOCHubAPI as APIClient
+from .api import MCOCHubAPI
 from .cacheindex import CacheIndex
 
 
@@ -28,7 +28,10 @@ class MCOCCommonCore:
         # ---------------------------------------------------------
         try:
             self.cache = CacheManager(bot)
-            self.api = APIClient(bot)
+            self.api = MCOCHubAPI(
+                api_key=None,
+                key_getter=lambda: self.bot.get_shared_api_tokens("mcochub")
+            )
             self.cacheindex = CacheIndex(bot)
 
             log.debug("Initialized common systems: cache, api, cacheindex")

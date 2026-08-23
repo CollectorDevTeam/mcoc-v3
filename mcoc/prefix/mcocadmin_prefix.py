@@ -50,6 +50,31 @@ def register_with_group(group: commands.Group, parent_getter):
         )
         await ctx.send(msg)
 
+    @group.command(name="key")
+    @commands.is_owner()
+    async def _key(ctx):
+        """
+        Show whether the shared MCOCHub API key is set and its first few characters.
+        """
+        # Use Red's shared API tokens: service 'mcochub', key 'apikey'
+        tokens = await ctx.bot.get_shared_api_tokens("mcochub")
+        api_key = tokens.get("apikey")
+
+        if not api_key:
+            await ctx.send(
+                "Shared API key for **mcochub** is NOT set.\n"
+                "Set it with:\n"
+                "```"
+                "///set api mcochub apikey,3|dJIQqECDG..."
+                "```"
+            )
+            return
+
+        await ctx.send(
+            f"Shared API key for **mcochub** is set.\n"
+            f"Starts with: `{api_key[:5]}` (rest hidden)."
+        )
+
     @group.command(name="sync")
     @commands.is_owner()
     async def _sync(ctx):

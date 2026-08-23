@@ -57,53 +57,28 @@ class MCOCHubAPI:
         return self._session
 
     async def _resolve_key(self) -> Optional[str]:
-        # Prefer static key if provided
         if self._static_key:
             api_key = str(self._static_key)
             log.debug(f"[MCOCHubAPI] Resolved static API key starts with: {api_key[:5]}")
             return api_key
 
-        # If using shared API tokens
         if self._key_getter:
-            try:
-                key = await self._key_getter()
-            except Exception:
-                log.exception("[MCOCHubAPI] Error fetching API key from key_getter")
+            tokens = await self._key_getter()
+            if not tokens:
+                log.warning("[MCOCHubAPI] No shared tokens for 'mcochub'.")
                 return None
 
-            if key is None:
-                log.warning("[MCOCHubAPI] No API key set in Red. Use: [p]set api mcoc api_key,<yourkey>")
+            api_key = tokens.get("apikey")
+            if not api_key:
+                log.warning("[MCOCHubAPI] 'mcochub' has no 'apikey' set.")
                 return None
 
-            # Must be a string
-            if isinstance(key, str):
-                log.debug(f"[MCOCHubAPI] Resolved shared API key starts with: {key[:5]}")
-                return key
+            log.debug(f"[MCOCHubAPI] Resolved shared API key starts with: {api_key[:5]}")
+            return api_key
 
-            # Accept simple numeric keys
-            if isinstance(key, (int, float)):
-                key = str(key)
-                log.debug(f"[MCOCHubAPI] Resolved numeric API key starts with: {key[:5]}")
-                return key
-
-            # Accept dicts ONLY if they contain a valid string token
-            if isinstance(key, dict):
-                for candidate in ("api", "token", "key", "value", "api_key"):
-                    if candidate in key and isinstance(key[candidate], str):
-                        api_key = key[candidate]
-                        log.debug(f"[MCOCHubAPI] Resolved dict API key starts with: {api_key[:5]}")
-                        return api_key
-
-                log.error("[MCOCHubAPI] Invalid dict returned for API key; no usable string found.")
-                return None
-
-            # Reject everything else
-            log.error(f"[MCOCHubAPI] Invalid API key type: {type(key).__name__}")
-            return None
-
-        # No static key, no key_getter
-        log.warning("[MCOCHubAPI] No API key available. Use: [p]set api mcoc api_key,<yourkey>")
+        log.warning("[MCOCHubAPI] No API key available. Use: ///set api mcochub apikey,<yourkey>")
         return None
+        
     # -----------------------------
     # Generic fetch helper
     # -----------------------------
