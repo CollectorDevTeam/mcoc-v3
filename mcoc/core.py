@@ -12,6 +12,12 @@ async def setup(bot):
         - Diagnostics (optional)
         - Core cog (the one that owns cache/api)
     """
+    try: 
+        from .common.core import  init_common_systems
+        core = init_common_systems(bot)
+        await core.async_init()
+    except Exception:
+        log.exception("Failed to load Common Core")
 
     # ---------------------------------------------------------
     # 1) Load the REAL prefix root: ///mcoc
