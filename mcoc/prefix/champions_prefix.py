@@ -256,7 +256,7 @@ def register_with_group(group: commands.Group, parent_getter):
             log.exception("register info failed")
             await ctx.send(champ.get("name", "Unknown"))
 
-    group.command(name="info")(_info)
+    _safe_add(cmd_name="info", func=_info)
 
     # abilities
     async def _abilities(ctx, *, champion: str):
@@ -276,7 +276,7 @@ def register_with_group(group: commands.Group, parent_getter):
             log.exception("register abilities failed")
             await ctx.send("Abilities unavailable.")
 
-    group.command(name="abilities")(_abilities)
+    _safe_add(cmd_name="abilities", func=_abilities)
 
     # synergies
     async def _synergies(ctx, *, champion: str):
@@ -297,7 +297,7 @@ def register_with_group(group: commands.Group, parent_getter):
             log.exception("register synergies failed")
             await ctx.send("Synergies unavailable.")
 
-    group.command(name="synergies")(_synergies)
+    _safe_add(cmd_name="synergies", func=_synergies)
 
     # tags
     async def _tags(ctx, *, tag: str):
@@ -318,7 +318,7 @@ def register_with_group(group: commands.Group, parent_getter):
             log.exception("register tags failed")
             await ctx.send(f"{len(matches)} champions found for tag `{tag}`.")
 
-    group.command(name="tags")(_tags)
+    _safe_add(cmd_name="tags", func=_tags)
 
     # search (simple)
     async def _search(ctx, *, query: str):
@@ -342,7 +342,7 @@ def register_with_group(group: commands.Group, parent_getter):
         names = [r.get("name", "Unknown") for r in results][:20]
         await ctx.send(f"Matches ({len(results)}): {', '.join(names)}")
 
-    group.command(name="search")(_search)
+    _safe_add(cmd_name="search", func=_search)
 
     # calcstats (simple wrapper)
     async def _calcstats(ctx, champion: str, rarity: Optional[int] = None, rank: Optional[int] = None, sig: Optional[int] = None, ascended: int = 0, use_roster: bool = False):
@@ -400,6 +400,15 @@ def register_with_group(group: commands.Group, parent_getter):
         except Exception:
             log.exception("register calcstats failed")
             await ctx.send("Failed to calculate stats.")
+
+    def _safe_add(cmd_name, func):
+        try:
+            if group.get_command(cmd_name):
+                log.debug("Command %s already exists; skipping", cmd_name)
+                return
+        except Exception:
+            pass
+        group.command(name=cmd_name)(func)
 
 # Note: remove or comment out the module-level setup if you do not want this file
 # to register a standalone ChampionsPrefix cog (which would create a top-level ///champ).

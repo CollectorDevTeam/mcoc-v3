@@ -9,6 +9,7 @@ import os
 import asyncio
 from typing import Optional, Any, Dict
 from .cacheindex import CacheIndex
+from pathlib import Path
 
 log = logging.getLogger("red.mcoc.cache")
 
@@ -16,25 +17,15 @@ log = logging.getLogger("red.mcoc.cache")
 # Do NOT create directories at import time. Create them when CacheManager is instantiated.
 DEFAULT_CACHE_DIR = pathlib.Path("data") / "cache"
 
-
 class CacheManager:
-    def __init__(self, cache_dir: Optional[pathlib.Path] = None):
-        self.cache_dir = (cache_dir or DEFAULT_CACHE_DIR)
-        try:
-            self.cache_dir.mkdir(parents=True, exist_ok=True)
-        except Exception:
-            log.exception("Failed to ensure cache directory exists: %s", self.cache_dir)
+    def __init__(self, bot):
+        self.bot = bot
+
+        # Correct cache directory
+        self.cache_dir = Path(bot._data_path) / "mcoc" / "cache"
+        self.cache_dir.mkdir(parents=True, exist_ok=True)
 
         self.metadata_file = self.cache_dir / "metadata.json"
-        # load metadata synchronously at init is acceptable (startup), but keep it small
-        self.metadata = self._load_metadata()
-
-        # Build index AFTER metadata loads
-        # CacheIndex should be import-neutral; pass self so it can access files via this manager
-        self.index = CacheIndex(self)
-
-        # Prevent concurrent syncs
-        self._sync_lock = asyncio.Lock()
 
     # -----------------------------
     # Metadata
