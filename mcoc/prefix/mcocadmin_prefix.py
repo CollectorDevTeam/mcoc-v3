@@ -30,16 +30,6 @@ class MCOCAdminPrefix(commands.Cog):
             # parent may be None in standalone mode; code must handle that
 
 
-    # Top-level group
-    @commands.group(name="mcocadmin", invoke_without_command=True)
-    async def mcocadmin(self, ctx):
-        """MCOC admin commands (owner only)."""
-        await ctx.send("Use subcommands: `status`, `sync`, `force-sync`, `dump`, `verbose`.")
-    @commands.is_owner()
-    async def mcoc(self, ctx):
-        """MCOC data management commands (owner only)."""
-        await ctx.send("Use subcommands: `status`, `sync`, `force-sync`, `dump`, `verbose`.")
-
     # Status
     @mcocadmin.command(name="status")
     @commands.is_owner()
