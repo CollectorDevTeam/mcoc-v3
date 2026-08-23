@@ -204,3 +204,67 @@ async def setup(bot):
     except Exception:
         import logging
         logging.getLogger("red.mcoc.prefix").exception("Failed to add MCOCAdminPrefix")
+
+def register_with_group(group: commands.Group, parent_getter):
+    # status
+    @group.command(name="status")
+    @commands.is_owner()
+    async def _status(ctx):
+        parent = parent_getter()
+        if not parent:
+            await ctx.send("MCOC core not attached; cache and API unavailable.")
+            return
+
+        cache = parent.cache
+        meta = cache.metadata or {}
+        last = meta.get("last_sync")
+        versions = meta.get("versions", {})
+        champs_count = len(cache.get_all_champions())
+        abilities_count = len(cache.get_all_abilities())
+        tags_count = len(cache.get_all_tags())
+        immunities_count = len(cache.get_all_immunities())
+
+        msg = (
+            f"**MCOC cache status**\n"
+            f"Last sync: {last}\n"
+            f"Versions: {versions}\n"
+            f"Champions: {champs_count}\n"
+            f"Abilities: {abilities_count}\n"
+            f"Tags: {tags_count}\n"
+            f"Immunities: {immunities_count}\n"
+            f"API client present: {bool(parent.api)}"
+        )
+        await ctx.send(msg)
+
+    # sync
+    @group.command(name="sync")
+    @commands.is_owner()
+    async def _sync(ctx, mode: str = "auto"):
+        parent = parent_getter()
+        if not parent:
+            await ctx.send("MCOC core not attached; cache and API unavailable.")
+            return
+
+        updated = await parent.cache.sync(parent.api)
+        await ctx.send("Sync complete." if updated else "No update performed.")
+
+    # force-sync
+    @group.command(name="force-sync")
+    @commands.is_owner()
+    async def _force_sync(ctx):
+        parent = parent_getter()
+        if not parent:
+            await ctx.send("MCOC core not attached; cache and API unavailable.")
+            return
+
+        await ctx.send("Forcing full sync…")
+        champions = await parent.api.get_champions()
+        tags = await parent.api.get_tags()
+        abilities = await parent.api.get_abilities()
+        immunities = await parent.api.get_immunities()
+
+        await parent.cache._diff_and_save("champions", champions)
+        await parent.cache._diff_and_save("tags", tags)
+        await parent.cache._diff_and_save("abilities", abilities)
+        await parent.cache._diff_and_save("immunities", immunities)
+        await ctx.send("Forced sync complete.")
