@@ -4,6 +4,8 @@ import asyncio
 import logging
 import random
 from typing import Optional, Callable, Awaitable, Any
+from yarl import URL
+
 
 log = logging.getLogger("red.mcoc.api")
 
@@ -137,8 +139,11 @@ class MCOCHubAPI:
         if not api_key:
             return None
 
-        # Build URL manually so aiohttp does NOT encode the pipe character
-        url = f"{self.BASE_URL}/{endpoint}?api_key={api_key}"
+        # Build raw URL manually
+        raw_url = f"{self.BASE_URL}/{endpoint}?api_key={api_key}"
+
+        # Prevent aiohttp from re-encoding the pipe character
+        url = URL(raw_url, encoded=True)
 
         headers = {"Accept": "application/json"}
 
@@ -154,9 +159,11 @@ class MCOCHubAPI:
                     raise RateLimitedError("Rate limited")
 
                 if resp.status != 200:
+                    log.warning("Param mode error %s for %s: %s", resp.status, url, text[:200])
                     return None
 
                 return await resp.json()
+
 
     async def _fetch(self, endpoint: str) -> Optional[Any]:
         # Try bearer first if preferred
