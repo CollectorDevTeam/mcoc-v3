@@ -326,6 +326,8 @@ class CacheManager:
                     await asyncio.to_thread(self.index.rebuild)
                 except Exception:
                     log.exception("Index rebuild failed after sync")
+                # Reset preference to bearer mode for future syncs
+                api._prefer_bearer = True
                 return updated
 
             except Exception as e:

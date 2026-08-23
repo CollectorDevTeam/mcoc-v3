@@ -38,6 +38,8 @@ class MCOCHubAPI:
         self._session = session
         self._timeout = timeout
         self._request_semaphore = asyncio.Semaphore(5)  # Limit concurrent requests to avoid rate limiting
+        self._prefer_bearer = True
+
 
         log.info("MCOCHubAPI initialized (external_session=%s)", self._external_session)
         if self._static_key:
@@ -103,59 +105,81 @@ class MCOCHubAPI:
     # -----------------------------
     # Generic fetch helper
     # -----------------------------
-    async def _fetch(self, endpoint: str) -> Optional[Any]:
-        url = f"{self.BASE_URL}/{endpoint}"
+    async def _fetch_bearer(self, endpoint: str) -> Optional[Any]:
         api_key = await self._resolve_key()
         if not api_key:
-            log.warning("MCOCHub API key not available; skipping request to %s", url)
             return None
 
+        url = f"{self.BASE_URL}/{endpoint}"
         headers = {
             "Accept": "application/json",
             "Authorization": f"Bearer {api_key}"
         }
 
-        log.debug("MCOCHub request GET %s (Bearer token)", url)
+        session = await self._ensure_session()
+        async with self._request_semaphore:
+            async with session.get(url, headers=headers) as resp:
+                text = await resp.text()
 
-        attempts = 2
-        backoff_base = 0.5
+                if resp.status == 401 or "Unauthenticated" in text:
+                    raise UnauthenticatedError("Bearer failed")
 
-        for attempt in range(1, attempts + 1):
+                if resp.status == 429:
+                    raise RateLimitedError("Rate limited")
+
+                if resp.status != 200:
+                    return None
+
+                return await resp.json()
+
+    async def _fetch_param(self, endpoint: str) -> Optional[Any]:
+        api_key = await self._resolve_key()
+        if not api_key:
+            return None
+
+        # Build URL manually so aiohttp does NOT encode the pipe character
+        url = f"{self.BASE_URL}/{endpoint}?api_key={api_key}"
+
+        headers = {"Accept": "application/json"}
+
+        session = await self._ensure_session()
+        async with self._request_semaphore:
+            async with session.get(url, headers=headers) as resp:
+                text = await resp.text()
+
+                if resp.status == 401 or "Unauthenticated" in text:
+                    raise UnauthenticatedError("Param failed")
+
+                if resp.status == 429:
+                    raise RateLimitedError("Rate limited")
+
+                if resp.status != 200:
+                    return None
+
+                return await resp.json()
+
+    async def _fetch(self, endpoint: str) -> Optional[Any]:
+        # Try bearer first if preferred
+        if self._prefer_bearer:
             try:
-                session = await self._ensure_session()
-                async with self._request_semaphore:
-                    async with session.get(url, headers=headers) as resp:
-                        text = await resp.text()
-
-                        if resp.status == 401:
-                            log.error("MCOCHUB API unauthenticated for %s; status=401 body=%s", url, text[:200])
-                            raise UnauthenticatedError("Unauthenticated")
-
-                        if resp.status == 429:
-                            log.warning("MCOCHUB API rate limited for %s; status=429", url)
-                            raise RateLimitedError("Rate limited")
-
-                        if resp.status != 200:
-                            log.warning("MCOCHUB API error %s for %s: %s", resp.status, url, text[:200])
-                            return None
-
-                        try:
-                            return await resp.json()
-                        except Exception:
-                            log.exception("Failed to parse JSON from %s: %s", url, text[:200])
-
+                return await self._fetch_bearer(endpoint)
             except UnauthenticatedError:
-                raise
+                log.warning("Bearer auth failed; switching to param mode for this sync.")
+                self._prefer_bearer = False
             except RateLimitedError:
                 raise
             except Exception:
-                log.exception("MCOCHUB API exception for %s on attempt %d", url, attempt)
+                log.exception("Bearer fetch failed unexpectedly")
 
-            if attempt < attempts:
-                delay = backoff_base * (2 ** (attempt - 1))
-                await asyncio.sleep(delay)
+        # Fallback to param mode
+        try:
+            return await self._fetch_param(endpoint)
+        except RateLimitedError:
+            raise
+        except Exception:
+            log.exception("Param fetch failed unexpectedly")
+            return None
 
-        return None
     # -----------------------------
     # Champions (full list only)
     # -----------------------------
