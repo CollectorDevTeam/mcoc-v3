@@ -4,7 +4,7 @@ import logging
 log = logging.getLogger("red.mcoc.common.core")
 
 from .cache import CacheManager
-from .api import MCOCHUBAPI as APIClient
+from .api import MCOCHubAPI as APIClient
 from .cacheindex import CacheIndex
 
 
