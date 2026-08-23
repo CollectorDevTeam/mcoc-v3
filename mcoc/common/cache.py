@@ -24,14 +24,18 @@ class CacheManager:
     def __init__(self, bot):
         self.bot = bot
 
-        # Correct Red data directory for this cog
         base = data_manager.cog_data_path(raw_name="mcoc")
         self.cache_dir = base / "cache"
         self.cache_dir.mkdir(parents=True, exist_ok=True)
 
         self.metadata_file = self.cache_dir / "metadata.json"
 
+        # FIX: load metadata at startup
+        self.metadata = self._load_metadata()
 
+        # optional: create index
+        self.index = CacheIndex(self)
+        self._sync_lock = asyncio.Lock()
 
     # -----------------------------
     # Metadata
