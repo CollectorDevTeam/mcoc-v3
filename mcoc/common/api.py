@@ -57,39 +57,53 @@ class MCOCHubAPI:
         return self._session
 
     async def _resolve_key(self) -> Optional[str]:
-        # ALWAYS prefer static key if provided
+        # Prefer static key if provided
         if self._static_key:
-            return str(self._static_key)
+            api_key = str(self._static_key)
+            log.debug(f"[MCOCHubAPI] Resolved static API key starts with: {api_key[:5]}")
+            return api_key
 
-        # If no static key, use key_getter
+        # If using shared API tokens
         if self._key_getter:
             try:
                 key = await self._key_getter()
             except Exception:
-                log.exception("Error while fetching MCOCHub API key from key_getter")
+                log.exception("[MCOCHubAPI] Error fetching API key from key_getter")
+                return None
+
+            if key is None:
+                log.warning("[MCOCHubAPI] No API key set in Red. Use: [p]set api mcoc api_key,<yourkey>")
                 return None
 
             # Must be a string
             if isinstance(key, str):
+                log.debug(f"[MCOCHubAPI] Resolved shared API key starts with: {key[:5]}")
                 return key
 
             # Accept simple numeric keys
             if isinstance(key, (int, float)):
-                return str(key)
+                key = str(key)
+                log.debug(f"[MCOCHubAPI] Resolved numeric API key starts with: {key[:5]}")
+                return key
 
             # Accept dicts ONLY if they contain a valid string token
             if isinstance(key, dict):
-                for candidate in ("api", "token", "key", "value"):
+                for candidate in ("api", "token", "key", "value", "api_key"):
                     if candidate in key and isinstance(key[candidate], str):
-                        return key[candidate]
-                return None  # do NOT coerce dicts
+                        api_key = key[candidate]
+                        log.debug(f"[MCOCHubAPI] Resolved dict API key starts with: {api_key[:5]}")
+                        return api_key
+
+                log.error("[MCOCHubAPI] Invalid dict returned for API key; no usable string found.")
+                return None
 
             # Reject everything else
-            log.error("Invalid API key type: %s", type(key).__name__)
+            log.error(f"[MCOCHubAPI] Invalid API key type: {type(key).__name__}")
             return None
 
+        # No static key, no key_getter
+        log.warning("[MCOCHubAPI] No API key available. Use: [p]set api mcoc api_key,<yourkey>")
         return None
-
     # -----------------------------
     # Generic fetch helper
     # -----------------------------
@@ -97,6 +111,7 @@ class MCOCHubAPI:
         api_key = await self._resolve_key()
         if not api_key:
             return None
+        log.debug(f"Bearer mode using key starting with: {api_key[:5]}")
 
         url = f"{self.BASE_URL}/{endpoint}"
         headers = {
@@ -124,6 +139,7 @@ class MCOCHubAPI:
         api_key = await self._resolve_key()
         if not api_key:
             return None
+        log.debug(f"Param mode using key starting with: {api_key[:5]}")
 
         # Build raw URL manually
         raw_url = f"{self.BASE_URL}/{endpoint}?api_key={api_key}"
