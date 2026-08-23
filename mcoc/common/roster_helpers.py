@@ -196,20 +196,33 @@ async def build_roster_pages(core: Any, user_id: int, parsed_filters: Optional[D
                     except Exception:
                         champ = None
 
+                # --- replace the existing "Build display line" block with this ---
+
                 # Build display line
                 name = (champ.get("name") if champ else entry.get("champion")) or "Unknown"
                 cls = (champ.get("class") if champ else "").lower() if champ else ""
                 cls_emoji = class_map.get(cls, "<:allclasses:748808348996075540>")
-                stars = entry.get("rarity") or entry.get("stars") or 6
-                rank = entry.get("rank") or 1
-                sig = entry.get("sig") or 0
-                asc = entry.get("ascended") or 0
+                stars = int(entry.get("rarity") or entry.get("stars") or 6)
+                rank = int(entry.get("rank") or 1)
+                sig = int(entry.get("sig") or 0)
+                asc = int(entry.get("ascended") or 0)
 
-                star_text = f"{stars}★"
-                sig_icon = "☆" if sig == 0 else "★"
+                # Star + sig icon rule:
+                # - show numeric star count followed by empty star (☆) when sig == 0
+                # - show numeric star count followed by filled star (★) when sig > 0
+                sig_icon = "★" if sig > 0 else "☆"
+                star_display = f"{stars}{sig_icon}"
+
+                # Always show signature level explicitly (s0 when zero)
+                sig_text = f" s{sig}"
+
+                # Ascension text only when asc > 0
                 asc_text = f" A{asc}" if asc else ""
-                sig_text = f" s{sig}" if sig else ""
-                line = f"{cls_emoji} {star_text}{sig_icon} **{name}** r{rank}{sig_text}{asc_text}"
+
+                # Final line format:
+                # <emoji> <star_display> <bold name> r<rank> s<sig> [A<asc>]
+                line = f"{cls_emoji} {star_display} **{name}** r{rank}{sig_text}{asc_text}"
+
                 lines.append(line)
             except Exception:
                 continue
