@@ -110,8 +110,11 @@ class MCOCHubAPI:
             log.warning("MCOCHub API key not available; skipping request to %s", url)
             return None
 
-        headers = {"Accept": "application/json"}
-        params = {"api_key": api_key}
+        headers = {
+            "Accept": "application/json",
+            "Authorization": f"Bearer {api_key}"
+        }
+        # params = {"api_key": api_key}
         log.debug("MCOCHub request GET %s params=%s", url, {"api_key": "REDACTED"})
 
         # small retry loop for transient errors
@@ -122,7 +125,7 @@ class MCOCHubAPI:
                 session = await self._ensure_session()
                 # limit concurrency to avoid bursts
                 async with self._request_semaphore:
-                    async with session.get(url, headers=headers, params=params) as resp:
+                    async with session.get(url, headers=headers) as resp:
                         text = await resp.text()
                         if resp.status == 401 or "Unauthenticated" in text:
                             log.error("MCOCHUB API unauthenticated for %s; status=%s body=%s", url, resp.status, text[:200])
