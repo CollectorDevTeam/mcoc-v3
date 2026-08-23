@@ -31,35 +31,16 @@ class MCOCSlash(commands.Cog):
         except Exception:
             log.exception("Failed to attach slash cogs in cog_load")
 
-    def _attach_slash_cogs(self):
-        """
-        Add slash-layer cogs that register /mcoc subgroups.
-        This is idempotent: adding an already-added cog is a no-op for Red.
-        """
-        # Champion slash cog
-        try:
-            from .champions_slash import ChampionSlashCog
-            # instantiate and add; the cog should register its app commands on cog_load
-            self.bot.add_cog(ChampionSlashCog(self.bot))
-            log.debug("ChampionSlashCog loaded (slash)")
-        except Exception:
-            log.exception("Failed to load ChampionSlashCog (slash)")
+    async def _attach_slash_cogs(self):
+        from .champions_slash import ChampionSlashCog
+        await self.bot.add_cog(ChampionSlashCog(self.bot))
 
-        # Roster slash cog
-        try:
-            from .roster_slash import RosterSlashCog
-            self.bot.add_cog(RosterSlashCog(self.bot))
-            log.debug("RosterSlashCog loaded (slash)")
-        except Exception:
-            log.exception("Failed to load RosterSlashCog (slash)")
+        from .roster_slash import RosterSlashCog
+        await self.bot.add_cog(RosterSlashCog(self.bot))
 
-        # Admin slash cog (optional)
-        try:
-            from .admin_slash import AdminSlashCog
-            self.bot.add_cog(AdminSlashCog(self.bot))
-            log.debug("AdminSlashCog loaded (slash)")
-        except Exception:
-            log.debug("AdminSlashCog not present or failed to load (optional)")
+        from .admin_slash import AdminSlashCog
+        await self.bot.add_cog(AdminSlashCog(self.bot))
+
 
     @commands.Cog.listener()
     async def on_ready(self):

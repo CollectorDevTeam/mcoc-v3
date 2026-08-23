@@ -204,6 +204,16 @@ def register_with_group(group: commands.Group, parent_getter):
     parent_getter is a callable returning the core/parent object (or None).
     """
 
+
+    def _safe_add(cmd_name, func):
+        try:
+            if group.get_command(cmd_name):
+                log.debug("Command %s already exists; skipping", cmd_name)
+                return
+        except Exception:
+            pass
+        group.command(name=cmd_name)(func)
+
     # add
     async def _add(ctx, champion: str, *, hargs: str):
         parent = parent_getter()
@@ -375,15 +385,6 @@ def register_with_group(group: commands.Group, parent_getter):
         await ctx.send("Your roster has been cleared.")
 
     _safe_add(cmd_name="clear", func=_clear)
-
-    def _safe_add(cmd_name, func):
-        try:
-            if group.get_command(cmd_name):
-                log.debug("Command %s already exists; skipping", cmd_name)
-                return
-        except Exception:
-            pass
-        group.command(name=cmd_name)(func)
 
 
 # Note: if you want this file to register a standalone RosterPrefix cog (top-level ///roster),

@@ -238,6 +238,16 @@ def register_with_group(group: commands.Group, parent_getter):
     # local imports for embed builders (keeps module import light)
     from ..common.embeds import champion_embed, abilities_embed, synergy_embed, tag_list_embed
 
+
+    def _safe_add(cmd_name, func):
+        try:
+            if group.get_command(cmd_name):
+                log.debug("Command %s already exists; skipping", cmd_name)
+                return
+        except Exception:
+            pass
+        group.command(name=cmd_name)(func)
+        
     # info
     async def _info(ctx, *, champion: str):
         parent = parent_getter()
@@ -401,14 +411,6 @@ def register_with_group(group: commands.Group, parent_getter):
             log.exception("register calcstats failed")
             await ctx.send("Failed to calculate stats.")
 
-    def _safe_add(cmd_name, func):
-        try:
-            if group.get_command(cmd_name):
-                log.debug("Command %s already exists; skipping", cmd_name)
-                return
-        except Exception:
-            pass
-        group.command(name=cmd_name)(func)
 
 # Note: remove or comment out the module-level setup if you do not want this file
 # to register a standalone ChampionsPrefix cog (which would create a top-level ///champ).

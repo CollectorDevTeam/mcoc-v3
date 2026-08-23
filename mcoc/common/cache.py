@@ -17,15 +17,19 @@ log = logging.getLogger("red.mcoc.cache")
 # Do NOT create directories at import time. Create them when CacheManager is instantiated.
 DEFAULT_CACHE_DIR = pathlib.Path("data") / "cache"
 
+from pathlib import Path
+
 class CacheManager:
     def __init__(self, bot):
         self.bot = bot
 
-        # Correct cache directory
-        self.cache_dir = Path(bot._data_path) / "mcoc" / "cache"
+        # Correct Red data directory for this cog
+        base = bot._cog_manager.data_path("mcoc")
+        self.cache_dir = base / "cache"
         self.cache_dir.mkdir(parents=True, exist_ok=True)
 
         self.metadata_file = self.cache_dir / "metadata.json"
+
 
     # -----------------------------
     # Metadata
