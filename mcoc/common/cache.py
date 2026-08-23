@@ -18,17 +18,19 @@ log = logging.getLogger("red.mcoc.cache")
 DEFAULT_CACHE_DIR = pathlib.Path("data") / "cache"
 
 from pathlib import Path
+from redbot.core import data_manager
 
 class CacheManager:
     def __init__(self, bot):
         self.bot = bot
 
         # Correct Red data directory for this cog
-        base = bot._cog_manager.data_path("mcoc")
+        base = data_manager.cog_data_path(raw_name="mcoc")
         self.cache_dir = base / "cache"
         self.cache_dir.mkdir(parents=True, exist_ok=True)
 
         self.metadata_file = self.cache_dir / "metadata.json"
+
 
 
     # -----------------------------
