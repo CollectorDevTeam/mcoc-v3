@@ -5,7 +5,7 @@ import logging
 import tempfile
 import os
 import asyncio
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Callable
 
 log = logging.getLogger("red.mcoc.userdata")
 
@@ -29,8 +29,9 @@ class UserDataManager:
             log.exception("Failed to ensure user data directory exists: %s", self.user_dir)
         # optional hook called after roster mutations: hook(user_id: int)
         # The hook should be non-blocking and schedule any async work on the bot loop.
-        self.post_mutation_hook = None
-
+        self.post_mutation_hook: Optional[Callable[[int], Any]] = None
+        # optional bot loop for scheduling coroutines returned by hooks
+        self.bot_loop = None
 
     # -----------------------------
     # Internal helpers
@@ -148,7 +149,6 @@ class UserDataManager:
         except Exception:
             log.exception("post_mutation_hook failed for user %s", user_id)
 
-
     # -----------------------------
     # Load / Save (async)
     # -----------------------------
@@ -204,7 +204,6 @@ class UserDataManager:
         # call optional post-mutation hook (non-blocking)
         self._call_post_hook(user_id)
 
-
     def remove_champion(self, user_id: int, champ_slug: str, rarity: Optional[int] = None) -> int:
         data = self._load(user_id)
         before = len(data.get("roster", []))
@@ -218,7 +217,6 @@ class UserDataManager:
         self._call_post_hook(user_id)
 
         return before - len(data.get("roster", []))
-
 
     def update_champion(self, user_id: int, champ_slug: str, rarity: int, rank: Optional[int] = None, sig: Optional[int] = None, tags: Optional[List[str]] = None) -> bool:
         data = self._load(user_id)
@@ -431,3 +429,46 @@ class UserDataManager:
 
     async def sort_roster_entries_async(self, entries: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         return await asyncio.to_thread(self.sort_roster_entries, entries)
+
+
+# -----------------------------
+# Module-level shared manager and helpers
+# -----------------------------
+_GLOBAL_USER_MANAGER: Optional[UserDataManager] = None
+
+
+def get_user_manager(user_dir: Optional[pathlib.Path] = None) -> UserDataManager:
+    """
+    Return a shared UserDataManager instance. If one does not exist, create it.
+    Optional user_dir overrides the default storage location for the first creation.
+    """
+    global _GLOBAL_USER_MANAGER
+    if _GLOBAL_USER_MANAGER is None:
+        _GLOBAL_USER_MANAGER = UserDataManager(user_dir=user_dir)
+    return _GLOBAL_USER_MANAGER
+
+
+def set_post_mutation_hook(hook: Optional[Callable[[int], Any]]) -> None:
+    """
+    Set the post-mutation hook on the global user manager.
+    The hook should accept a single user_id argument and may return a coroutine.
+    """
+    mgr = get_user_manager()
+    mgr.post_mutation_hook = hook
+
+
+def set_global_bot_loop(loop: Optional[asyncio.AbstractEventLoop]) -> None:
+    """
+    Optionally set a bot loop on the global manager so hooks can be scheduled
+    when called from non-async threads.
+    """
+    mgr = get_user_manager()
+    mgr.bot_loop = loop
+
+
+def user_exists(user_id: int) -> bool:
+    """
+    Return True if a user data file exists for the given user_id.
+    """
+    mgr = get_user_manager()
+    return mgr._path(user_id).exists()

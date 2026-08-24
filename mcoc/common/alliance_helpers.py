@@ -2,6 +2,7 @@
 import json
 import pathlib
 import logging
+import asyncio
 from typing import Optional, Dict, Any, List, Tuple, Union
 
 log = logging.getLogger("red.mcoc.alliance_helpers")
@@ -17,8 +18,13 @@ def _load_alliances() -> Dict[str, Any]:
 
 
 def _save_alliances(data: Dict[str, Any]) -> None:
+    """
+    Atomic save: write to a temp file then replace the target file.
+    """
     try:
-        DATA_PATH.write_text(json.dumps(data, indent=2), encoding="utf-8")
+        tmp = DATA_PATH.with_suffix(".tmp")
+        tmp.write_text(json.dumps(data, indent=2), encoding="utf-8")
+        tmp.replace(DATA_PATH)
     except Exception:
         log.exception("Failed to save alliances.json")
 
@@ -55,8 +61,10 @@ async def create_or_link_role(guild, role_name: str, key: str, role_obj=None) ->
         if role_obj:
             role = role_obj
         else:
-            # create role
+            # create role (may raise if bot lacks permissions)
             role = await guild.create_role(name=role_name, reason="mcoc alliance role creation")
+        if not role:
+            return None
         roles[key] = {"id": role.id, "name": role.name}
         set_guild_config(guild.id, cfg)
         return roles[key]
@@ -74,9 +82,12 @@ async def register_alliance(guild, alliance_name: str, alliance_tag: Optional[st
         cfg["type"] = type_
         cfg.setdefault("roles", {})
         # create/link core roles
-        await create_or_link_role(guild, f"{alliance_name} Alliance", "alliance")
-        await create_or_link_role(guild, f"{alliance_name} Officers", "officers")
-        await create_or_link_role(guild, f"{alliance_name} Members", "members")
+        r1 = await create_or_link_role(guild, f"{alliance_name} Alliance", "alliance")
+        r2 = await create_or_link_role(guild, f"{alliance_name} Officers", "officers")
+        r3 = await create_or_link_role(guild, f"{alliance_name} Members", "members")
+        # if any role creation/link failed, log but continue (admins can set roles manually)
+        if not (r1 and r2 and r3):
+            log.debug("One or more alliance roles failed to create/link for guild %s", guild.id)
         cfg.setdefault("info", {})["name"] = alliance_name
         if alliance_tag:
             cfg["info"]["tag"] = alliance_tag
@@ -93,6 +104,8 @@ async def register_alliance(guild, alliance_name: str, alliance_tag: Optional[st
 async def unregister_alliance(guild, remove_roles: bool = False) -> bool:
     """
     Unregister alliance for guild. Optionally remove roles (careful with rate limits).
+    This will remove the guild's config entry. If remove_roles is True, it will
+    attempt to delete configured roles with a short pause between deletions.
     """
     try:
         cfg = get_guild_config(guild.id)
@@ -100,11 +113,13 @@ async def unregister_alliance(guild, remove_roles: bool = False) -> bool:
             return False
         roles = cfg.get("roles", {})
         if remove_roles:
-            for k, r in roles.items():
+            for k, r in list(roles.items()):
                 try:
                     role = guild.get_role(r.get("id"))
                     if role:
                         await role.delete(reason="mcoc alliance unregister")
+                        # small pause to avoid hitting rate limits when deleting multiple roles
+                        await asyncio.sleep(0.35)
                 except Exception:
                     log.exception("Failed to delete role %s in guild %s", k, guild.id)
         remove_guild_config(guild.id)
@@ -128,7 +143,13 @@ async def join_alliance(member, guild, role_key: str = "members") -> Tuple[bool,
         if not target:
             return False, "Members role not configured."
 
-        # remove member from other alliance roles in this guild
+        # enforce max members
+        max_m = cfg.get("settings", {}).get("max_members", 30)
+        mids = cfg.setdefault("member_ids", [])
+        if member.id not in mids and len(mids) >= max_m:
+            return False, f"Alliance is full (max {max_m} members)."
+
+        # remove member from other alliance-related roles in this guild
         for k, r in roles.items():
             rid = r.get("id") if isinstance(r, dict) else None
             if rid and any(role.id == rid for role in member.roles):
@@ -146,11 +167,13 @@ async def join_alliance(member, guild, role_key: str = "members") -> Tuple[bool,
         if not role_obj:
             return False, "Configured role not found on server."
         await member.add_roles(role_obj, reason="Joining alliance via mcoc")
+
         # update member_ids
-        mids = cfg.setdefault("member_ids", [])
         if member.id not in mids:
             mids.append(member.id)
-        set_guild_config(guild.id, cfg)
+            cfg["member_ids"] = mids
+            set_guild_config(guild.id, cfg)
+
         return True, "Joined alliance."
     except Exception:
         log.exception("join_alliance failed for member %s", getattr(member, "id", None))
@@ -347,3 +370,7 @@ def get_officer_ids(guild_id: int) -> List[int]:
     except Exception:
         log.exception("Failed to get officer IDs for guild %s", guild_id)
         return []
+
+
+# Backwards-compatible alias (some code referenced this name previously)
+alliance_info = get_alliance_info
