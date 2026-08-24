@@ -52,6 +52,17 @@ class MCOCPrefix(commands.Cog):
         parent_getter = lambda: self._ensure_parent()
 
         # --------------------------
+        # ACCOUNT (optional)
+        # --------------------------
+        try:
+            from .account_prefix import register_with_group as reg_account
+            account_group = getattr(self, "account")
+            reg_account(account_group, parent_getter)
+            log.debug("Attached account registrar to ///mcoc account")
+        except Exception:
+            log.debug("Account registrar not present (optional)")
+
+        # --------------------------
         # CHAMPIONS
         # --------------------------
         try:
@@ -91,7 +102,7 @@ class MCOCPrefix(commands.Cog):
     async def mcoc(self, ctx):
         await safe_send_ctx(
             ctx,
-            "Subcommands: `champ`, `roster`, `admin`, `status`"
+            "Subcommands: `champ`, `roster`, `admin`, `account`, `status`"
         )
 
     @mcoc.command(name="status")
@@ -117,6 +128,10 @@ class MCOCPrefix(commands.Cog):
     @mcoc.group(name="admin", invoke_without_command=True)
     async def admin(self, ctx):
         await safe_send_ctx(ctx, "Admin commands: status, sync, debug (if implemented)")
+
+    @mcoc.group(name="account", invoke_without_command=True)
+    async def account(self, ctx):
+        await safe_send_ctx(ctx, "Account commands: info, link, unlink")
 
 
 async def setup(bot):
