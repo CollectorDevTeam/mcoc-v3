@@ -11,6 +11,9 @@ from pathlib import Path
 
 log = logging.getLogger("red.mcoc.prefix")
 
+from ..common.champion_helpers import safe_send_ctx as reporter
+
+
 class MCOCAdminPrefix(commands.Cog):
     """Prefix commands for MCOC admin (development / fallback)."""
     is_mcoc_prefix = True

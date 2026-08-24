@@ -14,6 +14,9 @@ from ..common.roster_helpers import (
     schedule_persist_user_prestige,
 )
 from ..common.embeds import roster_entry_embed  # used for embed building
+from ..common.prefix_utils import get_runtime_prefix
+
+from ..common.prefix_meta import ROSTER_GROUP_HELP, ALLOWED_ROSTER_FIELDS
 
 
 class RosterPrefix(commands.Cog):
@@ -48,10 +51,18 @@ class RosterPrefix(commands.Cog):
 
     @commands.group(name="roster", invoke_without_command=True)
     async def roster(self, ctx):
-        await ctx.send("Roster commands: add, remove, update, list, export, clear")
+        # await ctx.send("Roster commands: add, remove, update, list, export, clear")
+        await ctx.send(ROSTER_GROUP_HELP.get("roster", "Roster commands: add, remove, update, list, export, clear"))
 
     @roster.command(name="add")
     async def roster_add(self, ctx, champion: str, *, hargs: str):
+        """Add a champion to your roster."""
+        prefix = get_runtime_prefix(ctx, default=self.prefix or "///")
+        lines = [ROSTER_GROUP_HELP.get("roster_add", "Add a champion to your roster.")]
+        lines.append("")
+        lines.append(f"Use `{prefix}mcoc roster add <champion> <hargs>` to add a champion to your roster.")
+        await ctx.send("\n".join(lines))
+
         if not await self._require_parent(ctx):
             return
         parsed = parse_hargs(hargs or "")
@@ -195,6 +206,16 @@ class RosterPrefix(commands.Cog):
         users = ensure_user_manager(self.parent)
         data = users.export(ctx.author.id) if users else {}
         await ctx.send(f"Your roster data:\n```json\n{data}\n```")
+
+    @roster.command(name="import")
+    async def roster_import(self, ctx, *, data: str):
+        users = ensure_user_manager(self.parent)
+        if users:
+            try:
+                users.import_data(ctx.author.id, data)
+                await ctx.send("Imported your roster data.")
+            except Exception:
+                await ctx.send("Failed to import roster data.")
 
     @roster.command(name="clear")
     async def roster_clear(self, ctx):

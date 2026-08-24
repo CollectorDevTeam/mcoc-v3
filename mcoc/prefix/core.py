@@ -6,6 +6,10 @@ from redbot.core import commands
 log = logging.getLogger("red.mcoc.prefix.core")
 
 from ..common.champion_helpers import safe_send_ctx
+from ..common.alliance_helpers import (
+    get_guild_config, set_guild_config, role_id_for_key, join_alliance
+)
+from ..common.roster_helpers import ensure_user_manager, _ensure_hook_registered
 
 
 class MCOCPrefix(commands.Cog):
@@ -131,7 +135,36 @@ class MCOCPrefix(commands.Cog):
 
     @mcoc.group(name="account", invoke_without_command=True)
     async def account(self, ctx):
-        await safe_send_ctx(ctx, "Account commands: info, link, unlink")
+        await safe_send_ctx(ctx, "Account commands: info, set, link, unlink, delete, privacy")
+
+
+    # in your main cog or a dedicated event cog
+    @commands.Cog.listener()
+    async def on_guild_role_delete(self, role):
+        from ..common.alliance_helpers import _load_alliances, remove_guild_config, get_guild_config
+        cfg = get_guild_config(role.guild.id)
+        if not cfg:
+            return
+        # remove references to deleted role and persist
+        changed = False
+        for k, r in list(cfg.get("roles", {}).items()):
+            if isinstance(r, dict) and r.get("id") == role.id:
+                cfg["roles"].pop(k, None)
+                changed = True
+        if changed:
+            set_guild_config(role.guild.id, cfg)
+
+    @commands.Cog.listener()
+    async def on_member_update(self, before, after):
+        # detect manual role grants to alliance member role and call join_alliance
+        guild = after.guild
+        cfg = get_guild_config(guild.id)
+        if not cfg:
+            return
+        members_role_id = role_id_for_key(cfg, "members")
+        if members_role_id and any(r.id == members_role_id for r in after.roles) and not any(r.id == members_role_id for r in before.roles):
+            # user was given members role manually
+            await join_alliance(after, guild, role_key="members")
 
 
 async def setup(bot):

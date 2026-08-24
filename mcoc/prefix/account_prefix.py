@@ -8,18 +8,20 @@ log = logging.getLogger("red.mcoc.prefix.account")
 
 from ..common.roster_helpers import ensure_user_manager
 from ..common.roster_helpers import _ensure_hook_registered  # safe no-op if already registered
+from ..common.prefix_utils import get_runtime_prefix
+from ..common.prefix_meta import ALLOWED_PROFILE_FIELDS, ACCOUNT_GROUP_HELP
 
 
 class AccountPrefix(commands.Cog):
     """
     Prefix commands for user account/profile management.
     Commands:
-      ///account view [@user]
-      ///account set <field> <value>
-      ///account delete
-      ///account privacy mode <private|guild|alliance|public>
-      ///account privacy allow_guild <guild_id>
-      ///account privacy revoke_guild <guild_id>
+      ///mcoc account info [@user]
+      ///mcoc account set <field> <value>
+      ///mcoc account link <mcoc_id>
+      ///mcoc account unlink
+      ///mcoc account delete
+      ///mcoc account privacy ...
     """
 
     def __init__(self, bot_or_parent: Any):
@@ -31,12 +33,30 @@ class AccountPrefix(commands.Cog):
             self.parent = None
             self.bot = bot_or_parent
 
+        # ensure hook registration early (no-op if parent is None)
+        try:
+            _ensure_hook_registered(self.parent)
+        except Exception:
+            pass
+
+        # keep a cached user manager reference for convenience
+        try:
+            self.user_manager = ensure_user_manager(self.parent)
+        except Exception:
+            self.user_manager = None
+
     async def _require_parent(self, ctx) -> bool:
         if not getattr(self, "parent", None):
             try:
                 core = getattr(self.bot, "mcoc_core", None) or self.bot.get_cog("MCOC")
                 if core:
                     self.parent = core
+                    # re-resolve user manager and register hook
+                    try:
+                        _ensure_hook_registered(self.parent)
+                        self.user_manager = ensure_user_manager(self.parent)
+                    except Exception:
+                        pass
                     return True
             except Exception:
                 pass
@@ -49,7 +69,26 @@ class AccountPrefix(commands.Cog):
 
     @commands.group(name="account", invoke_without_command=True)
     async def account(self, ctx):
-        await ctx.send("Account commands: view, set, delete, privacy")
+        """Top-level account group help"""
+        await ctx.send(ACCOUNT_GROUP_HELP.get("account", "Account commands: info, set, link, unlink, delete, privacy"))
+
+    @account.command(name="help")
+    async def account_help(self, ctx):
+        """Show account help and allowed fields"""
+        # prefer the runtime prefix from ctx if available; fall back to self.prefix
+        prefix = get_runtime_prefix(ctx, default=self.prefix or "///")
+        lines = [ACCOUNT_GROUP_HELP.get("account", "Account commands: info, set, link, unlink, delete, privacy"), "", "**Fields you can set:**"]
+        for field, description in ALLOWED_PROFILE_FIELDS.items():
+            lines.append(f"**{field}**: {description}")
+        lines.append("")
+        lines.append(f"Use `{prefix}mcoc account set <field> <value>` to set a profile field.")
+        lines.append(f"Use `{prefix}mcoc account link <mcoc_id>` to link your in-game id.")
+        await ctx.send("\n".join(lines))
+
+    @account.command(name="info")
+    async def account_info(self, ctx, member: Optional[Any] = None):
+        """Alias for account view"""
+        await self.account_view(ctx, member)
 
     @account.command(name="view")
     async def account_view(self, ctx, member: Optional[Any] = None):
@@ -73,11 +112,6 @@ class AccountPrefix(commands.Cog):
         # privacy check
         guild_id = getattr(ctx.guild, "id", None)
         viewer_alliance = None
-        try:
-            # if your bot stores alliance membership per guild, you can resolve viewer_alliance here
-            viewer_alliance = None
-        except Exception:
-            viewer_alliance = None
 
         try:
             if not users.can_view_profile(ctx.author.id, target_id, guild_id=guild_id, viewer_alliance=viewer_alliance):
@@ -96,7 +130,13 @@ class AccountPrefix(commands.Cog):
 
         # Build a compact display
         lines = []
-        for k in ("mcoc_name", "mcoc_id", "website", "invite", "timezone", "alliance", "job", "created_at", "updated_at"):
+        # include linked status and mcoc_id first if present
+        if profile.get("linked"):
+            lines.append("**linked**: True")
+        if profile.get("mcoc_id"):
+            lines.append(f"**mcoc_id**: {profile.get('mcoc_id')}")
+
+        for k in ("mcoc_name", "website", "invite", "timezone", "alliance", "job", "created_at", "updated_at"):
             v = profile.get(k)
             if v:
                 lines.append(f"**{k}**: {v}")
@@ -106,7 +146,25 @@ class AccountPrefix(commands.Cog):
 
         try:
             import discord
-            emb = discord.Embed(title=f"Profile for {member.display_name if member else ctx.author.display_name}", description="\n".join(lines))
+            # prefer the provided member object for a friendly display name when available
+            member_obj = None
+            if isinstance(member, discord.Member):
+                member_obj = member
+            else:
+                try:
+                    member_obj = ctx.guild.get_member(target_id) if ctx.guild else None
+                except Exception:
+                    member_obj = None
+
+            if member_obj:
+                title_name = getattr(member_obj, "display_name", str(target_id))
+            else:
+                if target_id == ctx.author.id:
+                    title_name = getattr(ctx.author, "display_name", str(target_id))
+                else:
+                    title_name = str(target_id)
+
+            emb = discord.Embed(title=f"Profile for {title_name}", description="\n".join(lines))
             await ctx.send(embed=emb)
         except Exception:
             await ctx.send("\n".join(lines))
@@ -114,15 +172,17 @@ class AccountPrefix(commands.Cog):
     @account.command(name="set")
     async def account_set(self, ctx, field: str, *, value: str):
         """
-        Set a profile field. Allowed fields: mcoc_id, mcoc_name, website, invite, timezone, alliance, job
-        Example: ///account set mcoc_name Jason
+        Set a profile field.
+        Allowed fields are provided by the bot's account metadata.
+        Example: ///mcoc account set mcoc_name Jason
         """
         if not await self._require_parent(ctx):
             return
 
-        allowed = {"mcoc_id", "mcoc_name", "website", "invite", "timezone", "alliance", "job"}
-        if field not in allowed:
-            await ctx.send(f"Invalid field. Allowed fields: {', '.join(sorted(allowed))}")
+        # validate against central metadata
+        if field not in ALLOWED_PROFILE_FIELDS:
+            allowed = ", ".join(sorted(ALLOWED_PROFILE_FIELDS.keys()))
+            await ctx.send(f"Invalid field. Allowed fields: {allowed}")
             return
 
         users = ensure_user_manager(self.parent)
@@ -134,6 +194,58 @@ class AccountPrefix(commands.Cog):
         except Exception:
             log.exception("Failed to set profile field")
             await ctx.send("Failed to update profile.")
+
+    @account.command(name="link")
+    async def account_link(self, ctx, mcoc_id: Optional[str] = None):
+        """
+        Link your Discord account to an in-game account.
+        Simple flow: provide your in-game id (mcoc_id) and it will be stored.
+        Example: ///mcoc account link 123456789
+        """
+        if not await self._require_parent(ctx):
+            return
+
+        users = ensure_user_manager(self.parent)
+        _ensure_hook_registered(self.parent)
+
+        if mcoc_id is None:
+            # use runtime prefix if available
+            prefix = getattr(ctx, "prefix", None) or self.prefix or "///"
+            await ctx.send(f"Usage: `{prefix}mcoc account link <mcoc_id>`")
+            return
+
+        try:
+            users.set_profile_field(ctx.author.id, "mcoc_id", str(mcoc_id).strip())
+            users.set_profile_field(ctx.author.id, "linked", True)
+            await ctx.send(f"Linked your account to MCoc id `{mcoc_id}`.")
+        except Exception:
+            log.exception("Failed to link account")
+            await ctx.send("Failed to link account. Try again later.")
+
+    @account.command(name="unlink")
+    async def account_unlink(self, ctx):
+        """
+        Unlink your in-game account from your Discord profile.
+        """
+        if not await self._require_parent(ctx):
+            return
+
+        users = ensure_user_manager(self.parent)
+        _ensure_hook_registered(self.parent)
+
+        try:
+            profile = users.get_profile(ctx.author.id) or {}
+            if not profile.get("mcoc_id") and not profile.get("linked"):
+                await ctx.send("No linked MCoc account found.")
+                return
+
+            # clear fields
+            users.set_profile_field(ctx.author.id, "mcoc_id", None)
+            users.set_profile_field(ctx.author.id, "linked", False)
+            await ctx.send("Your MCoc account has been unlinked.")
+        except Exception:
+            log.exception("Failed to unlink account")
+            await ctx.send("Failed to unlink account. Try again later.")
 
     @account.command(name="delete")
     async def account_delete(self, ctx):
@@ -243,21 +355,24 @@ def register_with_group(group: commands.Group, parent_getter):
         if not parent:
             await ctx.send("MCOC core not attached; account unavailable.")
             return
-        # reuse the cog logic by instantiating a temporary helper
-        from ..common.roster_helpers import ensure_user_manager as _ensure
-        users = _ensure(parent)
+        users = ensure_user_manager(parent)
         try:
-            profile = users.get_profile(ctx.author.id if member is None else getattr(member, "id", member))
+            target = ctx.author.id if member is None else getattr(member, "id", member)
+            profile = users.get_profile(target)
             await ctx.send(f"Profile: ```json\n{profile}\n```")
         except Exception:
             await ctx.send("Failed to fetch profile.")
 
+    _safe_add("info", _view)
     _safe_add("view", _view)
 
     async def _set(ctx, field: str, *, value: str):
         parent = parent_getter()
         if not parent:
             await ctx.send("MCOC core not attached; account unavailable.")
+            return
+        if field not in ALLOWED_PROFILE_FIELDS:
+            await ctx.send("Invalid field. Allowed: " + ", ".join(sorted(ALLOWED_PROFILE_FIELDS.keys())))
             return
         users = ensure_user_manager(parent)
         try:
@@ -267,6 +382,39 @@ def register_with_group(group: commands.Group, parent_getter):
             await ctx.send("Failed to set profile field.")
 
     _safe_add("set", _set)
+
+    async def _link(ctx, mcoc_id: Optional[str] = None):
+        parent = parent_getter()
+        if not parent:
+            await ctx.send("MCOC core not attached; account unavailable.")
+            return
+        users = ensure_user_manager(parent)
+        if mcoc_id is None:
+            await ctx.send("Usage: ///mcoc account link <mcoc_id>")
+            return
+        try:
+            users.set_profile_field(ctx.author.id, "mcoc_id", str(mcoc_id).strip())
+            users.set_profile_field(ctx.author.id, "linked", True)
+            await ctx.send(f"Linked your account to MCoc id `{mcoc_id}`.")
+        except Exception:
+            await ctx.send("Failed to link account.")
+
+    _safe_add("link", _link)
+
+    async def _unlink(ctx):
+        parent = parent_getter()
+        if not parent:
+            await ctx.send("MCOC core not attached; account unavailable.")
+            return
+        users = ensure_user_manager(parent)
+        try:
+            users.set_profile_field(ctx.author.id, "mcoc_id", None)
+            users.set_profile_field(ctx.author.id, "linked", False)
+            await ctx.send("Unlinked your account.")
+        except Exception:
+            await ctx.send("Failed to unlink account.")
+
+    _safe_add("unlink", _unlink)
 
     async def _delete(ctx):
         parent = parent_getter()
@@ -281,3 +429,34 @@ def register_with_group(group: commands.Group, parent_getter):
             await ctx.send("Failed to delete profile.")
 
     _safe_add("delete", _delete)
+
+    async def _privacy(ctx, subcommand: str, *args):
+        parent = parent_getter()
+        if not parent:
+            await ctx.send("MCOC core not attached; account unavailable.")
+            return
+        users = ensure_user_manager(parent)
+        try:
+            if subcommand == "mode" and args:
+                users.set_profile_field(ctx.author.id, "privacy_mode", args[0])
+                await ctx.send(f"Set privacy mode to `{args[0]}`.")
+            elif subcommand == "allow_guild" and args:
+                guild_id = args[0]
+                allowed_guilds = users.get_profile(ctx.author.id).get("allowed_guilds", [])
+                if guild_id not in allowed_guilds:
+                    allowed_guilds.append(guild_id)
+                    users.set_profile_field(ctx.author.id, "allowed_guilds", allowed_guilds)
+                await ctx.send(f"Allowed sharing with guild `{guild_id}`.")
+            elif subcommand == "revoke_guild" and args:
+                guild_id = args[0]
+                allowed_guilds = users.get_profile(ctx.author.id).get("allowed_guilds", [])
+                if guild_id in allowed_guilds:
+                    allowed_guilds.remove(guild_id)
+                    users.set_profile_field(ctx.author.id, "allowed_guilds", allowed_guilds)
+                await ctx.send(f"Revoked sharing with guild `{guild_id}`.")
+            else:
+                await ctx.send("Invalid privacy subcommand or missing arguments.")
+        except Exception:
+            await ctx.send("Failed to update privacy settings.")
+
+    _safe_add("privacy", _privacy)
