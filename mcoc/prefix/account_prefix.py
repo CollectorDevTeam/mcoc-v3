@@ -1,6 +1,6 @@
 # mcoc/prefix/account_prefix.py
 import logging
-from typing import Any, Optional
+from typing import Any, Optional, Callable, Dict
 
 from redbot.core import commands
 
@@ -19,16 +19,11 @@ from ..common.account_helpers import (
     delete_user_profile as helper_delete_user_profile,
 )
 
+ACCOUNT_GROUP_HELP = "Account commands: info, view, set, link, unlink, delete, privacy"
+
 class AccountPrefix(commands.Cog):
     """
     Prefix commands for user account/profile management.
-    Commands:
-      ///mcoc account info [@user]
-      ///mcoc account set <field> <value>
-      ///mcoc account link <mcoc_id>
-      ///mcoc account unlink
-      ///mcoc account delete
-      ///mcoc account privacy ...
     """
 
     def __init__(self, bot_or_parent: Any):
@@ -61,14 +56,14 @@ class AccountPrefix(commands.Cog):
     @commands.group(name="account", invoke_without_command=True)
     async def account(self, ctx):
         """Top-level account group help"""
-        await safe_send_ctx(ctx, ACCOUNT_GROUP_HELP := "Account commands: info, set, link, unlink, delete, privacy")
+        await safe_send_ctx(ctx, ACCOUNT_GROUP_HELP)
 
     @account.command(name="help")
     async def account_help(self, ctx):
         """Show account help and allowed fields"""
         prefix = get_runtime_prefix(ctx, default="///")
         lines = [
-            "Account commands: info, set, link, unlink, delete, privacy",
+            ACCOUNT_GROUP_HELP,
             "",
             "**Fields you can set:**",
         ]
@@ -79,17 +74,9 @@ class AccountPrefix(commands.Cog):
         lines.append(f"Use `{prefix}mcoc account link <mcoc_id>` to link your in-game id.")
         await safe_send_ctx(ctx, "\n".join(lines))
 
-    @account.command(name="info")
-    async def account_info(self, ctx, member: Optional[Any] = None):
-        """Alias for account view"""
-        await self.account_view(ctx, member)
-
     @account.command(name="view")
     async def account_view(self, ctx, member: Optional[Any] = None):
-        """
-        View a user's profile. If no member is provided, view your own.
-        Respects privacy settings in UserDataManager.can_view_profile.
-        """
+        """View a user's profile. If no member is provided, view your own."""
         if not await self._require_parent(ctx):
             return
 
@@ -123,7 +110,6 @@ class AccountPrefix(commands.Cog):
             emb = format_profile_embed(ctx, profile, member)
             await ctx.send(embed=emb)
         except Exception:
-            # fallback to plain text
             lines = []
             if profile.get("linked"):
                 lines.append("**linked**: True")
@@ -137,10 +123,7 @@ class AccountPrefix(commands.Cog):
 
     @account.command(name="set")
     async def account_set(self, ctx, field: str, *, value: str):
-        """
-        Set a profile field.
-        Example: ///mcoc account set mcoc_name Jason
-        """
+        """Set a profile field. Example: ///mcoc account set mcoc_name Jason"""
         if not await self._require_parent(ctx):
             return
 
@@ -161,10 +144,7 @@ class AccountPrefix(commands.Cog):
 
     @account.command(name="link")
     async def account_link(self, ctx, mcoc_id: Optional[str] = None):
-        """
-        Link your Discord account to an in-game account.
-        Example: ///mcoc account link 123456789
-        """
+        """Link your Discord account to an in-game account. Example: ///mcoc account link 123456789"""
         if not await self._require_parent(ctx):
             return
 
@@ -182,9 +162,7 @@ class AccountPrefix(commands.Cog):
 
     @account.command(name="unlink")
     async def account_unlink(self, ctx):
-        """
-        Unlink your in-game account from your Discord profile.
-        """
+        """Unlink your in-game account from your Discord profile."""
         if not await self._require_parent(ctx):
             return
 
@@ -197,9 +175,7 @@ class AccountPrefix(commands.Cog):
 
     @account.command(name="delete")
     async def account_delete(self, ctx):
-        """
-        Delete your user data file. This is irreversible.
-        """
+        """Delete your user data file. This is irreversible."""
         if not await self._require_parent(ctx):
             return
 
@@ -228,9 +204,7 @@ class AccountPrefix(commands.Cog):
 
     @account_privacy.command(name="mode")
     async def privacy_mode(self, ctx, mode: str):
-        """
-        Set privacy mode: private | guild | alliance | public
-        """
+        """Set privacy mode: private | guild | alliance | public"""
         if not await self._require_parent(ctx):
             return
         mode = mode.lower()
@@ -246,9 +220,7 @@ class AccountPrefix(commands.Cog):
 
     @account_privacy.command(name="allow_guild")
     async def privacy_allow_guild(self, ctx, guild_id: int):
-        """
-        Allow sharing with a specific guild (by id).
-        """
+        """Allow sharing with a specific guild (by id)."""
         if not await self._require_parent(ctx):
             return
         users = ensure_user_manager(self.parent)
@@ -261,9 +233,7 @@ class AccountPrefix(commands.Cog):
 
     @account_privacy.command(name="revoke_guild")
     async def privacy_revoke_guild(self, ctx, guild_id: int):
-        """
-        Revoke sharing with a specific guild (by id).
-        """
+        """Revoke sharing with a specific guild (by id)."""
         if not await self._require_parent(ctx):
             return
         users = ensure_user_manager(self.parent)
@@ -276,16 +246,23 @@ class AccountPrefix(commands.Cog):
 
 
 # Optional: register these commands under another group (e.g., ///mcoc account)
-def register_with_group(group: commands.Group, parent_getter):
-    def _safe_add(cmd_name, func):
+def register_with_group(group: commands.Group, parent_getter: Callable[[], Any]):
+    """
+    Attach account prefix commands to the provided `group`.
+    parent_getter is a callable returning the core/parent object (or None).
+    """
+
+    def _safe_add(cmd_name: str, func: Callable):
         try:
             if group.get_command(cmd_name):
                 log.debug("Command %s already exists; skipping", cmd_name)
                 return
         except Exception:
             pass
+        # Use group.command decorator to attach the function as a subcommand
         group.command(name=cmd_name)(func)
 
+    # wrappers reuse the same logic as the Cog methods but are thin and safe
     async def _view(ctx, member: Optional[Any] = None):
         parent = parent_getter()
         if not parent:
@@ -294,16 +271,113 @@ def register_with_group(group: commands.Group, parent_getter):
         users = ensure_user_manager(parent)
         try:
             target = ctx.author.id if member is None else getattr(member, "id", member)
-            profile = users.get_profile(target)
+            profile = users.get_profile(int(target))
             await safe_send_ctx(ctx, f"Profile: ```json\n{profile}\n```")
         except Exception:
             await safe_send_ctx(ctx, "Failed to fetch profile.")
 
+    async def _set(ctx, field: str, *, value: str):
+        parent = parent_getter()
+        if not parent:
+            await safe_send_ctx(ctx, "MCOC core not attached; account unavailable.")
+            return
+        if not validate_profile_field(field):
+            await safe_send_ctx(ctx, "Invalid field. Allowed: " + ", ".join(sorted(ALLOWED_PROFILE_FIELDS.keys())))
+            return
+        users = ensure_user_manager(parent)
+        try:
+            users.set_profile_field(ctx.author.id, field, value)
+            await safe_send_ctx(ctx, f"Set {field}.")
+        except Exception:
+            await safe_send_ctx(ctx, "Failed to set profile field.")
+
+    async def _link(ctx, mcoc_id: Optional[str] = None):
+        parent = parent_getter()
+        if not parent:
+            await safe_send_ctx(ctx, "MCOC core not attached; account unavailable.")
+            return
+        if mcoc_id is None:
+            prefix = getattr(ctx, "prefix", None) or "///"
+            await safe_send_ctx(ctx, f"Usage: {prefix}mcoc account link <mcoc_id>")
+            return
+        users = ensure_user_manager(parent)
+        try:
+            users.set_profile_field(ctx.author.id, "mcoc_id", str(mcoc_id).strip())
+            users.set_profile_field(ctx.author.id, "linked", True)
+            await safe_send_ctx(ctx, f"Linked your account to MCoc id `{mcoc_id}`.")
+        except Exception:
+            await safe_send_ctx(ctx, "Failed to link account.")
+
+    async def _unlink(ctx):
+        parent = parent_getter()
+        if not parent:
+            await safe_send_ctx(ctx, "MCOC core not attached; account unavailable.")
+            return
+        users = ensure_user_manager(parent)
+        try:
+            users.set_profile_field(ctx.author.id, "mcoc_id", None)
+            users.set_profile_field(ctx.author.id, "linked", False)
+            await safe_send_ctx(ctx, "Unlinked your account.")
+        except Exception:
+            await safe_send_ctx(ctx, "Failed to unlink account.")
+
+    async def _delete(ctx):
+        parent = parent_getter()
+        if not parent:
+            await safe_send_ctx(ctx, "MCOC core not attached; account unavailable.")
+            return
+        users = ensure_user_manager(parent)
+        try:
+            users.delete_user(ctx.author.id)
+            await safe_send_ctx(ctx, "Deleted your profile.")
+        except Exception:
+            await safe_send_ctx(ctx, "Failed to delete profile.")
+
+    async def _privacy_mode(ctx, mode: str):
+        parent = parent_getter()
+        if not parent:
+            await safe_send_ctx(ctx, "MCOC core not attached; account unavailable.")
+            return
+        users = ensure_user_manager(parent)
+        try:
+            users.set_privacy_mode(ctx.author.id, mode)
+            await safe_send_ctx(ctx, f"Set privacy mode to `{mode}`.")
+        except Exception:
+            await safe_send_ctx(ctx, "Failed to update privacy settings.")
+
+    async def _privacy_allow(ctx, guild_id: int):
+        parent = parent_getter()
+        if not parent:
+            await safe_send_ctx(ctx, "MCOC core not attached; account unavailable.")
+            return
+        users = ensure_user_manager(parent)
+        try:
+            users.allow_guild(ctx.author.id, guild_id)
+            await safe_send_ctx(ctx, f"Allowed sharing with guild `{guild_id}`.")
+        except Exception:
+            await safe_send_ctx(ctx, "Failed to update privacy settings.")
+
+    async def _privacy_revoke(ctx, guild_id: int):
+        parent = parent_getter()
+        if not parent:
+            await safe_send_ctx(ctx, "MCOC core not attached; account unavailable.")
+            return
+        users = ensure_user_manager(parent)
+        try:
+            users.revoke_guild(ctx.author.id, guild_id)
+            await safe_send_ctx(ctx, f"Revoked sharing with guild `{guild_id}`.")
+        except Exception:
+            await safe_send_ctx(ctx, "Failed to update privacy settings.")
+
+    # register commands
     _safe_add("info", _view)
     _safe_add("view", _view)
-
-    _safe_add("set", _view)  # keep minimal wrappers for group registration
-    _safe_add("link", _view)
-    _safe_add("unlink", _view)
-    _safe_add("delete", _view)
-    _safe_add("privacy", _view)
+    _safe_add("set", _set)
+    _safe_add("link", _link)
+    _safe_add("unlink", _unlink)
+    _safe_add("delete", _delete)
+    # privacy subgroup
+    _safe_add("privacy", lambda ctx: safe_send_ctx(ctx, "Privacy commands: mode, allow_guild, revoke_guild"))
+    _safe_add("mode", _privacy_mode)
+    _safe_add("allow_guild", _privacy_allow)
+    _safe_add("revoke_guild", _privacy_revoke)

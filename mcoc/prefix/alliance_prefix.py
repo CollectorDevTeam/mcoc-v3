@@ -24,14 +24,18 @@ class AlliancePrefix(commands.Cog):
 
     @commands.group(name="alliance", invoke_without_command=True)
     async def alliance(self, ctx):
-        """Alliance commands: info, create, join, leave, settings, setrole, manage"""
-        await ctx.send("Alliance commands: `info`, `create`, `join`, `leave`, `settings`, `setrole`, `manage`")
+        """Alliance commands: create, setrole, settype, join, leave, unregister, export, settings"""
+        await ctx.send("Alliance commands: `create <simple|complex> <name>`, `setrole`, `settype`, `join`, `leave`, `unregister`, `settings`")
 
     @alliance.command(name="create")
     @commands.admin_or_permissions(manage_guild=True)
     async def alliance_create(self, ctx, type_: str, *, name: str):
-        """Create and register an alliance on this guild.
+        """
+        Create and register an alliance on this guild.
         Usage: ///mcoc alliance create <simple|complex> <Alliance Name>
+
+        simple: minimal role set (alliance, officers, members) and basic settings.
+        complex: creates additional battlegroup roles and enables advanced features.
         """
         guild = ctx.guild
         ok = await register_alliance(guild, name, type_=type_)
@@ -153,6 +157,20 @@ class AlliancePrefix(commands.Cog):
             await ctx.send(f"Set `{field}` to `{val}`." if val is not None else f"Cleared `{field}`.")
         else:
             await ctx.send("Failed to update alliance info. Check logs.")
+
+
+    @alliance.command(name="settype")
+    @commands.admin_or_permissions(manage_guild=True)
+    async def alliance_settype(self, ctx, type_: str):
+        """Set alliance type: simple | complex. Leaders/admins only."""
+        type_ = type_.lower()
+        if type_ not in ("simple", "complex"):
+            await ctx.send("Invalid type. Allowed: simple, complex. Example: ///mcoc alliance settype simple")
+            return
+        cfg = get_guild_config(ctx.guild.id) or {}
+        cfg["type"] = type_
+        set_guild_config(ctx.guild.id, cfg)
+        await ctx.send(f"Alliance type set to `{type_}`.")
 
     # -----------------------------
     # Officer management (leader only)

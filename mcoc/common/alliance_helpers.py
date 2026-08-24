@@ -329,6 +329,15 @@ def set_alliance_info_field(guild_id: int, field: str, value: Union[str, None]) 
         log.exception("Failed to set alliance info field %s for guild %s", field, guild_id)
         return False
 
+def set_alliance_type(guild_id: int, type_: str) -> bool:
+    try:
+        cfg = get_guild_config(guild_id) or {}
+        cfg["type"] = type_
+        set_guild_config(guild_id, cfg)
+        return True
+    except Exception:
+        log.exception("Failed to set alliance type for guild %s", guild_id)
+        return False
 
 # -----------------------------
 # Officer management
