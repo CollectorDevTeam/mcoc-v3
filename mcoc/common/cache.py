@@ -261,6 +261,11 @@ class CacheManager:
         val = v_low + (v_high - v_low) * t
         return int(round(val))
 
+    # in mcoc/cache.py (CacheManager)
+    def smooth_sig_value(self, sigs_map: dict, sig: int) -> Optional[int]:
+        """Public wrapper for smoothing/interpolating prestige values by signature."""
+        return self._smooth_sig_value(sigs_map, sig)
+
     def get_prestige_value(self, slug: str, tier: int, rank: int, asc: int, sig: int = 0) -> Optional[int]:
         table = self.get_prestige_table(tier, rank, asc)
         if not table:
@@ -343,7 +348,7 @@ class CacheManager:
     def normalize_abilities_payload(self, payload: Any) -> Optional[Dict[str, Any]]:
         return self.normalize_list_payload(payload, "abilities")
 
-    def normalize_hargs_by_tier(stars: int, rank: int, sig: int, asc: int) -> Tuple[int,int,int,int]:
+    def normalize_hargs_by_tier(self, stars: int, rank: int, sig: int, asc: int) -> Tuple[int,int,int,int]:
         """
         Enforce valid ranges:
         1★: ranks 1-2, no signature (sig forced 0)

@@ -6,7 +6,6 @@ import random
 from typing import Optional, Callable, Awaitable, Any
 from yarl import URL
 
-
 log = logging.getLogger("red.mcoc.api")
 
 
@@ -41,7 +40,6 @@ class MCOCHubAPI:
         self._timeout = timeout
         self._request_semaphore = asyncio.Semaphore(5)  # Limit concurrent requests to avoid rate limiting
         self._prefer_bearer = True
-
 
         log.info("MCOCHubAPI initialized (external_session=%s)", self._external_session)
         if self._static_key:
@@ -78,7 +76,7 @@ class MCOCHubAPI:
 
         log.warning("[MCOCHubAPI] No API key available. Use: ///set api mcochub apikey,<yourkey>")
         return None
-        
+
     # -----------------------------
     # Generic fetch helper
     # -----------------------------
@@ -141,7 +139,6 @@ class MCOCHubAPI:
 
                 return await resp.json()
 
-
     async def _fetch(self, endpoint: str) -> Optional[Any]:
         # Try bearer first if preferred
         if self._prefer_bearer:
@@ -164,12 +161,11 @@ class MCOCHubAPI:
             log.exception("Param fetch failed unexpectedly")
             return None
 
-    # mcoc/api.py  -- add near top with other constants
-    DATA_BASE = "https://mcochub.insaneskull.com/data"
-
     # -----------------------------
     # Public data fetch helpers (no bearer)
     # -----------------------------
+    DATA_BASE = "https://mcochub.insaneskull.com/data"
+
     async def _fetch_public_json(self, url: str, params: Optional[dict] = None, timeout: int = 30) -> Optional[Any]:
         """
         Simple public GET for data endpoints (versions.json, prestige.json, etc.)
@@ -194,7 +190,7 @@ class MCOCHubAPI:
 
     async def fetch_versions_public(self) -> Optional[dict]:
         """Fetch the canonical versions.json from the public data endpoint."""
-        url = f"{DATA_BASE}/versions.json"
+        url = f"{self.DATA_BASE}/versions.json"
         return await self._fetch_public_json(url)
 
     async def fetch_prestige_public(self, tier: int, rank: int, asc: int, version: str) -> Optional[dict]:
@@ -202,10 +198,9 @@ class MCOCHubAPI:
         Fetch prestige payload for a specific combo from the public data endpoint.
         Example: /data/prestige.json?tier=7&rank=1&ascension=0&v=<version>
         """
-        url = f"{DATA_BASE}/prestige.json"
+        url = f"{self.DATA_BASE}/prestige.json"
         params = {"tier": tier, "rank": rank, "ascension": asc, "v": version}
         return await self._fetch_public_json(url, params=params)
-
 
     # -----------------------------
     # Champions (full list only)

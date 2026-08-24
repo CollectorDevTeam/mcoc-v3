@@ -5,6 +5,7 @@ import io
 import json
 from discord import File
 from redbot.core import commands
+from pathlib import Path
 
 log = logging.getLogger("red.mcoc.prefix")
 
@@ -42,6 +43,20 @@ def register_with_group(group: commands.Group, parent_getter):
         tags_count = len(cache.get_all_tags())
         immunities_count = len(cache.get_all_immunities())
 
+        # Prestige status
+        prestige_version = versions.get("prestige")
+        prestige_file = cache.cache_dir / "prestige.json"
+        prestige_exists = prestige_file.exists()
+        prestige_rows_count = 0
+        prestige_last_sync = None
+        try:
+            prestige_data = cache._load_file("prestige") or {}
+            prestige_rows = prestige_data.get("rows", []) if isinstance(prestige_data, dict) else []
+            prestige_rows_count = len(prestige_rows)
+            prestige_last_sync = meta.get("last_sync")
+        except Exception:
+            prestige_rows_count = 0
+
         msg = (
             f"**MCOC cache status**\n"
             f"Last sync: {last}\n"
@@ -50,7 +65,12 @@ def register_with_group(group: commands.Group, parent_getter):
             f"Abilities: {abilities_count}\n"
             f"Tags: {tags_count}\n"
             f"Immunities: {immunities_count}\n"
-            f"API client present: {bool(parent.api)}"
+            f"API client present: {bool(parent.api)}\n\n"
+            f"**Prestige data**\n"
+            f"Prestige version (metadata): {prestige_version}\n"
+            f"Prestige file present: {prestige_exists}\n"
+            f"Prestige rows (aggregated): {prestige_rows_count}\n"
+            f"Prestige last sync (metadata): {prestige_last_sync}\n"
         )
         await ctx.send(msg)
 
@@ -109,6 +129,22 @@ def register_with_group(group: commands.Group, parent_getter):
         await parent.cache._diff_and_save("abilities", abilities)
         await parent.cache._diff_and_save("immunities", immunities)
         await ctx.send("Forced sync complete.")
+
+    @commands.is_owner()
+    @group.command(name="prestige_sync")
+    async def _prestige_sync(ctx, force: bool = False):
+        """Force update prestige cache from MCOCHub (admin only)."""
+        core = getattr(ctx.bot, "mcoc_core", None)  # adjust to your actual attribute
+        if not core or not getattr(core, "cache", None) or not getattr(core, "api", None):
+            await ctx.send("Core/cache/api not available.")
+            return
+        await ctx.send("Starting prestige update (this may take a while)...")
+        try:
+            updated = await core.cache.check_update_prestige(core.api, force=force)
+            await ctx.send(f"Prestige update complete. Updated: {updated}")
+        except Exception as e:
+            await ctx.send(f"Prestige update failed: {e}")
+
 
     @group.command(name="dump", aliases=["raw", "json"])
     @commands.is_owner()

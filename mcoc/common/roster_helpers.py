@@ -198,34 +198,77 @@ async def build_roster_pages(core: Any, user_id: int, parsed_filters: Optional[D
 
                 # --- replace the existing "Build display line" block with this ---
 
-                # Build display line
+                # Build display line (safe, uses cache when available)
                 name = (champ.get("name") if champ else entry.get("champion")) or "Unknown"
-                cls = (champ.get("class") if champ else "").lower() if champ else ""
-                cls_emoji = class_map.get(cls, "<:allclasses:748808348996075540>")
-                stars, rank, sig, asc = cache.normalize_hargs_by_tier(
-                    int(entry.get("rarity") or entry.get("stars") or 6),
-                    int(entry.get("rank") or 1),
-                    int(entry.get("sig") or 0),
-                    int(entry.get("ascended") or 0)
-                )
+                cls = (champ.get("class") if champ else "") or ""
+                cls_emoji = class_map.get(cls.lower(), "<:allclasses:748808348996075540>")
 
-                # Star + sig icon rule:
-                # - show numeric star count followed by empty star (☆) when sig == 0
-                # - show numeric star count followed by filled star (★) when sig > 0
+                # Normalize inputs with safe fallbacks
+                raw_stars = int(entry.get("rarity") or entry.get("stars") or 6)
+                raw_rank = int(entry.get("rank") or 1)
+                raw_sig = int(entry.get("sig") or 0)
+                raw_asc = int(entry.get("ascended") or 0)
+
+                # Use cache.normalize_hargs_by_tier if available, otherwise clamp locally
+                if cache and hasattr(cache, "normalize_hargs_by_tier"):
+                    try:
+                        stars, rank, sig, asc = cache.normalize_hargs_by_tier(raw_stars, raw_rank, raw_sig, raw_asc)
+                    except Exception:
+                        stars, rank, sig, asc = raw_stars, raw_rank, raw_sig, raw_asc
+                else:
+                    # local clamp fallback (same rules as normalize_hargs_by_tier)
+                    stars = max(1, min(7, raw_stars))
+                    if stars == 1:
+                        rank = max(1, min(2, raw_rank)); sig = 0
+                    elif stars == 2:
+                        rank = max(1, min(3, raw_rank)); sig = max(0, min(99, raw_sig))
+                    elif stars == 3:
+                        rank = max(1, min(4, raw_rank)); sig = max(0, min(99, raw_sig))
+                    elif stars == 4:
+                        rank = max(1, min(5, raw_rank)); sig = max(0, min(99, raw_sig))
+                    else:
+                        rank = max(1, min(5, raw_rank)); sig = max(0, min(200, raw_sig))
+                    asc = max(0, min(2, raw_asc))
+
                 sig_icon = "★" if sig > 0 else "☆"
                 star_display = f"{stars}{sig_icon}"
-
-                # Always show signature level explicitly (s0 when zero)
                 sig_text = f" s{sig}"
-
-                # Ascension text only when asc > 0
                 asc_text = f" A{asc}" if asc else ""
 
-                prestige = core.cache.get_prestige_value(slug, stars, rank, asc, sig)
-                prestige_text = f" [{prestige}]" if prestige is not None else ""
+                # Determine slug for prestige lookup: prefer champ['slug'], then champ['name'], then entry champion
+                # Determine slug for prestige lookup: prefer champ['slug'], then champ['name'], then entry champion
+                slug_for_lookup = None
+                if champ:
+                    slug_for_lookup = (champ.get("slug") or champ.get("name") or "").strip()
+                if not slug_for_lookup:
+                    slug_for_lookup = str(entry.get("champion") or "").strip()
+
+                prestige_val = None
+
+                # Prefer CacheIndex for fast lookup
+                try:
+                    idx = getattr(core, "cacheindex", None) or getattr(core.cache, "index", None)
+                    if idx and slug_for_lookup:
+                        # get_prestige_row returns the raw row dict or None
+                        row = idx.get_prestige_row(slug_for_lookup, tier=stars, rank=rank, asc=asc)
+                        if row:
+                            sigs = row.get("sigs") or {}
+                            # prefer public wrapper if present
+                            if hasattr(core.cache, "smooth_sig_value"):
+                                prestige_val = core.cache.smooth_sig_value(sigs, sig)
+                            else:
+                                prestige_val = core.cache._smooth_sig_value(sigs, sig)
+                    # Fallback: if index had no match, use cache.get_prestige_value (scans table)
+                    if prestige_val is None and hasattr(core, "cache") and hasattr(core.cache, "get_prestige_value"):
+                        prestige_val = core.cache.get_prestige_value(slug_for_lookup, stars, rank, asc, sig)
+                except Exception:
+                    prestige_val = None
+
+                prestige_text = f" [{prestige_val}]" if prestige_val is not None else ""
                 line = f"{cls_emoji} {star_display} **{name}** r{rank}{sig_text}{asc_text}{prestige_text}"
 
                 lines.append(line)
+
             except Exception:
                 continue
 
