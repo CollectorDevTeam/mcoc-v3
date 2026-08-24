@@ -32,7 +32,7 @@ class MCOCCommonCore:
                 api_key=None,
                 key_getter=lambda: self.bot.get_shared_api_tokens("mcochub")
             )
-            self.cacheindex = CacheIndex(bot)
+            self.cacheindex = self.cache.index
 
             log.debug("Initialized common systems: cache, api, cacheindex")
 
@@ -59,6 +59,15 @@ class MCOCCommonCore:
 
         except Exception:
             log.exception("Failed during async common initialization")
+
+    # mcoc/common/core.py (add method to MCOCCommonCore)
+    async def close(self):
+        try:
+            if getattr(self, "api", None):
+                await self.api.close()
+                log.debug("MCOCHubAPI session closed from common core")
+        except Exception:
+            log.exception("Failed to close MCOCHubAPI session")
 
 
 def init_common_systems(bot):

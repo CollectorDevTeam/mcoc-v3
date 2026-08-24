@@ -235,6 +235,13 @@ def register_with_group(group: commands.Group, parent_getter):
         await parent.cache._diff_and_save("tags", tags)
         await parent.cache._diff_and_save("abilities", abilities)
         await parent.cache._diff_and_save("immunities", immunities)
+        # inside _sync after index rebuild and before final message
+        # run prestige check but don't force unless requested
+        try:
+            await parent.cache.check_update_prestige(parent.api, force=False, progress=reporter)
+        except Exception:
+            log.exception("Prestige check during sync failed")
+
         await ctx.send("Forced sync complete.")
 
     @commands.is_owner()
@@ -256,7 +263,12 @@ def register_with_group(group: commands.Group, parent_getter):
         try:
             updated = await core.cache.check_update_prestige(core.api, force=force, progress=reporter)
             await status_msg.edit(content=f"Prestige update complete. Updated: {updated}")
-            await ctx.send(f"Prestige update complete. Updated: {updated}")
+            # after prestige update completes in admin command
+            try:
+                await core.api.close()
+            except Exception:
+                log.exception("Failed to close api session after prestige update")
+
         except Exception as e:
             await status_msg.edit(content=f"Prestige update failed: {e}")
             await ctx.send(f"Prestige update failed: {e}")
