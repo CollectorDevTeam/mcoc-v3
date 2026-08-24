@@ -22,9 +22,11 @@ class MCOCPrefix(commands.Cog):
     """
     Unified prefix command root for MCOC.
     Provides:
-        ///mcoc champ   (champion prefix commands)
-        ///mcoc roster  (roster prefix commands)
-        ///mcoc admin   (admin prefix commands)
+        ///mcoc champ   (champion lookup and info)
+        ///mcoc roster  (manage your champion roster)
+        ///mcoc admin   (administration and sync tools)
+        ///mcoc account (user profile and privacy)
+        ///mcoc alliance (alliance management)
     """
 
     def __init__(self, bot: Any):
@@ -56,7 +58,7 @@ class MCOCPrefix(commands.Cog):
 
     def _attach_registrars(self):
         """
-        Attach champion, roster, and admin registrars to their mcoc subgroups.
+        Attach champion, roster, alliance, and admin registrars to their mcoc subgroups.
         """
 
         parent_getter = lambda: self._ensure_parent()
@@ -121,9 +123,19 @@ class MCOCPrefix(commands.Cog):
     # ============================================================
     @commands.group(name="mcoc", invoke_without_command=True)
     async def mcoc(self, ctx):
+        """
+        MCOC root command.
+        Use subcommands to access features:
+          - ///mcoc champ   : champion lookup and stats
+          - ///mcoc roster  : manage your roster (add/remove/list/export)
+          - ///mcoc alliance : alliance registration and membership
+          - ///mcoc account  : user profile and privacy settings
+          - ///mcoc admin    : administrative utilities (if available)
+        """
         await safe_send_ctx(
             ctx,
-            "Subcommands: `champ`, `roster`, `admin`, `account`, `status`"
+            "MCOC commands: `champ`, `roster`, `alliance`, `account`, `admin`, `status`.\n"
+            "Type `///mcoc <subcommand> help` for more details on a subgroup."
         )
 
     @mcoc.command(name="status")
@@ -140,19 +152,23 @@ class MCOCPrefix(commands.Cog):
     # ============================================================
     @mcoc.group(name="champ", invoke_without_command=True)
     async def champ(self, ctx):
-        await safe_send_ctx(ctx, "Champion commands: info, abilities, synergies, tags, stats, search, calcstats")
+        await safe_send_ctx(ctx, "Champion commands: `info`, `abilities`, `synergies`, `tags`, `stats`, `search`, `calcstats`.")
 
     @mcoc.group(name="roster", invoke_without_command=True)
     async def roster(self, ctx):
-        await safe_send_ctx(ctx, "Roster commands: add, remove, update, list, export, clear")
+        await safe_send_ctx(ctx, "Roster commands: `add`, `remove`, `update`, `list`, `export`, `clear`.")
 
     @mcoc.group(name="admin", invoke_without_command=True)
     async def admin(self, ctx):
-        await safe_send_ctx(ctx, "Admin commands: status, sync, debug (if implemented)")
+        await safe_send_ctx(ctx, "Admin commands (requires permissions): `status`, `sync`, `debug`.")
 
     @mcoc.group(name="account", invoke_without_command=True)
     async def account(self, ctx):
-        await safe_send_ctx(ctx, "Account commands: info, set, link, unlink, delete, privacy")
+        await safe_send_ctx(ctx, "Account commands: `info`, `set`, `link`, `unlink`, `delete`, `privacy`.")
+
+    @mcoc.group(name="alliance", invoke_without_command=True)
+    async def alliance(self, ctx):
+        await safe_send_ctx(ctx, "Alliance commands: `info`, `create`, `join`, `leave`, `settings`, `manage`.")
 
 
     # in your main cog or a dedicated event cog

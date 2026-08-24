@@ -2,7 +2,7 @@
 import json
 import pathlib
 import logging
-from typing import Optional, Dict, Any, List, Tuple
+from typing import Optional, Dict, Any, List, Tuple, Union
 
 log = logging.getLogger("red.mcoc.alliance_helpers")
 DATA_PATH = pathlib.Path("data") / "account" / "alliances.json"
@@ -129,11 +129,9 @@ async def join_alliance(member, guild, role_key: str = "members") -> Tuple[bool,
             return False, "Members role not configured."
 
         # remove member from other alliance roles in this guild
-        # iterate roles in cfg and remove any alliance-related roles that the member has
         for k, r in roles.items():
             rid = r.get("id") if isinstance(r, dict) else None
             if rid and any(role.id == rid for role in member.roles):
-                # if it's the same role, skip
                 if k == role_key:
                     continue
                 try:
@@ -190,7 +188,9 @@ async def leave_alliance(member, guild) -> Tuple[bool, str]:
         return False, "Internal error"
 
 
+# -----------------------------
 # Utility helpers
+# -----------------------------
 def role_id_for_key(cfg: Dict[str, Any], key: str) -> Optional[int]:
     r = cfg.get("roles", {}).get(key)
     return r.get("id") if isinstance(r, dict) else None
@@ -213,30 +213,33 @@ def get_alliance_role_for_user(user_id: int, guild_id: int) -> Optional[int]:
     if user_id not in mids:
         return None
     roles = cfg.get("roles", {})
-    # return the first role id found (members role is the canonical one)
     member_role = roles.get("members")
     if isinstance(member_role, dict):
         return member_role.get("id")
-    # fallback: any role id
     for k, r in roles.items():
         rid = r.get("id") if isinstance(r, dict) else None
         if rid:
             return rid
     return None
 
-# --- add to mcoc/common/alliance_helpers.py ---
-
-from typing import Union
 
 # -----------------------------
 # Role / permission helpers
 # -----------------------------
 def _role_obj_for_key(cfg: Dict[str, Any], guild, key: str):
-    """Return discord.Role or None for a role key in cfg."""
-    r = cfg.get("roles", {}).get(key)
-    if not isinstance(r, dict):
+    """
+    Return a discord.Role for a configured role key (roles[key]) or None.
+    Safe to call when cfg or role entry is missing.
+    """
+    try:
+        r = cfg.get("roles", {}).get(key)
+        if not isinstance(r, dict):
+            return None
+        return guild.get_role(r.get("id"))
+    except Exception:
+        log.exception("_role_obj_for_key failed for guild %s key %s", getattr(guild, "id", None), key)
         return None
-    return guild.get_role(r.get("id"))
+
 
 def is_leader_or_officer(member, guild) -> bool:
     """
@@ -253,10 +256,15 @@ def is_leader_or_officer(member, guild) -> bool:
             return True
         if officers_role and officers_role in member.roles:
             return True
+        # fallback to officer_ids in config
+        officers_ids = cfg.get("officer_ids", [])
+        if member.id in officers_ids:
+            return True
         return False
     except Exception:
         log.exception("is_leader_or_officer check failed for member %s", getattr(member, "id", None))
         return False
+
 
 def is_leader(member, guild) -> bool:
     """Return True if member has the alliance leader role."""
@@ -270,6 +278,7 @@ def is_leader(member, guild) -> bool:
         log.exception("is_leader check failed for member %s", getattr(member, "id", None))
         return False
 
+
 # -----------------------------
 # Info getters/setters
 # -----------------------------
@@ -277,6 +286,7 @@ def get_alliance_info(guild_id: int) -> Dict[str, Any]:
     """Return the info dict for the guild (may be empty)."""
     cfg = get_guild_config(guild_id)
     return cfg.get("info", {}) if cfg else {}
+
 
 def set_alliance_info_field(guild_id: int, field: str, value: Union[str, None]) -> bool:
     """
@@ -296,6 +306,7 @@ def set_alliance_info_field(guild_id: int, field: str, value: Union[str, None]) 
         log.exception("Failed to set alliance info field %s for guild %s", field, guild_id)
         return False
 
+
 # -----------------------------
 # Officer management
 # -----------------------------
@@ -313,6 +324,7 @@ def add_officer_by_id(guild_id: int, user_id: int) -> bool:
         log.exception("Failed to add officer %s to guild %s", user_id, guild_id)
         return False
 
+
 def remove_officer_by_id(guild_id: int, user_id: int) -> bool:
     try:
         cfg = get_guild_config(guild_id) or {}
@@ -326,7 +338,8 @@ def remove_officer_by_id(guild_id: int, user_id: int) -> bool:
         log.exception("Failed to remove officer %s from guild %s", user_id, guild_id)
         return False
 
-def get_officer_ids(guild_id: int) -> list[int]:
+
+def get_officer_ids(guild_id: int) -> List[int]:
     """Return the list of officer user IDs for the guild."""
     try:
         cfg = get_guild_config(guild_id) or {}
@@ -334,17 +347,3 @@ def get_officer_ids(guild_id: int) -> list[int]:
     except Exception:
         log.exception("Failed to get officer IDs for guild %s", guild_id)
         return []
-
-def _role_obj_for_key(cfg: Dict[str, Any], guild, key: str):
-    """
-    Return a discord.Role for a configured role key (roles[key]) or None.
-    Safe to call when cfg or role entry is missing.
-    """
-    try:
-        r = cfg.get("roles", {}).get(key)
-        if not isinstance(r, dict):
-            return None
-        return guild.get_role(r.get("id"))
-    except Exception:
-        log.exception("_role_obj_for_key failed for guild %s key %s", getattr(guild, "id", None), key)
-        return None
