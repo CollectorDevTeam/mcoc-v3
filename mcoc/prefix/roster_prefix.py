@@ -11,6 +11,7 @@ from ..common.roster_helpers import (
     extract_entry_from_parsed,
     build_roster_pages,
     validate_entry_for_add,
+    schedule_persist_user_prestige,
 )
 from ..common.embeds import roster_entry_embed  # used for embed building
 
@@ -76,6 +77,8 @@ class RosterPrefix(commands.Cog):
                 sig=entry.get("sig", 0),
                 tags=entry.get("tags", []),
             )
+            # schedule debounced prestige persistence
+            schedule_persist_user_prestige(self.parent, ctx.author.id)
         except Exception:
             log.exception("Failed to add champion to roster")
             await ctx.send("Failed to add champion to roster.")
@@ -104,6 +107,8 @@ class RosterPrefix(commands.Cog):
         users = ensure_user_manager(self.parent)
         try:
             removed = users.remove_champion(ctx.author.id, champion, rarity)
+        # schedule debounced prestige persistence
+            schedule_persist_user_prestige(self.parent, ctx.author.id)
         except Exception:
             log.exception("Failed to remove champion")
             removed = 0
@@ -134,6 +139,8 @@ class RosterPrefix(commands.Cog):
                 sig=entry.get("sig"),
                 tags=entry.get("tags"),
             )
+            # schedule debounced prestige persistence
+            schedule_persist_user_prestige(self.parent, ctx.author.id)
         except Exception:
             log.exception("Failed to update champion")
             updated = False
@@ -245,6 +252,8 @@ def register_with_group(group: commands.Group, parent_getter):
                 sig=entry.get("sig", 0),
                 tags=entry.get("tags", []),
             )
+            # schedule debounced prestige persistence
+            schedule_persist_user_prestige(parent, ctx.author.id)
         except Exception:
             log.exception("Failed to add champion to roster")
             await ctx.send("Failed to add champion to roster.")
@@ -277,6 +286,8 @@ def register_with_group(group: commands.Group, parent_getter):
         users = ensure_user_manager(parent)
         try:
             removed = users.remove_champion(ctx.author.id, champion, rarity)
+            # schedule debounced prestige persistence
+            schedule_persist_user_prestige(parent, ctx.author.id)
         except Exception:
             log.exception("Failed to remove champion")
             removed = 0
@@ -311,6 +322,8 @@ def register_with_group(group: commands.Group, parent_getter):
                 sig=entry.get("sig"),
                 tags=entry.get("tags"),
             )
+            # schedule debounced prestige persistence
+            schedule_persist_user_prestige(parent, ctx.author.id)
         except Exception:
             log.exception("Failed to update champion")
             updated = False

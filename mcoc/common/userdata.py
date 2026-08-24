@@ -5,7 +5,7 @@ import logging
 import tempfile
 import os
 import asyncio
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 log = logging.getLogger("red.mcoc.userdata")
 
@@ -14,7 +14,7 @@ DEFAULT_USER_DIR = pathlib.Path("data") / "users"
 
 class UserDataManager:
     """
-    Simple per-user JSON storage for rosters and privacy settings.
+    Simple per-user JSON storage for rosters, profiles and privacy settings.
 
     - Directory creation is done when the manager is instantiated (import-neutral).
     - Provides both sync and async file helpers. Public API remains synchronous
@@ -27,6 +27,10 @@ class UserDataManager:
             self.user_dir.mkdir(parents=True, exist_ok=True)
         except Exception:
             log.exception("Failed to ensure user data directory exists: %s", self.user_dir)
+        # optional hook called after roster mutations: hook(user_id: int)
+        # The hook should be non-blocking and schedule any async work on the bot loop.
+        self.post_mutation_hook = None
+
 
     # -----------------------------
     # Internal helpers
@@ -58,6 +62,32 @@ class UserDataManager:
         await asyncio.to_thread(self._atomic_write_json_blocking, path, data)
 
     # -----------------------------
+    # Defaults
+    # -----------------------------
+    def _default_user_data(self, user_id: int) -> Dict[str, Any]:
+        return {
+            "user_id": str(user_id),
+            "roster": [],
+            "profile": {
+                "mcoc_id": None,
+                "mcoc_name": None,
+                "website": None,
+                "invite": None,
+                "timezone": None,
+                "alliance": None,
+                "job": None,
+                "created_at": None,
+                "updated_at": None,
+            },
+            "privacy": {
+                "mode": "private",  # private | alliance | guild | public
+                "share_with_alliance": False,
+                "share_with_guilds": [],  # list of guild ids (ints)
+            },
+            "alliances": {},  # guild_id (str) : alliance_name
+        }
+
+    # -----------------------------
     # Load / Save (sync)
     # -----------------------------
     def _load(self, user_id: int) -> Dict[str, Any]:
@@ -65,7 +95,15 @@ class UserDataManager:
         if not path.exists():
             return self._default_user_data(user_id)
         try:
-            return self._read_json_blocking(path)
+            data = self._read_json_blocking(path)
+            # ensure minimal keys exist
+            if not isinstance(data, dict):
+                return self._default_user_data(user_id)
+            data.setdefault("roster", [])
+            data.setdefault("profile", self._default_user_data(user_id)["profile"])
+            data.setdefault("privacy", self._default_user_data(user_id)["privacy"])
+            data.setdefault("alliances", {})
+            return data
         except Exception:
             log.exception("Failed to load user data for %s; returning default", user_id)
             return self._default_user_data(user_id)
@@ -73,9 +111,43 @@ class UserDataManager:
     def _save(self, user_id: int, data: Dict[str, Any]) -> None:
         path = self._path(user_id)
         try:
+            # ensure timestamps for profile
+            prof = data.setdefault("profile", {})
+            if not prof.get("created_at"):
+                prof["created_at"] = __import__("datetime").datetime.utcnow().isoformat()
+            prof["updated_at"] = __import__("datetime").datetime.utcnow().isoformat()
             self._atomic_write_json_blocking(path, data)
         except Exception:
             log.exception("Failed to save user data for %s", user_id)
+
+    # -----------------------------
+    # Post-mutation hook
+    # -----------------------------
+    def _call_post_hook(self, user_id: int) -> None:
+        try:
+            hook = getattr(self, "post_mutation_hook", None)
+            if not callable(hook):
+                return
+            result = hook(user_id)
+            # If hook returned a coroutine, schedule it on the running loop
+            if asyncio.iscoroutine(result):
+                try:
+                    loop = asyncio.get_running_loop()
+                    loop.create_task(result)
+                except RuntimeError:
+                    # no running loop in this thread; try to get bot loop if available
+                    try:
+                        bot_loop = getattr(self, "bot_loop", None)
+                        if bot_loop:
+                            asyncio.run_coroutine_threadsafe(result, bot_loop)
+                    except Exception:
+                        log.exception("Failed to schedule coroutine returned by post_mutation_hook for user %s", user_id)
+            else:
+                # synchronous hook executed; log debug for visibility
+                log.debug("post_mutation_hook executed for user %s", user_id)
+        except Exception:
+            log.exception("post_mutation_hook failed for user %s", user_id)
+
 
     # -----------------------------
     # Load / Save (async)
@@ -98,21 +170,6 @@ class UserDataManager:
             log.exception("Failed to save user data async for %s", user_id)
 
     # -----------------------------
-    # Defaults
-    # -----------------------------
-    def _default_user_data(self, user_id: int) -> Dict[str, Any]:
-        return {
-            "user_id": str(user_id),
-            "roster": [],
-            "privacy": {
-                "mode": "private",  # private | alliance | guild | public
-                "share_with_alliance": False,
-                "share_with_guilds": [],
-            },
-            "alliances": {},  # guild_id : alliance_name
-        }
-
-    # -----------------------------
     # Roster operations (sync)
     # -----------------------------
     def add_champion(self, user_id: int, champ_slug: str, rarity: int, rank: int, sig: int, tags: Optional[List[str]] = None) -> None:
@@ -125,6 +182,10 @@ class UserDataManager:
             "rank": int(rank),
             "sig": int(sig),
             "tags": list(tags),
+            # optional fields that may be filled by roster builder
+            "stars": int(rarity),
+            "prestige": None,
+            "name": None,
         }
 
         # prevent duplicates (same champion + rarity)
@@ -133,10 +194,16 @@ class UserDataManager:
                 log.info("Champion %s already exists for user %s. Updating instead.", champ_slug, user_id)
                 c.update(entry)
                 self._save(user_id, data)
+                # call optional post-mutation hook (non-blocking)
+                self._call_post_hook(user_id)
                 return
 
         data.setdefault("roster", []).append(entry)
         self._save(user_id, data)
+
+        # call optional post-mutation hook (non-blocking)
+        self._call_post_hook(user_id)
+
 
     def remove_champion(self, user_id: int, champ_slug: str, rarity: Optional[int] = None) -> int:
         data = self._load(user_id)
@@ -146,7 +213,12 @@ class UserDataManager:
             if not (c.get("champion") == str(champ_slug) and (rarity is None or c.get("rarity") == rarity))
         ]
         self._save(user_id, data)
+
+        # call optional post-mutation hook (non-blocking)
+        self._call_post_hook(user_id)
+
         return before - len(data.get("roster", []))
+
 
     def update_champion(self, user_id: int, champ_slug: str, rarity: int, rank: Optional[int] = None, sig: Optional[int] = None, tags: Optional[List[str]] = None) -> bool:
         data = self._load(user_id)
@@ -158,7 +230,12 @@ class UserDataManager:
                     c["sig"] = int(sig)
                 if tags is not None:
                     c["tags"] = list(tags)
+
                 self._save(user_id, data)
+
+                # call optional post-mutation hook (non-blocking)
+                self._call_post_hook(user_id)
+
                 return True
         return False
 
@@ -167,9 +244,31 @@ class UserDataManager:
         return data.get("roster", [])
 
     # -----------------------------
+    # Profile operations (sync)
+    # -----------------------------
+    def get_profile(self, user_id: int) -> Dict[str, Any]:
+        data = self._load(user_id)
+        return data.get("profile", {})
+
+    def set_profile_field(self, user_id: int, field: str, value: Any) -> None:
+        data = self._load(user_id)
+        profile = data.setdefault("profile", {})
+        profile[field] = value
+        profile["updated_at"] = __import__("datetime").datetime.utcnow().isoformat()
+        if not profile.get("created_at"):
+            profile["created_at"] = profile["updated_at"]
+        self._save(user_id, data)
+
+    def delete_profile(self, user_id: int) -> bool:
+        # alias for delete_user
+        return self.delete_user(user_id)
+
+    # -----------------------------
     # Privacy operations (sync)
     # -----------------------------
     def set_privacy_mode(self, user_id: int, mode: str) -> None:
+        if mode not in ("private", "alliance", "guild", "public"):
+            raise ValueError("Invalid privacy mode")
         data = self._load(user_id)
         data.setdefault("privacy", {})["mode"] = str(mode)
         self._save(user_id, data)
@@ -201,6 +300,10 @@ class UserDataManager:
             del data["alliances"][str(guild_id)]
         self._save(user_id, data)
 
+    def get_alliance_for_guild(self, user_id: int, guild_id: int) -> Optional[str]:
+        data = self._load(user_id)
+        return data.get("alliances", {}).get(str(guild_id))
+
     # -----------------------------
     # Export / Import (sync)
     # -----------------------------
@@ -227,6 +330,73 @@ class UserDataManager:
         return False
 
     # -----------------------------
+    # Prestige and sorting helpers
+    # -----------------------------
+    @staticmethod
+    def compute_user_prestige_from_roster(roster_entries: List[Dict[str, Any]], top_n: int = 5) -> Optional[float]:
+        """
+        Compute the average prestige of the user's top_n champions.
+        Each roster entry should include a numeric 'prestige' field when available.
+        Returns None if no prestige values are present.
+        """
+        vals = [e.get("prestige") for e in roster_entries if isinstance(e.get("prestige"), (int, float))]
+        if not vals:
+            return None
+        vals.sort(reverse=True)
+        top = vals[:top_n]
+        return sum(top) / len(top)
+
+    @staticmethod
+    def sort_roster_entries(entries: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """
+        Sort roster entries descending by prestige when available.
+        Fallback ordering: stars desc, rank asc, sig desc.
+        """
+        def key(e: Dict[str, Any]) -> Tuple:
+            p = e.get("prestige")
+            if isinstance(p, (int, float)):
+                # primary: prestige (higher first)
+                return (0, -float(p), -int(e.get("stars", 0)), int(e.get("rank", 0)), -int(e.get("sig", 0)))
+            # fallback group after prestige entries
+            return (1, -int(e.get("stars", 0)), int(e.get("rank", 0)), -int(e.get("sig", 0)))
+        return sorted(entries, key=key)
+
+    # -----------------------------
+    # Privacy check helper
+    # -----------------------------
+    def can_view_profile(self, viewer_id: int, owner_id: int, guild_id: Optional[int] = None, viewer_alliance: Optional[str] = None) -> bool:
+        """
+        Determine whether viewer_id can view owner_id's profile given privacy settings.
+        - guild_id: the guild where the view is happening (optional)
+        - viewer_alliance: alliance name of the viewer in this guild (optional)
+        """
+        if viewer_id == owner_id:
+            return True
+        data = self._load(owner_id)
+        privacy = data.get("privacy", {}) or {}
+        mode = privacy.get("mode", "private")
+        if mode == "public":
+            return True
+        if mode == "private":
+            return False
+        if mode == "guild":
+            if guild_id is None:
+                return False
+            shares = privacy.get("share_with_guilds", [])
+            return guild_id in shares
+        if mode == "alliance":
+            # owner alliance for this guild
+            owner_alliance = self.get_alliance_for_guild(owner_id, guild_id) if guild_id is not None else None
+            # if viewer_alliance provided and matches owner's alliance, allow
+            if owner_alliance and viewer_alliance and owner_alliance == viewer_alliance:
+                return True
+            # also allow if owner has share_with_alliance True and viewer_alliance matches any stored alliance
+            if privacy.get("share_with_alliance") and viewer_alliance and owner_alliance == viewer_alliance:
+                return True
+            return False
+        return False
+
+    # -----------------------------
     # Async convenience wrappers
     # -----------------------------
     async def add_champion_async(self, *args, **kwargs) -> None:
@@ -249,3 +419,15 @@ class UserDataManager:
 
     async def delete_user_async(self, user_id: int) -> bool:
         return await asyncio.to_thread(self.delete_user, user_id)
+
+    async def get_profile_async(self, user_id: int) -> Dict[str, Any]:
+        return await asyncio.to_thread(self.get_profile, user_id)
+
+    async def set_profile_field_async(self, user_id: int, field: str, value: Any) -> None:
+        return await asyncio.to_thread(self.set_profile_field, user_id, field, value)
+
+    async def compute_user_prestige_from_roster_async(self, roster_entries: List[Dict[str, Any]], top_n: int = 5) -> Optional[float]:
+        return await asyncio.to_thread(self.compute_user_prestige_from_roster, roster_entries, top_n)
+
+    async def sort_roster_entries_async(self, entries: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        return await asyncio.to_thread(self.sort_roster_entries, entries)
