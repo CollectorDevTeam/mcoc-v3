@@ -7,8 +7,14 @@ log = logging.getLogger("red.mcoc.prefix.core")
 
 from ..common.champion_helpers import safe_send_ctx
 from ..common.alliance_helpers import (
-    get_guild_config, set_guild_config, role_id_for_key, join_alliance, _role_obj_for_key, alliance_info
+    get_guild_config,
+    set_guild_config,
+    role_id_for_key,
+    join_alliance,
+    _role_obj_for_key,
+    get_alliance_info,
 )
+
 from ..common.roster_helpers import ensure_user_manager, _ensure_hook_registered
 
 
