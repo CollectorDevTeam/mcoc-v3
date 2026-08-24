@@ -3,6 +3,8 @@ import logging
 # inside mcoc/prefix/mcocadmin_prefix.py (or similar admin cog)
 import io
 import json
+import datetime
+import asyncio
 from discord import File
 from redbot.core import commands
 from pathlib import Path
@@ -99,6 +101,7 @@ def register_with_group(group: commands.Group, parent_getter):
             f"Starts with: `{api_key[:5]}` (rest hidden)."
         )
 
+
     @group.command(name="sync")
     @commands.is_owner()
     async def _sync(ctx):
@@ -110,20 +113,107 @@ def register_with_group(group: commands.Group, parent_getter):
         # Create initial status message
         status_msg = await ctx.send("Starting full cache sync…")
 
+       # inside your _sync command, after sending status_msg
+        update_queue: "asyncio.Queue[str]" = asyncio.Queue()
+        stop_worker = False
+
+        async def _worker():
+            last = 0.0
+            min_interval = 1.0  # seconds between edits
+            while True:
+                try:
+                    pending = await asyncio.wait_for(update_queue.get(), timeout=2.0)
+                except asyncio.TimeoutError:
+                    if stop_worker and update_queue.empty():
+                        break
+                    continue
+
+                # drain any extra updates and keep only the last
+                try:
+                    while True:
+                        pending = update_queue.get_nowait()
+                except asyncio.QueueEmpty:
+                    pass
+
+                # enforce min interval
+                now = asyncio.get_event_loop().time()
+                wait = max(0.0, min_interval - (now - last))
+                if wait:
+                    await asyncio.sleep(wait)
+
+                try:
+                    await status_msg.edit(content=pending)
+                except Exception:
+                    log.exception("Failed to edit status message")
+                finally:
+                    # mark the processed item done
+                    try:
+                        update_queue.task_done()
+                    except Exception:
+                        pass
+
+                last = asyncio.get_event_loop().time()
+
+        # start worker
+        worker_task = asyncio.create_task(_worker())
+
+        # reporter pushes updates into the queue (non-blocking)
         async def reporter(text: str):
             try:
-                # keep message short; overwrite with latest status
-                await status_msg.edit(content=text)
+                # keep queue small to avoid memory growth; drop oldest if full
+                if update_queue.qsize() > 10:
+                    try:
+                        _ = update_queue.get_nowait()
+                        # DO NOT call task_done() here — the worker will call it when it processes items
+                    except Exception:
+                        pass
+                # use put_nowait to avoid blocking the sync flow
+                try:
+                    update_queue.put_nowait(text)
+                except asyncio.QueueFull:
+                    # if full, drop the update silently (worker will process the latest)
+                    pass
             except Exception:
-                log.exception("Failed to edit status message")
+                log.exception("Reporter enqueue failed")
 
+        # --- Run the sync while the worker is active ---
         try:
             updated = await parent.cache.sync(parent.api, progress=reporter)
             final = "Sync complete." if updated else "No update performed."
-            await status_msg.edit(content=f"{final}\nLast update: {datetime.datetime.utcnow().isoformat()}")
+            # signal worker to stop, wait for queue to drain
+            stop_worker = True
+            await update_queue.join()
+            # cancel worker and await it
+            worker_task.cancel()
+            try:
+                await worker_task
+            except asyncio.CancelledError:
+                pass
+
+            try:
+                await status_msg.edit(content=f"{final}\nLast update: {datetime.datetime.utcnow().isoformat()}")
+            except Exception:
+                log.exception("Failed to edit final status message")
+
             await ctx.send(final)
+
         except Exception as e:
-            await status_msg.edit(content=f"Sync failed: {e}")
+            # ensure worker is stopped on error
+            stop_worker = True
+            try:
+                await update_queue.join()
+            except Exception:
+                pass
+            worker_task.cancel()
+            try:
+                await worker_task
+            except asyncio.CancelledError:
+                pass
+
+            try:
+                await status_msg.edit(content=f"Sync failed: {e}")
+            except Exception:
+                log.exception("Failed to edit failure status message")
             raise
 
 
