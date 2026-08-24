@@ -7,7 +7,7 @@ import logging
 import tempfile
 import os
 import asyncio
-from typing import Optional, Any, Dict
+from typing import Optional, Any, Dict, Tuple
 from .cacheindex import CacheIndex
 from pathlib import Path
 
