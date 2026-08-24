@@ -7,7 +7,7 @@ log = logging.getLogger("red.mcoc.prefix.core")
 
 from ..common.champion_helpers import safe_send_ctx
 from ..common.alliance_helpers import (
-    get_guild_config, set_guild_config, role_id_for_key, join_alliance
+    get_guild_config, set_guild_config, role_id_for_key, join_alliance, _role_obj_for_key, alliance_info
 )
 from ..common.roster_helpers import ensure_user_manager, _ensure_hook_registered
 
@@ -65,6 +65,17 @@ class MCOCPrefix(commands.Cog):
             log.debug("Attached account registrar to ///mcoc account")
         except Exception:
             log.debug("Account registrar not present (optional)")
+
+        # --------------------------
+        # ALLIANCE (optional)
+        # --------------------------
+        try:
+            from .alliance_prefix import register_with_group as reg_alliance
+            alliance_group = getattr(self, "alliance")
+            reg_alliance(alliance_group, parent_getter)
+            log.debug("Attached alliance registrar to ///mcoc alliance")
+        except Exception:
+            log.debug("Alliance registrar not present (optional)")
 
         # --------------------------
         # CHAMPIONS
