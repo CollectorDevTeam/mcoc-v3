@@ -75,19 +75,30 @@ async def create_or_link_role(guild, role_name: str, key: str, role_obj=None) ->
 
 async def register_alliance(guild, alliance_name: str, alliance_tag: Optional[str] = None, type_: str = "simple") -> bool:
     """
-    Register an alliance on this guild. Creates default roles (alliance, officers, members).
+    Register an alliance on this guild.
+    - simple: create core roles (alliance, officers, members)
+    - complex: create core roles plus leader and battlegroup roles (bg1..bg3, aqbg1, awbg1)
     """
     try:
         cfg = get_guild_config(guild.id) or {}
         cfg["type"] = type_
         cfg.setdefault("roles", {})
-        # create/link core roles
-        r1 = await create_or_link_role(guild, f"{alliance_name} Alliance", "alliance")
-        r2 = await create_or_link_role(guild, f"{alliance_name} Officers", "officers")
-        r3 = await create_or_link_role(guild, f"{alliance_name} Members", "members")
-        # if any role creation/link failed, log but continue (admins can set roles manually)
-        if not (r1 and r2 and r3):
-            log.debug("One or more alliance roles failed to create/link for guild %s", guild.id)
+
+        # core roles
+        await create_or_link_role(guild, f"{alliance_name} Alliance", "alliance")
+        await create_or_link_role(guild, f"{alliance_name} Officers", "officers")
+        await create_or_link_role(guild, f"{alliance_name} Members", "members")
+
+        if type_ and type_.lower() == "complex":
+            # additional roles for complex alliances
+            await create_or_link_role(guild, f"{alliance_name} Leader", "leader")
+            await create_or_link_role(guild, f"{alliance_name} BG1", "bg1")
+            await create_or_link_role(guild, f"{alliance_name} BG2", "bg2")
+            await create_or_link_role(guild, f"{alliance_name} BG3", "bg3")
+            # optional raid roles
+            await create_or_link_role(guild, f"{alliance_name} AQBG1", "aqbg1")
+            await create_or_link_role(guild, f"{alliance_name} AWBG1", "awbg1")
+
         cfg.setdefault("info", {})["name"] = alliance_name
         if alliance_tag:
             cfg["info"]["tag"] = alliance_tag
@@ -329,15 +340,50 @@ def set_alliance_info_field(guild_id: int, field: str, value: Union[str, None]) 
         log.exception("Failed to set alliance info field %s for guild %s", field, guild_id)
         return False
 
-def set_alliance_type(guild_id: int, type_: str) -> bool:
+def set_alliance_type(guild_id: int, type_: str, guild_obj=None) -> bool:
+    """
+    Change the alliance type for a guild and create any missing roles.
+    - type_: 'simple' or 'complex'
+    - guild_obj: optional discord.Guild object; if provided, used to create roles when needed.
+    """
     try:
         cfg = get_guild_config(guild_id) or {}
-        cfg["type"] = type_
+        type_norm = (type_ or "").lower()
+        if type_norm not in ("simple", "complex"):
+            return False
+        cfg["type"] = type_norm
         set_guild_config(guild_id, cfg)
+
+        # If we need to create extra roles for complex type and a guild object is provided,
+        # attempt to create/link them.
+        if type_norm == "complex" and guild_obj is not None:
+            name = cfg.get("info", {}).get("name", "Alliance")
+            # create or link missing keys
+            keys = ["leader", "bg1", "bg2", "bg3", "aqbg1", "awbg1"]
+            # use the async create_or_link_role if available; otherwise create synchronously if role exists
+            import asyncio
+            async def _ensure_roles():
+                for k in keys:
+                    if not cfg.get("roles", {}).get(k):
+                        await create_or_link_role(guild_obj, f"{name} {k.upper() if k.startswith('bg') else k.capitalize()}", k)
+            try:
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    # schedule and wait
+                    coro = _ensure_roles()
+                    # run in background without blocking caller
+                    loop.create_task(coro)
+                else:
+                    loop.run_until_complete(_ensure_roles())
+            except Exception:
+                # best-effort; role creation failures are logged by create_or_link_role
+                pass
+
         return True
     except Exception:
         log.exception("Failed to set alliance type for guild %s", guild_id)
         return False
+
 
 # -----------------------------
 # Officer management

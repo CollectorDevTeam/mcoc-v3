@@ -24,8 +24,8 @@ class AlliancePrefix(commands.Cog):
 
     @commands.group(name="alliance", invoke_without_command=True)
     async def alliance(self, ctx):
-        """Alliance commands: create, setrole, settype, join, leave, unregister, export, settings"""
-        await ctx.send("Alliance commands: `create <simple|complex> <name>`, `setrole`, `settype`, `join`, `leave`, `unregister`, `settings`")
+        """Alliance commands: create, setrole, settype, join, leave, unregister, settings, manage"""
+        await ctx.send("Alliance commands: `create <simple|complex> <name>`, `setrole <key> <@role>`, `settype <simple|complex>`, `join`, `leave`, `unregister`, `settings`, `manage`")
 
     @alliance.command(name="create")
     @commands.admin_or_permissions(manage_guild=True)
@@ -53,7 +53,7 @@ class AlliancePrefix(commands.Cog):
         """
         guild = ctx.guild
         if role is None:
-            await ctx.send("Usage: ///mcoc alliance setrole <key> <@role>")
+            await ctx.send("Usage: ///mcoc alliance setrole <key> <@role>\nKeys: alliance, officers, members, leader, bg1, bg2, bg3, aqbg1, awbg1")
             return
         mapped = await create_or_link_role(guild, role.name, key, role_obj=role)
         if mapped:
@@ -87,6 +87,25 @@ class AlliancePrefix(commands.Cog):
             await ctx.send("Alliance unregistered.")
         else:
             await ctx.send("Failed to unregister alliance. Check logs.")
+
+    @alliance.command(name="manage")
+    @commands.admin_or_permissions(manage_guild=True)
+    async def alliance_manage(self, ctx):
+        """Show management actions and configured role keys for this guild."""
+        cfg = get_guild_config(ctx.guild.id)
+        if not cfg:
+            await ctx.send("No alliance configured for this guild.")
+            return
+        roles = cfg.get("roles", {})
+        lines = ["Configured role keys:"]
+        for k in ("alliance", "leader", "officers", "members", "bg1", "bg2", "bg3", "aqbg1", "awbg1"):
+            v = roles.get(k)
+            lines.append(f"{k}: {v.get('name') if isinstance(v, dict) else v or 'not set'}")
+        lines.append("")
+        lines.append("To link a role: `///mcoc alliance setrole <key> <@role>`")
+        lines.append("To create battlegroup roles: `///mcoc alliance settype complex` (admins only)")
+        await ctx.send("\n".join(lines))
+
 
     @alliance.command(name="settings")
     async def alliance_settings(self, ctx):
@@ -162,15 +181,20 @@ class AlliancePrefix(commands.Cog):
     @alliance.command(name="settype")
     @commands.admin_or_permissions(manage_guild=True)
     async def alliance_settype(self, ctx, type_: str):
-        """Set alliance type: simple | complex. Leaders/admins only."""
-        type_ = type_.lower()
-        if type_ not in ("simple", "complex"):
-            await ctx.send("Invalid type. Allowed: simple, complex. Example: ///mcoc alliance settype simple")
+        """Set alliance type: simple | complex. Admins only. Use 'complex' to create leader and BG roles."""
+        type_norm = (type_ or "").lower()
+        if type_norm not in ("simple", "complex"):
+            await ctx.send("Invalid type. Allowed: simple, complex. Example: ///mcoc alliance settype complex")
             return
-        cfg = get_guild_config(ctx.guild.id) or {}
-        cfg["type"] = type_
-        set_guild_config(ctx.guild.id, cfg)
-        await ctx.send(f"Alliance type set to `{type_}`.")
+
+        # update config and attempt to create missing roles if switching to complex
+        from ..common.alliance_helpers import set_alliance_type
+        ok = set_alliance_type(ctx.guild.id, type_norm, guild_obj=ctx.guild)
+        if ok:
+            await ctx.send(f"Alliance type set to `{type_norm}`. Missing roles will be created if possible.")
+        else:
+            await ctx.send("Failed to set alliance type. Check logs.")
+
 
     # -----------------------------
     # Officer management (leader only)
