@@ -107,8 +107,25 @@ def register_with_group(group: commands.Group, parent_getter):
             await ctx.send("MCOC core not attached; cache and API unavailable.")
             return
 
-        updated = await parent.cache.sync(parent.api)
-        await ctx.send("Sync complete." if updated else "No update performed.")
+        # Create initial status message
+        status_msg = await ctx.send("Starting full cache sync…")
+
+        async def reporter(text: str):
+            try:
+                # keep message short; overwrite with latest status
+                await status_msg.edit(content=text)
+            except Exception:
+                log.exception("Failed to edit status message")
+
+        try:
+            updated = await parent.cache.sync(parent.api, progress=reporter)
+            final = "Sync complete." if updated else "No update performed."
+            await status_msg.edit(content=f"{final}\nLast update: {datetime.datetime.utcnow().isoformat()}")
+            await ctx.send(final)
+        except Exception as e:
+            await status_msg.edit(content=f"Sync failed: {e}")
+            raise
+
 
     @group.command(name="force-sync")
     @commands.is_owner()
@@ -133,18 +150,26 @@ def register_with_group(group: commands.Group, parent_getter):
     @commands.is_owner()
     @group.command(name="prestige_sync")
     async def _prestige_sync(ctx, force: bool = False):
-        """Force update prestige cache from MCOCHub (admin only)."""
-        core = getattr(ctx.bot, "mcoc_core", None)  # adjust to your actual attribute
+        core = getattr(ctx.bot, "mcoc_core", None)
         if not core or not getattr(core, "cache", None) or not getattr(core, "api", None):
             await ctx.send("Core/cache/api not available.")
             return
-        await ctx.send("Starting prestige update (this may take a while)...")
+
+        status_msg = await ctx.send("Starting prestige update…")
+
+        async def reporter(text: str):
+            try:
+                await status_msg.edit(content=text)
+            except Exception:
+                log.exception("Failed to edit prestige status message")
+
         try:
-            updated = await core.cache.check_update_prestige(core.api, force=force)
+            updated = await core.cache.check_update_prestige(core.api, force=force, progress=reporter)
+            await status_msg.edit(content=f"Prestige update complete. Updated: {updated}")
             await ctx.send(f"Prestige update complete. Updated: {updated}")
         except Exception as e:
+            await status_msg.edit(content=f"Prestige update failed: {e}")
             await ctx.send(f"Prestige update failed: {e}")
-
 
     @group.command(name="dump", aliases=["raw", "json"])
     @commands.is_owner()

@@ -7,7 +7,7 @@ import logging
 import tempfile
 import os
 import asyncio
-from typing import Optional, Any, Dict, Tuple
+from typing import Optional, Callable, Awaitable, Any, Dict, Tuple
 from .cacheindex import CacheIndex
 from pathlib import Path
 
@@ -146,71 +146,83 @@ class CacheManager:
     # -----------------------------
     # Prestige update
     # -----------------------------
-    async def check_update_prestige(self, api, force: bool = False) -> bool:
-        """
-        Use api.fetch_versions_public and api.fetch_prestige_public to update prestige.
-        Respects is_recent() guard and writes prestige.json atomically.
-        """
+    async def check_update_prestige(self, api, force: bool = False, progress: Optional[Callable[[str], Awaitable[None]]] = None) -> bool:
+        async def _report(msg: str):
+            log.info(msg)
+            if progress:
+                try:
+                    await progress(msg)
+                except Exception:
+                    log.exception("Progress callback failed")
+
         if self.is_recent(hours=24) and not force:
-            log.info("Prestige check skipped: recent sync within 24h.")
+            await _report("Prestige check skipped: recent sync within 24h.")
             return False
 
         try:
+            await _report("Fetching versions.json for prestige...")
             versions = await api.fetch_versions_public()
             if not versions:
-                log.warning("Failed to fetch versions.json for prestige.")
+                await _report("Failed to fetch versions.json for prestige.")
                 return False
             prestige_version = versions.get("prestige")
             if not prestige_version:
-                log.warning("No prestige version in versions.json.")
+                await _report("No prestige version in versions.json.")
                 return False
 
-            # If metadata already has same prestige version and not forced, update last_sync and skip
             old_version = self.metadata.get("versions", {}).get("prestige")
             if old_version == prestige_version and not force:
                 self.metadata.setdefault("versions", {})["prestige"] = prestige_version
                 self.metadata["last_sync"] = datetime.datetime.utcnow().isoformat()
                 self._save_metadata()
-                log.info("Prestige version unchanged; skipping downloads.")
+                await _report("Prestige version unchanged; skipping downloads.")
                 return False
 
-            # Fetch combos
+            await _report(f"Prestige version changed (new: {prestige_version}); fetching combos...")
             combined_rows = []
+            total = len(TIERS) * len(RANKS) * len(ASCENSIONS)
+            count = 0
             for tier in TIERS:
                 for rank in RANKS:
                     for asc in ASCENSIONS:
+                        count += 1
+                        await _report(f"Fetching prestige data {count}/{total} (tier={tier}, rank={rank}, asc={asc})...")
                         payload = await api.fetch_prestige_public(tier, rank, asc, prestige_version)
                         if not payload:
                             log.warning("No prestige payload for %s|%s|%s", tier, rank, asc)
                             continue
                         rows = payload.get("rows", []) or []
-                        # annotate rows with combo metadata for later filtering
                         for r in rows:
                             r["_tier"] = tier; r["_rank"] = rank; r["_asc"] = asc
                         combined_rows.extend(rows)
 
             normalized = {"version": prestige_version, "rows": combined_rows}
-            # write prestige.json atomically
-            await self._atomic_write_json(self.cache_dir / "prestige.json", normalized)
+            await _report("Writing prestige.json to cache...")
+            try:
+                await self._atomic_write_json(self.cache_dir / "prestige.json", normalized)
+            except Exception:
+                log.exception("Failed to write prestige.json")
+                await _report("Failed to write prestige.json")
+                return False
 
-            # update metadata and persist
             self.metadata.setdefault("versions", {})["prestige"] = prestige_version
             self.metadata["last_sync"] = datetime.datetime.utcnow().isoformat()
             await asyncio.to_thread(self._atomic_write_json_blocking, self.metadata_file, self.metadata)
+            await _report("Prestige metadata updated.")
 
-            # rebuild index
             try:
                 await asyncio.to_thread(self.index.rebuild)
+                await _report("Index rebuild complete after prestige update.")
             except Exception:
                 log.exception("CacheIndex rebuild failed after prestige update")
 
-            log.info("Prestige cache updated (version %s).", prestige_version)
+            await _report(f"Prestige cache updated (version {prestige_version}).")
             return True
 
         except Exception:
             log.exception("check_update_prestige failed")
+            await _report("Prestige update failed (see logs).")
             return False
- 
     def get_prestige_table(self, tier: int, rank: int, asc: int) -> Optional[dict]:
         data = self._load_file("prestige")
         if not data:
@@ -462,11 +474,22 @@ class CacheManager:
     # -----------------------------
     # Public sync method
     # -----------------------------
-    async def sync(self, api) -> bool:
+    async def sync(self, api, progress: Optional[Callable[[str], Awaitable[None]]] = None) -> bool:
+        """
+        Sync champions/tags/abilities/immunities from API.
+        If `progress` is provided, call it with short status strings to update UI.
+        """
+        async def _report(msg: str):
+            log.info(msg)
+            if progress:
+                try:
+                    await progress(msg)
+                except Exception:
+                    log.exception("Progress callback failed")
+
         # If we synced recently, skip network calls
         if self.is_recent(hours=24):
-            log.info("Cache was synced within the last 24 hours; skipping API requests.")
-            # ensure index is built from existing files (offload if heavy)
+            await _report("Cache was synced within the last 24 hours; skipping API requests.")
             try:
                 await asyncio.to_thread(self.index.rebuild)
             except Exception:
@@ -475,46 +498,53 @@ class CacheManager:
 
         updated = False
 
-        # Prevent concurrent syncs
         async with self._sync_lock:
             try:
+                await _report("Starting cache sync: fetching champions...")
                 champions = await api.get_champions()
                 if champions is None:
-                    log.warning("Champions endpoint returned no data; aborting sync to avoid waste.")
+                    await _report("Champions endpoint returned no data; aborting sync.")
                     return False
 
+                await _report("Fetching tags...")
                 tags = await api.get_tags()
                 if tags is None:
-                    log.warning("Tags endpoint returned no data; aborting sync.")
+                    await _report("Tags endpoint returned no data; aborting sync.")
                     return False
 
+                await _report("Fetching abilities...")
                 abilities = await api.get_abilities()
                 if abilities is None:
-                    log.warning("Abilities endpoint returned no data; aborting sync.")
+                    await _report("Abilities endpoint returned no data; aborting sync.")
                     return False
 
+                await _report("Fetching immunities...")
                 immunities = await api.get_immunities()
                 if immunities is None:
-                    log.warning("Immunities endpoint returned no data; aborting sync.")
+                    await _report("Immunities endpoint returned no data; aborting sync.")
                     return False
 
                 # Only reach here if all calls returned non-None
+                await _report("Saving champions...")
                 updated |= await self._diff_and_save("champions", champions)
+                await _report("Saving tags...")
                 updated |= await self._diff_and_save("tags", tags)
+                await _report("Saving abilities...")
                 updated |= await self._diff_and_save("abilities", abilities)
+                await _report("Saving immunities...")
                 updated |= await self._diff_and_save("immunities", immunities)
 
                 if updated:
-                    log.info("Cache sync complete.")
+                    await _report("Cache sync complete.")
                 else:
-                    log.info("Cache unchanged; metadata not updated.")
+                    await _report("Cache unchanged; metadata not updated.")
 
-                # Rebuild index after sync (already done in _diff_and_save, but keep safe)
                 try:
                     await asyncio.to_thread(self.index.rebuild)
+                    await _report("Index rebuild complete.")
                 except Exception:
                     log.exception("Index rebuild failed after sync")
-                # Reset preference to bearer mode for future syncs
+
                 api._prefer_bearer = True
                 return updated
 
@@ -529,8 +559,8 @@ class CacheManager:
                     raise
 
                 log.exception("Unexpected error during cache sync: %s", e)
+                await _report(f"Sync failed: {e}")
                 return False
-
     # -----------------------------
     # Lookup helpers (unchanged)
     # -----------------------------
