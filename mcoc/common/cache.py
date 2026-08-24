@@ -10,6 +10,7 @@ import asyncio
 from typing import Optional, Callable, Awaitable, Any, Dict, Tuple
 from .cacheindex import CacheIndex
 from pathlib import Path
+from redbot.core import data_manager
 
 log = logging.getLogger("red.mcoc.cache")
 # near other constants/imports
@@ -22,9 +23,6 @@ ASCENSIONS = [0, 1, 2]
 
 # Do NOT create directories at import time. Create them when CacheManager is instantiated.
 DEFAULT_CACHE_DIR = pathlib.Path("data") / "cache"
-
-from pathlib import Path
-from redbot.core import data_manager
 
 class CacheManager:
     def __init__(self, bot):
@@ -61,6 +59,7 @@ class CacheManager:
                         "tags": None,
                         "abilities": None,
                         "immunities": None,
+                        "prestige": None
                     },
                     "last_sync": None,
                 }
@@ -75,6 +74,7 @@ class CacheManager:
                         "tags": None,
                         "abilities": None,
                         "immunities": None,
+                        "prestige": None
                     },
                     "last_sync": None,
                 }
@@ -88,6 +88,7 @@ class CacheManager:
                     "tags": None,
                     "abilities": None,
                     "immunities": None,
+                    "prestige": None
                 },
             )
             data.setdefault("last_sync", None)
@@ -100,6 +101,7 @@ class CacheManager:
                     "tags": None,
                     "abilities": None,
                     "immunities": None,
+                    "prestige": None
                 },
                 "last_sync": None,
             }
@@ -112,6 +114,7 @@ class CacheManager:
                     "tags": None,
                     "abilities": None,
                     "immunities": None,
+                    "prestige": None
                 },
                 "last_sync": None,
             }
@@ -280,6 +283,7 @@ class CacheManager:
 
     def get_prestige_value(self, slug: str, tier: int, rank: int, asc: int, sig: int = 0) -> Optional[int]:
         table = self.get_prestige_table(tier, rank, asc)
+        slug = (slug or "").strip().lower()
         if not table:
             return None
         for r in table.get("rows", []):
