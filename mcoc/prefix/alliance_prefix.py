@@ -514,3 +514,94 @@ class AlliancePrefix(commands.Cog):
                 await ctx.send(f"Members ({len(mentions)}): {out}")
         else:
             await ctx.send(f"Alliance member count: {len(mids)}")
+
+
+# mcoc/prefix/alliance_prefix.py  (append near the bottom)
+
+def register_with_group(group: commands.Group, parent_getter):
+    """
+    Attach alliance prefix commands to the provided `group`.
+    parent_getter is a callable returning the core/parent object (or None).
+    """
+    def _safe_add(cmd_name, func):
+        try:
+            if group.get_command(cmd_name):
+                return
+        except Exception:
+            pass
+        group.command(name=cmd_name)(func)
+
+    # wrappers reuse the alliance_helpers API
+    async def _info(ctx):
+        parent = parent_getter()
+        if not parent:
+            await ctx.send("MCOC core not attached; alliance unavailable.")
+            return
+        from ..common.alliance_helpers import get_guild_config
+        cfg = get_guild_config(ctx.guild.id)
+        if not cfg:
+            await ctx.send("No alliance configured for this guild.")
+            return
+        info = cfg.get("info", {})
+        lines = [f"**Alliance**: {info.get('name','Unnamed')}"]
+        if info.get("tag"):
+            lines.append(f"**Tag**: {info.get('tag')}")
+        if info.get("invite"):
+            lines.append(f"**Invite**: {info.get('invite')}")
+        if info.get("about"):
+            lines.append(f"**About**: {info.get('about')}")
+        await ctx.send("\n".join(lines))
+
+    _safe_add("info", _info)
+
+    async def _create(ctx, type_: str, *, name: str):
+        parent = parent_getter()
+        if not parent:
+            await ctx.send("MCOC core not attached; alliance unavailable.")
+            return
+        from ..common.alliance_helpers import register_alliance
+        ok = await register_alliance(ctx.guild, name, type_=type_)
+        await ctx.send(f"Alliance **{name}** registered." if ok else "Failed to register alliance.")
+
+    _safe_add("create", _create)
+
+    async def _join(ctx):
+        parent = parent_getter()
+        if not parent:
+            await ctx.send("MCOC core not attached; alliance unavailable.")
+            return
+        from ..common.alliance_helpers import join_alliance
+        ok, msg = await join_alliance(ctx.author, ctx.guild, role_key="members")
+        await ctx.send(msg)
+
+    _safe_add("join", _join)
+
+    async def _leave(ctx):
+        parent = parent_getter()
+        if not parent:
+            await ctx.send("MCOC core not attached; alliance unavailable.")
+            return
+        from ..common.alliance_helpers import leave_alliance
+        ok, msg = await leave_alliance(ctx.author, ctx.guild)
+        await ctx.send(msg)
+
+    _safe_add("leave", _leave)
+
+    async def _settings(ctx):
+        parent = parent_getter()
+        if not parent:
+            await ctx.send("MCOC core not attached; alliance unavailable.")
+            return
+        from ..common.alliance_helpers import get_guild_config
+        cfg = get_guild_config(ctx.guild.id)
+        if not cfg:
+            await ctx.send("No alliance configured for this guild.")
+            return
+        info = cfg.get("info", {})
+        roles = cfg.get("roles", {})
+        lines = [f"Name: {info.get('name')}", f"Type: {cfg.get('type')}"]
+        for k, v in roles.items():
+            lines.append(f"{k}: {v.get('name') if isinstance(v, dict) else v}")
+        await ctx.send("\n".join(lines))
+
+    _safe_add("settings", _settings)

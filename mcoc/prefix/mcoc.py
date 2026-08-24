@@ -49,6 +49,33 @@ class MCOCPrefix(commands.Cog):
         """
         parent_getter = lambda: self._ensure_parent()
 
+        try: 
+            from .account_prefix import register_with_group as register_account
+        except Exception:
+            log.debug("account_prefix not importable; skipping attach", exc_info=True)
+        else:
+            try:
+                account_group = getattr(self, "account", None)
+                if account_group is not None:
+                    register_account(account_group, parent_getter)
+                    log.debug("Attached account prefix commands to ///mcoc account")
+            except Exception:
+                log.exception("register_account failed")
+
+        # inside _attach_registrars in mcoc/prefix/mcoc.py
+        try:
+            from .alliance_prefix import register_with_group as register_alliance
+        except Exception:
+            log.debug("alliance_prefix not importable; skipping attach", exc_info=True)
+        else:
+            try:
+                alliance_group = getattr(self, "alliance", None)
+                if alliance_group is not None:
+                    register_alliance(alliance_group, parent_getter)
+                    log.debug("Attached alliance prefix commands to ///mcoc alliance")
+            except Exception:
+                log.exception("register_alliance failed")
+
         # Attach champions registrar
         try:
             from .champions_prefix import register_with_group as register_champions
@@ -103,6 +130,10 @@ class MCOCPrefix(commands.Cog):
     @mcoc.group(name="roster", invoke_without_command=True)
     async def roster(self, ctx):
         await safe_send_ctx(ctx, "Use subcommands: `add`, `remove`, `update`, `list`, `export`, `clear`.")
+
+    @mcoc.group(name="alliance", invoke_without_command=True)
+    async def alliance(self, ctx):
+        await safe_send_ctx(ctx, "Use subcommands: `info`, `create`, `join`, `leave`, `manage`.")
 
 # Red setup
 async def setup(bot):
