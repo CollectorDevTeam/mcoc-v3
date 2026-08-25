@@ -19,35 +19,100 @@ def validate_profile_field(field: str) -> bool:
     """Return True if the field is allowed to be set by users."""
     return field in ALLOWED_PROFILE_FIELDS
 
+import discord
+import datetime
+from typing import Any, Dict, Optional, List
 
-def format_profile_embed(ctx, profile: Dict[str, Any], member_obj=None):
+def _format_date_iso(iso_str: Optional[str]) -> str:
+    if not iso_str:
+        return "Unknown"
+    try:
+        dt = datetime.datetime.fromisoformat(iso_str)
+        return dt.date().isoformat()
+    except Exception:
+        return str(iso_str)
+
+def format_profile_embed(ctx, profile: Dict[str, Any], member: Optional[Any] = None) -> discord.Embed:
     """
-    Build and return a discord.Embed for the profile.
-    Signature matches usage in account_prefix: (ctx, profile, member_obj).
-    Caller must handle exceptions if discord is not available.
+    Build a Collector-style profile embed from stored profile dict.
+    Returns a discord.Embed. Safe to call from prefix and slash handlers.
     """
-    import discord
+    # Resolve display name
+    display_name = profile.get("mcoc_name") or profile.get("display_name") or (member.display_name if getattr(member, "display_name", None) else None) or str(profile.get("mcoc_id") or "User")
 
-    # Title selection
-    title_name = None
-    if member_obj and isinstance(member_obj, discord.Member):
-        title_name = getattr(member_obj, "display_name", None)
-    if not title_name:
-        title_name = profile.get("mcoc_name") or profile.get("mcoc_id") or "User"
+    emb = discord.Embed(title=f"{display_name} — Profile", colour=discord.Color.blue())
+    # author / thumbnail
+    try:
+        if member and getattr(member, "avatar_url", None):
+            emb.set_author(name=display_name, icon_url=member.avatar_url)
+            emb.set_thumbnail(url=member.avatar_url)
+        else:
+            emb.set_author(name=display_name)
+    except Exception:
+        emb.set_author(name=display_name)
 
-    lines = []
-    if profile.get("linked"):
-        lines.append("**linked**: True")
-    if profile.get("mcoc_id"):
-        lines.append(f"**mcoc_id**: {profile.get('mcoc_id')}")
-    for k in ("mcoc_name", "website", "invite", "timezone", "alliance", "job", "created_at", "updated_at"):
-        v = profile.get(k)
-        if v:
-            lines.append(f"**{k}**: {v}")
+    # Linked / ID
+    linked = profile.get("linked", False)
+    mcoc_id = profile.get("mcoc_id") or profile.get("mcoc_name") or None
+    emb.add_field(name="Linked", value=str(bool(linked)), inline=True)
+    emb.add_field(name="MCoc ID", value=str(mcoc_id) if mcoc_id else "Not linked", inline=True)
 
-    emb = discord.Embed(title=f"Profile for {title_name}", description="\n".join(lines) or "Profile is empty.")
+    # Prestige and Top 5
+    total_prestige = None
+    top5_lines: List[str] = []
+    # prefer cached top5
+    if profile.get("top5"):
+        for i, name in enumerate(profile.get("top5")[:5]):
+            top5_lines.append(f"{i+1}. {name}")
+    else:
+        # try prestige_map to compute top5 if present
+        pm = profile.get("prestige_map") or {}
+        try:
+            items = []
+            for k, v in pm.items():
+                try:
+                    items.append((k, int(v)))
+                except Exception:
+                    continue
+            items.sort(key=lambda x: -x[1])
+            top5_lines = [f"{i+1}. {k.split('|')[0]} [{v}]" for i, (k, v) in enumerate(items[:5])]
+            total_prestige = sum(v for _, v in items)
+        except Exception:
+            top5_lines = []
+
+    if total_prestige is None:
+        # try stored numeric total
+        try:
+            total_prestige = int(profile.get("prestige_total")) if profile.get("prestige_total") is not None else None
+        except Exception:
+            total_prestige = None
+
+    if total_prestige is not None:
+        emb.add_field(name="Prestige (sum)", value=str(total_prestige), inline=False)
+    if top5_lines:
+        emb.add_field(name="Top 5 Champions", value="\n".join(top5_lines), inline=False)
+    else:
+        emb.add_field(name="Top 5 Champions", value="No roster or prestige data available.", inline=False)
+
+    # Add other profile fields in a compact layout
+    display_order = ["alliance", "job", "timezone", "website", "invite", "age", "gender", "mastery"]
+    for key in display_order:
+        val = profile.get(key)
+        if val:
+            emb.add_field(name=key.replace("_", " ").title(), value=str(val), inline=True)
+
+    # About / notes as description or field
+    about = profile.get("about") or profile.get("notes") or profile.get("description")
+    if about:
+        emb.add_field(name="About", value=str(about), inline=False)
+
+    # Started / membership
+    started = profile.get("started") or profile.get("created_at")
+    if started:
+        emb.add_field(name="Playing Since", value=_format_date_iso(started), inline=True)
+
+    emb.set_footer(text="Profile generated by MCOC")
     return emb
-
 
 def link_account(parent, user_id: int, mcoc_id: str) -> Tuple[bool, str]:
     """

@@ -25,16 +25,23 @@ ACCOUNT_GROUP_HELP = "Account commands: info, view, set, link, unlink, delete, p
 
 # canonical field mapping: external name -> stored key
 FIELD_CANONICAL = {
-    "display_name": "mcoc_name",   # if your storage uses mcoc_name
+    "mcoc_name": "mcoc_name",
     "mcoc_id": "mcoc_id",
+    "linked": "linked",
+    "prestige_map": "prestige_map",
+    "top5": "top5",
     "website": "website",
     "invite": "invite",
     "timezone": "timezone",
     "alliance": "alliance",
     "job": "job",
-    "roster_public": "roster_public",
-    "privacy_mode": "privacy_mode",
-    "notes": "notes",
+    "age": "age",
+    "gender": "gender",
+    "about": "about",
+    "mastery": "mastery",
+    "started": "started",
+    "created_at": "created_at",
+    "updated_at": "updated_at",
 }
 
 
@@ -111,7 +118,12 @@ class AccountPrefix(commands.Cog):
 
     @account.command(name="view")
     async def account_view(self, ctx, member: Optional[Any] = None):
-        """View a user's profile. If no member is provided, view your own."""
+        """View a user's profile. If no member is provided, view your own.
+
+        This builds a Collector-style profile embed: linked status, mcoc id,
+        prestige summary and Top 5 champions (by persisted prestige if available),
+        plus the common profile fields.
+        """
         if not await self._require_parent(ctx):
             return
 
@@ -123,21 +135,12 @@ class AccountPrefix(commands.Cog):
             if member is None:
                 target_id = ctx.author.id
             else:
-                # Member-like object
                 target_id = getattr(member, "id", None)
                 if target_id is None:
-                    # try numeric id
-                    try:
-                        target_id = int(str(member).strip("<@!> "))
-                    except Exception:
-                        # try parsing as plain int string
-                        try:
-                            target_id = int(member)
-                        except Exception:
-                            target_id = None
-            if target_id is None:
-                await safe_send_ctx(ctx, "Invalid user specified.")
-                return
+                    # strip mention formatting like <@!123456>
+                    s = str(member).strip()
+                    s = s.strip("<@!>")
+                    target_id = int(s)
             target_id = int(target_id)
         except Exception:
             await safe_send_ctx(ctx, "Invalid user specified.")
@@ -147,12 +150,11 @@ class AccountPrefix(commands.Cog):
         guild_id = getattr(ctx.guild, "id", None)
         viewer_alliance = None
         try:
-            can_view = True
             if hasattr(users, "can_view_profile"):
-                can_view = users.can_view_profile(ctx.author.id, target_id, guild_id=guild_id, viewer_alliance=viewer_alliance)
-            if not can_view:
-                await safe_send_ctx(ctx, "You do not have permission to view that profile.")
-                return
+                allowed = users.can_view_profile(ctx.author.id, target_id, guild_id=guild_id, viewer_alliance=viewer_alliance)
+                if not allowed:
+                    await safe_send_ctx(ctx, "You do not have permission to view that profile.")
+                    return
         except Exception:
             if ctx.author.id != target_id:
                 await safe_send_ctx(ctx, "You do not have permission to view that profile.")
@@ -168,60 +170,163 @@ class AccountPrefix(commands.Cog):
             await safe_send_ctx(ctx, "No profile found for that user.")
             return
 
-        # Prefer embed formatting via helper; fall back to consistent text output
+        # Try to build a rich embed with roster summary (Top 5 + prestige)
         try:
-            emb = format_profile_embed(ctx, profile, member)
-            await ctx.send(embed=emb)
-            return
+            import discord
+        except Exception:
+            discord = None
+
+        # Resolve display name (prefer canonical mapping)
+        display_name = profile.get(FIELD_CANONICAL.get("display_name", "mcoc_name")) or profile.get("display_name") or profile.get("mcoc_name") or getattr(ctx.guild.get_member(target_id), "display_name", None) if ctx.guild else None
+        if not display_name:
+            # fallback to discord username if possible
+            try:
+                member_obj = ctx.guild.get_member(target_id) if ctx.guild else None
+                display_name = member_obj.display_name if member_obj else str(target_id)
+            except Exception:
+                display_name = str(target_id)
+
+        # Gather roster and prestige info (best-effort)
+        prestige_map = {}
+        top5_names = []
+        total_prestige = None
+        try:
+            # prefer persisted prestige_map in profile
+            prestige_map = profile.get("prestige_map", {}) or {}
+        except Exception:
+            prestige_map = {}
+
+        # load roster (sync or async)
+        roster = []
+        try:
+            if asyncio.iscoroutinefunction(getattr(users, "list_roster", None)):
+                roster = await users.list_roster(target_id)
+            else:
+                roster = users.list_roster(target_id) or []
+        except Exception:
+            roster = []
+
+        # Resolve champion names and prestige values
+        cache = getattr(self.parent, "cache", None)
+        entries: list = []
+        for e in roster:
+            try:
+                slug = str(e.get("champion") or "").strip()
+                stars = int(e.get("rarity") or e.get("stars") or 0)
+                # prestige lookup: try persisted map first
+                key = f"{slug}|{stars}"
+                p = None
+                if key in prestige_map and prestige_map.get(key) is not None:
+                    try:
+                        p = int(prestige_map.get(key))
+                    except Exception:
+                        p = None
+                # fallback: try cache.get_prestige_value if available
+                if p is None and cache and hasattr(cache, "get_prestige_value"):
+                    try:
+                        p = cache.get_prestige_value(slug, stars, int(e.get("rank") or 1), int(e.get("ascended") or 0), int(e.get("sig") or 0))
+                    except Exception:
+                        p = None
+                # resolve champion display name
+                champ_name = None
+                if cache:
+                    try:
+                        cobj = cache.get_champion(slug)
+                        if cobj:
+                            champ_name = cobj.get("name") or cobj.get("slug") or slug
+                    except Exception:
+                        champ_name = None
+                if not champ_name:
+                    champ_name = slug or (e.get("name") if isinstance(e.get("name"), str) else None) or "Unknown"
+                entries.append({"name": champ_name, "prestige": p or 0})
+            except Exception:
+                continue
+
+        # sort by prestige desc, then take top 5
+        try:
+            entries.sort(key=lambda x: (-int(x.get("prestige") or 0), x.get("name")))
+        except Exception:
+            pass
+        top5 = entries[:5]
+        top5_names = [f"{i+1}. {it['name']} [{it['prestige']}]" for i, it in enumerate(top5)]
+        try:
+            total_prestige = sum(int(it.get("prestige") or 0) for it in entries)
+        except Exception:
+            total_prestige = None
+
+        # Build embed
+        try:
+            if discord:
+                emb = discord.Embed(title=f"{display_name} — Profile", colour=discord.Color.blue())
+                # author / thumbnail
+                try:
+                    member_obj = ctx.guild.get_member(target_id) if ctx.guild else None
+                    if member_obj and getattr(member_obj, "avatar_url", None):
+                        emb.set_author(name=f"{display_name}", icon_url=member_obj.avatar_url)
+                        emb.set_thumbnail(url=member_obj.avatar_url)
+                    else:
+                        emb.set_author(name=f"{display_name}")
+                except Exception:
+                    emb.set_author(name=f"{display_name}")
+
+                # linked / mcoc id
+                linked = profile.get("linked", False)
+                mcoc_id = profile.get("mcoc_id") or profile.get("mcoc_name") or profile.get("mcoc_id")
+                emb.add_field(name="Linked", value=str(bool(linked)), inline=True)
+                emb.add_field(name="MCoc ID", value=str(mcoc_id) if mcoc_id else "Not linked", inline=True)
+
+                # Prestige summary
+                if total_prestige is not None:
+                    emb.add_field(name="Prestige (sum)", value=str(total_prestige), inline=False)
+                if top5_names:
+                    emb.add_field(name="Top 5 Champions", value="\n".join(top5_names), inline=False)
+                else:
+                    emb.add_field(name="Top 5 Champions", value="No roster or prestige data available.", inline=False)
+
+                # Add other profile fields from FIELD_CANONICAL in a sensible order
+                for user_field, stored_key in FIELD_CANONICAL.items():
+                    # skip display_name and mcoc_id already shown
+                    if user_field in ("display_name", "mcoc_id"):
+                        continue
+                    val = profile.get(stored_key)
+                    if val is None:
+                        # try alternate keys
+                        val = profile.get(user_field)
+                    if val is not None:
+                        emb.add_field(name=user_field.replace("_", " ").title(), value=str(val), inline=True)
+
+                emb.set_footer(text="Profile generated by MCOC")
+                await ctx.send(embed=emb)
+                return
+        except Exception:
+            # fall through to text fallback
+            pass
+
+        # Text fallback: stable, readable output
+        lines = []
+        lines.append(f"Profile — {display_name}")
+        linked = profile.get("linked", False)
+        mcoc_id = profile.get("mcoc_id") or profile.get("mcoc_name")
+        lines.append(f"Linked: {linked}")
+        lines.append(f"MCoc ID: {mcoc_id or 'Not linked'}")
+        if total_prestige is not None:
+            lines.append(f"Prestige (sum): {total_prestige}")
+        if top5_names:
+            lines.append("Top 5 Champions:")
+            lines.extend(top5_names)
+        else:
+            lines.append("Top 5 Champions: none")
+        # include canonical settings
+        try:
+            settings = {user_field: profile.get(stored_key) for user_field, stored_key in FIELD_CANONICAL.items()}
+            lines.append("")
+            lines.append("Profile fields:")
+            lines.append(str(settings))
         except Exception:
             pass
 
-        # Build a stable, user-facing view using FIELD_CANONICAL mapping
-        try:
-            visible = {}
-            for user_field, stored_key in FIELD_CANONICAL.items():
-                # prefer display_name aliasing if both exist
-                if stored_key in profile:
-                    visible[user_field] = profile.get(stored_key)
-                else:
-                    # try common alternate keys
-                    alt = None
-                    if stored_key == "mcoc_name":
-                        alt = profile.get("display_name") or profile.get("mcoc_name")
-                    else:
-                        alt = profile.get(user_field)
-                    visible[user_field] = alt
-            # Add a few internal flags if present and viewer is the owner
-            if ctx.author.id == target_id:
-                visible["_linked"] = profile.get("linked", False)
-                visible["_mcoc_id"] = profile.get("mcoc_id")
-            # Render as embed if discord available, otherwise plain text
-            try:
-                import discord
-                emb = discord.Embed(title=f"Profile — {visible.get('display_name') or str(member) or str(target_id)}")
-                for k, v in visible.items():
-                    emb.add_field(name=k, value=str(v) if v is not None else "None", inline=False)
-                await ctx.send(embed=emb)
-                return
-            except Exception:
-                await safe_send_ctx(ctx, f"Profile: ```json\n{visible}\n```")
-                return
-        except Exception:
-            # Last-resort fallback: show a few raw keys
-            lines = []
-            if profile.get("linked"):
-                lines.append("**linked**: True")
-            if profile.get("mcoc_id"):
-                lines.append(f"**mcoc_id**: {profile.get('mcoc_id')}")
-            for k in ("mcoc_name", "display_name", "website", "invite", "timezone", "alliance", "job", "created_at", "updated_at"):
-                v = profile.get(k)
-                if v:
-                    lines.append(f"**{k}**: {v}")
-            if not lines:
-                await safe_send_ctx(ctx, "Profile exists but contains no displayable fields.")
-            else:
-                await safe_send_ctx(ctx, "\n".join(lines))
-
+        await safe_send_ctx(ctx, "\n".join(lines))
+        
     @account.command(name="set")
     async def account_set(self, ctx, field: str, *, value: str):
         """Set a profile field. Example: ///mcoc account set mcoc_name Jason"""
