@@ -1,6 +1,6 @@
 # mcoc/prefix/core.py
 import logging
-from typing import Any
+from typing import Any, Dict
 import importlib
 from redbot.core import commands
 
@@ -58,6 +58,16 @@ class MCOCPrefix(commands.Cog):
         """
         return getattr(self, "parent", None) or self.bot.get_cog("MCOC")
 
+    def can_view_profile(viewer_id: int, target_id: int, profile: Dict[str, Any]) -> Dict[str, Any]:
+        mode = profile.get("privacy_mode", "private")
+        if viewer_id == target_id:
+            return profile
+        if mode == "public":
+            return profile
+        if mode == "guild":
+            # caller must pass guild context; simplified here
+            return {k: v for k, v in profile.items() if k in ("display_name","roster_public")}
+        return {k: v for k, v in profile.items() if k in ("display_name",)}
 
 
     # inside MCOCPrefix.__init__ (ensure this exists)

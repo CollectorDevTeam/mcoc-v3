@@ -21,7 +21,7 @@ from ..common.account_helpers import (
 
 from ..common.pagination import PagesMenu
 
-ACCOUNT_GROUP_HELP = "Account commands: info, view, set, link, unlink, delete, privacy"
+ACCOUNT_GROUP_HELP = "Account commands: info, view, set, link, unlink, delete, privacy, settings"
 
 
 class AccountPrefix(commands.Cog):
@@ -71,11 +71,29 @@ class AccountPrefix(commands.Cog):
             "**Fields you can set:**",
         ]
         for field, description in ALLOWED_PROFILE_FIELDS.items():
-            lines.append(f"**{field}**: {description}")
+            # description may be a dict or string depending on your common helper
+            if isinstance(description, dict):
+                desc = description.get("desc", "")
+            else:
+                desc = str(description)
+            lines.append(f"**{field}**: {desc}")
         lines.append("")
         lines.append(f"Use `{prefix}mcoc account set <field> <value>` to set a profile field.")
         lines.append(f"Use `{prefix}mcoc account link <mcoc_id>` to link your in-game id.")
+        lines.append(f"Use `{prefix}mcoc account view [@member]` to view a profile.")
+        lines.append(f"Use `{prefix}mcoc account settings` to list your saved settings.")
         await safe_send_ctx(ctx, "\n".join(lines))
+
+    @account.command(name="info")
+    async def account_info(self, ctx):
+        """Show a short summary of your account and linked status."""
+        if not await self._require_parent(ctx):
+            return
+        users = ensure_user_manager(self.parent)
+        profile = users.get_profile(ctx.author.id) or {}
+        linked = profile.get("linked", False)
+        mcoc_id = profile.get("mcoc_id") or "Not linked"
+        await safe_send_ctx(ctx, f"Account summary: linked={linked}, mcoc_id={mcoc_id}")
 
     @account.command(name="view")
     async def account_view(self, ctx, member: Optional[Any] = None):
@@ -86,8 +104,9 @@ class AccountPrefix(commands.Cog):
         users = ensure_user_manager(self.parent)
         _ensure_hook_registered(self.parent)
 
-        target_id = ctx.author.id if member is None else getattr(member, "id", None) or member
+        # resolve target id
         try:
+            target_id = ctx.author.id if member is None else getattr(member, "id", None) or int(member)
             target_id = int(target_id)
         except Exception:
             await safe_send_ctx(ctx, "Invalid user specified.")
@@ -96,6 +115,7 @@ class AccountPrefix(commands.Cog):
         guild_id = getattr(ctx.guild, "id", None)
         viewer_alliance = None
         try:
+            # users.can_view_profile may raise or return False
             if not users.can_view_profile(ctx.author.id, target_id, guild_id=guild_id, viewer_alliance=viewer_alliance):
                 await safe_send_ctx(ctx, "You do not have permission to view that profile.")
                 return
@@ -109,10 +129,13 @@ class AccountPrefix(commands.Cog):
             await safe_send_ctx(ctx, "No profile found for that user.")
             return
 
+        # Prefer embed formatting if helper exists
         try:
             emb = format_profile_embed(ctx, profile, member)
             await ctx.send(embed=emb)
+            return
         except Exception:
+            # fallback to text
             lines = []
             if profile.get("linked"):
                 lines.append("**linked**: True")
@@ -195,6 +218,20 @@ class AccountPrefix(commands.Cog):
             log.exception("Failed to delete user data")
             await safe_send_ctx(ctx, "Failed to delete profile.")
 
+    @account.command(name="settings")
+    async def account_settings(self, ctx):
+        """Show your current saved profile settings (editable fields)."""
+        if not await self._require_parent(ctx):
+            return
+        users = ensure_user_manager(self.parent)
+        try:
+            profile = users.get_profile(ctx.author.id) or {}
+            settings = {k: profile.get(k) for k in ALLOWED_PROFILE_FIELDS.keys()}
+            await safe_send_ctx(ctx, f"Your settings: ```json\n{settings}\n```")
+        except Exception:
+            log.exception("Failed to fetch settings")
+            await safe_send_ctx(ctx, "Failed to fetch settings.")
+
     @account.group(name="privacy", invoke_without_command=True)
     async def account_privacy(self, ctx):
         await safe_send_ctx(ctx, "Privacy commands: mode, allow_guild, revoke_guild")
@@ -242,6 +279,9 @@ class AccountPrefix(commands.Cog):
             await safe_send_ctx(ctx, "Failed to update privacy settings.")
 
 
+# -------------------------
+# Registrar wrappers
+# -------------------------
 def register_with_group(group: commands.Group, parent_getter: Callable[[], Any]):
     """
     Attach account prefix commands to the provided `group`.
@@ -260,8 +300,9 @@ def register_with_group(group: commands.Group, parent_getter: Callable[[], Any])
             return func
         return _decorator
 
+    # info alias for view
     @_safe_add("info")
-    async def _view(ctx, member: Optional[Any] = None):
+    async def _info(ctx, member: Optional[Any] = None):
         parent = parent_getter()
         if not parent:
             await safe_send_ctx(ctx, "MCOC core not attached; account unavailable.")
@@ -269,49 +310,79 @@ def register_with_group(group: commands.Group, parent_getter: Callable[[], Any])
         users = ensure_user_manager(parent)
         try:
             target = ctx.author.id if member is None else getattr(member, "id", member)
-            profile = users.get_profile(int(target))
+            profile = users.get_profile(int(target)) or {}
             await safe_send_ctx(ctx, f"Profile: ```json\n{profile}\n```")
         except Exception:
             await safe_send_ctx(ctx, "Failed to fetch profile.")
 
+    # view (alias)
     @_safe_add("view")
-    async def _view_alias(ctx, member: Optional[Any] = None):
-        await _view(ctx, member)
+    async def _view(ctx, member: Optional[Any] = None):
+        parent = parent_getter()
+        if not parent:
+            await safe_send_ctx(ctx, "MCOC core not attached; account unavailable.")
+            return
+        users = ensure_user_manager(parent)
+        try:
+            target_id = ctx.author.id if member is None else getattr(member, "id", member)
+            profile = users.get_profile(int(target_id))
+            if not profile:
+                await safe_send_ctx(ctx, "No profile found.")
+                return
+            # redact based on privacy
+            viewer_id = ctx.author.id
+            if int(target_id) != viewer_id:
+                mode = profile.get("privacy_mode", "private")
+                if mode == "private":
+                    public = {k: v for k, v in profile.items() if k in ("display_name", "roster_public")}
+                    await safe_send_ctx(ctx, f"Profile (limited): ```json\n{public}\n```")
+                    return
+            await safe_send_ctx(ctx, f"Profile: ```json\n{profile}\n```")
+        except Exception:
+            await safe_send_ctx(ctx, "Failed to fetch profile.")
 
-# inside account register_with_group (use same _safe_add decorator)
     @_safe_add("set")
     async def _set(ctx, field: str, *, value: str):
+        """Set a profile field. Allowed: mcoc_id, display_name, roster_public, privacy_mode, notes."""
         parent = parent_getter()
         if not parent:
             await safe_send_ctx(ctx, "MCOC core not attached; account unavailable.")
             return
-        if not validate_profile_field(field):
+        field = field.strip()
+        if field not in ALLOWED_PROFILE_FIELDS:
             await safe_send_ctx(ctx, "Invalid field. Allowed: " + ", ".join(sorted(ALLOWED_PROFILE_FIELDS.keys())))
             return
+        # normalize booleans and enums
+        if isinstance(ALLOWED_PROFILE_FIELDS[field], dict) and ALLOWED_PROFILE_FIELDS[field].get("type") == "bool":
+            val = str(value).strip().lower() in ("1", "true", "yes", "on")
+        elif field == "privacy_mode":
+            val = str(value).strip().lower()
+            if val not in ("private", "guild", "alliance", "public"):
+                await safe_send_ctx(ctx, "Invalid privacy_mode. Allowed: private, guild, alliance, public.")
+                return
+        else:
+            val = value.strip()
         users = ensure_user_manager(parent)
         try:
-            users.set_profile_field(ctx.author.id, field, value)
-            await safe_send_ctx(ctx, f"Set **{field}** to `{value}`.")
+            users.set_profile_field(ctx.author.id, field, val)
+            await safe_send_ctx(ctx, f"Set **{field}** to `{val}`.")
         except Exception:
-            await safe_send_ctx(ctx, "Failed to update profile.")
+            await safe_send_ctx(ctx, "Failed to set profile field.")
 
-    @_safe_add("delete")
-    async def _delete(ctx):
+    @_safe_add("settings")
+    async def _settings(ctx):
+        """Show your current saved profile settings (editable fields)."""
         parent = parent_getter()
         if not parent:
             await safe_send_ctx(ctx, "MCOC core not attached; account unavailable.")
             return
         users = ensure_user_manager(parent)
         try:
-            prompt = "Are you sure you want to delete your profile and roster? Reply with `yes` to confirm."
-            confirmed, _ = await PagesMenu.confirm(ctx.bot, ctx, prompt, timeout=20.0)
-            if not confirmed:
-                await safe_send_ctx(ctx, "Deletion cancelled.")
-                return
-            users.delete_user(ctx.author.id)
-            await safe_send_ctx(ctx, "Deleted your profile.")
+            profile = users.get_profile(ctx.author.id) or {}
+            settings = {k: profile.get(k) for k in ALLOWED_PROFILE_FIELDS.keys()}
+            await safe_send_ctx(ctx, f"Your settings: ```json\n{settings}\n```")
         except Exception:
-            await safe_send_ctx(ctx, "Failed to delete profile.")
+            await safe_send_ctx(ctx, "Failed to fetch settings.")
 
     @_safe_add("link")
     async def _link(ctx, mcoc_id: Optional[str] = None):
@@ -367,7 +438,7 @@ def register_with_group(group: commands.Group, parent_getter: Callable[[], Any])
     async def _privacy_group(ctx):
         await safe_send_ctx(ctx, "Privacy commands: mode, allow_guild, revoke_guild")
 
-    @_safe_add("mode")
+    @_safe_add("privacy mode")
     async def _privacy_mode(ctx, mode: str):
         parent = parent_getter()
         if not parent:
@@ -380,7 +451,7 @@ def register_with_group(group: commands.Group, parent_getter: Callable[[], Any])
         except Exception:
             await safe_send_ctx(ctx, "Failed to update privacy settings.")
 
-    @_safe_add("allow_guild")
+    @_safe_add("privacy allow_guild")
     async def _privacy_allow(ctx, guild_id: int):
         parent = parent_getter()
         if not parent:
@@ -393,7 +464,7 @@ def register_with_group(group: commands.Group, parent_getter: Callable[[], Any])
         except Exception:
             await safe_send_ctx(ctx, "Failed to update privacy settings.")
 
-    @_safe_add("revoke_guild")
+    @_safe_add("privacy revoke_guild")
     async def _privacy_revoke(ctx, guild_id: int):
         parent = parent_getter()
         if not parent:
@@ -405,3 +476,5 @@ def register_with_group(group: commands.Group, parent_getter: Callable[[], Any])
             await safe_send_ctx(ctx, f"Revoked sharing with guild `{guild_id}`.")
         except Exception:
             await safe_send_ctx(ctx, "Failed to update privacy settings.")
+
+    log.debug("Account registrar attached to group")
