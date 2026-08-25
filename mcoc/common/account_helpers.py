@@ -5,19 +5,58 @@ from typing import Dict, Any, Tuple, Optional
 log = logging.getLogger("red.mcoc.account_helpers")
 
 # Public metadata for profile fields (used by account_prefix help)
-ALLOWED_PROFILE_FIELDS: Dict[str, str] = {
-    "mcoc_name": "In-game player name",
-    "mcoc_id": "In-game numeric id",
-    "website": "Personal website or profile URL",
-    "invite": "Alliance invite link or code",
-    "timezone": "Timezone (e.g., America/Chicago)",
-    "alliance": "Alliance name",
-    "job": "Short job/role text",
+# common/account_helpers.py
+
+ALLOWED_PROFILE_FIELDS = {
+    "display_name": {"type": "str", "desc": "Preferred display name"},
+    "mcoc_name": {"type": "str", "desc": "In-game username"},
+    "mcoc_id": {"type": "str", "desc": "In-game id/slug"},
+    "website": {"type": "str", "desc": "Personal website"},
+    "invite": {"type": "str", "desc": "Recruiter/invite link"},
+    "timezone": {"type": "str", "desc": "Timezone"},
+    "alliance": {"type": "str", "desc": "Alliance name"},
+    "job": {"type": "str", "desc": "Job/role"},
+    "age": {"type": "str", "desc": "Age or birth year"},
+    "gender": {"type": "str", "desc": "Gender"},
+    "about": {"type": "str", "desc": "Short bio or notes"},
+    "mastery": {"type": "str", "desc": "Mastery build or link"},
+    "started": {"type": "str", "desc": "Playing since (ISO date)"},
+    "roster_public": {"type": "bool", "desc": "Make roster visible to guild"},
+    "privacy_mode": {"type": "str", "desc": "private|guild|alliance|public"},
+    "linked": {"type": "bool", "desc": "Account linked flag"},
+    "prestige_map": {"type": "dict", "desc": "Persisted prestige per champ"},
+    "top5": {"type": "list", "desc": "Cached top 5 champion names"},
+}
+
+# user-visible -> stored key
+FIELD_CANONICAL = {
+    "display_name": "mcoc_name",
+    "mcoc_name": "mcoc_name",
+    "mcoc_id": "mcoc_id",
+    "website": "website",
+    "invite": "invite",
+    "timezone": "timezone",
+    "alliance": "alliance",
+    "job": "job",
+    "age": "age",
+    "gender": "gender",
+    "about": "about",
+    "notes": "about",
+    "mastery": "mastery",
+    "started": "started",
+    "roster_public": "roster_public",
+    "privacy_mode": "privacy_mode",
+    "linked": "linked",
+    "prestige_map": "prestige_map",
+    "top5": "top5",
 }
 
 def validate_profile_field(field: str) -> bool:
-    """Return True if the field is allowed to be set by users."""
-    return field in ALLOWED_PROFILE_FIELDS
+    key = field.strip()
+    return key in FIELD_CANONICAL.keys() or key in set(FIELD_CANONICAL.values())
+
+def get_profile_settings(profile: dict) -> dict:
+    return {user_field: profile.get(stored_key) for user_field, stored_key in FIELD_CANONICAL.items()}
 
 import discord
 import datetime

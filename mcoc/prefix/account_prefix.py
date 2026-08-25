@@ -12,6 +12,7 @@ from ..common.roster_helpers import _ensure_hook_registered
 from ..common.prefix_utils import get_runtime_prefix
 from ..common.account_helpers import (
     ALLOWED_PROFILE_FIELDS,
+    FIELD_CANONICAL,
     format_profile_embed,
     validate_profile_field,
     link_account as helper_link_account,
@@ -22,29 +23,6 @@ from ..common.account_helpers import (
 from ..common.pagination import PagesMenu
 
 ACCOUNT_GROUP_HELP = "Account commands: info, view, set, link, unlink, delete, privacy, settings"
-
-# canonical field mapping: external name -> stored key
-FIELD_CANONICAL = {
-    "mcoc_name": "mcoc_name",
-    "mcoc_id": "mcoc_id",
-    "linked": "linked",
-    "prestige_map": "prestige_map",
-    "top5": "top5",
-    "website": "website",
-    "invite": "invite",
-    "timezone": "timezone",
-    "alliance": "alliance",
-    "job": "job",
-    "age": "age",
-    "gender": "gender",
-    "about": "about",
-    "mastery": "mastery",
-    "started": "started",
-    "created_at": "created_at",
-    "updated_at": "updated_at",
-}
-
-
 
 class AccountPrefix(commands.Cog):
     """
@@ -494,7 +472,6 @@ def register_with_group(group: commands.Group, parent_getter: Callable[[], Any])
         except Exception:
             await safe_send_ctx(ctx, "Failed to fetch profile.")
 
-    # view (alias)
     @_safe_add("view")
     async def _view(ctx, member: Optional[Any] = None):
         parent = parent_getter()
@@ -502,50 +479,67 @@ def register_with_group(group: commands.Group, parent_getter: Callable[[], Any])
             await safe_send_ctx(ctx, "MCOC core not attached; account unavailable.")
             return
         users = ensure_user_manager(parent)
+
+        # resolve target id
         try:
             target_id = ctx.author.id if member is None else getattr(member, "id", member)
-            profile = users.get_profile(int(target_id))
-            if not profile:
-                await safe_send_ctx(ctx, "No profile found.")
-                return
-            # redact based on privacy
-            viewer_id = ctx.author.id
-            if int(target_id) != viewer_id:
-                mode = profile.get("privacy_mode", "private")
-                if mode == "private":
-                    public = {k: v for k, v in profile.items() if k in ("display_name", "roster_public")}
-                    await safe_send_ctx(ctx, f"Profile (limited): ```json\n{public}\n```")
-                    return
-            await safe_send_ctx(ctx, f"Profile: ```json\n{profile}\n```")
+            target_id = int(target_id)
         except Exception:
-            await safe_send_ctx(ctx, "Failed to fetch profile.")
+            await safe_send_ctx(ctx, "Invalid user specified.")
+            return
+
+        profile = users.get_profile(int(target_id)) or {}
+        if not profile:
+            await safe_send_ctx(ctx, "No profile found.")
+            return
+
+        # Prefer embed formatting via shared helper
+        try:
+            emb = format_profile_embed(ctx, profile, member)
+            await ctx.send(embed=emb)
+            return
+        except Exception:
+            # fallback to stable text output (canonical keys)
+            settings = {user_field: profile.get(stored_key) for user_field, stored_key in FIELD_CANONICAL.items()}
+            await safe_send_ctx(ctx, f"Profile: ```json\n{settings}\n```")
 
     @_safe_add("set")
     async def _set(ctx, field: str, *, value: str):
-        """Set a profile field. Allowed: mcoc_id, display_name, roster_public, privacy_mode, notes."""
+        """Set a profile field. Allowed: see ///mcoc account help"""
         parent = parent_getter()
         if not parent:
             await safe_send_ctx(ctx, "MCOC core not attached; account unavailable.")
             return
-        field = field.strip()
-        if field not in ALLOWED_PROFILE_FIELDS:
+
+        field = (field or "").strip()
+        # validate against user-visible allowed fields
+        if not validate_profile_field(field):
             await safe_send_ctx(ctx, "Invalid field. Allowed: " + ", ".join(sorted(ALLOWED_PROFILE_FIELDS.keys())))
             return
-        # normalize booleans and enums
-        if isinstance(ALLOWED_PROFILE_FIELDS[field], dict) and ALLOWED_PROFILE_FIELDS[field].get("type") == "bool":
-            val = str(value).strip().lower() in ("1", "true", "yes", "on")
-        elif field == "privacy_mode":
-            val = str(value).strip().lower()
-            if val not in ("private", "guild", "alliance", "public"):
-                await safe_send_ctx(ctx, "Invalid privacy_mode. Allowed: private, guild, alliance, public.")
-                return
-        else:
+
+        # normalize booleans and enums using ALLOWED_PROFILE_FIELDS metadata if available
+        meta = ALLOWED_PROFILE_FIELDS.get(field, {})
+        try:
+            if isinstance(meta, dict) and meta.get("type") == "bool":
+                val = str(value).strip().lower() in ("1", "true", "yes", "on")
+            elif field == "privacy_mode":
+                val = str(value).strip().lower()
+                if val not in ("private", "guild", "alliance", "public"):
+                    await safe_send_ctx(ctx, "Invalid privacy_mode. Allowed: private, guild, alliance, public.")
+                    return
+            else:
+                val = value.strip()
+        except Exception:
             val = value.strip()
+
         users = ensure_user_manager(parent)
         try:
-            users.set_profile_field(ctx.author.id, field, val)
+            # map user-visible field to stored key
+            stored_key = FIELD_CANONICAL.get(field, field)
+            users.set_profile_field(ctx.author.id, stored_key, val)
             await safe_send_ctx(ctx, f"Set **{field}** to `{val}`.")
         except Exception:
+            log.exception("Failed to set profile field")
             await safe_send_ctx(ctx, "Failed to set profile field.")
 
     @_safe_add("settings")
@@ -558,9 +552,11 @@ def register_with_group(group: commands.Group, parent_getter: Callable[[], Any])
         users = ensure_user_manager(parent)
         try:
             profile = users.get_profile(ctx.author.id) or {}
-            settings = {k: profile.get(k) for k in ALLOWED_PROFILE_FIELDS.keys()}
+            # present user-visible keys mapped to stored keys
+            settings = {user_field: profile.get(stored_key) for user_field, stored_key in FIELD_CANONICAL.items()}
             await safe_send_ctx(ctx, f"Your settings: ```json\n{settings}\n```")
         except Exception:
+            log.exception("Failed to fetch settings")
             await safe_send_ctx(ctx, "Failed to fetch settings.")
 
     @_safe_add("link")
