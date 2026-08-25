@@ -34,6 +34,7 @@ class MCOCPrefix(commands.Cog):
 
         # core may not be loaded yet; attach later
         self.parent = getattr(bot, "mcoc_core", None) or bot.get_cog("MCOC")
+        self._registrars_attached = set()
 
         # attempt registrar attach now
         try:
@@ -55,9 +56,6 @@ class MCOCPrefix(commands.Cog):
         Return the core cog if available.
         """
         return getattr(self, "parent", None) or self.bot.get_cog("MCOC")
-
-    # in __init__
-    self._registrars_attached = set()
 
     # replace _attach_registrars with this variant
     def _attach_registrars(self):
