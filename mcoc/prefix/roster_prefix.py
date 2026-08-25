@@ -227,24 +227,26 @@ class RosterPrefix(commands.Cog):
         await ctx.send("Your roster has been cleared.")
 
 
-# Registrar: attach these commands under another group (e.g., ///mcoc roster)
 def register_with_group(group: commands.Group, parent_getter):
     """
     Attach roster prefix commands to the provided `group`.
     parent_getter is a callable returning the core/parent object (or None).
     """
 
-
-    def _safe_add(cmd_name, func):
-        try:
-            if group.get_command(cmd_name):
-                log.debug("Command %s already exists; skipping", cmd_name)
-                return
-        except Exception:
-            pass
-        group.command(name=cmd_name)(func)
+    def _safe_add(cmd_name):
+        def _decorator(func):
+            try:
+                if group.get_command(cmd_name):
+                    log.debug("Command %s already exists; skipping", cmd_name)
+                    return func
+            except Exception:
+                pass
+            group.command(name=cmd_name)(func)
+            return func
+        return _decorator
 
     # add
+    @_safe_add("add")
     async def _add(ctx, champion: str, *, hargs: str):
         parent = parent_getter()
         if not parent:
@@ -293,9 +295,8 @@ def register_with_group(group: commands.Group, parent_getter):
 
         await ctx.send(f"Added **{champ.get('name','Unknown')}** to your roster.", embed=embed)
 
-    _safe_add(cmd_name="add", func=_add)
-
     # remove
+    @_safe_add("remove")
     async def _remove(ctx, champion: str, *, hargs: Optional[str] = None):
         parent = parent_getter()
         if not parent:
@@ -318,9 +319,8 @@ def register_with_group(group: commands.Group, parent_getter):
         else:
             await ctx.send(f"Removed {removed} entries for `{champion}`.")
 
-    _safe_add(cmd_name="remove", func=_remove)
-
     # update
+    @_safe_add("update")
     async def _update(ctx, champion: str, *, hargs: str):
         parent = parent_getter()
         if not parent:
@@ -368,9 +368,8 @@ def register_with_group(group: commands.Group, parent_getter):
 
         await ctx.send(f"Updated **{champ.get('name','Unknown') if champ else champion}**.", embed=embed)
 
-    _safe_add(cmd_name="update", func=_update)
-
     # list
+    @_safe_add("list")
     async def _list(ctx, *, hargs: Optional[str] = None):
         parent = parent_getter()
         if not parent:
@@ -396,9 +395,8 @@ def register_with_group(group: commands.Group, parent_getter):
             names = [p.get("title") or "Entry" for p in pages][:50]
             await ctx.send(f"Matches ({len(pages)}): {', '.join(names)}")
 
-    _safe_add(cmd_name="list", func=_list)
-
     # export
+    @_safe_add("export")
     async def _export(ctx):
         parent = parent_getter()
         if not parent:
@@ -408,9 +406,8 @@ def register_with_group(group: commands.Group, parent_getter):
         data = users.export(ctx.author.id) if users else {}
         await ctx.send(f"Your roster data:\n```json\n{data}\n```")
 
-    _safe_add(cmd_name="export", func=_export)
-
     # clear
+    @_safe_add("clear")
     async def _clear(ctx):
         parent = parent_getter()
         if not parent:
@@ -420,15 +417,3 @@ def register_with_group(group: commands.Group, parent_getter):
         if users:
             users.delete_user(ctx.author.id)
         await ctx.send("Your roster has been cleared.")
-
-    _safe_add(cmd_name="clear", func=_clear)
-
-
-# Note: if you want this file to register a standalone RosterPrefix cog (top-level ///roster),
-# keep the setup below. If you prefer only to attach these commands under ///mcoc roster via
-# register_with_group, remove or comment out the setup so Red does not create a separate ///roster.
-# async def setup(bot):
-#     try:
-#         await bot.add_cog(RosterPrefix(bot))
-#     except Exception:
-#         log.exception("Failed to add RosterPrefix")

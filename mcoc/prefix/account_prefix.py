@@ -242,24 +242,25 @@ class AccountPrefix(commands.Cog):
             await safe_send_ctx(ctx, "Failed to update privacy settings.")
 
 
-# Optional: register these commands under another group (e.g., ///mcoc account)
 def register_with_group(group: commands.Group, parent_getter: Callable[[], Any]):
     """
     Attach account prefix commands to the provided `group`.
     parent_getter is a callable returning the core/parent object (or None).
     """
 
-    def _safe_add(cmd_name: str, func: Callable):
-        try:
-            if group.get_command(cmd_name):
-                log.debug("Command %s already exists; skipping", cmd_name)
-                return
-        except Exception:
-            pass
-        # Use group.command decorator to attach the function as a subcommand
-        group.command(name=cmd_name)(func)
+    def _safe_add(cmd_name: str):
+        def _decorator(func):
+            try:
+                if group.get_command(cmd_name):
+                    log.debug("Command %s already exists; skipping", cmd_name)
+                    return func
+            except Exception:
+                pass
+            group.command(name=cmd_name)(func)
+            return func
+        return _decorator
 
-    # wrappers reuse the same logic as the Cog methods but are thin and safe
+    @_safe_add("info")
     async def _view(ctx, member: Optional[Any] = None):
         parent = parent_getter()
         if not parent:
@@ -273,6 +274,11 @@ def register_with_group(group: commands.Group, parent_getter: Callable[[], Any])
         except Exception:
             await safe_send_ctx(ctx, "Failed to fetch profile.")
 
+    @_safe_add("view")
+    async def _view_alias(ctx, member: Optional[Any] = None):
+        await _view(ctx, member)
+
+    @_safe_add("set")
     async def _set(ctx, field: str, *, value: str):
         parent = parent_getter()
         if not parent:
@@ -288,6 +294,7 @@ def register_with_group(group: commands.Group, parent_getter: Callable[[], Any])
         except Exception:
             await safe_send_ctx(ctx, "Failed to set profile field.")
 
+    @_safe_add("link")
     async def _link(ctx, mcoc_id: Optional[str] = None):
         parent = parent_getter()
         if not parent:
@@ -305,6 +312,7 @@ def register_with_group(group: commands.Group, parent_getter: Callable[[], Any])
         except Exception:
             await safe_send_ctx(ctx, "Failed to link account.")
 
+    @_safe_add("unlink")
     async def _unlink(ctx):
         parent = parent_getter()
         if not parent:
@@ -318,6 +326,7 @@ def register_with_group(group: commands.Group, parent_getter: Callable[[], Any])
         except Exception:
             await safe_send_ctx(ctx, "Failed to unlink account.")
 
+    @_safe_add("delete")
     async def _delete(ctx):
         parent = parent_getter()
         if not parent:
@@ -335,6 +344,11 @@ def register_with_group(group: commands.Group, parent_getter: Callable[[], Any])
         except Exception:
             await safe_send_ctx(ctx, "Failed to delete profile.")
 
+    @_safe_add("privacy")
+    async def _privacy_group(ctx):
+        await safe_send_ctx(ctx, "Privacy commands: mode, allow_guild, revoke_guild")
+
+    @_safe_add("mode")
     async def _privacy_mode(ctx, mode: str):
         parent = parent_getter()
         if not parent:
@@ -347,6 +361,7 @@ def register_with_group(group: commands.Group, parent_getter: Callable[[], Any])
         except Exception:
             await safe_send_ctx(ctx, "Failed to update privacy settings.")
 
+    @_safe_add("allow_guild")
     async def _privacy_allow(ctx, guild_id: int):
         parent = parent_getter()
         if not parent:
@@ -359,6 +374,7 @@ def register_with_group(group: commands.Group, parent_getter: Callable[[], Any])
         except Exception:
             await safe_send_ctx(ctx, "Failed to update privacy settings.")
 
+    @_safe_add("revoke_guild")
     async def _privacy_revoke(ctx, guild_id: int):
         parent = parent_getter()
         if not parent:
@@ -370,16 +386,3 @@ def register_with_group(group: commands.Group, parent_getter: Callable[[], Any])
             await safe_send_ctx(ctx, f"Revoked sharing with guild `{guild_id}`.")
         except Exception:
             await safe_send_ctx(ctx, "Failed to update privacy settings.")
-
-    # register commands
-    _safe_add("info", _view)
-    _safe_add("view", _view)
-    _safe_add("set", _set)
-    _safe_add("link", _link)
-    _safe_add("unlink", _unlink)
-    _safe_add("delete", _delete)
-    # privacy subgroup
-    _safe_add("privacy", lambda ctx: safe_send_ctx(ctx, "Privacy commands: mode, allow_guild, revoke_guild"))
-    _safe_add("mode", _privacy_mode)
-    _safe_add("allow_guild", _privacy_allow)
-    _safe_add("revoke_guild", _privacy_revoke)

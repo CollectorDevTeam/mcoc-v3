@@ -574,15 +574,21 @@ def register_with_group(group: commands.Group, parent_getter):
     Attach alliance prefix commands to the provided `group`.
     parent_getter is a callable returning the core/parent object (or None).
     """
-    def _safe_add(cmd_name, func):
-        try:
-            if group.get_command(cmd_name):
-                return
-        except Exception:
-            pass
-        group.command(name=cmd_name)(func)
+
+    def _safe_add(cmd_name):
+        def _decorator(func):
+            try:
+                if group.get_command(cmd_name):
+                    log.debug("Command %s already exists; skipping", cmd_name)
+                    return func
+            except Exception:
+                pass
+            group.command(name=cmd_name)(func)
+            return func
+        return _decorator
 
     # wrappers reuse the alliance_helpers API
+    @_safe_add("info")
     async def _info(ctx):
         parent = parent_getter()
         if not parent:
@@ -603,8 +609,7 @@ def register_with_group(group: commands.Group, parent_getter):
             lines.append(f"**About**: {info.get('about')}")
         await ctx.send("\n".join(lines))
 
-    _safe_add("info", _info)
-
+    @_safe_add("create")
     async def _create(ctx, type_: str, *, name: str):
         parent = parent_getter()
         if not parent:
@@ -614,8 +619,7 @@ def register_with_group(group: commands.Group, parent_getter):
         ok = await register_alliance(ctx.guild, name, type_=type_)
         await ctx.send(f"Alliance **{name}** registered." if ok else "Failed to register alliance.")
 
-    _safe_add("create", _create)
-
+    @_safe_add("join")
     async def _join(ctx):
         parent = parent_getter()
         if not parent:
@@ -625,8 +629,7 @@ def register_with_group(group: commands.Group, parent_getter):
         ok, msg = await join_alliance(ctx.author, ctx.guild, role_key="members")
         await ctx.send(msg)
 
-    _safe_add("join", _join)
-
+    @_safe_add("leave")
     async def _leave(ctx):
         parent = parent_getter()
         if not parent:
@@ -636,8 +639,7 @@ def register_with_group(group: commands.Group, parent_getter):
         ok, msg = await leave_alliance(ctx.author, ctx.guild)
         await ctx.send(msg)
 
-    _safe_add("leave", _leave)
-
+    @_safe_add("settings")
     async def _settings(ctx):
         parent = parent_getter()
         if not parent:
@@ -654,5 +656,3 @@ def register_with_group(group: commands.Group, parent_getter):
         for k, v in roles.items():
             lines.append(f"{k}: {v.get('name') if isinstance(v, dict) else v}")
         await ctx.send("\n".join(lines))
-
-    _safe_add("settings", _settings)

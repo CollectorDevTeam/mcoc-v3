@@ -228,7 +228,6 @@ class ChampionsPrefix(commands.Cog):
             await safe_send_ctx(ctx, "Failed to calculate stats.")
 
 
-# Registrar: attach these commands under another group (e.g., ///mcoc champ)
 def register_with_group(group: commands.Group, parent_getter):
     """
     Attach champion prefix commands to the provided `group` (a commands.Group).
@@ -238,17 +237,20 @@ def register_with_group(group: commands.Group, parent_getter):
     # local imports for embed builders (keeps module import light)
     from ..common.embeds import champion_embed, abilities_embed, synergy_embed, tag_list_embed
 
+    def _safe_add(cmd_name):
+        def _decorator(func):
+            try:
+                if group.get_command(cmd_name):
+                    log.debug("Command %s already exists; skipping", cmd_name)
+                    return func
+            except Exception:
+                pass
+            group.command(name=cmd_name)(func)
+            return func
+        return _decorator
 
-    def _safe_add(cmd_name, func):
-        try:
-            if group.get_command(cmd_name):
-                log.debug("Command %s already exists; skipping", cmd_name)
-                return
-        except Exception:
-            pass
-        group.command(name=cmd_name)(func)
-        
     # info
+    @_safe_add("info")
     async def _info(ctx, *, champion: str):
         parent = parent_getter()
         if not parent:
@@ -266,9 +268,8 @@ def register_with_group(group: commands.Group, parent_getter):
             log.exception("register info failed")
             await ctx.send(champ.get("name", "Unknown"))
 
-    _safe_add(cmd_name="info", func=_info)
-
     # abilities
+    @_safe_add("abilities")
     async def _abilities(ctx, *, champion: str):
         parent = parent_getter()
         if not parent:
@@ -286,9 +287,8 @@ def register_with_group(group: commands.Group, parent_getter):
             log.exception("register abilities failed")
             await ctx.send("Abilities unavailable.")
 
-    _safe_add(cmd_name="abilities", func=_abilities)
-
     # synergies
+    @_safe_add("synergies")
     async def _synergies(ctx, *, champion: str):
         parent = parent_getter()
         if not parent:
@@ -307,9 +307,8 @@ def register_with_group(group: commands.Group, parent_getter):
             log.exception("register synergies failed")
             await ctx.send("Synergies unavailable.")
 
-    _safe_add(cmd_name="synergies", func=_synergies)
-
     # tags
+    @_safe_add("tags")
     async def _tags(ctx, *, tag: str):
         parent = parent_getter()
         if not parent:
@@ -328,9 +327,8 @@ def register_with_group(group: commands.Group, parent_getter):
             log.exception("register tags failed")
             await ctx.send(f"{len(matches)} champions found for tag `{tag}`.")
 
-    _safe_add(cmd_name="tags", func=_tags)
-
     # search (simple)
+    @_safe_add("search")
     async def _search(ctx, *, query: str):
         parent = parent_getter()
         if not parent:
@@ -352,9 +350,8 @@ def register_with_group(group: commands.Group, parent_getter):
         names = [r.get("name", "Unknown") for r in results][:20]
         await ctx.send(f"Matches ({len(results)}): {', '.join(names)}")
 
-    _safe_add(cmd_name="search", func=_search)
-
     # calcstats (simple wrapper)
+    @_safe_add("calcstats")
     async def _calcstats(ctx, champion: str, rarity: Optional[int] = None, rank: Optional[int] = None, sig: Optional[int] = None, ascended: int = 0, use_roster: bool = False):
         parent = parent_getter()
         if not parent:
@@ -410,15 +407,3 @@ def register_with_group(group: commands.Group, parent_getter):
         except Exception:
             log.exception("register calcstats failed")
             await ctx.send("Failed to calculate stats.")
-
-
-# Note: remove or comment out the module-level setup if you do not want this file
-# to register a standalone ChampionsPrefix cog (which would create a top-level ///champ).
-# If you still want the standalone cog for testing, keep the setup below; otherwise
-# remove it to avoid duplicate top-level commands.
-
-# async def setup(bot):
-#     try:
-#         await bot.add_cog(ChampionsPrefix(bot))
-#     except Exception:
-#         log.exception("Failed to add ChampionsPrefix")
