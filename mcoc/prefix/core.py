@@ -1,6 +1,7 @@
 # mcoc/prefix/core.py
 import logging
 from typing import Any
+import importlib
 from redbot.core import commands
 
 log = logging.getLogger("red.mcoc.prefix.core")
@@ -57,16 +58,23 @@ class MCOCPrefix(commands.Cog):
         """
         return getattr(self, "parent", None) or self.bot.get_cog("MCOC")
 
-    # replace _attach_registrars with this variant
+
+
+    # inside MCOCPrefix.__init__ (ensure this exists)
+    # self._registrars_attached = set()
+
     def _attach_registrars(self):
         parent_getter = lambda: self._ensure_parent()
 
         def _try_attach(name: str, importer_path: str, group_attr: str):
-            if name in self._registrars_attached:
+            # already attached? skip
+            if name in getattr(self, "_registrars_attached", set()):
                 log.debug("Registrar %s already attached; skipping", name)
                 return
+
             try:
-                module = __import__(importer_path, fromlist=["register_with_group"])
+                # Use importlib.import_module with package context so relative imports work
+                module = importlib.import_module(importer_path, package=__package__)
                 reg = getattr(module, "register_with_group", None)
                 if not reg:
                     log.debug("Registrar %s has no register_with_group; skipping", name)
@@ -80,13 +88,14 @@ class MCOCPrefix(commands.Cog):
                     self._registrars_attached.add(name)
                     log.debug("Attached %s registrar to ///mcoc %s", name, group_attr)
                 except Exception:
-                    # registrar-level exceptions are expected if something inside fails;
-                    # keep stacktrace for unexpected errors but don't spam on expected collisions
                     log.exception("Failed to attach %s registrar", name)
+            except ModuleNotFoundError:
+                # Optional registrars may not exist in some installs; log at debug to reduce noise
+                log.debug("Registrar module %s not found (optional); skipping", importer_path)
             except Exception:
                 log.exception("Failed to import registrar module for %s", name)
 
-        # call for each registrar (module import path, attribute name)
+        # call for each registrar (use relative module paths because core.py is in mcoc.prefix)
         _try_attach("account", ".account_prefix", "account")
         _try_attach("alliance", ".alliance_prefix", "alliance")
         _try_attach("champions", ".champions_prefix", "champ")
