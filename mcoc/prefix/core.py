@@ -39,7 +39,7 @@ class MCOCPrefix(commands.Cog):
         try:
             self._attach_registrars()
         except Exception:
-            log.debug("Initial registrar attach failed; will retry in cog_load", exc_info=True)
+            log.exception("Initial registrar attach failed; will retry in cog_load")
 
     async def cog_load(self):
         # refresh core reference
@@ -59,6 +59,8 @@ class MCOCPrefix(commands.Cog):
     def _attach_registrars(self):
         """
         Attach champion, roster, alliance, and admin registrars to their mcoc subgroups.
+        This method is safe to call multiple times; it will attempt to register optional
+        prefix modules and will log full exceptions if they fail.
         """
 
         parent_getter = lambda: self._ensure_parent()
@@ -72,7 +74,8 @@ class MCOCPrefix(commands.Cog):
             reg_account(account_group, parent_getter)
             log.debug("Attached account registrar to ///mcoc account")
         except Exception:
-            log.debug("Account registrar not present (optional)")
+            # log full exception so import/runtime errors are visible
+            log.exception("Account registrar failed to attach (optional)")
 
         # --------------------------
         # ALLIANCE (optional)
@@ -83,7 +86,7 @@ class MCOCPrefix(commands.Cog):
             reg_alliance(alliance_group, parent_getter)
             log.debug("Attached alliance registrar to ///mcoc alliance")
         except Exception:
-            log.debug("Alliance registrar not present (optional)")
+            log.exception("Alliance registrar failed to attach (optional)")
 
         # --------------------------
         # CHAMPIONS
@@ -116,7 +119,7 @@ class MCOCPrefix(commands.Cog):
             reg_admin(admin_group, parent_getter)
             log.debug("Attached admin registrar to ///mcoc admin")
         except Exception:
-            log.debug("Admin registrar not present (optional)")
+            log.exception("Admin registrar failed to attach (optional)")
 
     # ============================================================
     # TOP-LEVEL GROUP
