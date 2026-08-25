@@ -1,6 +1,6 @@
 # mcoc/hargs.py
 import re
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional, Tuple
 
 # Patterns accept both '*' and '★' for rarity and allow ranges like 1-3
 RARITY_RE = re.compile(r"(?P<rarity>\d(?:-\d)?)\s*(?:\*|★)")
@@ -16,6 +16,22 @@ CLASSES = {"skill", "mutant", "tech", "cosmic", "mystic", "science", "all"}
 INLINE_HARGS_RE = re.compile(
     r"(?P<stars>[1-9])[\*\s★]?[sS]?[\*\s]?[rR]?(?P<rank>\d{1,2})(?:[sS](?P<sig>\d{1,4}))?(?:[aA](?P<asc>\d))?"
 )
+
+# New, more flexible component regexes for single-token Hargs parsing
+# Note: SIG_RE2 looks for 's' followed by digits (signature). We intentionally
+# match signature first to avoid confusing a bare 's' star marker with signature.
+SIG_RE2 = re.compile(r"s(?P<sig>\d{1,3})", re.IGNORECASE)
+ASC_RE2 = re.compile(r"A(?P<asc>\d)", re.IGNORECASE)
+RANK_RE2 = re.compile(r"r(?P<rank>[1-5])", re.IGNORECASE)
+# Rarity digit 1-7; may be followed by '*' or '★' or a bare 's' (star marker).
+RARITY_DIGIT_RE = re.compile(r"(?P<rarity>[1-7])(?:\*|★)?")
+
+# Defaults for harg parsing (as requested)
+DEFAULT_RARITY = 6
+DEFAULT_RANK = 1
+DEFAULT_ASCENDED = 1
+DEFAULT_SIG = 0
+
 
 def _expand_range_token(tok: str) -> List[int]:
     """Expand a token like '1-3' into [1,2,3] or single number into [n]."""
@@ -33,6 +49,7 @@ def _expand_range_token(tok: str) -> List[int]:
         return [int(tok)]
     except Exception:
         return []
+
 
 def _tokenize_preserving_quotes(text: str) -> List[str]:
     """
@@ -76,6 +93,163 @@ def _tokenize_preserving_quotes(text: str) -> List[str]:
         tokens.append("".join(cur).strip())
     return tokens
 
+
+# -----------------------------
+# New helpers for Hargs lists
+# -----------------------------
+def _strip_nonname_edges(s: str) -> str:
+    """Trim separators and stray punctuation from ends of a candidate name."""
+    return re.sub(r"^[\s\-\_\,\:\;]+|[\s\-\_\,\:\;]+$", "", s).strip()
+
+
+def _extract_name_by_removing_components(token: str, components: List[Tuple[int, int]]) -> str:
+    """
+    Given a token and a list of (start, end) spans that correspond to matched
+    harg components, remove those spans and return the remaining string as the name.
+    """
+    if not components:
+        return token.strip()
+    pieces = []
+    last = 0
+    for (s, e) in sorted(components):
+        if last < s:
+            pieces.append(token[last:s])
+        last = e
+    if last < len(token):
+        pieces.append(token[last:])
+    name = "".join(pieces).strip()
+    return _strip_nonname_edges(name)
+
+
+def parse_harg_token(token: str) -> Dict[str, Any]:
+    """
+    Parse a single compact Hargs token into a structured entry.
+
+    Accepts both ChampionHargs (name then hargs) and HargsChampion (hargs then name),
+    and many concatenated forms. Returns a dict:
+      {
+        "champion": Optional[str],
+        "rarity": int,
+        "rank": int,
+        "ascended": int,
+        "sig": int,
+        "raw": original_token
+      }
+
+    Defaults: rarity=6, rank=1, ascended=1, sig=0
+    """
+    t = token.strip()
+    if not t:
+        return {
+            "champion": None,
+            "rarity": DEFAULT_RARITY,
+            "rank": DEFAULT_RANK,
+            "ascended": DEFAULT_ASCENDED,
+            "sig": DEFAULT_SIG,
+            "raw": token,
+        }
+
+    # Work on a copy for destructive matching
+    working = t
+    components_spans: List[Tuple[int, int]] = []
+
+    # 1) Signature: 's' followed by digits (prefer this first)
+    sig = None
+    for m in SIG_RE2.finditer(working):
+        try:
+            sig = int(m.group("sig"))
+            components_spans.append(m.span())
+            break
+        except Exception:
+            continue
+
+    # 2) Ascension: 'A' followed by digit
+    asc = None
+    for m in ASC_RE2.finditer(working):
+        try:
+            asc = int(m.group("asc"))
+            components_spans.append(m.span())
+            break
+        except Exception:
+            continue
+
+    # 3) Rank: 'r' followed by 1-5
+    rank = None
+    for m in RANK_RE2.finditer(working):
+        try:
+            rank = int(m.group("rank"))
+            components_spans.append(m.span())
+            break
+        except Exception:
+            continue
+
+    # 4) Rarity digit 1-7 (take first occurrence not part of a name)
+    rarity = None
+    # We try to find a digit that is not clearly inside an alpha-only name.
+    # Use a simple search for the first digit 1-7.
+    for m in RARITY_DIGIT_RE.finditer(working):
+        try:
+            rarity = int(m.group("rarity"))
+            components_spans.append(m.span())
+            break
+        except Exception:
+            continue
+
+    # Build champion name by removing matched spans
+    name_candidate = _extract_name_by_removing_components(working, components_spans)
+    # If name_candidate is empty or looks like pure punctuation, try alternative heuristics:
+    if not name_candidate or all(ch in "0123456789rRsSaA*★_ -.,;:" for ch in name_candidate):
+        # Try to find an alphabetic run inside the token
+        mname = re.search(r"[A-Za-z][A-Za-z0-9 '\-\.]{0,80}", working)
+        if mname:
+            name_candidate = mname.group(0).strip()
+
+    # Normalize values with defaults and bounds
+    final_rarity = rarity if (isinstance(rarity, int) and 1 <= rarity <= 7) else DEFAULT_RARITY
+    final_rank = rank if (isinstance(rank, int) and 1 <= rank <= 5) else DEFAULT_RANK
+    final_asc = asc if (isinstance(asc, int) and 0 <= asc <= 2) else DEFAULT_ASCENDED
+    final_sig = sig if (isinstance(sig, int) and sig >= 0) else DEFAULT_SIG
+
+    # Additional validation for sig ranges by tier could be applied by roster helpers.
+    return {
+        "champion": name_candidate if name_candidate else None,
+        "rarity": final_rarity,
+        "rank": final_rank,
+        "ascended": final_asc,
+        "sig": final_sig,
+        "raw": token,
+    }
+
+
+def parse_harg_list(text: str) -> List[Dict[str, Any]]:
+    """
+    Parse a text containing one or more ChampionHargs / HargsChampion / plain champion tokens.
+
+    Splits on commas/semicolons and preserves quoted names. Returns a list of parsed
+    entries (each as returned by parse_harg_token).
+
+    Examples accepted:
+      - "blackbolt6sr1, blackbolt7A1r2"
+      - "6r1s0blackbolt; 6A2r2blackbolt"
+      - '6r1 "Black Bolt", 7A1r2 "Spider Man"'
+      - "blackbolt6s, blackbolt"  (defaults applied)
+    """
+    if not text:
+        return []
+
+    parts = _tokenize_preserving_quotes(text.strip())
+    out: List[Dict[str, Any]] = []
+    for part in parts:
+        if not part:
+            continue
+        parsed = parse_harg_token(part)
+        out.append(parsed)
+    return out
+
+
+# -----------------------------
+# Existing parse_hargs (filters)
+# -----------------------------
 def parse_hargs(text: str) -> Dict[str, Any]:
     """
     Parse a human argument string into structured filters.

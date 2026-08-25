@@ -6,6 +6,13 @@ import asyncio
 
 log = logging.getLogger("red.mcoc.roster_helpers")
 
+# New import: hargs parsing helpers
+try:
+    from ..hargs import parse_harg_list
+except Exception:
+    # fallback stub if hargs not available at import time
+    def parse_harg_list(text: str) -> List[Dict[str, Any]]:
+        return []
 
 def ensure_user_manager(core_or_bot) -> Any:
     """
@@ -156,7 +163,24 @@ def _ensure_hook_registered(core):
     users._prestige_hook_registered = True
 
 
+# -----------------------------
+# Entry extraction and validation
+# -----------------------------
 def extract_entry_from_parsed(parsed: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Normalize a parsed filter dict (from parse_hargs) or a single harg token parse
+    into a canonical entry dict used by roster operations.
+
+    The returned dict contains:
+      {
+        "champion": Optional[str],
+        "rarity": Optional[int],
+        "rank": Optional[int],
+        "sig": int,
+        "tags": List[str],
+        "ascended": int,
+      }
+    """
     entry = {
         "champion": None,
         "rarity": None,
@@ -165,6 +189,24 @@ def extract_entry_from_parsed(parsed: Dict[str, Any]) -> Dict[str, Any]:
         "tags": [],
         "ascended": 0,
     }
+
+    try:
+        # If parsed is the compact token parse (parse_harg_token style)
+        if parsed.get("raw") is not None and ("rarity" in parsed or "rank" in parsed or "ascended" in parsed or "sig" in parsed):
+            # direct mapping
+            entry["champion"] = parsed.get("champion") or None
+            entry["rarity"] = int(parsed.get("rarity")) if parsed.get("rarity") is not None else None
+            entry["rank"] = int(parsed.get("rank")) if parsed.get("rank") is not None else None
+            entry["sig"] = int(parsed.get("sig") or 0)
+            entry["ascended"] = int(parsed.get("ascended") or 0)
+            # tags may not be present in compact token
+            tags = parsed.get("tags") or []
+            entry["tags"] = [str(t).lower() for t in tags if t]
+            return entry
+    except Exception:
+        # fall through to legacy handling
+        pass
+
     try:
         if parsed.get("champion"):
             entry["champion"] = str(parsed["champion"]).strip()
@@ -201,7 +243,48 @@ def extract_entry_from_parsed(parsed: Dict[str, Any]) -> Dict[str, Any]:
     return entry
 
 
+# New helper: convert a free-form hargs text into a list of normalized entries
+def entries_from_hargs_text(text: str) -> List[Dict[str, Any]]:
+    """
+    Parse a text containing one or more ChampionHargs / HargsChampion / plain champion tokens
+    and return a list of normalized entry dicts suitable for add/remove/update operations.
+
+    Uses parse_harg_list from mcoc.hargs which returns compact token parses.
+    """
+    out: List[Dict[str, Any]] = []
+    try:
+        parsed_list = parse_harg_list(text or "")
+    except Exception:
+        parsed_list = []
+
+    for parsed in parsed_list:
+        try:
+            entry = extract_entry_from_parsed(parsed)
+            # Apply defaults where appropriate (these defaults are the requested behavior)
+            if entry.get("rarity") is None:
+                entry["rarity"] = 6
+            if entry.get("rank") is None:
+                entry["rank"] = 1
+            if entry.get("ascended") is None:
+                entry["ascended"] = 1
+            if entry.get("sig") is None:
+                entry["sig"] = 0
+            out.append(entry)
+        except Exception:
+            continue
+    return out
+
+
 def validate_entry_for_add(entry: Dict[str, Any]) -> bool:
+    """
+    Validate a normalized entry for add/update operations.
+
+    Rules:
+      - rarity: 1..7
+      - rank: 1..5
+      - ascended: 0..2
+      - sig: bounds depend on rarity (<=99 for tiers 1-4, <=200 for tiers 5-7)
+    """
     try:
         r = entry.get("rarity")
         rk = entry.get("rank")
@@ -217,16 +300,25 @@ def validate_entry_for_add(entry: Dict[str, Any]) -> bool:
             return False
         if not (1 <= rk <= 5):
             return False
-        if not (0 <= sig <= 9999):
+        if not (0 <= asc <= 2):
             return False
-        if not (0 <= asc <= 9):
-            return False
+
+        # signature bounds by tier
+        if r <= 4:
+            if not (0 <= sig <= 99):
+                return False
+        else:
+            if not (0 <= sig <= 200):
+                return False
 
         return True
     except Exception:
         return False
 
 
+# -----------------------------
+# build_roster_pages (unchanged except it can accept parsed_filters from parse_hargs)
+# -----------------------------
 async def build_roster_pages(core: Any, user_id: int, parsed_filters: Optional[Dict[str, Any]] = None) -> List[Any]:
     pages: List[Any] = []
     try:

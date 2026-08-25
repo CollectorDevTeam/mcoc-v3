@@ -56,85 +56,45 @@ class MCOCPrefix(commands.Cog):
         """
         return getattr(self, "parent", None) or self.bot.get_cog("MCOC")
 
-    def _attach_registrars(self):
-        """
-        Attach champion, roster, alliance, and admin registrars to their mcoc subgroups.
-        This method is safe to call multiple times; it will attempt to register optional
-        prefix modules and will log full exceptions if they fail.
-        """
+    # in __init__
+    self._registrars_attached = set()
 
+    # replace _attach_registrars with this variant
+    def _attach_registrars(self):
         parent_getter = lambda: self._ensure_parent()
 
-        # --------------------------
-        # ACCOUNT (optional)
-        # --------------------------
-        try:
-            from .account_prefix import register_with_group as reg_account
-            account_group = getattr(self, "account")
+        def _try_attach(name: str, importer_path: str, group_attr: str):
+            if name in self._registrars_attached:
+                log.debug("Registrar %s already attached; skipping", name)
+                return
             try:
-                reg_account(account_group, parent_getter)
-                log.debug("Attached account registrar to ///mcoc account")
+                module = __import__(importer_path, fromlist=["register_with_group"])
+                reg = getattr(module, "register_with_group", None)
+                if not reg:
+                    log.debug("Registrar %s has no register_with_group; skipping", name)
+                    return
+                group = getattr(self, group_attr, None)
+                if group is None:
+                    log.debug("Group %s not present on MCOCPrefix; skipping registrar %s", group_attr, name)
+                    return
+                try:
+                    reg(group, parent_getter)
+                    self._registrars_attached.add(name)
+                    log.debug("Attached %s registrar to ///mcoc %s", name, group_attr)
+                except Exception:
+                    # registrar-level exceptions are expected if something inside fails;
+                    # keep stacktrace for unexpected errors but don't spam on expected collisions
+                    log.exception("Failed to attach %s registrar", name)
             except Exception:
-                log.exception("Failed to attach account registrar")
-        except Exception:
-            # log full exception so import/runtime errors are visible
-            log.exception("Account registrar failed to attach (optional)")
+                log.exception("Failed to import registrar module for %s", name)
 
-        # --------------------------
-        # ALLIANCE (optional)
-        # --------------------------
-        try:
-            from .alliance_prefix import register_with_group as reg_alliance
-            alliance_group = getattr(self, "alliance")
-            try: 
-                reg_alliance(alliance_group, parent_getter)
-                log.debug("Attached alliance registrar to ///mcoc alliance")
-            except Exception:
-                log.exception("Failed to attach alliance registrar")
-        except Exception:
-            log.exception("Alliance registrar failed to attach (optional)")
+        # call for each registrar (module import path, attribute name)
+        _try_attach("account", ".account_prefix", "account")
+        _try_attach("alliance", ".alliance_prefix", "alliance")
+        _try_attach("champions", ".champions_prefix", "champ")
+        _try_attach("roster", ".roster_prefix", "roster")
+        _try_attach("admin", ".mcocadmin_prefix", "admin")
 
-        # --------------------------
-        # CHAMPIONS
-        # --------------------------
-        try:
-            from .champions_prefix import register_with_group as reg_champ
-            champ_group = getattr(self, "champ")
-            try: 
-                reg_champ(champ_group, parent_getter)
-                log.debug("Attached champions registrar to ///mcoc champ")
-            except Exception:
-                log.exception("Failed to attach champions registrar")
-        except Exception:
-            log.exception("Failed to attach champions registrar")
-
-        # --------------------------
-        # ROSTER
-        # --------------------------
-        try:
-            from .roster_prefix import register_with_group as reg_roster
-            roster_group = getattr(self, "roster")
-            try:
-                reg_roster(roster_group, parent_getter)
-                log.debug("Attached roster registrar to ///mcoc roster")
-            except Exception:
-                log.exception("Failed to attach roster registrar")
-        except Exception:
-            log.exception("Roster registrar failed to attach (optional)")
-
-        # --------------------------
-        # ADMIN (optional)
-        # --------------------------
-        try:
-            from .mcocadmin_prefix import register_with_group as reg_admin
-            admin_group = getattr(self, "admin")
-            try: 
-                reg_admin(admin_group, parent_getter)
-                log.debug("Attached admin registrar to ///mcoc admin")
-            except Exception:
-                log.exception("Failed to attach admin registrar")
-        except Exception:
-            log.exception("Admin registrar failed to attach (optional)")
 
     # ============================================================
     # TOP-LEVEL GROUP
@@ -168,25 +128,89 @@ class MCOCPrefix(commands.Cog):
     # ============================================================
     # SUBGROUPS
     # ============================================================
+    # place near the other subgroup methods in mcoc/prefix/core.py
+
+    def _group_help_text(self, group: commands.Group, title: str, fallback: str = "") -> str:
+        """
+        Build a short help string for a commands.Group by enumerating its subcommands.
+        Uses command.short_doc, command.help, or function docstring for descriptions.
+        """
+        try:
+            cmds = []
+            for name, cmd in sorted(group.commands.items(), key=lambda kv: kv[0]):
+                # skip hidden or internal commands
+                try:
+                    if getattr(cmd, "hidden", False):
+                        continue
+                except Exception:
+                    pass
+                # prefer short_doc (Red/discord), then help, then func docstring
+                desc = getattr(cmd, "short_doc", None) or getattr(cmd, "help", None) or (cmd.callback.__doc__ if getattr(cmd, "callback", None) else None)
+                if desc:
+                    # take first line only and trim
+                    desc_line = str(desc).strip().splitlines()[0]
+                else:
+                    desc_line = ""
+                cmds.append((name, desc_line))
+            if not cmds:
+                return fallback or f"{title} (no commands registered)"
+            lines = [f"**{title}**"]
+            # show up to 10 commands inline, then indicate more if present
+            for name, desc in cmds[:20]:
+                if desc:
+                    lines.append(f"`{name}` — {desc}")
+                else:
+                    lines.append(f"`{name}`")
+            return "\n".join(lines)
+        except Exception:
+            # fallback to the static fallback text on any error
+            return fallback or f"{title} (help unavailable)"
+
     @mcoc.group(name="champ", invoke_without_command=True)
     async def champ(self, ctx):
-        await safe_send_ctx(ctx, "Champion commands: `info`, `abilities`, `synergies`, `tags`, `stats`, `search`, `calcstats`.")
+        """Champion commands help (dynamic)."""
+        try:
+            text = self._group_help_text(self.champ, "Champion commands", "Champion commands: `info`, `abilities`, `synergies`, `tags`, `stats`, `search`, `calcstats`.")
+            await safe_send_ctx(ctx, text)
+        except Exception:
+            await safe_send_ctx(ctx, "Champion commands: `info`, `abilities`, `synergies`, `tags`, `stats`, `search`, `calcstats`.")
 
     @mcoc.group(name="roster", invoke_without_command=True)
     async def roster(self, ctx):
-        await safe_send_ctx(ctx, "Roster commands: `add`, `remove`, `update`, `list`, `export`, `clear`.")
+        """Roster commands help (dynamic)."""
+        try:
+            text = self._group_help_text(self.roster, "Roster commands", "Roster commands: `add`, `remove`, `update`, `list`, `export`, `clear`.")
+            await safe_send_ctx(ctx, text)
+        except Exception:
+            await safe_send_ctx(ctx, "Roster commands: `add`, `remove`, `update`, `list`, `export`, `clear`.")
 
     @mcoc.group(name="admin", invoke_without_command=True)
     async def admin(self, ctx):
-        await safe_send_ctx(ctx, "Admin commands (requires permissions): `status`, `sync`, `debug`.")
+        """Admin commands help (dynamic)."""
+        try:
+            text = self._group_help_text(self.admin, "Admin commands (requires permissions)", "Admin commands (requires permissions): `status`, `sync`, `debug`.")
+            await safe_send_ctx(ctx, text)
+        except Exception:
+            await safe_send_ctx(ctx, "Admin commands (requires permissions): `status`, `sync`, `debug`.")
 
     @mcoc.group(name="account", invoke_without_command=True)
     async def account(self, ctx):
-        await safe_send_ctx(ctx, "Account commands: `info`, `set`, `link`, `unlink`, `delete`, `privacy`.")
+        """Account commands help (dynamic)."""
+        try:
+            text = self._group_help_text(self.account, "Account commands", "Account commands: `info`, `set`, `link`, `unlink`, `delete`, `privacy`.")
+            await safe_send_ctx(ctx, text)
+        except Exception:
+            await safe_send_ctx(ctx, "Account commands: `info`, `set`, `link`, `unlink`, `delete`, `privacy`.")
 
     @mcoc.group(name="alliance", invoke_without_command=True)
     async def alliance(self, ctx):
-        await safe_send_ctx(ctx, "Alliance commands: `info`, `create`, `join`, `leave`, `settings`, `manage`.")
+        """Alliance commands help (dynamic)."""
+        try:
+            text = self._group_help_text(self.alliance, "Alliance commands", "Alliance commands: `info`, `create`, `join`, `leave`, `settings`, `manage`.")
+            await safe_send_ctx(ctx, text)
+        except Exception:
+            await safe_send_ctx(ctx, "Alliance commands: `info`, `create`, `join`, `leave`, `settings`, `manage`.")
+
 
 
     # in your main cog or a dedicated event cog
@@ -203,7 +227,7 @@ class MCOCPrefix(commands.Cog):
                 cfg["roles"].pop(k, None)
                 changed = True
         if changed:
-            set_guild_config(role.guild.id, cfg)
+            await set_guild_config(role.guild.id, cfg)
 
     @commands.Cog.listener()
     async def on_member_update(self, before, after):

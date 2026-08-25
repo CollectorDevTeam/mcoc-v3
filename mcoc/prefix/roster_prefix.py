@@ -1,6 +1,6 @@
 # mcoc/prefix/roster_prefix.py
 import logging
-from typing import Optional, Any
+from typing import Optional, Any, List, Dict
 from redbot.core import commands
 
 log = logging.getLogger("red.mcoc.prefix.roster")
@@ -12,6 +12,7 @@ from ..common.roster_helpers import (
     build_roster_pages,
     validate_entry_for_add,
     schedule_persist_user_prestige,
+    entries_from_hargs_text,
 )
 from ..common.embeds import roster_entry_embed  # used for embed building
 from ..common.prefix_utils import get_runtime_prefix
@@ -22,6 +23,12 @@ from ..common.prefix_meta import ROSTER_GROUP_HELP, ALLOWED_ROSTER_FIELDS
 class RosterPrefix(commands.Cog):
     """
     Prefix commands for roster management. Uses common roster helpers.
+
+    Add/Remove/Update accept lists of ChampionHargs / HargsChampion / plain champion tokens.
+    Example inputs:
+      ///mcoc roster add blackbolt6sr1, spiderman6r1
+      ///mcoc roster add "Black Bolt" 6r1; "Spider Man" 6r1
+      ///mcoc roster add 6r1blackbolt 6A1r2spiderman
     """
 
     def __init__(self, bot_or_parent: Any):
@@ -51,135 +58,244 @@ class RosterPrefix(commands.Cog):
 
     @commands.group(name="roster", invoke_without_command=True)
     async def roster(self, ctx):
-        # await ctx.send("Roster commands: add, remove, update, list, export, clear")
         await ctx.send(ROSTER_GROUP_HELP.get("roster", "Roster commands: add, remove, update, list, export, clear"))
 
+    # -----------------------------
+    # Add (multiple)
+    # -----------------------------
     @roster.command(name="add")
-    async def roster_add(self, ctx, champion: str, *, hargs: str):
-        """Add a champion to your roster."""
-        prefix = get_runtime_prefix(ctx, default=self.prefix or "///")
-        lines = [ROSTER_GROUP_HELP.get("roster_add", "Add a champion to your roster.")]
-        lines.append("")
-        lines.append(f"Use `{prefix}mcoc roster add <champion> <hargs>` to add a champion to your roster.")
+    async def roster_add(self, ctx, *items: str):
+        """
+        Add one or more champions to your roster.
+        Accepts lists of ChampionHargs / HargsChampion / plain champion tokens.
+        Examples:
+          ///mcoc roster add blackbolt6sr1, spiderman6r1
+          ///mcoc roster add "Black Bolt" 6r1; "Spider Man" 6r1
+        """
+        prefix = get_runtime_prefix(ctx, default="///")
+        if not items:
+            await ctx.send(
+                "Usage: "
+                f"`{prefix}mcoc roster add <championHargs|hargsChampion|\"Champion Name\">[, ...]`"
+            )
+            return
+
+        if not await self._require_parent(ctx):
+            return
+
+        items_text = " ".join(items).strip()
+        parsed_entries = entries_from_hargs_text(items_text)
+        if not parsed_entries:
+            await ctx.send("No valid entries parsed from input.")
+            return
+
+        cache = getattr(self.parent, "cache", None)
+        users = ensure_user_manager(self.parent)
+
+        successes: List[str] = []
+        failures: List[str] = []
+
+        for entry in parsed_entries:
+            try:
+                champ_key = entry.get("champion")
+                # try to resolve champion via cache
+                champ_obj = None
+                if cache and champ_key:
+                    try:
+                        champ_obj = cache.get_champion(champ_key)
+                    except Exception:
+                        champ_obj = None
+                if not champ_obj and champ_key:
+                    # try name scan
+                    try:
+                        for c in cache.get_all_champions() or []:
+                            if str(c.get("id") or c.get("slug") or "").lower() == str(champ_key).lower() or str(c.get("name") or "").lower() == str(champ_key).lower():
+                                champ_obj = c
+                                break
+                    except Exception:
+                        champ_obj = None
+
+                if not champ_obj:
+                    failures.append(f"{champ_key or entry.get('raw')}: champion not found")
+                    continue
+
+                # validate entry
+                if not validate_entry_for_add(entry):
+                    failures.append(f"{champ_obj.get('name','Unknown')}: invalid hargs (rarity/rank/ascension/sig)")
+                    continue
+
+                users.add_champion(
+                    ctx.author.id,
+                    champ_slug=champ_obj.get("id") or champ_obj.get("slug"),
+                    rarity=entry["rarity"],
+                    rank=entry["rank"],
+                    sig=entry.get("sig", 0),
+                    tags=entry.get("tags", []),
+                    ascended=entry.get("ascended", 0) if "ascended" in entry else entry.get("ascended", 1),
+                )
+                successes.append(f"{champ_obj.get('name','Unknown')} ({entry['rarity']}★ r{entry['rank']} s{entry.get('sig',0)} A{entry.get('ascended',1)})")
+            except Exception:
+                log.exception("Failed to add entry %s", entry)
+                failures.append(f"{entry.get('champion') or entry.get('raw')}: error")
+
+        # schedule one debounced persist
+        try:
+            schedule_persist_user_prestige(self.parent, ctx.author.id)
+        except Exception:
+            log.exception("Failed to schedule prestige persist after add")
+
+        # Build response
+        lines = []
+        if successes:
+            lines.append("Added:")
+            lines.extend(f"- {s}" for s in successes)
+        if failures:
+            lines.append("")
+            lines.append("Failed:")
+            lines.extend(f"- {f}" for f in failures)
         await ctx.send("\n".join(lines))
 
-        if not await self._require_parent(ctx):
-            return
-        parsed = parse_hargs(hargs or "")
-        entry = extract_entry_from_parsed(parsed)
-
-        cache = getattr(self.parent, "cache", None)
-        champ = cache.get_champion(champion) if cache else None
-        if not champ:
-            await ctx.send(f"Champion `{champion}` not found.")
-            return
-
-        if not validate_entry_for_add(entry):
-            await ctx.send("Adding a champion requires rarity and rank (e.g., `6*r3`).")
-            return
-
-        users = ensure_user_manager(self.parent)
-        try:
-            users.add_champion(
-                ctx.author.id,
-                champ_slug=champ.get("id") or champ.get("slug"),
-                rarity=entry["rarity"],
-                rank=entry["rank"],
-                sig=entry.get("sig", 0),
-                tags=entry.get("tags", []),
-            )
-            # schedule debounced prestige persistence
-            schedule_persist_user_prestige(self.parent, ctx.author.id)
-        except Exception:
-            log.exception("Failed to add champion to roster")
-            await ctx.send("Failed to add champion to roster.")
-            return
-
-        try:
-            embed = await roster_entry_embed(ctx, champ, {
-                "rarity": entry["rarity"],
-                "rank": entry["rank"],
-                "sig": entry.get("sig", 0),
-                "tags": entry.get("tags", []),
-                "ascended": entry.get("ascended", 0),
-            })
-        except Exception:
-            embed = None
-
-        await ctx.send(f"Added **{champ.get('name','Unknown')}** to your roster.", embed=embed)
-
+    # -----------------------------
+    # Remove (multiple)
+    # -----------------------------
     @roster.command(name="remove")
-    async def roster_remove(self, ctx, champion: str, *, hargs: Optional[str] = None):
+    async def roster_remove(self, ctx, *items: str):
+        """
+        Remove one or more champions from your roster.
+        Input may be champion name or hargs to disambiguate.
+        Examples:
+          ///mcoc roster remove blackbolt, spiderman
+          ///mcoc roster remove 6r1blackbolt, 6r1spiderman
+        """
+        if not items:
+            await ctx.send("Usage: `///mcoc roster remove <champion|hargs>[, ...]`")
+            return
         if not await self._require_parent(ctx):
             return
-        parsed = parse_hargs(hargs or "")
-        rarity = parsed["rarities"][0] if parsed["rarities"] else None
+
+        items_text = " ".join(items).strip()
+        parsed_entries = entries_from_hargs_text(items_text)
+        if not parsed_entries:
+            await ctx.send("No valid entries parsed from input.")
+            return
 
         users = ensure_user_manager(self.parent)
+        successes: List[str] = []
+        failures: List[str] = []
+
+        for entry in parsed_entries:
+            try:
+                champ_key = entry.get("champion") or entry.get("raw")
+                # If rarity provided, pass it to remove_champion to narrow removal
+                rarity = entry.get("rarity")
+                removed = users.remove_champion(ctx.author.id, champ_key, rarity)
+                if removed:
+                    successes.append(f"{champ_key}: removed {removed}")
+                else:
+                    failures.append(f"{champ_key}: not found")
+            except Exception:
+                log.exception("Failed to remove entry %s", entry)
+                failures.append(f"{entry.get('champion') or entry.get('raw')}: error")
+
+        # schedule one debounced persist
         try:
-            removed = users.remove_champion(ctx.author.id, champion, rarity)
-        # schedule debounced prestige persistence
             schedule_persist_user_prestige(self.parent, ctx.author.id)
         except Exception:
-            log.exception("Failed to remove champion")
-            removed = 0
+            log.exception("Failed to schedule prestige persist after remove")
 
-        if removed == 0:
-            await ctx.send("No matching champion found in your roster.")
-        else:
-            await ctx.send(f"Removed {removed} entries for `{champion}`.")
+        lines = []
+        if successes:
+            lines.append("Removed:")
+            lines.extend(f"- {s}" for s in successes)
+        if failures:
+            lines.append("")
+            lines.append("Failed:")
+            lines.extend(f"- {f}" for f in failures)
+        await ctx.send("\n".join(lines))
 
+    # -----------------------------
+    # Update (multiple)
+    # -----------------------------
     @roster.command(name="update")
-    async def roster_update(self, ctx, champion: str, *, hargs: str):
+    async def roster_update(self, ctx, *items: str):
+        """
+        Update one or more champions in your roster.
+        Each token should include rarity (or use defaults).
+        Examples:
+          ///mcoc roster update blackbolt6r3, spiderman6r2
+        """
+        if not items:
+            await ctx.send("Usage: `///mcoc roster update <championHargs|hargsChampion|\"Champion Name\">[, ...]`")
+            return
         if not await self._require_parent(ctx):
             return
-        parsed = parse_hargs(hargs or "")
-        entry = extract_entry_from_parsed(parsed)
 
-        if entry.get("rarity") is None:
-            await ctx.send("Updating a champion requires rarity (e.g., `6*`).")
+        items_text = " ".join(items).strip()
+        parsed_entries = entries_from_hargs_text(items_text)
+        if not parsed_entries:
+            await ctx.send("No valid entries parsed from input.")
             return
 
         users = ensure_user_manager(self.parent)
+        successes: List[str] = []
+        failures: List[str] = []
+
+        for entry in parsed_entries:
+            try:
+                champ_key = entry.get("champion") or entry.get("raw")
+                if entry.get("rarity") is None:
+                    failures.append(f"{champ_key}: missing rarity for update")
+                    continue
+
+                updated = users.update_champion(
+                    ctx.author.id,
+                    champ_slug=champ_key,
+                    rarity=entry.get("rarity"),
+                    rank=entry.get("rank"),
+                    sig=entry.get("sig"),
+                    tags=entry.get("tags"),
+                    ascended=entry.get("ascended", 1),
+                )
+                if updated:
+                    successes.append(f"{champ_key}: updated to {entry.get('rarity')}★ r{entry.get('rank',1)} s{entry.get('sig',0)} A{entry.get('ascended',1)}")
+                else:
+                    failures.append(f"{champ_key}: not found")
+            except Exception:
+                log.exception("Failed to update entry %s", entry)
+                failures.append(f"{entry.get('champion') or entry.get('raw')}: error")
+
+        # schedule one debounced persist
         try:
-            updated = users.update_champion(
-                ctx.author.id,
-                champ_slug=champion,
-                rarity=entry["rarity"],
-                rank=entry.get("rank"),
-                sig=entry.get("sig"),
-                tags=entry.get("tags"),
-            )
-            # schedule debounced prestige persistence
             schedule_persist_user_prestige(self.parent, ctx.author.id)
         except Exception:
-            log.exception("Failed to update champion")
-            updated = False
+            log.exception("Failed to schedule prestige persist after update")
 
-        if not updated:
-            await ctx.send("Champion not found in your roster.")
-            return
+        lines = []
+        if successes:
+            lines.append("Updated:")
+            lines.extend(f"- {s}" for s in successes)
+        if failures:
+            lines.append("")
+            lines.append("Failed:")
+            lines.extend(f"- {f}" for f in failures)
+        await ctx.send("\n".join(lines))
 
-        cache = getattr(self.parent, "cache", None)
-        champ = cache.get_champion(champion) if cache else None
-        try:
-            embed = await roster_entry_embed(ctx, champ, {
-                "rarity": entry["rarity"],
-                "rank": entry.get("rank") or 0,
-                "sig": entry.get("sig") or 0,
-                "tags": entry.get("tags") or [],
-                "ascended": entry.get("ascended") or 0
-            })
-        except Exception:
-            embed = None
-
-        await ctx.send(f"Updated **{champ.get('name','Unknown') if champ else champion}**.", embed=embed)
-
+    # -----------------------------
+    # List (filters)
+    # -----------------------------
     @roster.command(name="list")
-    async def roster_list(self, ctx, *, hargs: Optional[str] = None):
+    async def roster_list(self, ctx, *items: str):
+        """
+        List roster entries. Accepts the same filter syntax as parse_hargs.
+        Examples:
+          ///mcoc roster list
+          ///mcoc roster list 6*r4, #attack
+        """
         if not await self._require_parent(ctx):
             return
-        parsed = parse_hargs(hargs or "")
+
+        items_text = " ".join(items).strip()
+        parsed = parse_hargs(items_text) if items_text else {}
         pages = await build_roster_pages(self.parent, ctx.author.id, parsed)
 
         if not pages:
@@ -188,19 +304,20 @@ class RosterPrefix(commands.Cog):
 
         try:
             from ..common.pagination import PagesMenu
-            # try to add page footers if helper exists
             menu = PagesMenu(pages, ctx.author)
             try:
                 from ..common.roster_helpers import add_page_footers  # optional
                 pages = add_page_footers(pages)
             except Exception:
                 pass
-            # await ctx.send(embed=pages[0], view=menu)
             await menu.start(ctx)
         except Exception:
             names = [p.get("title") or "Entry" for p in pages][:50]
             await ctx.send(f"Matches ({len(pages)}): {', '.join(names)}")
 
+    # -----------------------------
+    # Export / Import / Clear (unchanged)
+    # -----------------------------
     @roster.command(name="export")
     async def roster_export(self, ctx):
         users = ensure_user_manager(self.parent)
@@ -247,135 +364,212 @@ def register_with_group(group: commands.Group, parent_getter):
 
     # add
     @_safe_add("add")
-    async def _add(ctx, champion: str, *, hargs: str):
+    async def _add(ctx, *items: str):
+        """Add one or more champions to your roster.
+        Examples:
+            {prefix}mcoc roster add 5sr3ironman
+            {prefix}mcoc roster add 6★r2Spider-Man 4sr1s20captainamerica
+            {prefix}mcoc roster add 3sr1blackwidow
+        """
         parent = parent_getter()
         if not parent:
             await ctx.send("MCOC core not attached; roster unavailable.")
             return
-        parsed = parse_hargs(hargs or "")
-        entry = extract_entry_from_parsed(parsed)
+        items_text = " ".join(items).strip()
+        parsed_entries = entries_from_hargs_text(items_text)
+        if not parsed_entries:
+            await ctx.send("No valid entries parsed from input.")
+            return
 
         cache = getattr(parent, "cache", None)
-        champ = cache.get_champion(champion) if cache else None
-        if not champ:
-            await ctx.send(f"Champion `{champion}` not found.")
-            return
-
-        if not validate_entry_for_add(entry):
-            await ctx.send("Adding a champion requires rarity and rank (e.g., `6*r3`).")
-            return
-
         users = ensure_user_manager(parent)
+
+        successes: List[str] = []
+        failures: List[str] = []
+
+        for entry in parsed_entries:
+            try:
+                champ_key = entry.get("champion")
+                champ_obj = None
+                if cache and champ_key:
+                    try:
+                        champ_obj = cache.get_champion(champ_key)
+                    except Exception:
+                        champ_obj = None
+                if not champ_obj and cache and champ_key:
+                    try:
+                        for c in cache.get_all_champions() or []:
+                            if str(c.get("id") or c.get("slug") or "").lower() == str(champ_key).lower() or str(c.get("name") or "").lower() == str(champ_key).lower():
+                                champ_obj = c
+                                break
+                    except Exception:
+                        champ_obj = None
+
+                if not champ_obj:
+                    failures.append(f"{champ_key or entry.get('raw')}: champion not found")
+                    continue
+
+                if not validate_entry_for_add(entry):
+                    failures.append(f"{champ_obj.get('name','Unknown')}: invalid hargs")
+                    continue
+
+                users.add_champion(
+                    ctx.author.id,
+                    champ_slug=champ_obj.get("id") or champ_obj.get("slug"),
+                    rarity=entry["rarity"],
+                    rank=entry["rank"],
+                    sig=entry.get("sig", 0),
+                    tags=entry.get("tags", []),
+                    ascended=entry.get("ascended", 1),
+                )
+                successes.append(f"{champ_obj.get('name','Unknown')} ({entry['rarity']}★ r{entry['rank']})")
+            except Exception:
+                log.exception("Failed to add entry %s", entry)
+                failures.append(f"{entry.get('champion') or entry.get('raw')}: error")
+
         try:
-            users.add_champion(
-                ctx.author.id,
-                champ_slug=champ.get("id") or champ.get("slug"),
-                rarity=entry["rarity"],
-                rank=entry["rank"],
-                sig=entry.get("sig", 0),
-                tags=entry.get("tags", []),
-            )
-            # schedule debounced prestige persistence
             schedule_persist_user_prestige(parent, ctx.author.id)
         except Exception:
-            log.exception("Failed to add champion to roster")
-            await ctx.send("Failed to add champion to roster.")
-            return
+            log.exception("Failed to schedule prestige persist after add")
 
-        try:
-            embed = await roster_entry_embed(ctx, champ, {
-                "rarity": entry["rarity"],
-                "rank": entry["rank"],
-                "sig": entry.get("sig", 0),
-                "tags": entry.get("tags", []),
-                "ascended": entry.get("ascended", 0),
-            })
-        except Exception:
-            embed = None
-
-        await ctx.send(f"Added **{champ.get('name','Unknown')}** to your roster.", embed=embed)
+        lines = []
+        if successes:
+            lines.append("Added:")
+            lines.extend(f"- {s}" for s in successes)
+        if failures:
+            lines.append("")
+            lines.append("Failed:")
+            lines.extend(f"- {f}" for f in failures)
+        await ctx.send("\n".join(lines))
 
     # remove
     @_safe_add("remove")
-    async def _remove(ctx, champion: str, *, hargs: Optional[str] = None):
+    async def _remove(ctx, *items: str):
+        """Remove one or more champions from your roster.
+        Examples:
+            {prefix}mcoc roster remove 5sr3ironman
+            {prefix}mcoc roster remove 6★r2Spider-Man 4sr1s20captainamerica
+            {prefix}mcoc roster remove 3sr1blackwidow
+        """
         parent = parent_getter()
         if not parent:
             await ctx.send("MCOC core not attached; roster unavailable.")
             return
-        parsed = parse_hargs(hargs or "")
-        rarity = parsed["rarities"][0] if parsed["rarities"] else None
+        items_text = " ".join(items).strip()
+        parsed_entries = entries_from_hargs_text(items_text)
+        if not parsed_entries:
+            await ctx.send("No valid entries parsed from input.")
+            return
 
         users = ensure_user_manager(parent)
+        successes: List[str] = []
+        failures: List[str] = []
+
+        for entry in parsed_entries:
+            try:
+                champ_key = entry.get("champion") or entry.get("raw")
+                rarity = entry.get("rarity")
+                removed = users.remove_champion(ctx.author.id, champ_key, rarity)
+                if removed:
+                    successes.append(f"{champ_key}: removed {removed}")
+                else:
+                    failures.append(f"{champ_key}: not found")
+            except Exception:
+                log.exception("Failed to remove entry %s", entry)
+                failures.append(f"{entry.get('champion') or entry.get('raw')}: error")
+
         try:
-            removed = users.remove_champion(ctx.author.id, champion, rarity)
-            # schedule debounced prestige persistence
             schedule_persist_user_prestige(parent, ctx.author.id)
         except Exception:
-            log.exception("Failed to remove champion")
-            removed = 0
+            log.exception("Failed to schedule prestige persist after remove")
 
-        if removed == 0:
-            await ctx.send("No matching champion found in your roster.")
-        else:
-            await ctx.send(f"Removed {removed} entries for `{champion}`.")
+        lines = []
+        if successes:
+            lines.append("Removed:")
+            lines.extend(f"- {s}" for s in successes)
+        if failures:
+            lines.append("")
+            lines.append("Failed:")
+            lines.extend(f"- {f}" for f in failures)
+        await ctx.send("\n".join(lines))
 
     # update
     @_safe_add("update")
-    async def _update(ctx, champion: str, *, hargs: str):
+    async def _update(ctx, *items: str):
+        """Update one or more champions in your roster.
+        Examples:
+            {prefix}mcoc roster update 5sr3ironman
+            {prefix}mcoc roster update 6★r2Spider-Man 4sr1s20captainamerica
+            {prefix}mcoc roster update 3sr1blackwidow
+        """
         parent = parent_getter()
         if not parent:
             await ctx.send("MCOC core not attached; roster unavailable.")
             return
-        parsed = parse_hargs(hargs or "")
-        entry = extract_entry_from_parsed(parsed)
-
-        if entry.get("rarity") is None:
-            await ctx.send("Updating a champion requires rarity (e.g., `6*`).")
+        items_text = " ".join(items).strip()
+        parsed_entries = entries_from_hargs_text(items_text)
+        if not parsed_entries:
+            await ctx.send("No valid entries parsed from input.")
             return
 
         users = ensure_user_manager(parent)
+        successes: List[str] = []
+        failures: List[str] = []
+
+        for entry in parsed_entries:
+            try:
+                champ_key = entry.get("champion") or entry.get("raw")
+                if entry.get("rarity") is None:
+                    failures.append(f"{champ_key}: missing rarity for update")
+                    continue
+
+                updated = users.update_champion(
+                    ctx.author.id,
+                    champ_slug=champ_key,
+                    rarity=entry.get("rarity"),
+                    rank=entry.get("rank"),
+                    sig=entry.get("sig"),
+                    tags=entry.get("tags"),
+                    ascended=entry.get("ascended", 1),
+                )
+                if updated:
+                    successes.append(f"{champ_key}: updated")
+                else:
+                    failures.append(f"{champ_key}: not found")
+            except Exception:
+                log.exception("Failed to update entry %s", entry)
+                failures.append(f"{entry.get('champion') or entry.get('raw')}: error")
+
         try:
-            updated = users.update_champion(
-                ctx.author.id,
-                champ_slug=champion,
-                rarity=entry["rarity"],
-                rank=entry.get("rank"),
-                sig=entry.get("sig"),
-                tags=entry.get("tags"),
-            )
-            # schedule debounced prestige persistence
             schedule_persist_user_prestige(parent, ctx.author.id)
         except Exception:
-            log.exception("Failed to update champion")
-            updated = False
+            log.exception("Failed to schedule prestige persist after update")
 
-        if not updated:
-            await ctx.send("Champion not found in your roster.")
-            return
-
-        cache = getattr(parent, "cache", None)
-        champ = cache.get_champion(champion) if cache else None
-        try:
-            embed = await roster_entry_embed(ctx, champ, {
-                "rarity": entry["rarity"],
-                "rank": entry.get("rank") or 0,
-                "sig": entry.get("sig") or 0,
-                "tags": entry.get("tags") or [],
-                "ascended": entry.get("ascended") or 0
-            })
-        except Exception:
-            embed = None
-
-        await ctx.send(f"Updated **{champ.get('name','Unknown') if champ else champion}**.", embed=embed)
+        lines = []
+        if successes:
+            lines.append("Updated:")
+            lines.extend(f"- {s}" for s in successes)
+        if failures:
+            lines.append("")
+            lines.append("Failed:")
+            lines.extend(f"- {f}" for f in failures)
+        await ctx.send("\n".join(lines))
 
     # list
     @_safe_add("list")
-    async def _list(ctx, *, hargs: Optional[str] = None):
+    async def _list(ctx, *items: str):
+        """List champions in your roster.
+        Examples:
+            {prefix}mcoc roster list
+            {prefix}mcoc roster list #bleed
+            {prefix}mcoc roster list 6star #bleed
+        """
         parent = parent_getter()
         if not parent:
             await ctx.send("MCOC core not attached; roster unavailable.")
             return
-        parsed = parse_hargs(hargs or "")
+        items_text = " ".join(items).strip()
+        parsed = parse_hargs(items_text) if items_text else {}
         pages = await build_roster_pages(parent, ctx.author.id, parsed)
 
         if not pages:
@@ -398,6 +592,10 @@ def register_with_group(group: commands.Group, parent_getter):
     # export
     @_safe_add("export")
     async def _export(ctx):
+        """Export your roster data as JSON.
+        Examples:
+            {prefix}mcoc roster export
+        """
         parent = parent_getter()
         if not parent:
             await ctx.send("MCOC core not attached; roster unavailable.")
@@ -409,6 +607,10 @@ def register_with_group(group: commands.Group, parent_getter):
     # clear
     @_safe_add("clear")
     async def _clear(ctx):
+        """Clear your roster.
+        Examples:
+            {prefix}mcoc roster clear
+        """
         parent = parent_getter()
         if not parent:
             await ctx.send("MCOC core not attached; roster unavailable.")
