@@ -23,6 +23,21 @@ from ..common.pagination import PagesMenu
 
 ACCOUNT_GROUP_HELP = "Account commands: info, view, set, link, unlink, delete, privacy, settings"
 
+# canonical field mapping: external name -> stored key
+FIELD_CANONICAL = {
+    "display_name": "mcoc_name",   # if your storage uses mcoc_name
+    "mcoc_id": "mcoc_id",
+    "website": "website",
+    "invite": "invite",
+    "timezone": "timezone",
+    "alliance": "alliance",
+    "job": "job",
+    "roster_public": "roster_public",
+    "privacy_mode": "privacy_mode",
+    "notes": "notes",
+}
+
+
 
 class AccountPrefix(commands.Cog):
     """
@@ -68,21 +83,20 @@ class AccountPrefix(commands.Cog):
         lines = [
             ACCOUNT_GROUP_HELP,
             "",
-            "**Fields you can set:**",
+            "**Fields you can set (allowed):**",
         ]
-        for field, description in ALLOWED_PROFILE_FIELDS.items():
-            # description may be a dict or string depending on your common helper
-            if isinstance(description, dict):
-                desc = description.get("desc", "")
-            else:
-                desc = str(description)
+        # ALLOWED_PROFILE_FIELDS may be a dict mapping field->meta
+        for field, meta in ALLOWED_PROFILE_FIELDS.items():
+            desc = meta.get("desc") if isinstance(meta, dict) else str(meta)
             lines.append(f"**{field}**: {desc}")
         lines.append("")
-        lines.append(f"Use `{prefix}mcoc account set <field> <value>` to set a profile field.")
-        lines.append(f"Use `{prefix}mcoc account link <mcoc_id>` to link your in-game id.")
-        lines.append(f"Use `{prefix}mcoc account view [@member]` to view a profile.")
-        lines.append(f"Use `{prefix}mcoc account settings` to list your saved settings.")
+        lines.append("Examples:")
+        lines.append(f"- `{prefix}mcoc account set display_name \"Jason W\"`")
+        lines.append(f"- `{prefix}mcoc account set mcoc_id 123456`")
+        lines.append(f"- `{prefix}mcoc account settings`  — show your saved settings")
+        lines.append(f"- `{prefix}mcoc account view @User`  — view another user's profile (subject to privacy)")
         await safe_send_ctx(ctx, "\n".join(lines))
+
 
     @account.command(name="info")
     async def account_info(self, ctx):
@@ -104,19 +118,39 @@ class AccountPrefix(commands.Cog):
         users = ensure_user_manager(self.parent)
         _ensure_hook_registered(self.parent)
 
-        # resolve target id
+        # Resolve target id robustly: Member object, mention, or raw id
         try:
-            target_id = ctx.author.id if member is None else getattr(member, "id", None) or int(member)
+            if member is None:
+                target_id = ctx.author.id
+            else:
+                # Member-like object
+                target_id = getattr(member, "id", None)
+                if target_id is None:
+                    # try numeric id
+                    try:
+                        target_id = int(str(member).strip("<@!> "))
+                    except Exception:
+                        # try parsing as plain int string
+                        try:
+                            target_id = int(member)
+                        except Exception:
+                            target_id = None
+            if target_id is None:
+                await safe_send_ctx(ctx, "Invalid user specified.")
+                return
             target_id = int(target_id)
         except Exception:
             await safe_send_ctx(ctx, "Invalid user specified.")
             return
 
+        # Permission check (use users.can_view_profile if available)
         guild_id = getattr(ctx.guild, "id", None)
         viewer_alliance = None
         try:
-            # users.can_view_profile may raise or return False
-            if not users.can_view_profile(ctx.author.id, target_id, guild_id=guild_id, viewer_alliance=viewer_alliance):
+            can_view = True
+            if hasattr(users, "can_view_profile"):
+                can_view = users.can_view_profile(ctx.author.id, target_id, guild_id=guild_id, viewer_alliance=viewer_alliance)
+            if not can_view:
                 await safe_send_ctx(ctx, "You do not have permission to view that profile.")
                 return
         except Exception:
@@ -124,28 +158,69 @@ class AccountPrefix(commands.Cog):
                 await safe_send_ctx(ctx, "You do not have permission to view that profile.")
                 return
 
-        profile = users.get_profile(target_id)
+        # Fetch profile
+        try:
+            profile = users.get_profile(target_id) or {}
+        except Exception:
+            profile = {}
+
         if not profile:
             await safe_send_ctx(ctx, "No profile found for that user.")
             return
 
-        # Prefer embed formatting if helper exists
+        # Prefer embed formatting via helper; fall back to consistent text output
         try:
             emb = format_profile_embed(ctx, profile, member)
             await ctx.send(embed=emb)
             return
         except Exception:
-            # fallback to text
+            pass
+
+        # Build a stable, user-facing view using FIELD_CANONICAL mapping
+        try:
+            visible = {}
+            for user_field, stored_key in FIELD_CANONICAL.items():
+                # prefer display_name aliasing if both exist
+                if stored_key in profile:
+                    visible[user_field] = profile.get(stored_key)
+                else:
+                    # try common alternate keys
+                    alt = None
+                    if stored_key == "mcoc_name":
+                        alt = profile.get("display_name") or profile.get("mcoc_name")
+                    else:
+                        alt = profile.get(user_field)
+                    visible[user_field] = alt
+            # Add a few internal flags if present and viewer is the owner
+            if ctx.author.id == target_id:
+                visible["_linked"] = profile.get("linked", False)
+                visible["_mcoc_id"] = profile.get("mcoc_id")
+            # Render as embed if discord available, otherwise plain text
+            try:
+                import discord
+                emb = discord.Embed(title=f"Profile — {visible.get('display_name') or str(member) or str(target_id)}")
+                for k, v in visible.items():
+                    emb.add_field(name=k, value=str(v) if v is not None else "None", inline=False)
+                await ctx.send(embed=emb)
+                return
+            except Exception:
+                await safe_send_ctx(ctx, f"Profile: ```json\n{visible}\n```")
+                return
+        except Exception:
+            # Last-resort fallback: show a few raw keys
             lines = []
             if profile.get("linked"):
                 lines.append("**linked**: True")
             if profile.get("mcoc_id"):
                 lines.append(f"**mcoc_id**: {profile.get('mcoc_id')}")
-            for k in ("mcoc_name", "website", "invite", "timezone", "alliance", "job", "created_at", "updated_at"):
+            for k in ("mcoc_name", "display_name", "website", "invite", "timezone", "alliance", "job", "created_at", "updated_at"):
                 v = profile.get(k)
                 if v:
                     lines.append(f"**{k}**: {v}")
-            await safe_send_ctx(ctx, "\n".join(lines))
+            if not lines:
+                await safe_send_ctx(ctx, "Profile exists but contains no displayable fields.")
+            else:
+                await safe_send_ctx(ctx, "\n".join(lines))
 
     @account.command(name="set")
     async def account_set(self, ctx, field: str, *, value: str):
@@ -157,12 +232,12 @@ class AccountPrefix(commands.Cog):
             allowed = ", ".join(sorted(ALLOWED_PROFILE_FIELDS.keys()))
             await safe_send_ctx(ctx, f"Invalid field. Allowed fields: {allowed}")
             return
-
         users = ensure_user_manager(self.parent)
         _ensure_hook_registered(self.parent)
 
         try:
-            users.set_profile_field(ctx.author.id, field, value)
+            stored_key = FIELD_CANONICAL.get(field, field)
+            users.set_profile_field(ctx.author.id, stored_key, value)
             await safe_send_ctx(ctx, f"Set **{field}** to `{value}`.")
         except Exception:
             log.exception("Failed to set profile field")
@@ -226,7 +301,7 @@ class AccountPrefix(commands.Cog):
         users = ensure_user_manager(self.parent)
         try:
             profile = users.get_profile(ctx.author.id) or {}
-            settings = {k: profile.get(k) for k in ALLOWED_PROFILE_FIELDS.keys()}
+            settings = {user_field: profile.get(stored_key) for user_field, stored_key in FIELD_CANONICAL.items()}
             await safe_send_ctx(ctx, f"Your settings: ```json\n{settings}\n```")
         except Exception:
             log.exception("Failed to fetch settings")
@@ -287,7 +362,6 @@ def register_with_group(group: commands.Group, parent_getter: Callable[[], Any])
     Attach account prefix commands to the provided `group`.
     parent_getter is a callable returning the core/parent object (or None).
     """
-
     def _safe_add(cmd_name: str):
         def _decorator(func):
             try:
