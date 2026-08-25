@@ -278,6 +278,7 @@ def register_with_group(group: commands.Group, parent_getter: Callable[[], Any])
     async def _view_alias(ctx, member: Optional[Any] = None):
         await _view(ctx, member)
 
+# inside account register_with_group (use same _safe_add decorator)
     @_safe_add("set")
     async def _set(ctx, field: str, *, value: str):
         parent = parent_getter()
@@ -290,9 +291,27 @@ def register_with_group(group: commands.Group, parent_getter: Callable[[], Any])
         users = ensure_user_manager(parent)
         try:
             users.set_profile_field(ctx.author.id, field, value)
-            await safe_send_ctx(ctx, f"Set {field}.")
+            await safe_send_ctx(ctx, f"Set **{field}** to `{value}`.")
         except Exception:
-            await safe_send_ctx(ctx, "Failed to set profile field.")
+            await safe_send_ctx(ctx, "Failed to update profile.")
+
+    @_safe_add("delete")
+    async def _delete(ctx):
+        parent = parent_getter()
+        if not parent:
+            await safe_send_ctx(ctx, "MCOC core not attached; account unavailable.")
+            return
+        users = ensure_user_manager(parent)
+        try:
+            prompt = "Are you sure you want to delete your profile and roster? Reply with `yes` to confirm."
+            confirmed, _ = await PagesMenu.confirm(ctx.bot, ctx, prompt, timeout=20.0)
+            if not confirmed:
+                await safe_send_ctx(ctx, "Deletion cancelled.")
+                return
+            users.delete_user(ctx.author.id)
+            await safe_send_ctx(ctx, "Deleted your profile.")
+        except Exception:
+            await safe_send_ctx(ctx, "Failed to delete profile.")
 
     @_safe_add("link")
     async def _link(ctx, mcoc_id: Optional[str] = None):
