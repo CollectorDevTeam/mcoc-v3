@@ -2,9 +2,9 @@
 import logging
 from typing import Optional, Any
 from redbot.core import commands
-
 log = logging.getLogger("red.mcoc.prefix.champions")
 
+from ..common.embeds import cdt_embed
 from ..common.champion_helpers import (
     resolve_champion,
     safe_send_ctx,
@@ -134,7 +134,7 @@ class ChampionsPrefix(commands.Cog):
             return
         try:
             import discord
-            embed = discord.Embed(title=f"{champ.get('name','Unknown')} — Stats", color=discord.Color.gold())
+            embed = await cdt_embed(ctx, title=f"{champ.get('name','Unknown')} — Stats", colour=discord.Color.gold())
             for rarity, ranks in stats.items():
                 for rank, values in ranks.items():
                     atk = values.get("attack", "N/A")
@@ -208,9 +208,10 @@ class ChampionsPrefix(commands.Cog):
 
         try:
             import discord
-            embed = discord.Embed(
+            embed = await cdt_embed(
+                ctx,
                 title=f"{champ.get('name','Unknown')} — {rarity}★ Rank {rank}{' Ascended ' + str(ascended) if ascended else ''}",
-                color=discord.Color.gold()
+                colour=discord.Color.gold()
             )
             embed.add_field(name="Attack", value=statline.get("attack", "N/A"))
             embed.add_field(name="Health", value=statline.get("health", "N/A"))
@@ -389,9 +390,10 @@ def register_with_group(group: commands.Group, parent_getter):
 
         try:
             import discord
-            embed = discord.Embed(
+            embed = await cdt_embed(
+                ctx,
                 title=f"{champ.get('name','Unknown')} — {rarity}★ Rank {rank}{' Ascended ' + str(ascended) if ascended else ''}",
-                color=discord.Color.gold()
+                colour=discord.Color.gold()
             )
             embed.add_field(name="Attack", value=statline.get("attack", "N/A"))
             embed.add_field(name="Health", value=statline.get("health", "N/A"))

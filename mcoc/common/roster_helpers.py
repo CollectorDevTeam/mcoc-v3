@@ -2,13 +2,15 @@
 import re
 import logging
 from typing import Any, Dict, List, Optional, Tuple
+from .embeds import cdt_embed
+from .hargs import parse_harg_list
 import asyncio
 
 log = logging.getLogger("red.mcoc.roster_helpers")
 
 # New import: hargs parsing helpers
 try:
-    from ..hargs import parse_harg_list
+    from .hargs import parse_harg_list
 except Exception:
     # fallback stub if hargs not available at import time
     def parse_harg_list(text: str) -> List[Dict[str, Any]]:
@@ -242,25 +244,98 @@ def extract_entry_from_parsed(parsed: Dict[str, Any]) -> Dict[str, Any]:
 
     return entry
 
+# -----------------------------
+# Roster parsing adapter & slug resolver
+# -----------------------------
+def _normalize_candidate_name(name: str) -> str:
+    s = (name or "").strip().lower()
+    s = re.sub(r"[^\w\s-]", "", s)   # remove punctuation except hyphen
+    s = re.sub(r"\s+", "-", s)       # spaces -> hyphen
+    return s
 
-# New helper: convert a free-form hargs text into a list of normalized entries
-def entries_from_hargs_text(text: str) -> List[Dict[str, Any]]:
+def _resolve_champion_slug(name: str, cache) -> str:
     """
-    Parse a text containing one or more ChampionHargs / HargsChampion / plain champion tokens
-    and return a list of normalized entry dicts suitable for add/remove/update operations.
-
-    Uses parse_harg_list from mcoc.hargs which returns compact token parses.
+    Resolve a champion name (from hargs.parse_harg_token) to a canonical slug.
+    Tries: normalized slug, slug without hyphens, exact name match, contains/startswith fallback.
+    Raises ValueError if not found.
     """
-    out: List[Dict[str, Any]] = []
-    try:
-        parsed_list = parse_harg_list(text or "")
-    except Exception:
-        parsed_list = []
+    if not name or not name.strip():
+        raise ValueError("Empty champion name")
 
-    for parsed in parsed_list:
+    cand = name.strip()
+    norm = _normalize_candidate_name(cand)
+    candidates = [norm, norm.replace("-", "")]
+
+    # try exact slug candidates
+    if cache:
+        for c in candidates:
+            try:
+                if cache.get_champion(c):
+                    return c
+            except Exception:
+                # some cache implementations may raise; ignore and continue
+                pass
+
+        # try exact name match (case-insensitive)
+        lname = cand.lower()
         try:
+            all_champs = getattr(cache, "all_champions", None) or getattr(cache, "get_all_champions", None)
+            if callable(all_champs):
+                for champ in all_champs() or []:
+                    cname = (champ.get("name") or "").lower()
+                    if cname == lname:
+                        return champ.get("slug")
+        except Exception:
+            pass
+
+        # try contains/startswith fallback
+        try:
+            for champ in (all_champs() or []):
+                cname = (champ.get("name") or "").lower()
+                if lname in cname or cname.startswith(lname):
+                    return champ.get("slug")
+        except Exception:
+            pass
+
+    raise ValueError(f"Champion not found for '{name}'")
+
+def parse_roster_entries_from_input(text: str, cache) -> List[Dict[str, Any]]:
+    """
+    Adapter that converts free-form user input into canonical roster entries.
+    Uses hargs.parse_harg_list for tokenization and parse_harg_token-style parsing,
+    then resolves champion names to slugs and normalizes numeric fields.
+    Returns list of dicts: {'champion': slug, 'rarity': int, 'rank': int, 'sig': int, 'ascended': int, 'raw': str}
+    Raises ValueError with a helpful message if nothing valid is parsed.
+    """
+    if not text or not text.strip():
+        raise ValueError("No input provided")
+
+    # Use hargs to parse tokens (preserves quoted names, commas, semicolons)
+    try:
+        parsed_tokens = parse_harg_list(text)
+    except Exception:
+        parsed_tokens = []
+
+    # If hargs returned nothing, try splitting by commas/newlines and parse each token
+    if not parsed_tokens:
+        parts = [p.strip() for p in re.split(r"[,\n]+", text) if p.strip()]
+        if not parts:
+            raise ValueError("No valid entries found")
+        parsed_tokens = []
+        for p in parts:
+            try:
+                parsed_tokens.append(parse_harg_token(p))
+            except Exception:
+                # fallback: create a minimal token dict so extract_entry_from_parsed can try
+                parsed_tokens.append({"raw": p, "champion": p})
+
+    out: List[Dict[str, Any]] = []
+    errors: List[str] = []
+    for parsed in parsed_tokens:
+        try:
+            # Normalize parsed token into canonical entry shape
             entry = extract_entry_from_parsed(parsed)
-            # Apply defaults where appropriate (these defaults are the requested behavior)
+            # Ensure defaults
             if entry.get("rarity") is None:
                 entry["rarity"] = 6
             if entry.get("rank") is None:
@@ -269,11 +344,82 @@ def entries_from_hargs_text(text: str) -> List[Dict[str, Any]]:
                 entry["ascended"] = 1
             if entry.get("sig") is None:
                 entry["sig"] = 0
-            out.append(entry)
-        except Exception:
+
+            champ_name = entry.get("champion")
+            if not champ_name:
+                # try to extract alphabetic run from raw
+                raw = parsed.get("raw") or ""
+                m = re.search(r"[A-Za-z][A-Za-z0-9 '\-\.]{0,80}", raw)
+                if m:
+                    champ_name = m.group(0).strip()
+            if not champ_name:
+                errors.append(f"Could not determine champion name from '{parsed.get('raw')}'")
+                continue
+
+            try:
+                slug = _resolve_champion_slug(champ_name, cache)
+            except ValueError as exc:
+                errors.append(str(exc))
+                continue
+
+            out.append({
+                "champion": slug,
+                "rarity": int(entry.get("rarity") or 6),
+                "rank": int(entry.get("rank") or 1),
+                "sig": int(entry.get("sig") or 0),
+                "ascended": int(entry.get("ascended") or 1),
+                "tags": entry.get("tags") or [],
+                "raw": parsed.get("raw") or str(champ_name),
+            })
+        except Exception as exc:
+            log.debug("parse_roster_entries_from_input: failed token=%s exc=%s", parsed, exc)
             continue
+
+    if not out:
+        raise ValueError("No valid entries parsed: " + ("; ".join(errors) if errors else "unknown error"))
     return out
 
+# New helper: convert a free-form hargs text into a list of normalized entries
+def entries_from_hargs_text(text: str) -> List[Dict[str, Any]]:
+    """
+    Parse a text containing one or more ChampionHargs / HargsChampion / plain champion tokens
+    and return a list of normalized entry dicts suitable for add/remove/update operations.
+    Uses parse_harg_list from mcoc.hargs and resolves champion slugs via cache.
+    """
+    out: List[Dict[str, Any]] = []
+    try:
+        # prefer using the core cache if available; callers that call this function
+        # should pass core or use ensure_user_manager to get core. Here we attempt to
+        # use a best-effort cache from the module-level context if present.
+        # The roster add handler should call parse_roster_entries_from_input directly with core.cache.
+        # For backward compatibility, try to use a global cache if available.
+        cache = None
+        # If this module is used from a core context, callers should call parse_roster_entries_from_input directly.
+        parsed_entries = []
+        try:
+            # try hargs-only path first (no slug resolution)
+            parsed_list = parse_harg_list(text or "")
+            for parsed in parsed_list:
+                entry = extract_entry_from_parsed(parsed)
+                if entry.get("rarity") is None:
+                    entry["rarity"] = 6
+                if entry.get("rank") is None:
+                    entry["rank"] = 1
+                if entry.get("ascended") is None:
+                    entry["ascended"] = 1
+                if entry.get("sig") is None:
+                    entry["sig"] = 0
+                out.append(entry)
+            if out:
+                return out
+        except Exception:
+            pass
+
+        # fallback: try the full resolver if caller provided a cache via module-level core (best-effort)
+        # NOTE: callers that have access to core should call parse_roster_entries_from_input(core_text, core.cache)
+        return out
+    except Exception:
+        return []
 
 def validate_entry_for_add(entry: Dict[str, Any]) -> bool:
     """
@@ -319,7 +465,7 @@ def validate_entry_for_add(entry: Dict[str, Any]) -> bool:
 # -----------------------------
 # build_roster_pages (unchanged except it can accept parsed_filters from parse_hargs)
 # -----------------------------
-async def build_roster_pages(core: Any, user_id: int, parsed_filters: Optional[Dict[str, Any]] = None) -> List[Any]:
+async def build_roster_pages(core: Any, ctx_or_author: Any, parsed_filters: Optional[Dict[str, Any]] = None) -> List[Any]:
     pages: List[Any] = []
     try:
         users = ensure_user_manager(core)
@@ -328,18 +474,18 @@ async def build_roster_pages(core: Any, user_id: int, parsed_filters: Optional[D
         roster = []
         try:
             if asyncio.iscoroutinefunction(getattr(users, "list_roster", None)):
-                roster = await users.list_roster(user_id)
+                roster = await users.list_roster(ctx_or_author.id)
             else:
-                roster = users.list_roster(user_id) if users else []
+                roster = users.list_roster(ctx_or_author.id) if users else []
         except Exception:
             try:
-                roster = users.list_roster(user_id) if users else []
+                roster = users.list_roster(ctx_or_author.id) if users else []
             except Exception:
                 roster = []
 
         cache = getattr(core, "cache", None)
         parsed = parsed_filters or {}
-        profile = users.get_profile(user_id) if hasattr(users, "get_profile") else {}
+        profile = users.get_profile(ctx_or_author.id) if hasattr(users, "get_profile") else {}
         prestige_map = profile.get("prestige_map", {}) if isinstance(profile, dict) else {}
 
         class_map = {
@@ -496,8 +642,8 @@ async def build_roster_pages(core: Any, user_id: int, parsed_filters: Optional[D
 
         if not lines:
             try:
-                import discord
-                emb = discord.Embed(title="Roster", description="No champions match the filters.")
+                # emb = discord.Embed(title="Roster", description="No champions match the filters.")
+                emb = await cdt_embed(ctx_or_author, title="Roster", description="No champions match the filters.")
                 pages.append(emb)
             except Exception:
                 pages.append({"title": "Roster", "description": "No champions match the filters."})
@@ -520,10 +666,9 @@ async def build_roster_pages(core: Any, user_id: int, parsed_filters: Optional[D
 
         embed_pages: List[Any] = []
         try:
-            import discord
             for i, p in enumerate(pages):
                 title = "Roster"
-                emb = discord.Embed(title=title, description=p)
+                emb = await cdt_embed(ctx_or_author, title=title, description=p)
                 emb.set_footer(text=f"Page {i+1} of {len(pages)}")
                 embed_pages.append(emb)
             return embed_pages

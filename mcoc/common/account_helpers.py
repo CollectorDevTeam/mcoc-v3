@@ -61,6 +61,7 @@ def get_profile_settings(profile: dict) -> dict:
 import discord
 import datetime
 from typing import Any, Dict, Optional, List
+from ..common.embeds import cdt_embed
 
 def _format_date_iso(iso_str: Optional[str]) -> str:
     if not iso_str:
@@ -71,7 +72,7 @@ def _format_date_iso(iso_str: Optional[str]) -> str:
     except Exception:
         return str(iso_str)
 
-def format_profile_embed(ctx, profile: Dict[str, Any], member: Optional[Any] = None) -> discord.Embed:
+async def format_profile_embed(ctx, profile: Dict[str, Any], member: Optional[Any] = None) -> discord.Embed:
     """
     Build a Collector-style profile embed from stored profile dict.
     Returns a discord.Embed. Safe to call from prefix and slash handlers.
@@ -79,7 +80,7 @@ def format_profile_embed(ctx, profile: Dict[str, Any], member: Optional[Any] = N
     # Resolve display name
     display_name = profile.get("mcoc_name") or profile.get("display_name") or (member.display_name if getattr(member, "display_name", None) else None) or str(profile.get("mcoc_id") or "User")
 
-    emb = discord.Embed(title=f"{display_name} — Profile", colour=discord.Color.blue())
+    emb = await cdt_embed(ctx, title=f"{display_name} — Profile", colour=discord.Color.blue())
     # author / thumbnail
     try:
         if member and getattr(member, "avatar_url", None):

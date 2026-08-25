@@ -12,7 +12,8 @@ from ..common.roster_helpers import (
     build_roster_pages,
     validate_entry_for_add,
     schedule_persist_user_prestige,
-    entries_from_hargs_text,
+    # use the new adapter that resolves slugs via cache
+    parse_roster_entries_from_input,
 )
 from ..common.embeds import roster_entry_embed  # used for embed building
 from ..common.prefix_utils import get_runtime_prefix
@@ -84,12 +85,21 @@ class RosterPrefix(commands.Cog):
             return
 
         items_text = " ".join(items).strip()
-        parsed_entries = entries_from_hargs_text(items_text)
+        cache = getattr(self.parent, "cache", None)
+        try:
+            parsed_entries = parse_roster_entries_from_input(items_text, cache)
+        except ValueError as exc:
+            await ctx.send(f"No valid entries parsed from input: {exc}")
+            return
+        except Exception as exc:
+            log.exception("Unexpected error parsing roster add input: %s", exc)
+            await ctx.send("Error parsing entries; see logs for details.")
+            return
+
         if not parsed_entries:
             await ctx.send("No valid entries parsed from input.")
             return
 
-        cache = getattr(self.parent, "cache", None)
         users = ensure_user_manager(self.parent)
 
         successes: List[str] = []
@@ -105,10 +115,10 @@ class RosterPrefix(commands.Cog):
                         champ_obj = cache.get_champion(champ_key)
                     except Exception:
                         champ_obj = None
-                if not champ_obj and champ_key:
+                if not champ_obj and cache and champ_key:
                     # try name scan
                     try:
-                        for c in cache.get_all_champions() or []:
+                        for c in getattr(cache, "get_all_champions", lambda: [])() or []:
                             if str(c.get("id") or c.get("slug") or "").lower() == str(champ_key).lower() or str(c.get("name") or "").lower() == str(champ_key).lower():
                                 champ_obj = c
                                 break
@@ -174,7 +184,17 @@ class RosterPrefix(commands.Cog):
             return
 
         items_text = " ".join(items).strip()
-        parsed_entries = entries_from_hargs_text(items_text)
+        cache = getattr(self.parent, "cache", None)
+        try:
+            parsed_entries = parse_roster_entries_from_input(items_text, cache)
+        except ValueError as exc:
+            await ctx.send(f"No valid entries parsed from input: {exc}")
+            return
+        except Exception as exc:
+            log.exception("Unexpected error parsing roster remove input: %s", exc)
+            await ctx.send("Error parsing entries; see logs for details.")
+            return
+
         if not parsed_entries:
             await ctx.send("No valid entries parsed from input.")
             return
@@ -231,7 +251,17 @@ class RosterPrefix(commands.Cog):
             return
 
         items_text = " ".join(items).strip()
-        parsed_entries = entries_from_hargs_text(items_text)
+        cache = getattr(self.parent, "cache", None)
+        try:
+            parsed_entries = parse_roster_entries_from_input(items_text, cache)
+        except ValueError as exc:
+            await ctx.send(f"No valid entries parsed from input: {exc}")
+            return
+        except Exception as exc:
+            log.exception("Unexpected error parsing roster update input: %s", exc)
+            await ctx.send("Error parsing entries; see logs for details.")
+            return
+
         if not parsed_entries:
             await ctx.send("No valid entries parsed from input.")
             return
@@ -376,12 +406,20 @@ def register_with_group(group: commands.Group, parent_getter):
             await ctx.send("MCOC core not attached; roster unavailable.")
             return
         items_text = " ".join(items).strip()
-        parsed_entries = entries_from_hargs_text(items_text)
+        cache = getattr(parent, "cache", None)
+        try:
+            parsed_entries = parse_roster_entries_from_input(items_text, cache)
+        except ValueError as exc:
+            await ctx.send(f"No valid entries parsed from input: {exc}")
+            return
+        except Exception:
+            await ctx.send("Error parsing entries; see logs for details.")
+            return
+
         if not parsed_entries:
             await ctx.send("No valid entries parsed from input.")
             return
 
-        cache = getattr(parent, "cache", None)
         users = ensure_user_manager(parent)
 
         successes: List[str] = []
@@ -398,7 +436,7 @@ def register_with_group(group: commands.Group, parent_getter):
                         champ_obj = None
                 if not champ_obj and cache and champ_key:
                     try:
-                        for c in cache.get_all_champions() or []:
+                        for c in getattr(cache, "get_all_champions", lambda: [])() or []:
                             if str(c.get("id") or c.get("slug") or "").lower() == str(champ_key).lower() or str(c.get("name") or "").lower() == str(champ_key).lower():
                                 champ_obj = c
                                 break
@@ -456,7 +494,16 @@ def register_with_group(group: commands.Group, parent_getter):
             await ctx.send("MCOC core not attached; roster unavailable.")
             return
         items_text = " ".join(items).strip()
-        parsed_entries = entries_from_hargs_text(items_text)
+        cache = getattr(parent, "cache", None)
+        try:
+            parsed_entries = parse_roster_entries_from_input(items_text, cache)
+        except ValueError as exc:
+            await ctx.send(f"No valid entries parsed from input: {exc}")
+            return
+        except Exception:
+            await ctx.send("Error parsing entries; see logs for details.")
+            return
+
         if not parsed_entries:
             await ctx.send("No valid entries parsed from input.")
             return
@@ -507,7 +554,16 @@ def register_with_group(group: commands.Group, parent_getter):
             await ctx.send("MCOC core not attached; roster unavailable.")
             return
         items_text = " ".join(items).strip()
-        parsed_entries = entries_from_hargs_text(items_text)
+        cache = getattr(parent, "cache", None)
+        try:
+            parsed_entries = parse_roster_entries_from_input(items_text, cache)
+        except ValueError as exc:
+            await ctx.send(f"No valid entries parsed from input: {exc}")
+            return
+        except Exception:
+            await ctx.send("Error parsing entries; see logs for details.")
+            return
+
         if not parsed_entries:
             await ctx.send("No valid entries parsed from input.")
             return

@@ -6,6 +6,7 @@ from redbot.core import commands
 
 log = logging.getLogger("red.mcoc.prefix.account")
 
+from ..common.embeds import cdt_embed
 from ..common.champion_helpers import safe_send_ctx
 from ..common.roster_helpers import ensure_user_manager
 from ..common.roster_helpers import _ensure_hook_registered
@@ -235,7 +236,7 @@ class AccountPrefix(commands.Cog):
         # Build embed
         try:
             if discord:
-                emb = discord.Embed(title=f"{display_name} — Profile", colour=discord.Color.blue())
+                emb = await cdt_embed(ctx, title=f"{display_name} — Profile", colour=discord.Color.blue())
                 # author / thumbnail
                 try:
                     member_obj = ctx.guild.get_member(target_id) if ctx.guild else None

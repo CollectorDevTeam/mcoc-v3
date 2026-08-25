@@ -7,7 +7,7 @@ from datetime import datetime
 import discord
 from dateutil.parser import parse as date_parse
 from redbot.core import commands
-
+from ..common.embeds import cdt_embed
 from ..common.alliance_helpers import (
     get_guild_config, set_guild_config, role_id_for_key,
     register_alliance, create_or_link_role, join_alliance, leave_alliance,
@@ -301,7 +301,7 @@ class AlliancePrefix(commands.Cog):
                 await ctx.send("No alliance configured for this guild.")
                 return
             info = cfg.get("info", {})
-            emb = discord.Embed(title=info.get("name") or ctx.guild.name, color=discord.Color.gold())
+            emb = await cdt_embed(ctx, title=info.get("name") or ctx.guild.name, colour=discord.Color.gold())
             if info.get("tag"):
                 emb.add_field(name="Tag", value=info.get("tag"), inline=False)
             if info.get("about"):
@@ -334,7 +334,7 @@ class AlliancePrefix(commands.Cog):
             if member_alliance_name:
                 # private view: show member's roles and membership info
                 cfg = get_guild_config(ctx.guild.id)
-                emb = discord.Embed(title=f"{member.display_name} — {cfg.get('info', {}).get('name', ctx.guild.name)}", color=member.color or discord.Color.gold())
+                emb = await cdt_embed(ctx, title=f"{member.display_name} — {cfg.get('info', {}).get('name', ctx.guild.name)}", colour=member.color or discord.Color.gold())
                 # show member roles relevant to alliance
                 role_info = []
                 for key, r in cfg.get("roles", {}).items():
@@ -346,7 +346,7 @@ class AlliancePrefix(commands.Cog):
                     emb.add_field(name="Roles", value="\n".join(role_info), inline=False)
                 # membership metadata
                 emb.add_field(name="Member ID", value=str(member.id), inline=True)
-                emb.set_thumbnail(url=member.avatar_url)
+                emb.set_thumbnail(url=member.avatar.url)
                 await ctx.send(embed=emb)
                 return
             else:
@@ -368,7 +368,7 @@ class AlliancePrefix(commands.Cog):
                     return
                 pages = []
                 for g, cfg in found:
-                    emb = discord.Embed(title=cfg.get("info", {}).get("name", g.name), color=discord.Color.gold())
+                    emb = await cdt_embed(ctx, title=cfg.get("info", {}).get("name", g.name), colour=discord.Color.gold())
                     if cfg.get("info", {}).get("tag"):
                         emb.add_field(name="Tag", value=cfg.get("info", {}).get("tag"), inline=False)
                     # show member's role in that guild if available
