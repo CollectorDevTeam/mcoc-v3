@@ -27,11 +27,20 @@ class MCOCAdminPrefix(commands.Cog):
             self.bot = bot_or_parent
             self.parent = getattr(self.bot, "mcoc_core", None) or self.bot.get_cog("MCOC") or self.bot.get_cog("MCOCPrefix")
 
-# NO top-level commands here.
-
 def register_with_group(group: commands.Group, parent_getter):
+    def _safe_add(cmd_name):
+        def _decorator(func):
+            try:
+                if group.get_command(cmd_name):
+                    log.debug("Command %s already exists; skipping", cmd_name)
+                    return func
+            except Exception:
+                pass
+            group.command(name=cmd_name)(func)
+            return func
+        return _decorator
 
-    @group.command(name="status")
+    @_safe_add("status")
     @commands.is_owner()
     async def _status(ctx):
         parent = parent_getter()

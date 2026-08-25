@@ -71,8 +71,11 @@ class MCOCPrefix(commands.Cog):
         try:
             from .account_prefix import register_with_group as reg_account
             account_group = getattr(self, "account")
-            reg_account(account_group, parent_getter)
-            log.debug("Attached account registrar to ///mcoc account")
+            try:
+                reg_account(account_group, parent_getter)
+                log.debug("Attached account registrar to ///mcoc account")
+            except Exception:
+                log.exception("Failed to attach account registrar")
         except Exception:
             # log full exception so import/runtime errors are visible
             log.exception("Account registrar failed to attach (optional)")
@@ -83,8 +86,11 @@ class MCOCPrefix(commands.Cog):
         try:
             from .alliance_prefix import register_with_group as reg_alliance
             alliance_group = getattr(self, "alliance")
-            reg_alliance(alliance_group, parent_getter)
-            log.debug("Attached alliance registrar to ///mcoc alliance")
+            try: 
+                reg_alliance(alliance_group, parent_getter)
+                log.debug("Attached alliance registrar to ///mcoc alliance")
+            except Exception:
+                log.exception("Failed to attach alliance registrar")
         except Exception:
             log.exception("Alliance registrar failed to attach (optional)")
 
@@ -94,8 +100,11 @@ class MCOCPrefix(commands.Cog):
         try:
             from .champions_prefix import register_with_group as reg_champ
             champ_group = getattr(self, "champ")
-            reg_champ(champ_group, parent_getter)
-            log.debug("Attached champions registrar to ///mcoc champ")
+            try: 
+                reg_champ(champ_group, parent_getter)
+                log.debug("Attached champions registrar to ///mcoc champ")
+            except Exception:
+                log.exception("Failed to attach champions registrar")
         except Exception:
             log.exception("Failed to attach champions registrar")
 
@@ -105,10 +114,13 @@ class MCOCPrefix(commands.Cog):
         try:
             from .roster_prefix import register_with_group as reg_roster
             roster_group = getattr(self, "roster")
-            reg_roster(roster_group, parent_getter)
-            log.debug("Attached roster registrar to ///mcoc roster")
+            try:
+                reg_roster(roster_group, parent_getter)
+                log.debug("Attached roster registrar to ///mcoc roster")
+            except Exception:
+                log.exception("Failed to attach roster registrar")
         except Exception:
-            log.exception("Failed to attach roster registrar")
+            log.exception("Roster registrar failed to attach (optional)")
 
         # --------------------------
         # ADMIN (optional)
@@ -116,8 +128,11 @@ class MCOCPrefix(commands.Cog):
         try:
             from .mcocadmin_prefix import register_with_group as reg_admin
             admin_group = getattr(self, "admin")
-            reg_admin(admin_group, parent_getter)
-            log.debug("Attached admin registrar to ///mcoc admin")
+            try: 
+                reg_admin(admin_group, parent_getter)
+                log.debug("Attached admin registrar to ///mcoc admin")
+            except Exception:
+                log.exception("Failed to attach admin registrar")
         except Exception:
             log.exception("Admin registrar failed to attach (optional)")
 
