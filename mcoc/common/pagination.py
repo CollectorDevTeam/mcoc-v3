@@ -1,11 +1,14 @@
-# mcoc/pagination.py
+# mcoc/common/pagination.py
 import typing
 import asyncio
+import logging
+
+log = logging.getLogger("red.mcoc.pagination")
 
 # Keep top-level imports minimal; import discord lazily inside methods to remain import-neutral.
 class PagesMenu:
     """
-    A simple paginated View for discord.py v2+.
+    A simple paginated View for discord.py v2+ with a reusable confirm helper.
     - Instantiate with a list of discord.Embed (or embed-like objects) and the invoking user.
     - Safe to import in common modules because discord is imported lazily.
     """
@@ -55,6 +58,37 @@ class PagesMenu:
             else:
                 out.append(embed)
         return out
+
+    # -----------------------------
+    # Confirm helper (reusable)
+    # -----------------------------
+    @staticmethod
+    async def confirm(bot, ctx, prompt: str, timeout: float = 30.0) -> typing.Tuple[bool, typing.Optional[object]]:
+        """
+        Send `prompt` to the channel and wait for the invoking user to reply with 'yes'
+        (case-insensitive) within `timeout` seconds. Returns (confirmed, message).
+        - bot: the bot instance (used for wait_for)
+        - ctx: command context
+        - prompt: text to show to the user
+        - timeout: seconds to wait for confirmation
+        """
+        try:
+            prompt_msg = await ctx.send(prompt)
+
+            def _check(m):
+                return m.author.id == ctx.author.id and m.channel.id == ctx.channel.id
+
+            try:
+                reply = await bot.wait_for("message", check=_check, timeout=timeout)
+            except asyncio.TimeoutError:
+                return False, prompt_msg
+
+            if reply.content.strip().lower() in ("y", "yes", "confirm", "ok"):
+                return True, reply
+            return False, reply
+        except Exception:
+            log.exception("PagesMenu.confirm failed")
+            return False, None
 
     # -----------------------------
     # Build the actual discord View lazily

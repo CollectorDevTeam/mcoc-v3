@@ -4,6 +4,7 @@ import pathlib
 import logging
 import asyncio
 from typing import Optional, Dict, Any, List, Tuple, Union
+import time
 
 log = logging.getLogger("red.mcoc.alliance_helpers")
 DATA_PATH = pathlib.Path("data") / "account" / "alliances.json"
@@ -122,6 +123,7 @@ async def unregister_alliance(guild, remove_roles: bool = False) -> bool:
         cfg = get_guild_config(guild.id)
         if not cfg:
             return False
+        
         roles = cfg.get("roles", {})
         if remove_roles:
             for k, r in list(roles.items()):
@@ -133,6 +135,8 @@ async def unregister_alliance(guild, remove_roles: bool = False) -> bool:
                         await asyncio.sleep(0.35)
                 except Exception:
                     log.exception("Failed to delete role %s in guild %s", k, guild.id)
+        backup_path = _backup_alliance_cfg(guild.id)
+        log.info("Backup of alliance config saved to %s before unregistering guild %s", backup_path, guild.id)
         remove_guild_config(guild.id)
         return True
     except Exception:
@@ -229,6 +233,14 @@ def role_id_for_key(cfg: Dict[str, Any], key: str) -> Optional[int]:
     r = cfg.get("roles", {}).get(key)
     return r.get("id") if isinstance(r, dict) else None
 
+def _backup_alliance_cfg(guild_id):
+    cfg = get_guild_config(guild_id)
+    if not cfg:
+        return None
+    path = pathlib.Path("data") / "account" / f"alliances-backup-{guild_id}-{int(time.time())}.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps({str(guild_id): cfg}, indent=2), encoding="utf-8")
+    return str(path)
 
 def get_user_alliance_in_guild(user_id: int, guild_id: int) -> Optional[str]:
     """
@@ -298,6 +310,21 @@ def is_leader_or_officer(member, guild) -> bool:
     except Exception:
         log.exception("is_leader_or_officer check failed for member %s", getattr(member, "id", None))
         return False
+
+def is_alliance_manager(member, guild) -> bool:
+    """Return True if member is alliance leader, officer, or in manager role (configurable)."""
+    cfg = get_guild_config(guild.id) or {}
+    # check leader/officer roles
+    if is_leader_or_officer(member, guild):
+        return True
+    # check manager role key
+    mgr_role = _role_obj_for_key(cfg, guild, "managers")
+    if mgr_role and mgr_role in member.roles:
+        return True
+    # check manager ids list
+    if member.id in cfg.get("manager_ids", []):
+        return True
+    return False
 
 
 def is_leader(member, guild) -> bool:

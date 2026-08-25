@@ -19,7 +19,10 @@ from ..common.account_helpers import (
     delete_user_profile as helper_delete_user_profile,
 )
 
+from ..common.pagination import PagesMenu
+
 ACCOUNT_GROUP_HELP = "Account commands: info, view, set, link, unlink, delete, privacy"
+
 
 class AccountPrefix(commands.Cog):
     """
@@ -180,16 +183,10 @@ class AccountPrefix(commands.Cog):
             return
 
         try:
-            await safe_send_ctx(ctx, "Are you sure you want to delete your profile and roster? Reply with `yes` to confirm.")
-            def _check(m):
-                return m.author.id == ctx.author.id and m.channel.id == ctx.channel.id
-            try:
-                msg = await self.bot.wait_for("message", check=_check, timeout=20.0)
-                if msg.content.strip().lower() != "yes":
-                    await safe_send_ctx(ctx, "Deletion cancelled.")
-                    return
-            except Exception:
-                await safe_send_ctx(ctx, "No confirmation received; deletion cancelled.")
+            prompt = "Are you sure you want to delete your profile and roster? Reply with `yes` to confirm."
+            confirmed, _ = await PagesMenu.confirm(self.bot, ctx, prompt, timeout=20.0)
+            if not confirmed:
+                await safe_send_ctx(ctx, "Deletion cancelled.")
                 return
 
             ok, msg = helper_delete_user_profile(self.parent, ctx.author.id)
@@ -328,6 +325,11 @@ def register_with_group(group: commands.Group, parent_getter: Callable[[], Any])
             return
         users = ensure_user_manager(parent)
         try:
+            prompt = "Are you sure you want to delete your profile and roster? Reply with `yes` to confirm."
+            confirmed, _ = await PagesMenu.confirm(ctx.bot, ctx, prompt, timeout=20.0)
+            if not confirmed:
+                await safe_send_ctx(ctx, "Deletion cancelled.")
+                return
             users.delete_user(ctx.author.id)
             await safe_send_ctx(ctx, "Deleted your profile.")
         except Exception:

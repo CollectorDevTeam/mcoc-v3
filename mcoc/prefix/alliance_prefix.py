@@ -1,17 +1,23 @@
 # mcoc/prefix/alliance.py
 import logging
-from typing import Optional
+import asyncio
+from typing import Optional, Any, List
+from datetime import datetime
+
+import discord
+from dateutil.parser import parse as date_parse
 from redbot.core import commands
 
 from ..common.alliance_helpers import (
     get_guild_config, set_guild_config, role_id_for_key,
     register_alliance, create_or_link_role, join_alliance, leave_alliance,
-    is_leader_or_officer, is_leader, get_alliance_info, set_alliance_info_field,
+    is_leader_or_officer, is_leader, is_alliance_manager, get_alliance_info, set_alliance_info_field,
     add_officer_by_id, remove_officer_by_id, unregister_alliance,
-    _role_obj_for_key
+    _role_obj_for_key, get_user_alliance_in_guild
 )
 
 from ..common.roster_helpers import ensure_user_manager, _ensure_hook_registered
+from ..common.pagination import PagesMenu
 
 log = logging.getLogger("red.mcoc.prefix.alliance")
 
@@ -24,33 +30,99 @@ class AlliancePrefix(commands.Cog):
 
     @commands.group(name="alliance", invoke_without_command=True)
     async def alliance(self, ctx):
-        """Alliance commands: create, setrole, settype, join, leave, unregister, settings, manage"""
-        await ctx.send("Alliance commands: `create <simple|complex> <name>`, `setrole <key> <@role>`, `settype <simple|complex>`, `join`, `leave`, `unregister`, `settings`, `manage`")
+        """Alliance commands: create, template, setrole, settype, join, leave, unregister, settings, manage, export, reconcile, promote, demote, profile"""
+        help_text = (
+            "Alliance commands:\n"
+            "`create <simple|complex> <name>` — register an alliance and create core roles\n"
+            "`template` — interactive template that creates a standard set of roles (asks for confirmation)\n"
+            "`setrole <key> <@role>` — link an existing role to a key (keys: alliance, officers, members, leader, bg1, bg2, bg3, aqbg1, awbg1)\n"
+            "`settype <simple|complex>` — convert alliance type; complex creates battlegroup/leader roles\n"
+            "`manage` — management overview and quick actions (managers/leaders)\n"
+            "`settings` / `info` — show alliance settings and public profile\n"
+            "`profile [@member]` — show a user's alliance profile (public). If run in the user's alliance guild, private details are shown.\n"
+            "`export` — export roster CSV (admins)\n"
+            "`reconcile [apply=True]` — dry-run or apply fixes for missing configured roles (admins)\n"
+            "`promote` / `demote` — leader-only role assignment\n"
+            "`unregister [remove_roles]` — unregister alliance (admins; confirmation required)\n"
+        )
+        await ctx.send(help_text)
 
+    # ---------------------------------
+    # Alliance creation and template commands
+    # ---------------------------------
     @alliance.command(name="create")
     @commands.admin_or_permissions(manage_guild=True)
     async def alliance_create(self, ctx, type_: str, *, name: str):
         """
         Create and register an alliance on this guild.
         Usage: ///mcoc alliance create <simple|complex> <Alliance Name>
-
-        simple: minimal role set (alliance, officers, members) and basic settings.
-        complex: creates additional battlegroup roles and enables advanced features.
         """
         guild = ctx.guild
-        ok = await register_alliance(guild, name, type_=type_)
+        type_norm = (type_ or "").lower()
+        if type_norm not in ("simple", "complex"):
+            await ctx.send("Invalid type. Allowed: simple, complex. Example: ///mcoc alliance create simple CDT1")
+            return
+
+        # Describe what will be created and ask for confirmation via PagesMenu.confirm
+        roles_to_create = [f"{name} Alliance", f"{name} Officers", f"{name} Members"]
+        if type_norm == "complex":
+            roles_to_create += [
+                f"{name} Leader", f"{name} BG1", f"{name} BG2", f"{name} BG3",
+                f"{name} AQBG1", f"{name} AWBG1"
+            ]
+
+        prompt = (
+            "This will register the alliance and create/link the following roles:\n"
+            + "\n".join(f"- {r}" for r in roles_to_create)
+            + "\n\nReply with `yes` to proceed or anything else to cancel."
+        )
+
+        confirmed, _ = await PagesMenu.confirm(self.bot, ctx, prompt, timeout=30.0)
+        if not confirmed:
+            await ctx.send("Cancelled. No changes were made.")
+            return
+
+        ok = await register_alliance(guild, name, alliance_tag=None, type_=type_norm)
         if ok:
             await ctx.send(f"Alliance **{name}** registered on this guild.")
         else:
             await ctx.send("Failed to register alliance. Check logs.")
 
+    @alliance.command(name="template")
+    @commands.admin_or_permissions(manage_guild=True)
+    async def alliance_template(self, ctx):
+        """Interactive template that creates a standard set of roles (asks for confirmation)."""
+        guild = ctx.guild
+        name = f"{guild.name.split()[0]}"
+        roles_to_create = [
+            f"{name} Alliance", f"{name} Officers", f"{name} Members",
+            f"{name} Leader", f"{name} BG1", f"{name} BG2", f"{name} BG3"
+        ]
+        prompt = "This will create the following roles:\n" + "\n".join(f"- {r}" for r in roles_to_create)
+        prompt += "\n\nReply with `yes` to proceed or anything else to cancel."
+
+        confirmed, _ = await PagesMenu.confirm(self.bot, ctx, prompt, timeout=30.0)
+        if not confirmed:
+            await ctx.send("Cancelled. No roles were created.")
+            return
+
+        created = []
+        for rname in roles_to_create:
+            try:
+                role = await guild.create_role(name=rname, reason="Alliance template creation")
+                created.append(role.name)
+                await asyncio.sleep(0.25)
+            except Exception:
+                log.exception("Failed to create role %s in guild %s", rname, guild.id)
+        await ctx.send(f"Created roles: {', '.join(created) if created else 'none (check logs)'}")
+
+    # ---------------------------------
+    # Alliance role management commands
+    # ---------------------------------
     @alliance.command(name="setrole")
     @commands.admin_or_permissions(manage_guild=True)
     async def alliance_setrole(self, ctx, key: str, role: Optional[commands.RoleConverter] = None):
-        """Link an existing role to an alliance key.
-        Keys: alliance, officers, members, bg1, bg2, bg3, aqbg1, aqbg2, aqbg3, awbg1, awbg2, awbg3
-        Usage: ///mcoc alliance setrole <key> <@role>
-        """
+        """Link an existing role to an alliance key."""
         guild = ctx.guild
         if role is None:
             await ctx.send("Usage: ///mcoc alliance setrole <key> <@role>\nKeys: alliance, officers, members, leader, bg1, bg2, bg3, aqbg1, awbg1")
@@ -78,34 +150,120 @@ class AlliancePrefix(commands.Cog):
         await ctx.send(msg)
 
     @alliance.command(name="unregister")
-    @commands.admin_or_permissions(manage_guild=True)
-    async def alliance_unregister(self, ctx, remove_roles: Optional[bool] = False):
-        """Unregister alliance for this guild. Optionally remove roles (may hit rate limits)."""
-        guild = ctx.guild
-        ok = await unregister_alliance(guild, remove_roles=bool(remove_roles))
+    @commands.has_permissions(manage_guild=True)
+    async def alliance_unregister(self, ctx, remove_roles: bool = False):
+        cfg = get_guild_config(ctx.guild.id)
+        if not cfg:
+            await ctx.send("No alliance configured.")
+            return
+
+        prompt = (
+            "Are you sure you want to unregister this alliance? This will remove the alliance configuration "
+            "and optionally delete configured roles. Reply `yes` to confirm."
+        )
+        confirmed, _ = await PagesMenu.confirm(self.bot, ctx, prompt, timeout=20.0)
+        if not confirmed:
+            await ctx.send("Cancelled.")
+            return
+
+        ok = await unregister_alliance(ctx.guild, remove_roles=remove_roles)
         if ok:
-            await ctx.send("Alliance unregistered.")
+            await ctx.send("Alliance unregistered. A backup of the configuration was created.")
         else:
-            await ctx.send("Failed to unregister alliance. Check logs.")
+            await ctx.send("Failed to unregister; check logs.")
+
+    # ---------------------------------
+    # Alliance management commands
+    # ---------------------------------
+    @alliance.command(name="export")
+    @commands.has_permissions(manage_guild=True)
+    async def alliance_export(self, ctx):
+        """Export roster CSV for alliance members (admin only)."""
+        # Placeholder: implement CSV export using ensure_user_manager and ChampionRoster
+        await ctx.send("Export not implemented in this build. Use the export utility when available.")
 
     @alliance.command(name="manage")
-    @commands.admin_or_permissions(manage_guild=True)
     async def alliance_manage(self, ctx):
         """Show management actions and configured role keys for this guild."""
+        if not is_alliance_manager(ctx.author, ctx.guild):
+            await ctx.send("You do not have permission to manage this alliance.")
+            return
+
         cfg = get_guild_config(ctx.guild.id)
         if not cfg:
             await ctx.send("No alliance configured for this guild.")
             return
+
         roles = cfg.get("roles", {})
-        lines = ["Configured role keys:"]
-        for k in ("alliance", "leader", "officers", "members", "bg1", "bg2", "bg3", "aqbg1", "awbg1"):
+        keys = ["alliance", "leader", "officers", "members", "bg1", "bg2", "bg3", "aqbg1", "awbg1", "managers"]
+        lines = [
+            "**Alliance management**",
+            f"Name: {cfg.get('info', {}).get('name', 'Not set')}",
+            f"Type: {cfg.get('type', 'Not set')}",
+            "",
+            "**Configured role keys:**"
+        ]
+        for k in keys:
             v = roles.get(k)
-            lines.append(f"{k}: {v.get('name') if isinstance(v, dict) else v or 'not set'}")
+            lines.append(f"{k}: {v.get('name') if isinstance(v, dict) else (v or 'not set')}")
         lines.append("")
-        lines.append("To link a role: `///mcoc alliance setrole <key> <@role>`")
-        lines.append("To create battlegroup roles: `///mcoc alliance settype complex` (admins only)")
+        lines.append("**Quick actions**:")
+        lines.append("`///mcoc alliance setrole <key> <@role>` — link an existing role to a key")
+        lines.append("`///mcoc alliance settype <simple|complex>` — create battlegroup/leader roles (admins only)")
+        lines.append("`///mcoc alliance setinfo <field> <value>` — set profile fields (leader/officer)")
+        lines.append("`///mcoc alliance unregister <remove_roles>` — unregister alliance (admins only)")
         await ctx.send("\n".join(lines))
 
+    @alliance.command(name="reconcile")
+    @commands.has_permissions(manage_guild=True)
+    async def alliance_reconcile(self, ctx, apply: bool = False):
+        """Dry-run reconciliation between alliances.json and guild roles. Use apply=True to fix."""
+        cfg = get_guild_config(ctx.guild.id)
+        if not cfg:
+            await ctx.send("No alliance configured.")
+            return
+        missing = []
+        for key, entry in cfg.get("roles", {}).items():
+            rid = entry.get("id") if isinstance(entry, dict) else None
+            if rid is None or ctx.guild.get_role(rid) is None:
+                missing.append(key)
+        if not missing:
+            await ctx.send("All configured roles exist on this server.")
+            return
+        if not apply:
+            await ctx.send("Missing role keys: " + ", ".join(missing) + ". Run with `apply=True` to attempt fixes.")
+            return
+        created = []
+        for k in missing:
+            mapped = await create_or_link_role(ctx.guild, f"{cfg.get('info', {}).get('name','Alliance')} {k.capitalize()}", k)
+            if mapped:
+                created.append(k)
+        await ctx.send(f"Created/linked roles: {', '.join(created) if created else 'none (check logs)'}")
+
+    @alliance.command(name="settype")
+    @commands.admin_or_permissions(manage_guild=True)
+    async def alliance_settype(self, ctx, type_: str):
+        """Set alliance type: simple | complex. Admins only. Use complex to create leader and BG roles."""
+        type_norm = (type_ or "").lower()
+        if type_norm not in ("simple", "complex"):
+            await ctx.send("Invalid type. Allowed: simple, complex. Example: ///mcoc alliance settype complex")
+            return
+
+        cfg = get_guild_config(ctx.guild.id) or {}
+        cfg["type"] = type_norm
+        set_guild_config(ctx.guild.id, cfg)
+
+        if type_norm == "complex":
+            name = cfg.get("info", {}).get("name", "Alliance")
+            created = []
+            for key, label in [("leader", "Leader"), ("bg1", "BG1"), ("bg2", "BG2"), ("bg3", "BG3"), ("aqbg1", "AQBG1"), ("awbg1", "AWBG1")]:
+                if not cfg.get("roles", {}).get(key):
+                    mapped = await create_or_link_role(ctx.guild, f"{name} {label}", key)
+                    if mapped:
+                        created.append(key)
+            await ctx.send(f"Alliance type set to `{type_norm}`. Created roles: {', '.join(created) if created else 'none (or already present)'}")
+        else:
+            await ctx.send(f"Alliance type set to `{type_norm}`.")
 
     @alliance.command(name="settings")
     async def alliance_settings(self, ctx):
@@ -125,27 +283,113 @@ class AlliancePrefix(commands.Cog):
         await ctx.send("\n".join(lines))
 
     # -----------------------------
-    # Display alliance profile (public)
+    # Display alliance profile (public / per-user)
     # -----------------------------
-    @alliance.command(name="info")
-    async def alliance_info(self, ctx):
-        """Show the alliance profile for this guild (public)."""
-        cfg = get_guild_config(ctx.guild.id)
-        if not cfg:
-            await ctx.send("No alliance configured for this guild.")
+    @alliance.command(name="profile")
+    async def alliance_profile(self, ctx, member: Optional[commands.MemberConverter] = None):
+        """
+        Show a user's alliance profile.
+        - If no member provided, show the guild's public alliance profile.
+        - If member provided, show public profile for that user.
+        - If the command is run inside the user's alliance guild, show private details.
+        """
+        # If no member provided, show guild profile (alias for info/settings)
+        if member is None:
+            # show guild public profile
+            cfg = get_guild_config(ctx.guild.id)
+            if not cfg:
+                await ctx.send("No alliance configured for this guild.")
+                return
+            info = cfg.get("info", {})
+            emb = discord.Embed(title=info.get("name") or ctx.guild.name, color=discord.Color.gold())
+            if info.get("tag"):
+                emb.add_field(name="Tag", value=info.get("tag"), inline=False)
+            if info.get("about"):
+                emb.description = info.get("about")
+            if info.get("invite"):
+                emb.add_field(name="Invite", value=info.get("invite"), inline=False)
+            if info.get("started"):
+                emb.add_field(name="Started", value=info.get("started"), inline=False)
+            # configured roles
+            role_lines = []
+            for key in ("alliance", "leader", "officers", "members", "bg1", "bg2", "bg3"):
+                r = cfg.get("roles", {}).get(key)
+                if isinstance(r, dict):
+                    role_lines.append(f"**{key}**: {r.get('name')} (`{r.get('id')}`)")
+                elif r:
+                    role_lines.append(f"**{key}**: {r}")
+            if role_lines:
+                emb.add_field(name="Configured roles", value="\n".join(role_lines), inline=False)
+            if ctx.guild.icon_url:
+                emb.set_thumbnail(url=ctx.guild.icon_url)
+            await ctx.send(embed=emb)
             return
-        info = cfg.get("info", {})
-        lines = []
-        lines.append(f"**Alliance**: {info.get('name', 'Unnamed')}")
-        if info.get("tag"):
-            lines.append(f"**Tag**: {info.get('tag')}")
-        if info.get("invite"):
-            lines.append(f"**Invite**: {info.get('invite')}")
-        if info.get("about"):
-            lines.append(f"**About**: {info.get('about')}")
-        if info.get("started"):
-            lines.append(f"**Started**: {info.get('started')}")
-        await ctx.send("\n".join(lines))
+
+        # member provided: determine alliances for that user
+        # check if this guild is one of the user's alliances and whether we are in that guild
+        # Use get_user_alliance_in_guild to check membership in this guild
+        try:
+            # If the command is invoked in the member's alliance guild, show private details
+            member_alliance_name = get_user_alliance_in_guild(member.id, ctx.guild.id)
+            if member_alliance_name:
+                # private view: show member's roles and membership info
+                cfg = get_guild_config(ctx.guild.id)
+                emb = discord.Embed(title=f"{member.display_name} — {cfg.get('info', {}).get('name', ctx.guild.name)}", color=member.color or discord.Color.gold())
+                # show member roles relevant to alliance
+                role_info = []
+                for key, r in cfg.get("roles", {}).items():
+                    if isinstance(r, dict):
+                        role_obj = ctx.guild.get_role(r.get("id"))
+                        if role_obj and role_obj in member.roles:
+                            role_info.append(f"{key}: {role_obj.name}")
+                if role_info:
+                    emb.add_field(name="Roles", value="\n".join(role_info), inline=False)
+                # membership metadata
+                emb.add_field(name="Member ID", value=str(member.id), inline=True)
+                emb.set_thumbnail(url=member.avatar_url)
+                await ctx.send(embed=emb)
+                return
+            else:
+                # public profile: show which alliances the user is in (across configured guilds)
+                # We'll search current guilds config for membership
+                found = []
+                data = []
+                # iterate all configured guilds (read alliances file via helper)
+                # get_guild_config only returns per-guild; iterate known guilds by checking bot.guilds
+                for g in self.bot.guilds:
+                    cfg = get_guild_config(g.id)
+                    if not cfg:
+                        continue
+                    mids = cfg.get("member_ids", [])
+                    if member.id in mids:
+                        found.append((g, cfg))
+                if not found:
+                    await ctx.send(f"{member.display_name} is not recorded in any configured alliance.")
+                    return
+                pages = []
+                for g, cfg in found:
+                    emb = discord.Embed(title=cfg.get("info", {}).get("name", g.name), color=discord.Color.gold())
+                    if cfg.get("info", {}).get("tag"):
+                        emb.add_field(name="Tag", value=cfg.get("info", {}).get("tag"), inline=False)
+                    # show member's role in that guild if available
+                    role_lines = []
+                    for key, r in cfg.get("roles", {}).items():
+                        if isinstance(r, dict):
+                            role_obj = g.get_role(r.get("id"))
+                            if role_obj and role_obj in member.roles:
+                                role_lines.append(f"{key}: {role_obj.name}")
+                    if role_lines:
+                        emb.add_field(name=f"{member.display_name}'s roles", value="\n".join(role_lines), inline=False)
+                    emb.set_footer(text=f"Server: {g.name} ({g.id})")
+                    pages.append(emb)
+                # paginate results
+                menu = PagesMenu(pages, ctx.author, timeout=120)
+                await menu.start(ctx)
+                return
+        except Exception:
+            log.exception("Failed to build profile for member %s", getattr(member, "id", None))
+            await ctx.send("Failed to fetch profile. Check logs.")
+            return
 
     # -----------------------------
     # Set alliance profile fields (leader or officer)
@@ -161,12 +405,10 @@ class AlliancePrefix(commands.Cog):
             await ctx.send("Invalid field. Allowed: " + ", ".join(sorted(allowed)))
             return
 
-        # permission: leader or officer
         if not is_leader_or_officer(ctx.author, ctx.guild):
             await ctx.send("Only alliance leaders or officers can set alliance info.")
             return
 
-        # normalize clearing
         val = value.strip() if value else None
         if val == "":
             val = None
@@ -176,25 +418,6 @@ class AlliancePrefix(commands.Cog):
             await ctx.send(f"Set `{field}` to `{val}`." if val is not None else f"Cleared `{field}`.")
         else:
             await ctx.send("Failed to update alliance info. Check logs.")
-
-
-    @alliance.command(name="settype")
-    @commands.admin_or_permissions(manage_guild=True)
-    async def alliance_settype(self, ctx, type_: str):
-        """Set alliance type: simple | complex. Admins only. Use 'complex' to create leader and BG roles."""
-        type_norm = (type_ or "").lower()
-        if type_norm not in ("simple", "complex"):
-            await ctx.send("Invalid type. Allowed: simple, complex. Example: ///mcoc alliance settype complex")
-            return
-
-        # update config and attempt to create missing roles if switching to complex
-        from ..common.alliance_helpers import set_alliance_type
-        ok = set_alliance_type(ctx.guild.id, type_norm, guild_obj=ctx.guild)
-        if ok:
-            await ctx.send(f"Alliance type set to `{type_norm}`. Missing roles will be created if possible.")
-        else:
-            await ctx.send("Failed to set alliance type. Check logs.")
-
 
     # -----------------------------
     # Officer management (leader only)
@@ -265,18 +488,15 @@ class AlliancePrefix(commands.Cog):
         if not cfg:
             await ctx.send("No alliance configured for this guild.")
             return
-        role_map = cfg.get("roles", {})
-        target = role_map.get(role_key)
-        if not target:
-            await ctx.send(f"No role configured for key `{role_key}`.")
-            return
-        role_obj = ctx.guild.get_role(target.get("id"))
+
+        rid = role_id_for_key(cfg, role_key)
+        role_obj = ctx.guild.get_role(rid) if rid else None
         if not role_obj:
-            await ctx.send("Configured role not found on server.")
+            await ctx.send(f"No role configured or role not found for key `{role_key}`.")
             return
+
         try:
             await member.add_roles(role_obj, reason="Promoted via mcoc promote")
-            # ensure member is in member_ids
             mids = cfg.setdefault("member_ids", [])
             if member.id not in mids:
                 mids.append(member.id)
@@ -308,7 +528,6 @@ class AlliancePrefix(commands.Cog):
         try:
             if role_obj in member.roles:
                 await member.remove_roles(role_obj, reason="Demoted via mcoc demote")
-            # if removing members role, update member_ids
             if role_key == "members":
                 mids = cfg.get("member_ids", [])
                 if member.id in mids:
@@ -332,7 +551,6 @@ class AlliancePrefix(commands.Cog):
             return
         mids = cfg.get("member_ids", [])
         if is_leader_or_officer(ctx.author, ctx.guild):
-            # show mentions where possible
             mentions = []
             for uid in mids:
                 member = ctx.guild.get_member(uid)
