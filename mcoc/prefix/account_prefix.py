@@ -236,7 +236,7 @@ class AccountPrefix(commands.Cog):
         # Build embed
         try:
             if discord:
-                emb = await cdt_embed(ctx, title=f"{display_name} — Profile", colour=discord.Color.blue())
+                emb = cdt_embed(ctx, title=f"{display_name} — Profile", colour=discord.Color.blue())
                 # author / thumbnail
                 try:
                     member_obj = ctx.guild.get_member(target_id) if ctx.guild else None

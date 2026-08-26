@@ -3,20 +3,10 @@ import re
 import logging
 from typing import Any, Dict, List, Optional, Tuple
 from .embeds import cdt_embed
-from .hargs import parse_harg_list
+from .hargs import parse_harg_list, parse_harg_token
 import asyncio
 
 log = logging.getLogger("red.mcoc.roster_helpers")
-
-# New import: hargs parsing helpers
-try:
-    from .hargs import parse_harg_list, parse_harg_token
-except Exception:
-    # fallback stub if hargs not available at import time
-    def parse_harg_list(text: str) -> List[Dict[str, Any]]:
-        return []
-    def parse_harg_token(token: str) -> Dict[str, Any]:
-        return {}
 
 def ensure_user_manager(core_or_bot) -> Any:
     """
@@ -469,6 +459,21 @@ def validate_entry_for_add(entry: Dict[str, Any]) -> bool:
 # -----------------------------
 async def build_roster_pages(core: Any, ctx_or_author: Any, parsed_filters: Optional[Dict[str, Any]] = None) -> List[Any]:
     pages: List[Any] = []
+    # normalize ctx_or_author -> (author_for_embed, user_id)
+    author_for_embed = None
+    user_id = None
+    if ctx_or_author is None:
+        author_for_embed = None
+    elif hasattr(ctx_or_author, "author"):
+        author_for_embed = ctx_or_author.author
+        user_id = getattr(ctx_or_author.author, "id", None)
+    else:
+        author_for_embed = ctx_or_author
+        user_id = getattr(ctx_or_author, "id", None)
+
+    if user_id is None:
+        raise ValueError("build_roster_pages requires ctx_or_author with an .id attribute")
+
     try:
         users = ensure_user_manager(core)
         _ensure_hook_registered(core)

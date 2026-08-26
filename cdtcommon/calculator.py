@@ -33,7 +33,7 @@ class Calculator(commands.Cog):
         )
         calculate_stuff = eval("".join(math_filter))
         if len(str(calculate_stuff)) > 0:
-            em = await Embed.create(
+            em = Embed.create(
                 ctx,
                 title="CollectorDevTeam Calculator",
                 thumbnail=self.thumbnail,
@@ -74,7 +74,7 @@ class Calculator(commands.Cog):
         )
         flat_val = eval("".join(math_filter))
         p = CdtCommon.from_flat(flat_val, challenger_rating)
-        em = await Embed.create(
+        em = Embed.create(
             ctx,
             color=discord.Color.gold(),
             title="FlatValue:",
@@ -92,7 +92,7 @@ class Calculator(commands.Cog):
         if base > 1:
             base = base / 100
         compound = 1 - (1 - base) ** exp
-        em = await Embed.create(
+        em = Embed.create(
             ctx,
             color=discord.Color.gold(),
             title="Compounded Fractions",
