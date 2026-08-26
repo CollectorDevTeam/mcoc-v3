@@ -21,7 +21,7 @@ CDT_LOGO = "https://raw.githubusercontent.com/CollectorDevTeam/assets/master/dat
 CDT_ICON = "https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/cdt_icon.png"
 PATREON = "https://patreon.com/collectorbot"
 DOCS_URL = "https://github.com/CollectorDevTeam/CollectorBot"  # example docs link
-IMPORT_HELP_URL = "https://hook.github.io/champions/#/roster"
+# IMPORT_HELP_URL = "https://hook.github.io/champions/#/roster"
 CDT_FOOTER_TAG = " | CollectorBot by CollectorDevTeam"
 
 # Minimal author extraction (works with Context or Member/User)

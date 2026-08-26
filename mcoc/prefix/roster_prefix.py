@@ -1,750 +1,799 @@
-# mcoc/common/roster_helpers.py
-import re
+# mcoc/prefix/roster_prefix.py
 import logging
-from typing import Any, Dict, List, Optional, Tuple
-import asyncio
+from typing import Optional, Any, List, Dict
+from redbot.core import commands
 
-from .hargs import parse_harg_list, parse_harg_token
-from .componentsV2 import CDTv2, CDT_FOOTER_TAG
+import discord
+from mcoc.common.champion_helpers import add_page_footers
+from mcoc.common.componentsV2 import CDTv2, PaginatorView
 
-log = logging.getLogger("red.mcoc.roster_helpers")
+log = logging.getLogger("red.mcoc.prefix.roster")
+
+from ..common.hargs import parse_hargs
+from ..common.roster_helpers import (
+    ensure_user_manager,
+    extract_entry_from_parsed,
+    build_roster_pages,
+    validate_entry_for_add,
+    schedule_persist_user_prestige,
+    # use the new adapter that resolves slugs via cache
+    parse_roster_entries_from_input,
+)
+from ..common.prefix_utils import get_runtime_prefix
+
+from ..common.prefix_meta import ROSTER_GROUP_HELP, ALLOWED_ROSTER_FIELDS
 
 
-def ensure_user_manager(core_or_bot) -> Any:
+class RosterPrefix(commands.Cog):
     """
-    Return a UserDataManager instance.
-    Prefer an existing manager on the core (core.users or core.user_manager),
-    otherwise create a fresh UserDataManager.
+    Prefix commands for roster management. Uses common roster helpers.
+
+    Add/Remove/Update accept lists of ChampionHargs / HargsChampion / plain champion tokens.
+    Example inputs:
+      ///mcoc roster add blackbolt6sr1, spiderman6r1
+      ///mcoc roster add "Black Bolt" 6r1; "Spider Man" 6r1
+      ///mcoc roster add 6r1blackbolt 6A1r2spiderman
     """
-    try:
-        if core_or_bot is None:
-            from .userdata import UserDataManager
-            return UserDataManager()
-        um = getattr(core_or_bot, "users", None) or getattr(core_or_bot, "user_manager", None)
-        if um:
-            return um
-    except Exception:
-        log.exception("Error resolving existing user manager")
 
-    try:
-        from .userdata import UserDataManager
-        return UserDataManager()
-    except Exception:
-        log.exception("Failed to create UserDataManager")
-        return None
-
-
-# module-level debounce map
-_persist_pending: Dict[int, asyncio.Task] = {}
-
-
-def schedule_persist_user_prestige(core, user_id: int, delay: float = 1.5) -> None:
-    """
-    Debounced schedule for persist_user_prestige(core, user_id).
-    Multiple calls within `delay` seconds coalesce into one run.
-    """
-    try:
-        existing = _persist_pending.get(user_id)
-        if existing and not existing.done():
-            existing.cancel()
-    except Exception:
-        pass
-
-    async def _delayed():
-        try:
-            await asyncio.sleep(delay)
-            await persist_user_prestige(core, user_id)
-        except asyncio.CancelledError:
-            return
-        except Exception:
-            log.exception("Debounced persist_user_prestige failed for %s", user_id)
-        finally:
-            _persist_pending.pop(user_id, None)
-
-    loop = getattr(core.bot, "loop", None) or asyncio.get_event_loop()
-    task = loop.create_task(_delayed())
-    _persist_pending[user_id] = task
-
-
-async def persist_user_prestige(core: Any, user_id: int) -> None:
-    """
-    Compute prestige for each roster entry using core.cache/index and persist
-    a small prestige_map into the user's profile: { "slug|stars": prestige }.
-    Safe to call after add/update/remove roster operations.
-    """
-    try:
-        users = ensure_user_manager(core)
-        if users is None:
-            return
-
-        # load roster (sync or async)
-        if asyncio.iscoroutinefunction(getattr(users, "list_roster", None)):
-            roster = await users.list_roster(user_id)
+    def __init__(self, bot_or_parent: Any):
+        if hasattr(bot_or_parent, "bot") and hasattr(bot_or_parent, "cache"):
+            self.parent = bot_or_parent
+            self.bot = bot_or_parent.bot
         else:
-            roster = users.list_roster(user_id)
+            self.parent = None
+            self.bot = bot_or_parent
 
-        cache = getattr(core, "cache", None)
-        idx = getattr(core, "cacheindex", None) or (getattr(cache, "index", None) if cache else None)
-
-        prestige_map: Dict[str, Optional[int]] = {}
-
-        for e in roster:
+    async def _require_parent(self, ctx) -> bool:
+        # Try to attach core dynamically if possible
+        if not getattr(self, "parent", None):
             try:
-                slug = str(e.get("champion") or "").strip()
-                raw_stars = int(e.get("rarity") or e.get("stars") or 6)
-                raw_rank = int(e.get("rank") or 1)
-                raw_sig = int(e.get("sig") or 0)
-                raw_asc = int(e.get("ascended") or 0)
-
-                if cache and hasattr(cache, "normalize_hargs_by_tier"):
-                    try:
-                        stars, rank, sig, asc = cache.normalize_hargs_by_tier(raw_stars, raw_rank, raw_sig, raw_asc)
-                    except Exception:
-                        stars, rank, sig, asc = raw_stars, raw_rank, raw_sig, raw_asc
-                else:
-                    stars, rank, sig, asc = raw_stars, raw_rank, raw_sig, raw_asc
-
-                prestige = None
-                if idx and slug:
-                    try:
-                        row = idx.get_prestige_row(slug, tier=stars, rank=rank, asc=asc)
-                        if row:
-                            sigs = row.get("sigs") or {}
-                            prestige = cache.smooth_sig_value(sigs, sig) if hasattr(cache, "smooth_sig_value") else cache._smooth_sig_value(sigs, sig)
-                    except Exception:
-                        prestige = None
-
-                if prestige is None and cache and hasattr(cache, "get_prestige_value"):
-                    try:
-                        prestige = cache.get_prestige_value(slug, stars, rank, asc, sig)
-                    except Exception:
-                        prestige = None
-
-                key = f"{slug}|{stars}"
-                prestige_map[key] = int(prestige) if isinstance(prestige, (int, float)) else None
+                core = getattr(self.bot, "mcoc_core", None) or self.bot.get_cog("MCOC")
+                if core:
+                    self.parent = core
+                    return True
             except Exception:
-                continue
-
-        # persist map into profile['prestige_map']
-        try:
-            if asyncio.iscoroutinefunction(getattr(users, "set_profile_field_async", None)):
-                await users.set_profile_field_async(user_id, "prestige_map", prestige_map)
-            else:
-                users.set_profile_field(user_id, "prestige_map", prestige_map)
-        except Exception:
-            log.exception("Failed to persist prestige_map for user %s", user_id)
-
-    except Exception:
-        log.exception("persist_user_prestige failed for user %s", user_id)
-
-
-def _ensure_hook_registered(core):
-    """
-    Ensure the UserDataManager.post_mutation_hook is set to schedule prestige persistence.
-    Call this once when core is available (e.g., in build_roster_pages or when cog attaches).
-    """
-    users = ensure_user_manager(core)
-    if not users:
-        return
-    if getattr(users, "_prestige_hook_registered", False):
-        return
-
-    def _hook(user_id: int):
-        try:
-            schedule_persist_user_prestige(core, user_id)
-        except Exception:
-            log.exception("Failed to schedule prestige persist for %s", user_id)
-
-    users.post_mutation_hook = _hook
-    users._prestige_hook_registered = True
-
-
-# -----------------------------
-# Entry extraction and validation
-# -----------------------------
-def extract_entry_from_parsed(parsed: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Normalize a parsed filter dict (from parse_hargs) or a single harg token parse
-    into a canonical entry dict used by roster operations.
-
-    The returned dict contains:
-      {
-        "champion": Optional[str],
-        "rarity": Optional[int],
-        "rank": Optional[int],
-        "sig": int,
-        "tags": List[str],
-        "ascended": int,
-      }
-    """
-    entry = {
-        "champion": None,
-        "rarity": None,
-        "rank": None,
-        "sig": 0,
-        "tags": [],
-        "ascended": 0,
-    }
-
-    try:
-        # If parsed is the compact token parse (parse_harg_token style)
-        if parsed.get("raw") is not None and ("rarity" in parsed or "rank" in parsed or "ascended" in parsed or "sig" in parsed):
-            # direct mapping
-            entry["champion"] = parsed.get("champion") or None
-            entry["rarity"] = int(parsed.get("rarity")) if parsed.get("rarity") is not None else None
-            entry["rank"] = int(parsed.get("rank")) if parsed.get("rank") is not None else None
-            entry["sig"] = int(parsed.get("sig") or 0)
-            entry["ascended"] = int(parsed.get("ascended") or 0)
-            # tags may not be present in compact token
-            tags = parsed.get("tags") or []
-            entry["tags"] = [str(t).lower() for t in tags if t]
-            return entry
-    except Exception:
-        # fall through to legacy handling
-        pass
-
-    try:
-        if parsed.get("champion"):
-            entry["champion"] = str(parsed["champion"]).strip()
-    except Exception:
-        entry["champion"] = None
-
-    try:
-        if parsed.get("rarities"):
-            entry["rarity"] = int(parsed["rarities"][0])
-    except Exception:
-        entry["rarity"] = None
-
-    try:
-        if parsed.get("ranks"):
-            entry["rank"] = int(parsed["ranks"][0])
-    except Exception:
-        entry["rank"] = None
-
-    try:
-        if parsed.get("sigs"):
-            entry["sig"] = int(parsed["sigs"][0])
-    except Exception:
-        entry["sig"] = 0
-
-    try:
-        if parsed.get("ascended"):
-            entry["ascended"] = int(parsed.get("ascended")[0])
-    except Exception:
-        entry["ascended"] = 0
-
-    tags = parsed.get("tags") or []
-    entry["tags"] = [str(t).lower() for t in tags if t]
-
-    return entry
-
-
-# -----------------------------
-# Roster parsing adapter & slug resolver
-# -----------------------------
-def _normalize_candidate_name(name: str) -> str:
-    s = (name or "").strip().lower()
-    s = re.sub(r"[^\w\s-]", "", s)   # remove punctuation except hyphen
-    s = re.sub(r"\s+", "-", s)       # spaces -> hyphen
-    return s
-
-
-def _resolve_champion_slug(name: str, cache) -> str:
-    """
-    Resolve a champion name (from hargs.parse_harg_token) to a canonical slug.
-    Tries: normalized slug, slug without hyphens, exact name match, contains/startswith fallback.
-    Raises ValueError if not found.
-    """
-    if not name or not name.strip():
-        raise ValueError("Empty champion name")
-
-    cand = name.strip()
-    norm = _normalize_candidate_name(cand)
-    candidates = [norm, norm.replace("-", "")]
-
-    # try exact slug candidates
-    if cache:
-        for c in candidates:
-            try:
-                if cache.get_champion(c):
-                    return c
-            except Exception:
-                # some cache implementations may raise; ignore and continue
                 pass
-
-        # try exact name match (case-insensitive)
-        lname = cand.lower()
-        try:
-            all_champs = getattr(cache, "all_champions", None) or getattr(cache, "get_all_champions", None)
-            if callable(all_champs):
-                for champ in all_champs() or []:
-                    cname = (champ.get("name") or "").lower()
-                    if cname == lname:
-                        return champ.get("slug")
-        except Exception:
-            pass
-
-        # try contains/startswith fallback
-        try:
-            for champ in (all_champs() or []):
-                cname = (champ.get("name") or "").lower()
-                if lname in cname or cname.startswith(lname):
-                    return champ.get("slug")
-        except Exception:
-            pass
-
-    raise ValueError(f"Champion not found for '{name}'")
-
-
-def parse_roster_entries_from_input(text: str, cache) -> List[Dict[str, Any]]:
-    """
-    Adapter that converts free-form user input into canonical roster entries.
-    Uses hargs.parse_harg_list for tokenization and parse_harg_token-style parsing,
-    then resolves champion names to slugs and normalizes numeric fields.
-    Returns list of dicts: {'champion': slug, 'rarity': int, 'rank': int, 'sig': int, 'ascended': int, 'raw': str}
-    Raises ValueError with a helpful message if nothing valid is parsed.
-    """
-    if not text or not text.strip():
-        raise ValueError("No input provided")
-
-    # Use hargs to parse tokens (preserves quoted names, commas, semicolons)
-    try:
-        parsed_tokens = parse_harg_list(text)
-    except Exception:
-        parsed_tokens = []
-
-    # If hargs returned nothing, try splitting by commas/newlines and parse each token
-    if not parsed_tokens:
-        parts = [p.strip() for p in re.split(r"[,\n]+", text) if p.strip()]
-        if not parts:
-            raise ValueError("No valid entries found")
-        parsed_tokens = []
-        for p in parts:
             try:
-                parsed_tokens.append(parse_harg_token(p))
+                await ctx.send("MCOC core not attached; roster unavailable.")
             except Exception:
-                # fallback: create a minimal token dict so extract_entry_from_parsed can try
-                parsed_tokens.append({"raw": p, "champion": p})
-
-    out: List[Dict[str, Any]] = []
-    errors: List[str] = []
-    for parsed in parsed_tokens:
-        try:
-            # Normalize parsed token into canonical entry shape
-            entry = extract_entry_from_parsed(parsed)
-            # Ensure defaults
-            if entry.get("rarity") is None:
-                entry["rarity"] = 6
-            if entry.get("rank") is None:
-                entry["rank"] = 1
-            if entry.get("ascended") is None:
-                entry["ascended"] = 1
-            if entry.get("sig") is None:
-                entry["sig"] = 0
-
-            champ_name = entry.get("champion")
-            if not champ_name:
-                # try to extract alphabetic run from raw
-                raw = parsed.get("raw") or ""
-                m = re.search(r"[A-Za-z][A-Za-z0-9 '\-\.]{0,80}", raw)
-                if m:
-                    champ_name = m.group(0).strip()
-            if not champ_name:
-                errors.append(f"Could not determine champion name from '{parsed.get('raw')}'")
-                continue
-
-            try:
-                slug = _resolve_champion_slug(champ_name, cache)
-            except ValueError as exc:
-                errors.append(str(exc))
-                continue
-
-            out.append({
-                "champion": slug,
-                "rarity": int(entry.get("rarity") or 6),
-                "rank": int(entry.get("rank") or 1),
-                "sig": int(entry.get("sig") or 0),
-                "ascended": int(entry.get("ascended") or 1),
-                "tags": entry.get("tags") or [],
-                "raw": parsed.get("raw") or str(champ_name),
-            })
-        except Exception as exc:
-            log.debug("parse_roster_entries_from_input: failed token=%s exc=%s", parsed, exc)
-            continue
-
-    if not out:
-        raise ValueError("No valid entries parsed: " + ("; ".join(errors) if errors else "unknown error"))
-    return out
-
-
-def entries_from_hargs_text(text: str) -> List[Dict[str, Any]]:
-    """
-    Parse a text containing one or more ChampionHargs / HargsChampion / plain champion tokens
-    and return a list of normalized entry dicts suitable for add/remove/update operations.
-    Uses parse_harg_list from mcoc.hargs and resolves champion slugs via cache.
-    """
-    out: List[Dict[str, Any]] = []
-    try:
-        parsed_list = parse_harg_list(text or "")
-        for parsed in parsed_list:
-            entry = extract_entry_from_parsed(parsed)
-            if entry.get("rarity") is None:
-                entry["rarity"] = 6
-            if entry.get("rank") is None:
-                entry["rank"] = 1
-            if entry.get("ascended") is None:
-                entry["ascended"] = 1
-            if entry.get("sig") is None:
-                entry["sig"] = 0
-            out.append(entry)
-        return out
-    except Exception:
-        return []
-
-
-def validate_entry_for_add(entry: Dict[str, Any]) -> bool:
-    """
-    Validate a normalized entry for add/update operations.
-
-    Rules:
-      - rarity: 1..7
-      - rank: 1..5
-      - ascended: 0..2
-      - sig: bounds depend on rarity (<=99 for tiers 1-4, <=200 for tiers 5-7)
-    """
-    try:
-        r = entry.get("rarity")
-        rk = entry.get("rank")
-        sig = entry.get("sig", 0)
-        asc = entry.get("ascended", 0)
-
-        if r is None or rk is None:
+                pass
             return False
-
-        r = int(r); rk = int(rk); sig = int(sig); asc = int(asc)
-
-        if not (1 <= r <= 7):
-            return False
-        if not (1 <= rk <= 5):
-            return False
-        if not (0 <= asc <= 2):
-            return False
-
-        # signature bounds by tier
-        if r <= 4:
-            if not (0 <= sig <= 99):
-                return False
-        else:
-            if not (0 <= sig <= 200):
-                return False
-
         return True
-    except Exception:
-        return False
 
+    @commands.group(name="roster", invoke_without_command=True)
+    async def roster(self, ctx, *items: str):
+        """
+        Top-level roster group.
+        Behavior:
+          - no args -> show help text
+          - args present -> treat as `roster list <args>` (so `///mcoc roster @user` becomes list)
+        """
+        # If no args, show help
+        if not items:
+            await ctx.send(ROSTER_GROUP_HELP.get("roster", "Roster commands: add, remove, update, list, export, clear"))
+            return
 
-# -----------------------------
-# build_roster_pages
-# -----------------------------
-async def build_roster_pages(core: Any, ctx_or_author: Any, parsed_filters: Optional[Dict[str, Any]] = None) -> List[Any]:
-    """
-    Build a list of pages (discord.Embed objects or dict fallbacks) representing:
-      - roster pages chunked into pages with consistent title and footer
-
-    Parameters:
-      - core: the bot/core object (used to access cache, cacheindex, users)
-      - ctx_or_author: Context or author-like object used for branding (author name/avatar)
-      - parsed_filters: optional parsed filters (from parse_hargs)
-    """
-    pages: List[Any] = []
-
-    # normalize ctx_or_author -> (author_for_embed, user_id)
-    author_for_embed = None
-    user_id = None
-    try:
-        if ctx_or_author is None:
-            author_for_embed = None
-            user_id = None
-        elif hasattr(ctx_or_author, "author"):
-            author_for_embed = ctx_or_author.author
-            user_id = getattr(ctx_or_author.author, "id", None)
-        else:
-            author_for_embed = ctx_or_author
-            user_id = getattr(ctx_or_author, "id", None)
-    except Exception:
-        author_for_embed = None
-        user_id = None
-
-    if user_id is None:
-        raise ValueError("build_roster_pages requires ctx_or_author with an .id attribute")
-
-    try:
-        users = ensure_user_manager(core)
-        _ensure_hook_registered(core)
-
-        # load roster for user_id
-        roster = []
+        # If args present, forward to the list handler so `///mcoc roster @user ...` works
         try:
-            if asyncio.iscoroutinefunction(getattr(users, "list_roster", None)):
-                roster = await users.list_roster(user_id)
-            else:
-                roster = users.list_roster(user_id) if users else []
+            await self.roster_list(ctx, *items)
         except Exception:
+            await ctx.send(ROSTER_GROUP_HELP.get("roster", "Roster commands: add, remove, update, list, export, clear"))
+
+    # -----------------------------
+    # Add (multiple)
+    # -----------------------------
+    @roster.command(name="add")
+    async def roster_add(self, ctx, *items: str):
+        """
+        Add one or more champions to your roster.
+        Accepts lists of ChampionHargs / HargsChampion / plain champion tokens.
+        Examples:
+          ///mcoc roster add blackbolt6sr1, spiderman6r1
+          ///mcoc roster add "Black Bolt" 6r1; "Spider Man" 6r1
+        """
+        prefix = get_runtime_prefix(ctx, default="///")
+        if not items:
+            await ctx.send(
+                "Usage: "
+                f"`{prefix}mcoc roster add <championHargs|hargsChampion|\"Champion Name\">[, ...]`"
+            )
+            return
+
+        if not await self._require_parent(ctx):
+            return
+
+        items_text = " ".join(items).strip()
+        cache = getattr(self.parent, "cache", None)
+        try:
+            parsed_entries = parse_roster_entries_from_input(items_text, cache)
+        except ValueError as exc:
+            await ctx.send(f"No valid entries parsed from input: {exc}")
+            return
+        except Exception as exc:
+            log.exception("Unexpected error parsing roster add input: %s", exc)
+            await ctx.send("Error parsing entries; see logs for details.")
+            return
+
+        if not parsed_entries:
+            await ctx.send("No valid entries parsed from input.")
+            return
+
+        users = ensure_user_manager(self.parent)
+
+        successes: List[str] = []
+        failures: List[str] = []
+
+        for entry in parsed_entries:
             try:
-                roster = users.list_roster(user_id) if users else []
-            except Exception:
-                roster = []
-
-        cache = getattr(core, "cache", None)
-        parsed = parsed_filters or {}
-        profile = users.get_profile(user_id) if users and hasattr(users, "get_profile") else {}
-
-        prestige_map = profile.get("prestige_map", {}) if isinstance(profile, dict) else {}
-
-        class_map = {
-            "all": "<:allclasses:748808348996075540>",
-            "tech": "<:tech:748808546283683870>",
-            "skill": "<:skill:748809095456227389>",
-            "mutant": "<:mutant:748808841465954304>",
-            "mystic": "<:mystic:748808953701335080>",
-            "cosmic": "<:cosmic:748808707328180265>",
-            "science": "<:science:748809185398882404>",
-        }
-
-        # Build entries with metadata
-        entries_with_meta: List[Dict[str, Any]] = []
-        for entry in roster:
-            try:
-                e = dict(entry)
-                e.setdefault("stars", int(e.get("rarity") or e.get("stars") or 0))
-                e.setdefault("rank", int(e.get("rank") or 1))
-                e.setdefault("sig", int(e.get("sig") or 0))
-                e.setdefault("ascended", int(e.get("ascended") or 0))
-                e.setdefault("tags", e.get("tags") or [])
-                entries_with_meta.append(e)
-            except Exception:
-                continue
-
-        # helper to resolve prestige for a single entry
-        def _resolve_prestige(e: Dict[str, Any]) -> Optional[int]:
-            try:
-                slug_for_lookup = str(e.get("champion") or "").strip()
+                champ_key = entry.get("champion")
+                # try to resolve champion via cache
                 champ_obj = None
-                if cache:
+                if cache and champ_key:
                     try:
-                        champ_obj = cache.get_champion(slug_for_lookup)
+                        champ_obj = cache.get_champion(champ_key)
                     except Exception:
                         champ_obj = None
-                if champ_obj:
-                    slug_for_lookup = (champ_obj.get("slug") or champ_obj.get("name") or slug_for_lookup).strip()
-
-                raw_stars = int(e.get("stars") or e.get("rarity") or 6)
-                raw_rank = int(e.get("rank") or 1)
-                raw_sig = int(e.get("sig") or 0)
-                raw_asc = int(e.get("ascended") or 0)
-                if cache and hasattr(cache, "normalize_hargs_by_tier"):
+                if not champ_obj and cache and champ_key:
+                    # try name scan
                     try:
-                        stars, rank, sig, asc = cache.normalize_hargs_by_tier(raw_stars, raw_rank, raw_sig, raw_asc)
-                    except Exception:
-                        stars, rank, sig, asc = raw_stars, raw_rank, raw_sig, raw_asc
-                else:
-                    stars, rank, sig, asc = raw_stars, raw_rank, raw_sig, raw_asc
-
-                # Fast-path: check persisted prestige_map first
-                key = f"{slug_for_lookup}|{stars}"
-                if key in prestige_map and prestige_map.get(key) is not None:
-                    return int(prestige_map.get(key))
-
-                idx = getattr(core, "cacheindex", None) or getattr(cache, "index", None)
-                if idx and slug_for_lookup:
-                    try:
-                        row = idx.get_prestige_row(slug_for_lookup, tier=stars, rank=rank, asc=asc)
-                        if row:
-                            sigs = row.get("sigs") or {}
-                            if hasattr(cache, "smooth_sig_value"):
-                                return cache.smooth_sig_value(sigs, raw_sig)
-                            else:
-                                return cache._smooth_sig_value(sigs, raw_sig)
-                    except Exception:
-                        pass
-
-                if cache and hasattr(cache, "get_prestige_value"):
-                    try:
-                        return cache.get_prestige_value(slug_for_lookup, stars, rank, asc, raw_sig)
-                    except Exception:
-                        return None
-            except Exception:
-                return None
-            return None
-
-        # Resolve prestige for each entry
-        for e in entries_with_meta:
-            try:
-                p = _resolve_prestige(e)
-                e["prestige"] = int(p) if isinstance(p, (int, float)) else None
-            except Exception:
-                e["prestige"] = None
-
-        # Sort entries (global sort, prestige-aware)
-        def _sort_key(e: Dict[str, Any]):
-            p = e.get("prestige")
-            if isinstance(p, (int, float)):
-                return (0, -float(p), -int(e.get("stars", 0)), int(e.get("rank", 0)), -int(e.get("sig", 0)))
-            return (1, -int(e.get("stars", 0)), int(e.get("rank", 0)), -int(e.get("sig", 0)))
-
-        entries_with_meta.sort(key=_sort_key)
-
-        # Build roster lines using the same filter logic and collect filtered entries
-        lines: List[str] = []
-        filtered_entries: List[Dict[str, Any]] = []
-        for entry in entries_with_meta:
-            try:
-                if parsed.get("rarities") and entry.get("rarity") not in parsed.get("rarities"):
-                    continue
-                if parsed.get("ranks") and entry.get("rank") not in parsed.get("ranks"):
-                    continue
-                if parsed.get("sigs") and entry.get("sig") not in parsed.get("sigs"):
-                    continue
-
-                skip = False
-                for t in parsed.get("tags", []):
-                    if t.lower() not in [x.lower() for x in (entry.get("tags") or [])]:
-                        skip = True
-                        break
-                if skip:
-                    continue
-
-                # keep for filtered prestige/title
-                filtered_entries.append(entry)
-
-                champ = None
-                if cache:
-                    try:
-                        champ = cache.get_champion(entry.get("champion"))
-                    except Exception:
-                        champ = None
-                if not champ and cache:
-                    try:
-                        for c in cache.get_all_champions() or []:
-                            if str(c.get("id") or c.get("slug") or "").lower() == str(entry.get("champion")).lower() or str(c.get("name") or "").lower() == str(entry.get("champion")).lower():
-                                champ = c
+                        for c in getattr(cache, "get_all_champions", lambda: [])() or []:
+                            if str(c.get("id") or c.get("slug") or "").lower() == str(champ_key).lower() or str(c.get("name") or "").lower() == str(champ_key).lower():
+                                champ_obj = c
                                 break
                     except Exception:
-                        champ = None
+                        champ_obj = None
 
-                name = (champ.get("name") if champ else entry.get("champion")) or "Unknown"
-                cls = (champ.get("class") if champ else "") or ""
-                cls_emoji = class_map.get(cls.lower(), "<:allclasses:748808348996075540>")
+                if not champ_obj:
+                    failures.append(f"{champ_key or entry.get('raw')}: champion not found")
+                    continue
 
-                raw_stars = int(entry.get("rarity") or entry.get("stars") or 6)
-                raw_rank = int(entry.get("rank") or 1)
-                raw_sig = int(entry.get("sig") or 0)
-                raw_asc = int(entry.get("ascended") or 0)
-                if cache and hasattr(cache, "normalize_hargs_by_tier"):
-                    try:
-                        stars, rank, sig, asc = cache.normalize_hargs_by_tier(raw_stars, raw_rank, raw_sig, raw_asc)
-                    except Exception:
-                        stars, rank, sig, asc = raw_stars, raw_rank, raw_sig, raw_asc
+                # validate entry
+                if not validate_entry_for_add(entry):
+                    failures.append(f"{champ_obj.get('name','Unknown')}: invalid hargs (rarity/rank/ascension/sig)")
+                    continue
+
+                users.add_champion(
+                    ctx.author.id,
+                    champ_slug=champ_obj.get("id") or champ_obj.get("slug"),
+                    rarity=entry["rarity"],
+                    rank=entry["rank"],
+                    sig=entry.get("sig", 0),
+                    tags=entry.get("tags", []),
+                    ascended=entry.get("ascended", 0) if "ascended" in entry else entry.get("ascended", 1),
+                )
+                successes.append(f"{champ_obj.get('name','Unknown')} ({entry['rarity']}★ r{entry['rank']} s{entry.get('sig',0)} A{entry.get('ascended',1)})")
+            except Exception:
+                log.exception("Failed to add entry %s", entry)
+                failures.append(f"{entry.get('champion') or entry.get('raw')}: error")
+
+        # schedule one debounced persist
+        try:
+            schedule_persist_user_prestige(self.parent, ctx.author.id)
+        except Exception:
+            log.exception("Failed to schedule prestige persist after add")
+
+        # Build response
+        lines = []
+        if successes:
+            lines.append("Added:")
+            lines.extend(f"- {s}" for s in successes)
+        if failures:
+            lines.append("")
+            lines.append("Failed:")
+            lines.extend(f"- {f}" for f in failures)
+        await ctx.send("\n".join(lines))
+
+    # -----------------------------
+    # Remove (multiple)
+    # -----------------------------
+    @roster.command(name="remove")
+    async def roster_remove(self, ctx, *items: str):
+        """
+        Remove one or more champions from your roster.
+        Input may be champion name or hargs to disambiguate.
+        Examples:
+          ///mcoc roster remove blackbolt, spiderman
+          ///mcoc roster remove 6r1blackbolt, 6r1spiderman
+        """
+        if not items:
+            await ctx.send("Usage: `///mcoc roster remove <champion|hargs>[, ...]`")
+            return
+        if not await self._require_parent(ctx):
+            return
+
+        items_text = " ".join(items).strip()
+        cache = getattr(self.parent, "cache", None)
+        try:
+            parsed_entries = parse_roster_entries_from_input(items_text, cache)
+        except ValueError as exc:
+            await ctx.send(f"No valid entries parsed from input: {exc}")
+            return
+        except Exception as exc:
+            log.exception("Unexpected error parsing roster remove input: %s", exc)
+            await ctx.send("Error parsing entries; see logs for details.")
+            return
+
+        if not parsed_entries:
+            await ctx.send("No valid entries parsed from input.")
+            return
+
+        users = ensure_user_manager(self.parent)
+        successes: List[str] = []
+        failures: List[str] = []
+
+        for entry in parsed_entries:
+            try:
+                champ_key = entry.get("champion") or entry.get("raw")
+                # If rarity provided, pass it to remove_champion to narrow removal
+                rarity = entry.get("rarity")
+                removed = users.remove_champion(ctx.author.id, champ_key, rarity)
+                if removed:
+                    successes.append(f"{champ_key}: removed {removed}")
                 else:
-                    stars, rank, sig, asc = raw_stars, raw_rank, raw_sig, raw_asc
-
-                sig_icon = "★" if sig > 0 else "☆"
-                star_display = f"{stars}{sig_icon}"
-                sig_text = f" s{sig}"
-                asc_text = f" A{asc}" if asc else ""
-
-                prestige_val = entry.get("prestige")
-                prestige_text = f" [{prestige_val}]" if isinstance(prestige_val, (int, float)) else ""
-
-                # Preserve the original presentation format: <class emoji> <tier#><star icon> <Name> r<rank> s<sig> [<prestige>]
-                line = f"{cls_emoji} {star_display} **{name}** r{rank}{sig_text}{asc_text}{prestige_text}"
-                lines.append(line)
+                    failures.append(f"{champ_key}: not found")
             except Exception:
-                continue
+                log.exception("Failed to remove entry %s", entry)
+                failures.append(f"{entry.get('champion') or entry.get('raw')}: error")
 
-        # Compute filtered prestige (average of numeric prestige values), rounded to integer
-        prestige_vals = [int(x["prestige"]) for x in filtered_entries if isinstance(x.get("prestige"), (int, float))]
-        filtered_count = len(filtered_entries)
-        filtered_prestige = int(round(sum(prestige_vals) / len(prestige_vals))) if prestige_vals else None
-
-        # If no roster lines after filtering, return a single "no matches" embed
-        if not lines:
-            try:
-                emb = CDTv2.embed(author_for_embed, title="Roster", description="No champions match the filters.", footer_text=f"Page 1 of 1{CDT_FOOTER_TAG}")
-                return [emb]
-            except Exception:
-                return [{"title": "Roster", "description": "No champions match the filters.", "footer": {"text": f"Page 1 of 1{CDT_FOOTER_TAG}"}}]
-
-        # Chunk lines into pages
-        PAGE_LINE_LIMIT = 15
-        PAGE_CHAR_LIMIT = 1800
-
-        cur: List[str] = []
-        cur_len = 0
-        page_texts: List[str] = []
-        for line in lines:
-            if len(cur) >= PAGE_LINE_LIMIT or (cur_len + len(line) + 1) > PAGE_CHAR_LIMIT:
-                page_texts.append("\n".join(cur))
-                cur = []
-                cur_len = 0
-            cur.append(line)
-            cur_len += len(line) + 1
-        if cur:
-            page_texts.append("\n".join(cur))
-
-        # Build title: "Roster (N champions) [<prestige>]"
-        title_count = filtered_count or 0
-        title_prestige = filtered_prestige if filtered_prestige is not None else "N/A"
-        roster_title = f"Roster ({title_count} champions) [{title_prestige}]"
-
-        # Convert page texts into embeds
-        embed_pages: List[Any] = []
+        # schedule one debounced persist
         try:
-            for i, ptext in enumerate(page_texts):
-                footer = f"Page {i+1} of {len(page_texts)}{CDT_FOOTER_TAG}"
-                emb = CDTv2.embed(author_for_embed, title=roster_title, description=ptext, footer_text=footer)
-                # footer already set via footer_text param; still attempt to set explicitly for safety
+            schedule_persist_user_prestige(self.parent, ctx.author.id)
+        except Exception:
+            log.exception("Failed to schedule prestige persist after remove")
+
+        lines = []
+        if successes:
+            lines.append("Removed:")
+            lines.extend(f"- {s}" for s in successes)
+        if failures:
+            lines.append("")
+            lines.append("Failed:")
+            lines.extend(f"- {f}" for f in failures)
+        await ctx.send("\n".join(lines))
+
+    # -----------------------------
+    # Update (multiple)
+    # -----------------------------
+    @roster.command(name="update")
+    async def roster_update(self, ctx, *items: str):
+        """
+        Update one or more champions in your roster.
+        Each token should include rarity (or use defaults).
+        Examples:
+          ///mcoc roster update blackbolt6r3, spiderman6r2
+        """
+        if not items:
+            await ctx.send("Usage: `///mcoc roster update <championHargs|hargsChampion|\"Champion Name\">[, ...]`")
+            return
+        if not await self._require_parent(ctx):
+            return
+
+        items_text = " ".join(items).strip()
+        cache = getattr(self.parent, "cache", None)
+        try:
+            parsed_entries = parse_roster_entries_from_input(items_text, cache)
+        except ValueError as exc:
+            await ctx.send(f"No valid entries parsed from input: {exc}")
+            return
+        except Exception as exc:
+            log.exception("Unexpected error parsing roster update input: %s", exc)
+            await ctx.send("Error parsing entries; see logs for details.")
+            return
+
+        if not parsed_entries:
+            await ctx.send("No valid entries parsed from input.")
+            return
+
+        users = ensure_user_manager(self.parent)
+        successes: List[str] = []
+        failures: List[str] = []
+
+        for entry in parsed_entries:
+            try:
+                champ_key = entry.get("champion") or entry.get("raw")
+                if entry.get("rarity") is None:
+                    failures.append(f"{champ_key}: missing rarity for update")
+                    continue
+
+                updated = users.update_champion(
+                    ctx.author.id,
+                    champ_slug=champ_key,
+                    rarity=entry.get("rarity"),
+                    rank=entry.get("rank"),
+                    sig=entry.get("sig"),
+                    tags=entry.get("tags"),
+                    ascended=entry.get("ascended", 1),
+                )
+                if updated:
+                    successes.append(f"{champ_key}: updated to {entry.get('rarity')}★ r{entry.get('rank',1)} s{entry.get('sig',0)} A{entry.get('ascended',1)}")
+                else:
+                    failures.append(f"{champ_key}: not found")
+            except Exception:
+                log.exception("Failed to update entry %s", entry)
+                failures.append(f"{entry.get('champion') or entry.get('raw')}: error")
+
+        # schedule one debounced persist
+        try:
+            schedule_persist_user_prestige(self.parent, ctx.author.id)
+        except Exception:
+            log.exception("Failed to schedule prestige persist after update")
+
+        lines = []
+        if successes:
+            lines.append("Updated:")
+            lines.extend(f"- {s}" for s in successes)
+        if failures:
+            lines.append("")
+            lines.append("Failed:")
+            lines.extend(f"- {f}" for f in failures)
+        await ctx.send("\n".join(lines))
+
+    # -----------------------------
+    # List (filters)
+    # -----------------------------
+    @roster.command(name="list")
+    async def roster_list(self, ctx, *items: str):
+        """
+        List roster entries. Accepts the same filter syntax as parse_hargs.
+        Usage:
+        ///mcoc roster list                -> your roster
+        ///mcoc roster list @user           -> other user's roster (if allowed)
+        ///mcoc roster list @user 6*r4      -> other user's roster filtered
+        """
+        if not await self._require_parent(ctx):
+            return
+
+        # If first token looks like a user mention/id, resolve it and treat as target
+        target_member = None
+        items_list = list(items or [])
+        if items_list:
+            first = items_list[0]
+            # try mention or id using MemberConverter when in guild, otherwise UserConverter
+            try:
+                if ctx.guild:
+                    target_user = await commands.MemberConverter().convert(ctx, first)
+                else:
+                    target_user = await commands.UserConverter().convert(ctx, first)
+                # prefer guild Member if available (so we can show avatar)
+                if ctx.guild and isinstance(target_user, discord.Member):
+                    target_member = target_user
+                else:
+                    target_member = target_user
+                # remove the resolved token from filters
+                items_list = items_list[1:]
+            except Exception:
+                # not a user token; treat all tokens as filters for invoking user's roster
+                target_member = ctx.author
+
+        if target_member is None:
+            target_member = ctx.author
+
+        items_text = " ".join(items_list).strip()
+        parsed = parse_hargs(items_text) if items_text else {}
+
+        # privacy check: if target is not the invoking user, check profile privacy
+        users = ensure_user_manager(self.parent)
+        profile = users.get_profile(target_member.id) if users and hasattr(users, "get_profile") else {}
+        # Example privacy flag: profile.get("public_roster", True)
+        if target_member.id != ctx.author.id:
+            if profile.get("public_roster") is False:
+                await ctx.send("That user's roster is private.")
+                return
+
+        # Build pages (pass target_member for branding so avatar shows)
+        pages = await build_roster_pages(self.parent, target_member, parsed)
+
+        if not pages:
+            await ctx.send(embed=CDTv2.embed(target_member, title="Roster", description="No roster entries match your filters."))
+            return
+
+        # Optional: add page footers (mutates pages) before creating pager
+        try:
+            pages = add_page_footers(pages, author_for_embed=target_member)
+        except Exception:
+            try:
+                pages = add_page_footers(pages, author_for_embed=ctx.author)
+            except Exception:
+                pass
+
+        # Ensure pages are embeds (CDTv2.embed will have been used by build_roster_pages)
+        try:
+            pager = PaginatorView(pages, author=ctx.author)
+            await pager.start(ctx)
+
+            # Merge brand buttons into the pager view (preferred)
+            try:
+                brand_view = CDTv2.brand_view()
+                for item in getattr(brand_view, "children", []):
+                    pager.add_item(item)
+                if pager.message:
+                    await pager.message.edit(view=pager)
+            except Exception:
+                # fallback: send brand buttons as separate message
                 try:
-                    emb.set_footer(text=footer)
+                    view = CDTv2.brand_view()
+                    await ctx.send(view=view)
                 except Exception:
                     pass
-                embed_pages.append(emb)
-            return embed_pages
+
         except Exception:
-            out = []
-            for i, ptext in enumerate(page_texts):
-                out.append({"title": roster_title, "description": ptext, "footer": {"text": f"Page {i+1} of {len(page_texts)}{CDT_FOOTER_TAG}"}})
-            return out
-
-    except Exception:
-        log.exception("Failed to build roster pages")
-        return []
+            names = [getattr(p, "title", "Entry") for p in pages][:50]
+            await ctx.send(f"Matches ({len(pages)}): {', '.join(names)}")
 
 
-def add_page_footers(pages: List[Any], author_for_embed: Any = None) -> List[Any]:
-    """
-    Mutate or wrap pages to ensure each has a footer with page numbering.
-    Accepts either embed objects (with .set_footer) or dict fallbacks.
-    """
-    out: List[Any] = []
-    total = len(pages)
-    for i, p in enumerate(pages):
-        try:
-            if isinstance(p, dict):
-                emb = CDTv2.embed(author_for_embed, title=p.get("title", "Roster"), description=p.get("description", ""))
-            else:
-                emb = p
+    # -----------------------------
+    # Export / Import / Clear (unchanged)
+    # -----------------------------
+    @roster.command(name="export")
+    async def roster_export(self, ctx):
+        users = ensure_user_manager(self.parent)
+        data = users.export(ctx.author.id) if users else {}
+        await ctx.send(f"Your roster data:\n```json\n{data}\n```")
+
+    @roster.command(name="import")
+    async def roster_import(self, ctx, *, data: str):
+        users = ensure_user_manager(self.parent)
+        if users:
             try:
-                base = emb.footer.text if getattr(emb, "footer", None) and getattr(emb.footer, "text", None) else ""
-                footer_text = f"{base} • Page {i+1} of {total}" if base else f"Page {i+1} of {total}"
-                footer_text += f"{CDT_FOOTER_TAG}"
-                emb.set_footer(text=footer_text)
+                users.import_data(ctx.author.id, data)
+                await ctx.send("Imported your roster data.")
             except Exception:
-                try:
-                    emb.set_footer(text=f"Page {i+1} of {total}{CDT_FOOTER_TAG}" )
-                except Exception:
-                    pass
-            out.append(emb)
+                await ctx.send("Failed to import roster data.")
+
+    @roster.command(name="clear")
+    async def roster_clear(self, ctx):
+        if not await self._require_parent(ctx):
+            return
+        users = ensure_user_manager(self.parent)
+        if users:
+            users.delete_user(ctx.author.id)
+        await ctx.send("Your roster has been cleared.")
+
+
+def register_with_group(group: commands.Group, parent_getter):
+    """
+    Attach roster prefix commands to the provided `group`.
+    parent_getter is a callable returning the core/parent object (or None).
+    """
+
+    def _safe_add(cmd_name):
+        def _decorator(func):
+            try:
+                if group.get_command(cmd_name):
+                    log.debug("Command %s already exists; skipping", cmd_name)
+                    return func
+            except Exception:
+                pass
+            group.command(name=cmd_name)(func)
+            return func
+        return _decorator
+
+    @_safe_add("roster")
+    async def _roster(ctx, *items: str):
+        """Top-level roster group for dynamic registration."""
+        parent = parent_getter()
+        if not parent:
+            await ctx.send("MCOC core not attached; roster unavailable.")
+            return
+
+        if not items:
+            await ctx.send(ROSTER_GROUP_HELP.get("roster", "Roster commands: add, remove, update, list, export, clear"))
+            return
+
+        # Forward to the registered list command (the dynamic _list implementation)
+        try:
+            # The dynamic _list function is registered under the same group; call it directly
+            await _list(ctx, *items)
         except Exception:
-            out.append(p)
-    return out
+            await ctx.send(ROSTER_GROUP_HELP.get("roster", "Roster commands: add, remove, update, list, export, clear"))
+
+
+    # add
+    @_safe_add("add")
+    async def _add(ctx, *items: str):
+        """Add one or more champions to your roster.
+        Examples:
+            {prefix}mcoc roster add 5sr3ironman
+            {prefix}mcoc roster add 6★r2Spider-Man 4sr1s20captainamerica
+            {prefix}mcoc roster add 3sr1blackwidow
+        """
+        parent = parent_getter()
+        if not parent:
+            await ctx.send("MCOC core not attached; roster unavailable.")
+            return
+        items_text = " ".join(items).strip()
+        cache = getattr(parent, "cache", None)
+        try:
+            parsed_entries = parse_roster_entries_from_input(items_text, cache)
+        except ValueError as exc:
+            await ctx.send(f"No valid entries parsed from input: {exc}")
+            return
+        except Exception:
+            await ctx.send("Error parsing entries; see logs for details.")
+            return
+
+        if not parsed_entries:
+            await ctx.send("No valid entries parsed from input.")
+            return
+
+        users = ensure_user_manager(parent)
+
+        successes: List[str] = []
+        failures: List[str] = []
+
+        for entry in parsed_entries:
+            try:
+                champ_key = entry.get("champion")
+                champ_obj = None
+                if cache and champ_key:
+                    try:
+                        champ_obj = cache.get_champion(champ_key)
+                    except Exception:
+                        champ_obj = None
+                if not champ_obj and cache and champ_key:
+                    try:
+                        for c in getattr(cache, "get_all_champions", lambda: [])() or []:
+                            if str(c.get("id") or c.get("slug") or "").lower() == str(champ_key).lower() or str(c.get("name") or "").lower() == str(champ_key).lower():
+                                champ_obj = c
+                                break
+                    except Exception:
+                        champ_obj = None
+
+                if not champ_obj:
+                    failures.append(f"{champ_key or entry.get('raw')}: champion not found")
+                    continue
+
+                if not validate_entry_for_add(entry):
+                    failures.append(f"{champ_obj.get('name','Unknown')}: invalid hargs")
+                    continue
+
+                users.add_champion(
+                    ctx.author.id,
+                    champ_slug=champ_obj.get("id") or champ_obj.get("slug"),
+                    rarity=entry["rarity"],
+                    rank=entry["rank"],
+                    sig=entry.get("sig", 0),
+                    tags=entry.get("tags", []),
+                    ascended=entry.get("ascended", 1),
+                )
+                successes.append(f"{champ_obj.get('name','Unknown')} ({entry['rarity']}★ r{entry['rank']})")
+            except Exception:
+                log.exception("Failed to add entry %s", entry)
+                failures.append(f"{entry.get('champion') or entry.get('raw')}: error")
+
+        try:
+            schedule_persist_user_prestige(parent, ctx.author.id)
+        except Exception:
+            log.exception("Failed to schedule prestige persist after add")
+
+        lines = []
+        if successes:
+            lines.append("Added:")
+            lines.extend(f"- {s}" for s in successes)
+        if failures:
+            lines.append("")
+            lines.append("Failed:")
+            lines.extend(f"- {f}" for f in failures)
+        await ctx.send("\n".join(lines))
+
+    # remove
+    @_safe_add("remove")
+    async def _remove(ctx, *items: str):
+        """Remove one or more champions from your roster.
+        Examples:
+            {prefix}mcoc roster remove 5sr3ironman
+            {prefix}mcoc roster remove 6★r2Spider-Man 4sr1s20captainamerica
+            {prefix}mcoc roster remove 3sr1blackwidow
+        """
+        parent = parent_getter()
+        if not parent:
+            await ctx.send("MCOC core not attached; roster unavailable.")
+            return
+        items_text = " ".join(items).strip()
+        cache = getattr(parent, "cache", None)
+        try:
+            parsed_entries = parse_roster_entries_from_input(items_text, cache)
+        except ValueError as exc:
+            await ctx.send(f"No valid entries parsed from input: {exc}")
+            return
+        except Exception:
+            await ctx.send("Error parsing entries; see logs for details.")
+            return
+
+        if not parsed_entries:
+            await ctx.send("No valid entries parsed from input.")
+            return
+
+        users = ensure_user_manager(parent)
+        successes: List[str] = []
+        failures: List[str] = []
+
+        for entry in parsed_entries:
+            try:
+                champ_key = entry.get("champion") or entry.get("raw")
+                rarity = entry.get("rarity")
+                removed = users.remove_champion(ctx.author.id, champ_key, rarity)
+                if removed:
+                    successes.append(f"{champ_key}: removed {removed}")
+                else:
+                    failures.append(f"{champ_key}: not found")
+            except Exception:
+                log.exception("Failed to remove entry %s", entry)
+                failures.append(f"{entry.get('champion') or entry.get('raw')}: error")
+
+        try:
+            schedule_persist_user_prestige(parent, ctx.author.id)
+        except Exception:
+            log.exception("Failed to schedule prestige persist after remove")
+
+        lines = []
+        if successes:
+            lines.append("Removed:")
+            lines.extend(f"- {s}" for s in successes)
+        if failures:
+            lines.append("")
+            lines.append("Failed:")
+            lines.extend(f"- {f}" for f in failures)
+        await ctx.send("\n".join(lines))
+
+    # update
+    @_safe_add("update")
+    async def _update(ctx, *items: str):
+        """Update one or more champions in your roster.
+        Examples:
+            {prefix}mcoc roster update 5sr3ironman
+            {prefix}mcoc roster update 6★r2Spider-Man 4sr1s20captainamerica
+            {prefix}mcoc roster update 3sr1blackwidow
+        """
+        parent = parent_getter()
+        if not parent:
+            await ctx.send("MCOC core not attached; roster unavailable.")
+            return
+        items_text = " ".join(items).strip()
+        cache = getattr(parent, "cache", None)
+        try:
+            parsed_entries = parse_roster_entries_from_input(items_text, cache)
+        except ValueError as exc:
+            await ctx.send(f"No valid entries parsed from input: {exc}")
+            return
+        except Exception:
+            await ctx.send("Error parsing entries; see logs for details.")
+            return
+
+        if not parsed_entries:
+            await ctx.send("No valid entries parsed from input.")
+            return
+
+        users = ensure_user_manager(parent)
+        successes: List[str] = []
+        failures: List[str] = []
+
+        for entry in parsed_entries:
+            try:
+                champ_key = entry.get("champion") or entry.get("raw")
+                if entry.get("rarity") is None:
+                    failures.append(f"{champ_key}: missing rarity for update")
+                    continue
+
+                updated = users.update_champion(
+                    ctx.author.id,
+                    champ_slug=champ_key,
+                    rarity=entry.get("rarity"),
+                    rank=entry.get("rank"),
+                    sig=entry.get("sig"),
+                    tags=entry.get("tags"),
+                    ascended=entry.get("ascended", 1),
+                )
+                if updated:
+                    successes.append(f"{champ_key}: updated")
+                else:
+                    failures.append(f"{champ_key}: not found")
+            except Exception:
+                log.exception("Failed to update entry %s", entry)
+                failures.append(f"{entry.get('champion') or entry.get('raw')}: error")
+
+        try:
+            schedule_persist_user_prestige(parent, ctx.author.id)
+        except Exception:
+            log.exception("Failed to schedule prestige persist after update")
+
+        lines = []
+        if successes:
+            lines.append("Updated:")
+            lines.extend(f"- {s}" for s in successes)
+        if failures:
+            lines.append("")
+            lines.append("Failed:")
+            lines.extend(f"- {f}" for f in failures)
+        await ctx.send("\n".join(lines))
+
+    # list
+    @_safe_add("list")
+    async def _list(ctx, *items: str):
+        """List champions in your roster.
+        Examples:
+            {prefix}mcoc roster list
+            {prefix}mcoc roster list #bleed
+            {prefix}mcoc roster list 6star #bleed
+        """
+        parent = parent_getter()
+        if not parent:
+            await ctx.send("MCOC core not attached; roster unavailable.")
+            return
+
+        # Resolve optional leading user mention/id (same logic as class-based roster_list)
+        target_member = None
+        items_list = list(items or [])
+        if items_list:
+            first = items_list[0]
+            try:
+                target_user = await commands.UserConverter().convert(ctx, first)
+                if ctx.guild:
+                    target_member = ctx.guild.get_member(target_user.id) or target_user
+                else:
+                    target_member = target_user
+                items_list = items_list[1:]
+            except Exception:
+                target_member = ctx.author
+
+        if target_member is None:
+            target_member = ctx.author
+
+        items_text = " ".join(items_list).strip()
+        parsed = parse_hargs(items_text) if items_text else {}
+
+        # privacy check: if target is not the invoking user, check profile privacy
+        users = ensure_user_manager(parent)
+        profile = users.get_profile(target_member.id) if users and hasattr(users, "get_profile") else {}
+        if target_member.id != ctx.author.id:
+            if profile.get("public_roster") is False:
+                await ctx.send("That user's roster is private.")
+                return
+
+        # Build pages (pass target_member for branding/avatar)
+        pages = await build_roster_pages(parent, target_member, parsed)
+
+        if not pages:
+            await ctx.send("No roster entries match your filters.")
+            return
+
+        try:
+            from ..common.pagination import PagesMenu
+            menu = PagesMenu(pages, ctx.author)
+            try:
+                from ..common.roster_helpers import add_page_footers  # optional
+                pages = add_page_footers(pages)
+            except Exception:
+                pass
+            await menu.start(ctx)
+        except Exception:
+            names = [p.get("title") or "Entry" for p in pages][:50]
+            await ctx.send(f"Matches ({len(pages)}): {', '.join(names)}")
+
+    # export
+    @_safe_add("export")
+    async def _export(ctx):
+        """Export your roster data as JSON.
+        Examples:
+            {prefix}mcoc roster export
+        """
+        parent = parent_getter()
+        if not parent:
+            await ctx.send("MCOC core not attached; roster unavailable.")
+            return
+        users = ensure_user_manager(parent)
+        data = users.export(ctx.author.id) if users else {}
+        await ctx.send(f"Your roster data:\n```json\n{data}\n```")
+
+    # clear
+    @_safe_add("clear")
+    async def _clear(ctx):
+        """Clear your roster."""
+        parent = parent_getter()
+        if not parent:
+            await ctx.send("MCOC core not attached; roster unavailable.")
+            return
+        users = ensure_user_manager(parent)
+        if users:
+            users.delete_user(ctx.author.id)
+        await ctx.send("Your roster has been cleared.")
