@@ -32,7 +32,7 @@ def _get_author_info(ctx_or_author):
     return (name, avatar)
 
 
-async def cdt_embed(
+def cdt_embed(
     ctx_or_author=None,
     *,
     title: str = "",
@@ -100,13 +100,13 @@ async def cdt_embed(
     return embed
 
 
-async def champion_embed(ctx_or_author, champ: dict):
+def champion_embed(ctx_or_author, champ: dict):
     desc = (
         f"Class: {champ.get('class','?').title()}\n"
         f"Tags: {', '.join(champ.get('tags', [])) or 'None'}"
     )
 
-    embed = await cdt_embed(
+    embed = cdt_embed(
         ctx_or_author,
         title=champ.get("name", "Unknown"),
         description=desc,
@@ -146,8 +146,8 @@ async def champion_embed(ctx_or_author, champ: dict):
     return embed
 
 
-async def abilities_embed(ctx_or_author, champ: dict):
-    embed = await cdt_embed(
+def abilities_embed(ctx_or_author, champ: dict):
+    embed = cdt_embed(
         ctx_or_author,
         title=f"{champ.get('name','Unknown')} — Abilities",
         thumbnail=(champ.get("images") or {}).get("portrait"),
@@ -170,8 +170,8 @@ async def abilities_embed(ctx_or_author, champ: dict):
     return embed
 
 
-async def synergy_embed(ctx_or_author, champ: dict, synergies: list):
-    embed = await cdt_embed(
+def synergy_embed(ctx_or_author, champ: dict, synergies: list):
+    embed = cdt_embed(
         ctx_or_author,
         title=f"{champ.get('name','Unknown')} — Synergies",
         thumbnail=(champ.get("images") or {}).get("portrait"),
@@ -188,8 +188,8 @@ async def synergy_embed(ctx_or_author, champ: dict, synergies: list):
     return embed
 
 
-async def tag_list_embed(ctx_or_author, tag: str, champions: list):
-    embed = await cdt_embed(
+def tag_list_embed(ctx_or_author, tag: str, champions: list):
+    embed = cdt_embed(
         ctx_or_author,
         title=f"Champions with #{tag}",
         description=f"{len(champions)} champions match this tag.",
@@ -204,7 +204,7 @@ async def tag_list_embed(ctx_or_author, tag: str, champions: list):
     return embed
 
 
-async def roster_entry_embed(ctx_or_author, champ: dict, entry: dict):
+def roster_entry_embed(ctx_or_author, champ: dict, entry: dict):
     """
     champ: champion object from cache
     entry: user roster entry dict
@@ -221,7 +221,7 @@ async def roster_entry_embed(ctx_or_author, champ: dict, entry: dict):
         f"Tags: {', '.join(tags) if tags else 'None'}"
     )
 
-    embed = await cdt_embed(
+    embed = cdt_embed(
         ctx_or_author,
         title=champ.get("name", "Unknown"),
         description=desc,

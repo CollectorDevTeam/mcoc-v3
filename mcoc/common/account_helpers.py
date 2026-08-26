@@ -80,7 +80,7 @@ async def format_profile_embed(ctx, profile: Dict[str, Any], member: Optional[An
     # Resolve display name
     display_name = profile.get("mcoc_name") or profile.get("display_name") or (member.display_name if getattr(member, "display_name", None) else None) or str(profile.get("mcoc_id") or "User")
 
-    emb = await cdt_embed(ctx, title=f"{display_name} — Profile", colour=discord.Color.blue())
+    emb = cdt_embed(ctx, title=f"{display_name} — Profile", colour=discord.Color.blue())
     # author / thumbnail
     try:
         if member and getattr(member, "avatar_url", None):

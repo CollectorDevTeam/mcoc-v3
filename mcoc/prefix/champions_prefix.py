@@ -134,7 +134,7 @@ class ChampionsPrefix(commands.Cog):
             return
         try:
             import discord
-            embed = await cdt_embed(ctx, title=f"{champ.get('name','Unknown')} — Stats", colour=discord.Color.gold())
+            embed = cdt_embed(ctx, title=f"{champ.get('name','Unknown')} — Stats", colour=discord.Color.gold())
             for rarity, ranks in stats.items():
                 for rank, values in ranks.items():
                     atk = values.get("attack", "N/A")
@@ -208,7 +208,7 @@ class ChampionsPrefix(commands.Cog):
 
         try:
             import discord
-            embed = await cdt_embed(
+            embed = cdt_embed(
                 ctx,
                 title=f"{champ.get('name','Unknown')} — {rarity}★ Rank {rank}{' Ascended ' + str(ascended) if ascended else ''}",
                 colour=discord.Color.gold()
@@ -390,7 +390,7 @@ def register_with_group(group: commands.Group, parent_getter):
 
         try:
             import discord
-            embed = await cdt_embed(
+            embed = cdt_embed(
                 ctx,
                 title=f"{champ.get('name','Unknown')} — {rarity}★ Rank {rank}{' Ascended ' + str(ascended) if ascended else ''}",
                 colour=discord.Color.gold()

@@ -645,7 +645,7 @@ async def build_roster_pages(core: Any, ctx_or_author: Any, parsed_filters: Opti
         if not lines:
             try:
                 # emb = discord.Embed(title="Roster", description="No champions match the filters.")
-                emb = await cdt_embed(ctx_or_author, title="Roster", description="No champions match the filters.")
+                emb = cdt_embed(ctx_or_author, title="Roster", description="No champions match the filters.")
                 pages.append(emb)
             except Exception:
                 pages.append({"title": "Roster", "description": "No champions match the filters."})
@@ -670,7 +670,7 @@ async def build_roster_pages(core: Any, ctx_or_author: Any, parsed_filters: Opti
         try:
             for i, p in enumerate(pages):
                 title = "Roster"
-                emb = await cdt_embed(ctx_or_author, title=title, description=p)
+                emb = cdt_embed(ctx_or_author, title=title, description=p)
                 emb.set_footer(text=f"Page {i+1} of {len(pages)}")
                 embed_pages.append(emb)
             return embed_pages

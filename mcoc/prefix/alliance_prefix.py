@@ -301,7 +301,7 @@ class AlliancePrefix(commands.Cog):
                 await ctx.send("No alliance configured for this guild.")
                 return
             info = cfg.get("info", {})
-            emb = await cdt_embed(ctx, title=info.get("name") or ctx.guild.name, colour=discord.Color.gold())
+            emb = cdt_embed(ctx, title=info.get("name") or ctx.guild.name, colour=discord.Color.gold())
             if info.get("tag"):
                 emb.add_field(name="Tag", value=info.get("tag"), inline=False)
             if info.get("about"):
@@ -334,7 +334,7 @@ class AlliancePrefix(commands.Cog):
             if member_alliance_name:
                 # private view: show member's roles and membership info
                 cfg = get_guild_config(ctx.guild.id)
-                emb = await cdt_embed(ctx, title=f"{member.display_name} — {cfg.get('info', {}).get('name', ctx.guild.name)}", colour=member.color or discord.Color.gold())
+                emb = cdt_embed(ctx, title=f"{member.display_name} — {cfg.get('info', {}).get('name', ctx.guild.name)}", colour=member.color or discord.Color.gold())
                 # show member roles relevant to alliance
                 role_info = []
                 for key, r in cfg.get("roles", {}).items():
@@ -368,7 +368,7 @@ class AlliancePrefix(commands.Cog):
                     return
                 pages = []
                 for g, cfg in found:
-                    emb = await cdt_embed(ctx, title=cfg.get("info", {}).get("name", g.name), colour=discord.Color.gold())
+                    emb = cdt_embed(ctx, title=cfg.get("info", {}).get("name", g.name), colour=discord.Color.gold())
                     if cfg.get("info", {}).get("tag"):
                         emb.add_field(name="Tag", value=cfg.get("info", {}).get("tag"), inline=False)
                     # show member's role in that guild if available
