@@ -2,6 +2,7 @@
 import re
 import logging
 from typing import Any, Dict, List, Optional, Tuple
+import discord
 # from .embeds import cdt_embed
 from .hargs import parse_harg_list, parse_harg_token
 from .componentsV2 import CDTv2, PaginatorView
@@ -156,7 +157,6 @@ def _ensure_hook_registered(core):
 
     users.post_mutation_hook = _hook
     users._prestige_hook_registered = True
-
 
 # -----------------------------
 # Entry extraction and validation
@@ -465,6 +465,7 @@ async def build_roster_pages(core: Any, ctx_or_author: Any, parsed_filters: Opti
     user_id = None
     if ctx_or_author is None:
         author_for_embed = None
+        user_id = None
     elif hasattr(ctx_or_author, "author"):
         author_for_embed = ctx_or_author.author
         user_id = getattr(ctx_or_author.author, "id", None)
@@ -494,6 +495,22 @@ async def build_roster_pages(core: Any, ctx_or_author: Any, parsed_filters: Opti
         cache = getattr(core, "cache", None)
         parsed = parsed_filters or {}
         profile = users.get_profile(ctx_or_author.id) if hasattr(users, "get_profile") else {}
+
+        # compute or read cached top5/prestige
+        user_top5 = None
+        user_prestige = None
+        try:
+            # prefer explicit cached values if present
+            user_top5 = profile.get("top5")  # list of strings like "1. Name [prestige]"
+            user_prestige = profile.get("prestige")  # numeric average
+        except Exception:
+            user_top5 = None
+            user_prestige = None
+
+        # If not cached, compute a simple top5 from entries_with_meta after prestige resolved
+        # (we compute prestige for each entry later; after that you can compute top5)
+
+
         prestige_map = profile.get("prestige_map", {}) if isinstance(profile, dict) else {}
 
         class_map = {
@@ -519,6 +536,32 @@ async def build_roster_pages(core: Any, ctx_or_author: Any, parsed_filters: Opti
                 entries_with_meta.append(e)
             except Exception:
                 continue
+
+        # Build a profile embed page showing user prestige and Top5
+        try:
+            # prefer author_for_embed for branding (we normalized earlier)
+            profile_title = getattr(author_for_embed, "display_name", getattr(author_for_embed, "name", "User"))
+            profile_desc = ""
+            if user_prestige is None:
+                # compute average of top 5 prestige values
+                sorted_by_p = sorted([e for e in entries_with_meta if isinstance(e.get("prestige"), (int, float))],
+                                    key=lambda x: -x.get("prestige"))
+                top5 = sorted_by_p[:5]
+                if top5:
+                    avg = sum(int(x.get("prestige")) for x in top5) / len(top5)
+                    user_prestige = int(avg)
+                    user_top5 = [f"{i+1}. {(cache.get_champion(x.get('champion')) or {}).get('name') or x.get('champion')} [{int(x.get('prestige'))}]" for i, x in enumerate(top5)]
+            # create profile embed
+            profile_embed = CDTv2.embed(author_for_embed, title=f"{profile_title} — Roster", description=f"Prestige: {user_prestige or 'N/A'}")
+            if user_top5:
+                try:
+                    profile_embed.add_field(name="Top 5 (avg)", value="\n".join(user_top5), inline=False)
+                except Exception:
+                    pass
+            # insert profile page at front
+            pages.insert(0, profile_embed)
+        except Exception:
+            pass
 
         def _resolve_prestige(e: Dict[str, Any]) -> Optional[int]:
             try:
@@ -722,3 +765,24 @@ async def build_roster_pages(core: Any, ctx_or_author: Any, parsed_filters: Opti
     except Exception:
         log.exception("Failed to build roster pages")
         return []
+
+
+def add_page_footers(pages: List[Any], author_for_embed=None) -> List[Any]:
+    out = []
+    for i, p in enumerate(pages):
+        if isinstance(p, dict):
+            emb = CDTv2.embed(author_for_embed, title=p.get("title",""), description=p.get("description",""))
+        elif isinstance(p, discord.Embed):
+            emb = p
+        else:
+            emb = CDTv2.embed(author_for_embed, title="Roster", description=str(p))
+        try:
+            base = emb.footer.text if emb.footer and emb.footer.text else ""
+            emb.set_footer(text=f"{base} • Page {i+1} of {len(pages)}", icon_url=CDTv2.CDT_LOGO)
+        except Exception:
+            try:
+                emb.set_footer(text=f"Page {i+1} of {len(pages)}")
+            except Exception:
+                pass
+        out.append(emb)
+    return out

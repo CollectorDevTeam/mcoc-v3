@@ -320,50 +320,76 @@ class RosterPrefix(commands.Cog):
     async def roster_list(self, ctx, *items: str):
         """
         List roster entries. Accepts the same filter syntax as parse_hargs.
-        Examples:
-          ///mcoc roster list
-          ///mcoc roster list 6*r4, #attack
+        Usage:
+        ///mcoc roster list                -> your roster
+        ///mcoc roster list @user           -> other user's roster (if allowed)
+        ///mcoc roster list @user 6*r4      -> other user's roster filtered
         """
         if not await self._require_parent(ctx):
             return
 
-        items_text = " ".join(items).strip()
+        # If first token looks like a user mention/id, resolve it and treat as target
+        target_member = None
+        items_list = list(items or [])
+        if items_list:
+            first = items_list[0]
+            # try mention or id
+            try:
+                # commands.UserConverter accepts mention, id, or name
+                target_user = await commands.UserConverter().convert(ctx, first)
+                # prefer guild Member if available (so we can show avatar)
+                if ctx.guild:
+                    target_member = ctx.guild.get_member(target_user.id) or target_user
+                else:
+                    target_member = target_user
+                # remove the resolved token from filters
+                items_list = items_list[1:]
+            except Exception:
+                target_member = ctx.author
+
+        if target_member is None:
+            target_member = ctx.author
+
+        items_text = " ".join(items_list).strip()
         parsed = parse_hargs(items_text) if items_text else {}
-        pages = await build_roster_pages(self.parent, ctx.author, parsed)
 
-        # prepare pages first (convert to embeds if needed)
-        try:
-            pages = add_page_footers(pages)  # optional; do this before creating the pager
-        except Exception:
-            pass
+        # privacy check: if target is not the invoking user, check profile privacy
+        users = ensure_user_manager(self.parent)
+        profile = users.get_profile(target_member.id) if users and hasattr(users, "get_profile") else {}
+        # Example privacy flag: profile.get("public_roster", True)
+        if target_member.id != ctx.author.id:
+            if profile.get("public_roster") is False:
+                await ctx.send("That user's roster is private.")
+                return
 
-        # ensure pages are embeds
-        embed_pages = []
-        for p in pages:
-            if isinstance(p, discord.Embed):
-                embed_pages.append(p)
-            else:
-                embed_pages.append(CDTv2.embed(ctx.author, title="Roster", description=str(p)))
+        # Build pages (pass ctx.author-like for branding so avatar shows)
+        pages = await build_roster_pages(self.parent, target_member, parsed)
 
-        if not embed_pages:
+        if not pages:
             await ctx.send(embed=CDTv2.embed(ctx.author, title="Roster", description="No roster entries match your filters."))
             return
 
+        # Optional: add page footers (mutates pages) before creating pager
         try:
-            pager = PaginatorView(embed_pages, author=ctx.author)
-            await pager.start(ctx)  # sends the initial message and wires up the view
+            from ..common.roster_helpers import add_page_footers  # optional helper
+            pages = add_page_footers(pages)
+        except Exception:
+            pass
 
-            # Option A: add brand buttons into the same view (preferred)
+        # Ensure pages are embeds (CDTv2.embed will have been used by build_roster_pages)
+        try:
+            pager = PaginatorView(pages, author=ctx.author)
+            await pager.start(ctx)
+
+            # Merge brand buttons into the pager view (preferred)
             try:
                 brand_view = CDTv2.brand_view()
-                # If you want them in the same message, add brand buttons to pager view:
                 for item in getattr(brand_view, "children", []):
                     pager.add_item(item)
-                # update the message to include the new buttons
                 if pager.message:
                     await pager.message.edit(view=pager)
             except Exception:
-                # Option B: send brand buttons as a separate message
+                # fallback: send brand buttons as separate message
                 try:
                     view = CDTv2.brand_view()
                     await ctx.send(view=view)
@@ -371,8 +397,8 @@ class RosterPrefix(commands.Cog):
                     pass
 
         except Exception:
-            names = [getattr(p, "title", "Entry") for p in embed_pages][:50]
-            await ctx.send(f"Matches ({len(embed_pages)}): {', '.join(names)}")
+            names = [getattr(p, "title", "Entry") for p in pages][:50]
+            await ctx.send(f"Matches ({len(pages)}): {', '.join(names)}")
 
 
     # -----------------------------
