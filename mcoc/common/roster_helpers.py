@@ -4,7 +4,6 @@ import logging
 from typing import Any, Dict, List, Optional, Tuple
 import asyncio
 
-# Local helpers
 from .hargs import parse_harg_list, parse_harg_token
 from .componentsV2 import CDTv2
 
@@ -450,8 +449,7 @@ def validate_entry_for_add(entry: Dict[str, Any]) -> bool:
 async def build_roster_pages(core: Any, ctx_or_author: Any, parsed_filters: Optional[Dict[str, Any]] = None) -> List[Any]:
     """
     Build a list of pages (discord.Embed objects or dict fallbacks) representing:
-      - page 0: filtered summary (Filtered Prestige (N champs): <prestige>)
-      - subsequent pages: roster lines chunked into pages
+      - roster pages chunked into pages with consistent title and footer
 
     Parameters:
       - core: the bot/core object (used to access cache, cacheindex, users)
@@ -587,79 +585,6 @@ async def build_roster_pages(core: Any, ctx_or_author: Any, parsed_filters: Opti
             except Exception:
                 e["prestige"] = None
 
-        # --- Build filtered summary page (profile) AFTER prestige values are resolved ---
-        try:
-            # Apply same parsed filters to entries_with_meta to get filtered_entries
-            filtered_entries: List[Dict[str, Any]] = []
-            for e in entries_with_meta:
-                try:
-                    if parsed.get("rarities") and e.get("rarity") not in parsed.get("rarities"):
-                        continue
-                    if parsed.get("ranks") and e.get("rank") not in parsed.get("ranks"):
-                        continue
-                    if parsed.get("sigs") and e.get("sig") not in parsed.get("sigs"):
-                        continue
-                    skip = False
-                    for t in parsed.get("tags", []):
-                        if t.lower() not in [x.lower() for x in (e.get("tags") or [])]:
-                            skip = True
-                            break
-                    if skip:
-                        continue
-                    filtered_entries.append(e)
-                except Exception:
-                    continue
-
-            # Compute filtered prestige (average of numeric prestige values), rounded to integer
-            prestige_vals = [int(x["prestige"]) for x in filtered_entries if isinstance(x.get("prestige"), (int, float))]
-            filtered_count = len(filtered_entries)
-            filtered_prestige = int(round(sum(prestige_vals) / len(prestige_vals))) if prestige_vals else None
-
-            # Build profile title exactly as requested
-            title_count = filtered_count or 0
-            title_prestige = filtered_prestige if filtered_prestige is not None else "N/A"
-            profile_title = f"Filtered Prestige ({title_count} champs): {title_prestige}"
-
-            # author_for_embed normalized earlier; fall back to None
-            author_obj = author_for_embed if author_for_embed is not None else None
-
-            # Top 5 lines: prefer cached profile['top5'] else compute from filtered_entries
-            top5_lines: List[str] = []
-            try:
-                if isinstance(profile, dict) and profile.get("top5"):
-                    top5_lines = profile.get("top5") or []
-                else:
-                    top_sorted = sorted(
-                        [x for x in filtered_entries if isinstance(x.get("prestige"), (int, float))],
-                        key=lambda z: -float(z.get("prestige"))
-                    )
-                    for i, te in enumerate(top_sorted[:5]):
-                        try:
-                            champ_obj = cache.get_champion(te.get("champion")) if cache else None
-                            champ_name = (champ_obj.get("name") if champ_obj else te.get("champion")) or "Unknown"
-                        except Exception:
-                            champ_name = te.get("champion") or "Unknown"
-                        top5_lines.append(f"{i+1}. {champ_name} [{int(te.get('prestige'))}]")
-            except Exception:
-                top5_lines = []
-
-            profile_embed = CDTv2.embed(
-                author_obj,
-                title=profile_title,
-                description=f"Prestige: {title_prestige}"
-            )
-            if top5_lines:
-                try:
-                    profile_embed.add_field(name="Top 5 (filtered)", value="\n".join(top5_lines), inline=False)
-                except Exception:
-                    pass
-
-            # Start pages list with profile page; roster pages will be appended below
-            pages = [profile_embed]
-        except Exception:
-            pages = []
-        # --- end profile insertion ---
-
         # Sort entries (global sort, prestige-aware)
         def _sort_key(e: Dict[str, Any]):
             p = e.get("prestige")
@@ -669,8 +594,9 @@ async def build_roster_pages(core: Any, ctx_or_author: Any, parsed_filters: Opti
 
         entries_with_meta.sort(key=_sort_key)
 
-        # Build roster lines using the same filter logic
+        # Build roster lines using the same filter logic and collect filtered entries
         lines: List[str] = []
+        filtered_entries: List[Dict[str, Any]] = []
         for entry in entries_with_meta:
             try:
                 if parsed.get("rarities") and entry.get("rarity") not in parsed.get("rarities"):
@@ -687,6 +613,9 @@ async def build_roster_pages(core: Any, ctx_or_author: Any, parsed_filters: Opti
                         break
                 if skip:
                     continue
+
+                # keep for filtered prestige/title
+                filtered_entries.append(entry)
 
                 champ = None
                 if cache:
@@ -727,19 +656,25 @@ async def build_roster_pages(core: Any, ctx_or_author: Any, parsed_filters: Opti
                 prestige_val = entry.get("prestige")
                 prestige_text = f" [{prestige_val}]" if isinstance(prestige_val, (int, float)) else ""
 
+                # Preserve the original presentation format: <class emoji> <tier#><star icon> <Name> r<rank> s<sig> [<prestige>]
                 line = f"{cls_emoji} {star_display} **{name}** r{rank}{sig_text}{asc_text}{prestige_text}"
                 lines.append(line)
             except Exception:
                 continue
 
-        # If no roster lines after filtering, append a "no matches" page (but keep profile page)
+        # Compute filtered prestige (average of numeric prestige values), rounded to integer
+        prestige_vals = [int(x["prestige"]) for x in filtered_entries if isinstance(x.get("prestige"), (int, float))]
+        filtered_count = len(filtered_entries)
+        filtered_prestige = int(round(sum(prestige_vals) / len(prestige_vals))) if prestige_vals else None
+
+        # If no roster lines after filtering, return a single "no matches" embed
         if not lines:
             try:
                 emb = CDTv2.embed(author_for_embed, title="Roster", description="No champions match the filters.")
-                pages.append(emb)
+                emb.set_footer(text="Page 1 of 1")
+                return [emb]
             except Exception:
-                pages.append({"title": "Roster", "description": "No champions match the filters."})
-            return pages
+                return [{"title": "Roster", "description": "No champions match the filters.", "footer": {"text": "Page 1 of 1"}}]
 
         # Chunk lines into pages
         PAGE_LINE_LIMIT = 15
@@ -747,51 +682,38 @@ async def build_roster_pages(core: Any, ctx_or_author: Any, parsed_filters: Opti
 
         cur: List[str] = []
         cur_len = 0
+        page_texts: List[str] = []
         for line in lines:
             if len(cur) >= PAGE_LINE_LIMIT or (cur_len + len(line) + 1) > PAGE_CHAR_LIMIT:
-                pages.append("\n".join(cur))
+                page_texts.append("\n".join(cur))
                 cur = []
                 cur_len = 0
             cur.append(line)
             cur_len += len(line) + 1
         if cur:
-            pages.append("\n".join(cur))
+            page_texts.append("\n".join(cur))
 
-        # Convert page texts into embeds and append (profile page is already at pages[0])
+        # Build title: "Roster (N champions) [<prestige>]"
+        title_count = filtered_count or 0
+        title_prestige = filtered_prestige if filtered_prestige is not None else "N/A"
+        roster_title = f"Roster ({title_count} champions) [{title_prestige}]"
+
+        # Convert page texts into embeds
         embed_pages: List[Any] = []
         try:
-            for i, p in enumerate(pages):
-                # first page may already be an embed (profile)
-                if i == 0 and (hasattr(p, "to_dict") or isinstance(p, dict) and p.get("title") and p.get("description") is None):
-                    # keep as-is if it's an embed-like object
-                    emb = p
-                else:
-                    if isinstance(p, str):
-                        emb = CDTv2.embed(author_for_embed, title="Roster", description=p)
-                    elif isinstance(p, dict):
-                        emb = CDTv2.embed(author_for_embed, title=p.get("title", "Roster"), description=p.get("description", ""))
-                    else:
-                        # assume it's already an Embed
-                        emb = p
-
-                # Append page number to footer while preserving existing footer text if possible
+            for i, ptext in enumerate(page_texts):
+                emb = CDTv2.embed(author_for_embed, title=roster_title, description=ptext)
+                # footer with page number
                 try:
-                    base_footer = emb.footer.text if getattr(emb, "footer", None) and getattr(emb.footer, "text", None) else ""
-                    footer_text = f"{base_footer} • Page {i+1} of {len(pages)}" if base_footer else f"Page {i+1} of {len(pages)}"
-                    try:
-                        emb.set_footer(text=footer_text)
-                    except Exception:
-                        # ignore footer failures
-                        pass
+                    emb.set_footer(text=f"Page {i+1} of {len(page_texts)}")
                 except Exception:
                     pass
-
                 embed_pages.append(emb)
             return embed_pages
         except Exception:
             out = []
-            for i, p in enumerate(pages):
-                out.append({"title": "Roster", "description": p, "footer": {"text": f"Page {i+1} of {len(pages)}"}})
+            for i, ptext in enumerate(page_texts):
+                out.append({"title": roster_title, "description": ptext, "footer": {"text": f"Page {i+1} of {len(page_texts)}"}})
             return out
 
     except Exception:
@@ -799,12 +721,10 @@ async def build_roster_pages(core: Any, ctx_or_author: Any, parsed_filters: Opti
         return []
 
 
-# Optional helper: add page footers (caller may use this)
 def add_page_footers(pages: List[Any], author_for_embed: Any = None) -> List[Any]:
     """
-    Ensure each page has a consistent footer and page numbering.
-    Accepts a list of discord.Embed objects or dict fallbacks.
-    Returns a new list of embeds/dicts.
+    Mutate or wrap pages to ensure each has a footer with page numbering.
+    Accepts either embed objects (with .set_footer) or dict fallbacks.
     """
     out: List[Any] = []
     total = len(pages)
