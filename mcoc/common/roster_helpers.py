@@ -10,11 +10,13 @@ log = logging.getLogger("red.mcoc.roster_helpers")
 
 # New import: hargs parsing helpers
 try:
-    from .hargs import parse_harg_list
+    from .hargs import parse_harg_list, parse_harg_token
 except Exception:
     # fallback stub if hargs not available at import time
     def parse_harg_list(text: str) -> List[Dict[str, Any]]:
         return []
+    def parse_harg_token(token: str) -> Dict[str, Any]:
+        return {}
 
 def ensure_user_manager(core_or_bot) -> Any:
     """

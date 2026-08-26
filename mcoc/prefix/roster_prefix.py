@@ -326,7 +326,7 @@ class RosterPrefix(commands.Cog):
 
         items_text = " ".join(items).strip()
         parsed = parse_hargs(items_text) if items_text else {}
-        pages = await build_roster_pages(self.parent, ctx.author.id, parsed)
+        pages = await build_roster_pages(self.parent, ctx.author, parsed)
 
         if not pages:
             await ctx.send("No roster entries match your filters.")
