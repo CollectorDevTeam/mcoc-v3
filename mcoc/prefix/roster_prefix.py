@@ -3,6 +3,10 @@ import logging
 from typing import Optional, Any, List, Dict
 from redbot.core import commands
 
+import discord
+from mcoc.common.champion_helpers import add_page_footers
+from mcoc.common.componentsV2 import CDTv2, PaginatorView
+
 log = logging.getLogger("red.mcoc.prefix.roster")
 
 from ..common.hargs import parse_hargs
@@ -15,7 +19,6 @@ from ..common.roster_helpers import (
     # use the new adapter that resolves slugs via cache
     parse_roster_entries_from_input,
 )
-from ..common.embeds import roster_entry_embed  # used for embed building
 from ..common.prefix_utils import get_runtime_prefix
 
 from ..common.prefix_meta import ROSTER_GROUP_HELP, ALLOWED_ROSTER_FIELDS
@@ -328,22 +331,49 @@ class RosterPrefix(commands.Cog):
         parsed = parse_hargs(items_text) if items_text else {}
         pages = await build_roster_pages(self.parent, ctx.author, parsed)
 
-        if not pages:
-            await ctx.send("No roster entries match your filters.")
+        # prepare pages first (convert to embeds if needed)
+        try:
+            pages = add_page_footers(pages)  # optional; do this before creating the pager
+        except Exception:
+            pass
+
+        # ensure pages are embeds
+        embed_pages = []
+        for p in pages:
+            if isinstance(p, discord.Embed):
+                embed_pages.append(p)
+            else:
+                embed_pages.append(CDTv2.embed(ctx.author, title="Roster", description=str(p)))
+
+        if not embed_pages:
+            await ctx.send(embed=CDTv2.embed(ctx.author, title="Roster", description="No roster entries match your filters."))
             return
 
         try:
-            from ..common.pagination import PagesMenu
-            menu = PagesMenu(pages, ctx.author)
+            pager = PaginatorView(embed_pages, author=ctx.author)
+            await pager.start(ctx)  # sends the initial message and wires up the view
+
+            # Option A: add brand buttons into the same view (preferred)
             try:
-                from ..common.roster_helpers import add_page_footers  # optional
-                pages = add_page_footers(pages)
+                brand_view = CDTv2.brand_view()
+                # If you want them in the same message, add brand buttons to pager view:
+                for item in getattr(brand_view, "children", []):
+                    pager.add_item(item)
+                # update the message to include the new buttons
+                if pager.message:
+                    await pager.message.edit(view=pager)
             except Exception:
-                pass
-            await menu.start(ctx)
+                # Option B: send brand buttons as a separate message
+                try:
+                    view = CDTv2.brand_view()
+                    await ctx.send(view=view)
+                except Exception:
+                    pass
+
         except Exception:
-            names = [p.get("title") or "Entry" for p in pages][:50]
-            await ctx.send(f"Matches ({len(pages)}): {', '.join(names)}")
+            names = [getattr(p, "title", "Entry") for p in embed_pages][:50]
+            await ctx.send(f"Matches ({len(embed_pages)}): {', '.join(names)}")
+
 
     # -----------------------------
     # Export / Import / Clear (unchanged)

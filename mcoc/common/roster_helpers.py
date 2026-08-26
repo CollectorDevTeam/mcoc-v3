@@ -2,8 +2,9 @@
 import re
 import logging
 from typing import Any, Dict, List, Optional, Tuple
-from .embeds import cdt_embed
+# from .embeds import cdt_embed
 from .hargs import parse_harg_list, parse_harg_token
+from .componentsV2 import CDTv2, PaginatorView
 import asyncio
 
 log = logging.getLogger("red.mcoc.roster_helpers")
@@ -671,14 +672,47 @@ async def build_roster_pages(core: Any, ctx_or_author: Any, parsed_filters: Opti
         if cur:
             pages.append("\n".join(cur))
 
+        # --- build embed pages using CDTv2 ---
         embed_pages: List[Any] = []
         try:
+            # ensure we have an author-like object for branding
+            author_for_embed = author_for_embed if 'author_for_embed' in locals() else ctx_or_author
+
             for i, p in enumerate(pages):
                 title = "Roster"
-                emb = cdt_embed(ctx_or_author, title=title, description=p)
-                emb.set_footer(text=f"Page {i+1} of {len(pages)}")
+                # p may be a string (page text) or an embed-like dict; pass description
+                if isinstance(p, str):
+                    emb = CDTv2.embed(author_for_embed, title=title, description=p)
+                elif isinstance(p, dict):
+                    emb = CDTv2.embed(author_for_embed, title=p.get("title", title), description=p.get("description", ""))
+                else:
+                    # assume it's already an Embed
+                    emb = p
+                    # ensure author/footer branding
+                    try:
+                        emb.set_author(name=getattr(author_for_embed, "display_name", getattr(author_for_embed, "name", "Collector")),
+                                       icon_url=(getattr(getattr(author_for_embed, "avatar", None), "url", None) or str(getattr(author_for_embed, "avatar", ""))))
+                    except Exception:
+                        pass
+
+                # append page number to footer while preserving existing footer text
+                try:
+                    base_footer = emb.footer.text if emb.footer and emb.footer.text else ""
+                    emb.set_footer(text=f"{base_footer} • Page {i+1} of {len(pages)}", icon_url=CDTv2.CDT_LOGO if hasattr(CDTv2, "CDT_LOGO") else None)
+                except Exception:
+                    try:
+                        emb.set_footer(text=f"Page {i+1} of {len(pages)}")
+                    except Exception:
+                        pass
+
                 embed_pages.append(emb)
             return embed_pages
+        except Exception:
+            out = []
+            for i, p in enumerate(pages):
+                out.append({"title": "Roster", "description": p, "footer": {"text": f"Page {i+1} of {len(pages)}"}})
+            return out
+
         except Exception:
             out = []
             for i, p in enumerate(pages):
