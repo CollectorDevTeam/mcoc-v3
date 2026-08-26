@@ -61,8 +61,25 @@ class RosterPrefix(commands.Cog):
         return True
 
     @commands.group(name="roster", invoke_without_command=True)
-    async def roster(self, ctx):
-        await ctx.send(ROSTER_GROUP_HELP.get("roster", "Roster commands: add, remove, update, list, export, clear"))
+    async def roster(self, ctx, *items: str):
+        """
+        Top-level roster group.
+        Behavior:
+          - no args -> show help text
+          - args present -> treat as `roster list <args>` (so `///mcoc roster @user` becomes list)
+        """
+        # If no args, show help
+        if not items:
+            await ctx.send(ROSTER_GROUP_HELP.get("roster", "Roster commands: add, remove, update, list, export, clear"))
+            return
+
+        # If args present, forward to the list handler so `///mcoc roster @user ...` works
+        try:
+            # call the list command implementation directly
+            await self.roster_list(ctx, *items)
+        except Exception:
+            # fallback: show help if forwarding fails
+            await ctx.send(ROSTER_GROUP_HELP.get("roster", "Roster commands: add, remove, update, list, export, clear"))
 
     # -----------------------------
     # Add (multiple)

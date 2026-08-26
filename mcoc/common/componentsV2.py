@@ -58,9 +58,10 @@ class CDTv2:
         description: str = "",
         color: Any = None,
         image: Optional[str] = None,
-        thumbnail: Optional[str] = None,
+        thumbnail: Optional[str] = CDT_LOGO,
         url: str = None, #PATREON,
         footer_text: Optional[str] = "CollectorBot by JJW, CollectorDevTeam",
+        footer_url: Optional[str] = CDT_ICON,
         include_brand_button_row: bool = True,
     ) -> Any:
         """
@@ -117,7 +118,7 @@ class CDTv2:
             pass
 
         try:
-            emb.set_footer(text=footer_text or _brand_footer_text(), icon_url=CDT_LOGO)
+            emb.set_footer(text=footer_text or _brand_footer_text(), icon_url=footer_url)
         except Exception:
             pass
 
