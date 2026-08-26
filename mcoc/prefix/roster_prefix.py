@@ -465,6 +465,26 @@ def register_with_group(group: commands.Group, parent_getter):
             return func
         return _decorator
 
+    @_safe_add("roster")
+    async def _roster(ctx, *items: str):
+        """Top-level roster group for dynamic registration."""
+        parent = parent_getter()
+        if not parent:
+            await ctx.send("MCOC core not attached; roster unavailable.")
+            return
+
+        if not items:
+            await ctx.send(ROSTER_GROUP_HELP.get("roster", "Roster commands: add, remove, update, list, export, clear"))
+            return
+
+        # Forward to the registered list command (the dynamic _list implementation)
+        try:
+            # The dynamic _list function is registered under the same group; call it directly
+            await _list(ctx, *items)
+        except Exception:
+            await ctx.send(ROSTER_GROUP_HELP.get("roster", "Roster commands: add, remove, update, list, export, clear"))
+
+
     # add
     @_safe_add("add")
     async def _add(ctx, *items: str):

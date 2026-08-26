@@ -740,7 +740,7 @@ def add_page_footers(pages: List[Any], author_for_embed: Any = None) -> List[Any
                 emb.set_footer(text=footer_text)
             except Exception:
                 try:
-                    emb.set_footer(text=f"Page {i+1} of {total} | CollectorDevTeam" )
+                    emb.set_footer(text=f"Page {i+1} of {total} | CollectorBot by JJW, CollectorDevTeam" )
                 except Exception:
                     pass
             out.append(emb)

@@ -193,13 +193,35 @@ class MCOCPrefix(commands.Cog):
             await safe_send_ctx(ctx, "Champion commands: `info`, `abilities`, `synergies`, `tags`, `stats`, `search`, `calcstats`.")
 
     @mcoc.group(name="roster", invoke_without_command=True)
-    async def roster(self, ctx):
-        """Roster commands help (dynamic)."""
+    async def roster(self, ctx, *items: str):
+        """Roster commands help (dynamic).
+
+        Behavior:
+          - no args -> show help
+          - args present -> forward to `roster list <args>`
+        """
+        # No args -> show help
+        if not items:
+            try:
+                text = self._group_help_text(self.roster, "Roster commands", "Roster commands: `add`, `remove`, `update`, `list`, `export`, `clear`.")
+                await safe_send_ctx(ctx, text)
+            except Exception:
+                await safe_send_ctx(ctx, "Roster commands: `add`, `remove`, `update`, `list`, `export`, `clear`.")
+            return
+
+        # Args present -> forward to the list handler
         try:
-            text = self._group_help_text(self.roster, "Roster commands", "Roster commands: `add`, `remove`, `update`, `list`, `export`, `clear`.")
-            await safe_send_ctx(ctx, text)
+            # call the list subcommand implementation directly so mention/id + hargs work
+            # `self.roster_list` should exist as the subcommand handler
+            await self.roster_list(ctx, *items)
         except Exception:
-            await safe_send_ctx(ctx, "Roster commands: `add`, `remove`, `update`, `list`, `export`, `clear`.")
+            # fallback to help if forwarding fails
+            try:
+                text = self._group_help_text(self.roster, "Roster commands", "Roster commands: `add`, `remove`, `update`, `list`, `export`, `clear`.")
+                await safe_send_ctx(ctx, text)
+            except Exception:
+                await safe_send_ctx(ctx, "Roster commands: `add`, `remove`, `update`, `list`, `export`, `clear`.")
+
 
     @mcoc.group(name="admin", invoke_without_command=True)
     async def admin(self, ctx):
