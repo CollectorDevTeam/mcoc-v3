@@ -348,13 +348,13 @@ class RosterPrefix(commands.Cog):
         items_list = list(items or [])
         if items_list:
             first = items_list[0]
-            # try mention or id using MemberConverter when in guild, otherwise UserConverter
             try:
+                # Use MemberConverter in guild, otherwise UserConverter
                 if ctx.guild:
                     target_user = await commands.MemberConverter().convert(ctx, first)
                 else:
                     target_user = await commands.UserConverter().convert(ctx, first)
-                # prefer guild Member if available (so we can show avatar)
+                # conversion succeeded -> prefer guild Member if available
                 if ctx.guild and isinstance(target_user, discord.Member):
                     target_member = target_user
                 else:
@@ -362,11 +362,12 @@ class RosterPrefix(commands.Cog):
                 # remove the resolved token from filters
                 items_list = items_list[1:]
             except Exception:
-                # not a user token; treat all tokens as filters for invoking user's roster
-                target_member = ctx.author
+                # conversion failed -> leave items_list intact and do not set target_member
+                target_member = None
 
         if target_member is None:
             target_member = ctx.author
+
 
         items_text = " ".join(items_list).strip()
         parsed = parse_hargs(items_text) if items_text else {}
@@ -431,14 +432,140 @@ class RosterPrefix(commands.Cog):
         await ctx.send(f"Your roster data:\n```json\n{data}\n```")
 
     @roster.command(name="import")
-    async def roster_import(self, ctx, *, data: str):
+    async def roster_import(self, ctx, *, data: str = None):
+        """
+        Import roster from JSON text or from an attached file.
+        Usage:
+        ///mcoc roster import {"champions":[...]}
+        ///mcoc roster import   (with a .json attachment)
+        """
+        if not await self._require_parent(ctx):
+            return
+
         users = ensure_user_manager(self.parent)
-        if users:
+        cache = getattr(self.parent, "cache", None)
+
+        raw = data
+        # If no inline data, try to read first attachment
+        if not raw:
             try:
-                users.import_data(ctx.author.id, data)
-                await ctx.send("Imported your roster data.")
+                msg = getattr(ctx, "message", None)
+                if msg and getattr(msg, "attachments", None):
+                    att = msg.attachments[0]
+                    # prefer reading bytes/text (discord.py Attachment has .read())
+                    try:
+                        raw_bytes = await att.read()
+                        raw = raw_bytes.decode("utf-8", errors="ignore")
+                    except Exception:
+                        # fallback to URL fetch (less ideal) or skip
+                        raw = None
             except Exception:
-                await ctx.send("Failed to import roster data.")
+                raw = None
+
+        if not raw:
+            await ctx.send("No import data provided. Attach a JSON file or pass JSON text inline.")
+            return
+
+        # Try JSON parse first
+        import json
+        parsed_list = None
+        try:
+            j = json.loads(raw)
+            # Accept either top-level list or {"champions": [...]}
+            if isinstance(j, list):
+                parsed_list = j
+            elif isinstance(j, dict) and isinstance(j.get("champions"), list):
+                parsed_list = j.get("champions")
+            else:
+                # maybe it's a dict mapping slug->entry; normalize to list
+                if isinstance(j, dict):
+                    parsed_list = []
+                    for k, v in j.items():
+                        if isinstance(v, dict):
+                            v.setdefault("champion", k)
+                            parsed_list.append(v)
+        except Exception:
+            parsed_list = None
+
+        # If JSON parse failed, try to treat raw as hargs text and parse tokens
+        if parsed_list is None:
+            try:
+                # parse_roster_entries_from_input will resolve names to slugs if cache available
+                parsed_list = parse_roster_entries_from_input(raw, cache)
+            except Exception:
+                parsed_list = None
+
+        if not parsed_list:
+            await ctx.send("Failed to parse import data. Provide valid JSON or a roster hargs text file.")
+            return
+
+        successes = []
+        failures = []
+        for item in parsed_list:
+            try:
+                # Normalize expected fields
+                champ_slug = item.get("champion") or item.get("slug") or item.get("name")
+                rarity = int(item.get("rarity") or item.get("stars") or 6)
+                rank = int(item.get("rank") or 1)
+                sig = int(item.get("sig") or 0)
+                asc = int(item.get("ascended") if "ascended" in item else item.get("asc", 1))
+
+                # If champion is a name, try to resolve via cache
+                if cache and champ_slug and not isinstance(champ_slug, str):
+                    champ_slug = str(champ_slug)
+
+                # If champ_slug looks like a name, try to resolve to slug
+                try:
+                    if cache:
+                        # cache.get_champion accepts slug or id; if name provided, try resolve
+                        cobj = cache.get_champion(champ_slug)
+                        if not cobj:
+                            # try name scan
+                            for c in getattr(cache, "get_all_champions", lambda: [])() or []:
+                                if (c.get("name") or "").lower() == str(champ_slug).lower():
+                                    cobj = c
+                                    break
+                        if cobj:
+                            champ_slug = cobj.get("id") or cobj.get("slug")
+                except Exception:
+                    pass
+
+                # Use update_champion (or add_champion depending on desired semantics)
+                updated = users.update_champion(
+                    ctx.author.id,
+                    champ_slug=champ_slug,
+                    rarity=rarity,
+                    rank=rank,
+                    sig=sig,
+                    ascended=asc,
+                )
+                if updated:
+                    successes.append(f"{champ_slug}: updated")
+                else:
+                    # fallback to add if update didn't find an existing entry
+                    try:
+                        users.add_champion(ctx.author.id, champ_slug=champ_slug, rarity=rarity, rank=rank, sig=sig, ascended=asc)
+                        successes.append(f"{champ_slug}: added")
+                    except Exception:
+                        failures.append(f"{champ_slug}: failed to add/update")
+            except Exception:
+                failures.append(f"{item.get('champion') or str(item)}: error")
+
+        # schedule persist
+        try:
+            schedule_persist_user_prestige(self.parent, ctx.author.id)
+        except Exception:
+            pass
+
+        lines = []
+        if successes:
+            lines.append("Imported/Updated:")
+            lines.extend(f"- {s}" for s in successes)
+        if failures:
+            lines.append("")
+            lines.append("Failed:")
+            lines.extend(f"- {f}" for f in failures)
+        await ctx.send("\n".join(lines))
 
     @roster.command(name="clear")
     async def roster_clear(self, ctx):
@@ -727,14 +854,17 @@ def register_with_group(group: commands.Group, parent_getter):
         if items_list:
             first = items_list[0]
             try:
-                target_user = await commands.UserConverter().convert(ctx, first)
                 if ctx.guild:
-                    target_member = ctx.guild.get_member(target_user.id) or target_user
+                    target_user = await commands.MemberConverter().convert(ctx, first)
+                else:
+                    target_user = await commands.UserConverter().convert(ctx, first)
+                if ctx.guild and isinstance(target_user, discord.Member):
+                    target_member = target_user
                 else:
                     target_member = target_user
                 items_list = items_list[1:]
             except Exception:
-                target_member = ctx.author
+                target_member = None
 
         if target_member is None:
             target_member = ctx.author

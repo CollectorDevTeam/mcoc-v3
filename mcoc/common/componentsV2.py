@@ -22,6 +22,7 @@ CDT_ICON = "https://raw.githubusercontent.com/CollectorDevTeam/assets/master/dat
 PATREON = "https://patreon.com/collectorbot"
 DOCS_URL = "https://github.com/CollectorDevTeam/CollectorBot"  # example docs link
 # IMPORT_HELP_URL = "https://hook.github.io/champions/#/roster"
+IMPORT_HELP_URL = ""
 CDT_FOOTER_TAG = " | CollectorBot by CollectorDevTeam"
 
 # Minimal author extraction (works with Context or Member/User)
@@ -83,7 +84,7 @@ class CDTv2:
                 "thumbnail": thumbnail or CDT_LOGO,
                 "url": url,
                 "author": _get_author_info(ctx_or_author),
-                "footer": footer_text or _brand_footer_text(),
+                "footer": (footer_text or "") + CDT_FOOTER_TAG if footer_text is not None else _brand_footer_text(),
             }
 
         # Determine color: prefer author's color if available
@@ -119,7 +120,20 @@ class CDTv2:
             pass
 
         try:
-            emb.set_footer(text=footer_text + (CDT_FOOTER_TAG if footer_text else "") or _brand_footer_text(), icon_url=footer_url)
+            # compute footer text deterministically
+            if footer_text is None:
+                final_footer = _brand_footer_text()
+            else:
+                # allow empty string to mean "no custom prefix", but still append brand tag
+                final_footer = (footer_text or "") + CDT_FOOTER_TAG
+                if not final_footer.strip():
+                    final_footer = _brand_footer_text()
+
+            try:
+                emb.set_footer(text=final_footer, icon_url=footer_url)
+            except Exception:
+                pass
+
         except Exception:
             pass
 
