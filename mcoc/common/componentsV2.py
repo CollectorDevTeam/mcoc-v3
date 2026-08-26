@@ -59,9 +59,9 @@ class CDTv2:
         color: Any = None,
         image: Optional[str] = None,
         thumbnail: Optional[str] = None,
-        url: str = PATREON,
-        footer_text: Optional[str] = None,
-        include_brand_button_row: bool = False,
+        url: str = None, #PATREON,
+        footer_text: Optional[str] = "CollectorBot by JJW, CollectorDevTeam",
+        include_brand_button_row: bool = True,
     ) -> Any:
         """
         Build a branded embed. Returns a discord.Embed when discord is available,
