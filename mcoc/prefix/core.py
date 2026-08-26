@@ -203,12 +203,13 @@ class MCOCPrefix(commands.Cog):
         # No args -> show help
         if not items:
             try:
-                text = self._group_help_text(self.roster, "Roster commands", "Roster commands: `add`, `remove`, `update`, `list`, `export`, `clear`.")
+                text = self._group_help_text(self.roster, "Roster commands", "Roster commands: `add`, `remove`, `update`, `list`, `import`, `export`, `clear`.")
                 await safe_send_ctx(ctx, text)
             except Exception:
-                await safe_send_ctx(ctx, "Roster commands: `add`, `remove`, `update`, `list`, `export`, `clear`.")
+                await safe_send_ctx(ctx, "Roster commands: `add`, `remove`, `update`, `list`, `import`, `export`, `clear`.")
             return
 
+        # mcoc/prefix/core.py inside @mcoc.group(name="roster", ...)
         # Args present -> forward to the registered group's list subcommand if available
         try:
             list_cmd = None
@@ -218,7 +219,7 @@ class MCOCPrefix(commands.Cog):
                 list_cmd = None
 
             if list_cmd:
-                # ctx.invoke will call the subcommand with the provided args
+                # invoke the group's list command with the provided args
                 await ctx.invoke(list_cmd, *items)
                 return
 
@@ -236,7 +237,6 @@ class MCOCPrefix(commands.Cog):
                 await safe_send_ctx(ctx, text)
             except Exception:
                 await safe_send_ctx(ctx, "Roster commands: `add`, `remove`, `update`, `list`, `export`, `clear`.")
-
 
     @mcoc.group(name="admin", invoke_without_command=True)
     async def admin(self, ctx):

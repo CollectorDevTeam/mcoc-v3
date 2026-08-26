@@ -120,22 +120,18 @@ class CDTv2:
             pass
 
         try:
-            # compute footer text deterministically
-            if footer_text is None:
-                final_footer = _brand_footer_text()
+            # Build final footer text: prefer provided footer_text, always append CDT_FOOTER_TAG
+            final_footer = (footer_text or "").strip()
+            if final_footer:
+                final_footer = f"{final_footer}{CDT_FOOTER_TAG}"
             else:
-                # allow empty string to mean "no custom prefix", but still append brand tag
-                final_footer = (footer_text or "") + CDT_FOOTER_TAG
-                if not final_footer.strip():
-                    final_footer = _brand_footer_text()
+                final_footer = _brand_footer_text()
 
-            try:
-                emb.set_footer(text=final_footer, icon_url=footer_url)
-            except Exception:
-                pass
-
+            emb.set_footer(text=final_footer, icon_url=footer_url or CDT_ICON)
         except Exception:
             pass
+
+
 
         return emb
 
@@ -344,12 +340,12 @@ class PaginatorView(discord.ui.View):
             emb = discord.Embed(title=page.get("title", "Page"), description=page.get("description", ""))
         else:
             emb = discord.Embed(title="Page", description=str(page))
-        # footer with page number
+        # mcoc/common/componentsV2.py inside PaginatorView._render_page
         try:
-            emb.set_footer(text=f"{emb.footer.text if emb.footer and emb.footer.text else ''} • Page {self.index+1} of {len(self.pages)}", icon_url=CDT_LOGO)
+            emb.set_footer(text=f"{emb.footer.text if emb.footer and emb.footer.text else ''} • Page {self.index+1} of {len(self.pages)}", icon_url=CDT_ICON)
         except Exception:
             try:
-                emb.set_footer(text=f"Page {self.index+1} of {len(self.pages)}", icon_url=CDT_LOGO)
+                emb.set_footer(text=f"Page {self.index+1} of {len(self.pages)}", icon_url=CDT_ICON)
             except Exception:
                 pass
         return emb
