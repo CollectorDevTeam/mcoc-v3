@@ -671,10 +671,10 @@ async def build_roster_pages(core: Any, ctx_or_author: Any, parsed_filters: Opti
         if not lines:
             try:
                 emb = CDTv2.embed(author_for_embed, title="Roster", description="No champions match the filters.")
-                emb.set_footer(text="Page 1 of 1")
+                emb.set_footer(text="Page 1 of 1 | CollectorBot by CollectorDevTeam")
                 return [emb]
             except Exception:
-                return [{"title": "Roster", "description": "No champions match the filters.", "footer": {"text": "Page 1 of 1"}}]
+                return [{"title": "Roster", "description": "No champions match the filters.", "footer": {"text": "Page 1 of 1 | CollectorBot by CollectorDevTeam"}}]
 
         # Chunk lines into pages
         PAGE_LINE_LIMIT = 15
@@ -705,7 +705,7 @@ async def build_roster_pages(core: Any, ctx_or_author: Any, parsed_filters: Opti
                 emb = CDTv2.embed(author_for_embed, title=roster_title, description=ptext)
                 # footer with page number
                 try:
-                    emb.set_footer(text=f"Page {i+1} of {len(page_texts)}")
+                    emb.set_footer(text=f"Page {i+1} of {len(page_texts)} | CollectorBot by CollectorDevTeam")
                 except Exception:
                     pass
                 embed_pages.append(emb)
@@ -713,7 +713,7 @@ async def build_roster_pages(core: Any, ctx_or_author: Any, parsed_filters: Opti
         except Exception:
             out = []
             for i, ptext in enumerate(page_texts):
-                out.append({"title": roster_title, "description": ptext, "footer": {"text": f"Page {i+1} of {len(page_texts)}"}})
+                out.append({"title": roster_title, "description": ptext, "footer": {"text": f"Page {i+1} of {len(page_texts)} | CollectorBot by CollectorDevTeam"}})
             return out
 
     except Exception:
