@@ -671,10 +671,10 @@ async def build_roster_pages(core: Any, ctx_or_author: Any, parsed_filters: Opti
         if not lines:
             try:
                 emb = CDTv2.embed(author_for_embed, title="Roster", description="No champions match the filters.")
-                emb.set_footer(text="Page 1 of 1 | CollectorBot by CollectorDevTeam")
+                emb.set_footer(text="Page 1 of 1")
                 return [emb]
             except Exception:
-                return [{"title": "Roster", "description": "No champions match the filters.", "footer": {"text": "Page 1 of 1 | CollectorBot by CollectorDevTeam"}}]
+                return [{"title": "Roster", "description": "No champions match the filters.", "footer": {"text": "Page 1 of 1"}}]
 
         # Chunk lines into pages
         PAGE_LINE_LIMIT = 15
@@ -705,7 +705,7 @@ async def build_roster_pages(core: Any, ctx_or_author: Any, parsed_filters: Opti
                 emb = CDTv2.embed(author_for_embed, title=roster_title, description=ptext)
                 # footer with page number
                 try:
-                    emb.set_footer(text=f"Page {i+1} of {len(page_texts)} | CollectorBot by CollectorDevTeam")
+                    emb.set_footer(text=f"Page {i+1} of {len(page_texts)}")
                 except Exception:
                     pass
                 embed_pages.append(emb)
@@ -713,7 +713,7 @@ async def build_roster_pages(core: Any, ctx_or_author: Any, parsed_filters: Opti
         except Exception:
             out = []
             for i, ptext in enumerate(page_texts):
-                out.append({"title": roster_title, "description": ptext, "footer": {"text": f"Page {i+1} of {len(page_texts)} | CollectorBot by CollectorDevTeam"}})
+                out.append({"title": roster_title, "description": ptext, "footer": {"text": f"Page {i+1} of {len(page_texts)}"}})
             return out
 
     except Exception:
@@ -737,11 +737,10 @@ def add_page_footers(pages: List[Any], author_for_embed: Any = None) -> List[Any
             try:
                 base = emb.footer.text if getattr(emb, "footer", None) and getattr(emb.footer, "text", None) else ""
                 footer_text = f"{base} • Page {i+1} of {total}" if base else f"Page {i+1} of {total}"
-                footer_text += " | CollectorBot by CollectorDevTeam"
                 emb.set_footer(text=footer_text)
             except Exception:
                 try:
-                    emb.set_footer(text=f"Page {i+1} of {total} | CollectorBot by CollectorDevTeam" )
+                    emb.set_footer(text=f"Page {i+1} of {total}" )
                 except Exception:
                     pass
             out.append(emb)

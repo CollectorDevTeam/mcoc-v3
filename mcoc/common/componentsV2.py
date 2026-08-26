@@ -22,6 +22,7 @@ CDT_ICON = "https://raw.githubusercontent.com/CollectorDevTeam/assets/master/dat
 PATREON = "https://patreon.com/collectorbot"
 DOCS_URL = "https://github.com/CollectorDevTeam/CollectorBot"  # example docs link
 IMPORT_HELP_URL = "https://hook.github.io/champions/#/roster"
+CDT_FOOTER_TAG = " | CollectorBot by CollectorDevTeam"
 
 # Minimal author extraction (works with Context or Member/User)
 def _get_author_info(ctx_or_author: Any) -> Tuple[str, Optional[str]]:
@@ -60,7 +61,7 @@ class CDTv2:
         image: Optional[str] = None,
         thumbnail: Optional[str] = CDT_LOGO,
         url: str = None, #PATREON,
-        footer_text: Optional[str] = "CollectorBot by JJW, CollectorDevTeam",
+        footer_text: Optional[str] = CDT_FOOTER_TAG,
         footer_url: Optional[str] = CDT_ICON,
         include_brand_button_row: bool = True,
     ) -> Any:
@@ -118,7 +119,7 @@ class CDTv2:
             pass
 
         try:
-            emb.set_footer(text=footer_text or _brand_footer_text(), icon_url=footer_url)
+            emb.set_footer(text=footer_text + (CDT_FOOTER_TAG if footer_text else "") or _brand_footer_text(), icon_url=footer_url)
         except Exception:
             pass
 
