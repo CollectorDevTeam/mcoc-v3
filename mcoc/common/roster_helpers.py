@@ -166,16 +166,6 @@ def extract_entry_from_parsed(parsed: Dict[str, Any]) -> Dict[str, Any]:
     """
     Normalize a parsed filter dict (from parse_hargs) or a single harg token parse
     into a canonical entry dict used by roster operations.
-
-    The returned dict contains:
-      {
-        "champion": Optional[str],
-        "rarity": Optional[int],
-        "rank": Optional[int],
-        "sig": int,
-        "tags": List[str],
-        "ascended": int,
-      }
     """
     entry = {
         "champion": None,
@@ -217,7 +207,7 @@ def extract_entry_from_parsed(parsed: Dict[str, Any]) -> Dict[str, Any]:
 
     try:
         if parsed.get("ranks"):
-            entry["rank"] = int(parsed.get("ranks")[0])
+            entry["rank"] = int(parsed["ranks"][0])
     except Exception:
         entry["rank"] = None
 
@@ -301,8 +291,6 @@ def parse_roster_entries_from_input(text: str, cache) -> List[Dict[str, Any]]:
     Adapter that converts free-form user input into canonical roster entries.
     Uses hargs.parse_harg_list for tokenization and parse_harg_token-style parsing,
     then resolves champion names to slugs and normalizes numeric fields.
-    Returns list of dicts: {'champion': slug, 'rarity': int, 'rank': int, 'sig': int, 'ascended': int, 'raw': str}
-    Raises ValueError with a helpful message if nothing valid is parsed.
     """
     if not text or not text.strip():
         raise ValueError("No input provided")
@@ -381,7 +369,6 @@ def entries_from_hargs_text(text: str) -> List[Dict[str, Any]]:
     """
     Parse a text containing one or more ChampionHargs / HargsChampion / plain champion tokens
     and return a list of normalized entry dicts suitable for add/remove/update operations.
-    Uses parse_harg_list from mcoc.hargs and resolves champion slugs via cache.
     """
     out: List[Dict[str, Any]] = []
     try:
@@ -405,12 +392,6 @@ def entries_from_hargs_text(text: str) -> List[Dict[str, Any]]:
 def validate_entry_for_add(entry: Dict[str, Any]) -> bool:
     """
     Validate a normalized entry for add/update operations.
-
-    Rules:
-      - rarity: 1..7
-      - rank: 1..5
-      - ascended: 0..2
-      - sig: bounds depend on rarity (<=99 for tiers 1-4, <=200 for tiers 5-7)
     """
     try:
         r = entry.get("rarity")
@@ -450,11 +431,6 @@ async def build_roster_pages(core: Any, ctx_or_author: Any, parsed_filters: Opti
     """
     Build a list of pages (discord.Embed objects or dict fallbacks) representing:
       - roster pages chunked into pages with consistent title and footer
-
-    Parameters:
-      - core: the bot/core object (used to access cache, cacheindex, users)
-      - ctx_or_author: Context or author-like object used for branding (author name/avatar)
-      - parsed_filters: optional parsed filters (from parse_hargs)
     """
     pages: List[Any] = []
 

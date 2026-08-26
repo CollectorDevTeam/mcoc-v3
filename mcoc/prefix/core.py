@@ -209,13 +209,28 @@ class MCOCPrefix(commands.Cog):
                 await safe_send_ctx(ctx, "Roster commands: `add`, `remove`, `update`, `list`, `export`, `clear`.")
             return
 
-        # Args present -> forward to the list handler
+        # Args present -> forward to the registered group's list subcommand if available
         try:
-            # call the list subcommand implementation directly so mention/id + hargs work
-            # `self.roster_list` should exist as the subcommand handler
-            await self.roster_list(ctx, *items)
+            list_cmd = None
+            try:
+                list_cmd = self.roster.get_command("list")
+            except Exception:
+                list_cmd = None
+
+            if list_cmd:
+                # ctx.invoke will call the subcommand with the provided args
+                await ctx.invoke(list_cmd, *items)
+                return
+
+            # fallback: try to call a method named roster_list on this cog (legacy)
+            if hasattr(self, "roster_list") and callable(getattr(self, "roster_list")):
+                await self.roster_list(ctx, *items)
+                return
+
+            # final fallback: show help
+            text = self._group_help_text(self.roster, "Roster commands", "Roster commands: `add`, `remove`, `update`, `list`, `export`, `clear`.")
+            await safe_send_ctx(ctx, text)
         except Exception:
-            # fallback to help if forwarding fails
             try:
                 text = self._group_help_text(self.roster, "Roster commands", "Roster commands: `add`, `remove`, `update`, `list`, `export`, `clear`.")
                 await safe_send_ctx(ctx, text)
