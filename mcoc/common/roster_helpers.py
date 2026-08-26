@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import asyncio
 
 from .hargs import parse_harg_list, parse_harg_token
-from .componentsV2 import CDTv2
+from .componentsV2 import CDTv2, CDT_FOOTER_TAG
 
 log = logging.getLogger("red.mcoc.roster_helpers")
 
@@ -166,6 +166,16 @@ def extract_entry_from_parsed(parsed: Dict[str, Any]) -> Dict[str, Any]:
     """
     Normalize a parsed filter dict (from parse_hargs) or a single harg token parse
     into a canonical entry dict used by roster operations.
+
+    The returned dict contains:
+      {
+        "champion": Optional[str],
+        "rarity": Optional[int],
+        "rank": Optional[int],
+        "sig": int,
+        "tags": List[str],
+        "ascended": int,
+      }
     """
     entry = {
         "champion": None,
@@ -213,7 +223,7 @@ def extract_entry_from_parsed(parsed: Dict[str, Any]) -> Dict[str, Any]:
 
     try:
         if parsed.get("sigs"):
-            entry["sig"] = int(parsed.get("sigs")[0])
+            entry["sig"] = int(parsed["sigs"][0])
     except Exception:
         entry["sig"] = 0
 
@@ -291,6 +301,8 @@ def parse_roster_entries_from_input(text: str, cache) -> List[Dict[str, Any]]:
     Adapter that converts free-form user input into canonical roster entries.
     Uses hargs.parse_harg_list for tokenization and parse_harg_token-style parsing,
     then resolves champion names to slugs and normalizes numeric fields.
+    Returns list of dicts: {'champion': slug, 'rarity': int, 'rank': int, 'sig': int, 'ascended': int, 'raw': str}
+    Raises ValueError with a helpful message if nothing valid is parsed.
     """
     if not text or not text.strip():
         raise ValueError("No input provided")
@@ -369,6 +381,7 @@ def entries_from_hargs_text(text: str) -> List[Dict[str, Any]]:
     """
     Parse a text containing one or more ChampionHargs / HargsChampion / plain champion tokens
     and return a list of normalized entry dicts suitable for add/remove/update operations.
+    Uses parse_harg_list from mcoc.hargs and resolves champion slugs via cache.
     """
     out: List[Dict[str, Any]] = []
     try:
@@ -392,6 +405,12 @@ def entries_from_hargs_text(text: str) -> List[Dict[str, Any]]:
 def validate_entry_for_add(entry: Dict[str, Any]) -> bool:
     """
     Validate a normalized entry for add/update operations.
+
+    Rules:
+      - rarity: 1..7
+      - rank: 1..5
+      - ascended: 0..2
+      - sig: bounds depend on rarity (<=99 for tiers 1-4, <=200 for tiers 5-7)
     """
     try:
         r = entry.get("rarity")
@@ -431,6 +450,11 @@ async def build_roster_pages(core: Any, ctx_or_author: Any, parsed_filters: Opti
     """
     Build a list of pages (discord.Embed objects or dict fallbacks) representing:
       - roster pages chunked into pages with consistent title and footer
+
+    Parameters:
+      - core: the bot/core object (used to access cache, cacheindex, users)
+      - ctx_or_author: Context or author-like object used for branding (author name/avatar)
+      - parsed_filters: optional parsed filters (from parse_hargs)
     """
     pages: List[Any] = []
 
@@ -646,11 +670,10 @@ async def build_roster_pages(core: Any, ctx_or_author: Any, parsed_filters: Opti
         # If no roster lines after filtering, return a single "no matches" embed
         if not lines:
             try:
-                emb = CDTv2.embed(author_for_embed, title="Roster", description="No champions match the filters.")
-                emb.set_footer(text="Page 1 of 1 | CollectorBot by CollectorDevTeam")
+                emb = CDTv2.embed(author_for_embed, title="Roster", description="No champions match the filters.", footer_text=f"Page 1 of 1{CDT_FOOTER_TAG}")
                 return [emb]
             except Exception:
-                return [{"title": "Roster", "description": "No champions match the filters.", "footer": {"text": "Page 1 of 1 | CollectorBot by CollectorDevTeam"}}]
+                return [{"title": "Roster", "description": "No champions match the filters.", "footer": {"text": f"Page 1 of 1{CDT_FOOTER_TAG}"}}]
 
         # Chunk lines into pages
         PAGE_LINE_LIMIT = 15
@@ -678,10 +701,11 @@ async def build_roster_pages(core: Any, ctx_or_author: Any, parsed_filters: Opti
         embed_pages: List[Any] = []
         try:
             for i, ptext in enumerate(page_texts):
-                emb = CDTv2.embed(author_for_embed, title=roster_title, description=ptext)
-                # footer with page number
+                footer = f"Page {i+1} of {len(page_texts)}{CDT_FOOTER_TAG}"
+                emb = CDTv2.embed(author_for_embed, title=roster_title, description=ptext, footer_text=footer)
+                # footer already set via footer_text param; still attempt to set explicitly for safety
                 try:
-                    emb.set_footer(text=f"Page {i+1} of {len(page_texts)} | CollectorBot by CollectorDevTeam")
+                    emb.set_footer(text=footer)
                 except Exception:
                     pass
                 embed_pages.append(emb)
@@ -689,7 +713,7 @@ async def build_roster_pages(core: Any, ctx_or_author: Any, parsed_filters: Opti
         except Exception:
             out = []
             for i, ptext in enumerate(page_texts):
-                out.append({"title": roster_title, "description": ptext, "footer": {"text": f"Page {i+1} of {len(page_texts)} | CollectorBot by CollectorDevTeam"}})
+                out.append({"title": roster_title, "description": ptext, "footer": {"text": f"Page {i+1} of {len(page_texts)}{CDT_FOOTER_TAG}"}})
             return out
 
     except Exception:
@@ -713,11 +737,11 @@ def add_page_footers(pages: List[Any], author_for_embed: Any = None) -> List[Any
             try:
                 base = emb.footer.text if getattr(emb, "footer", None) and getattr(emb.footer, "text", None) else ""
                 footer_text = f"{base} • Page {i+1} of {total}" if base else f"Page {i+1} of {total}"
-                footer_text += " | CollectorBot by CollectorDevTeam"
+                footer_text += f"{CDT_FOOTER_TAG}"
                 emb.set_footer(text=footer_text)
             except Exception:
                 try:
-                    emb.set_footer(text=f"Page {i+1} of {total} | CollectorBot by CollectorDevTeam" )
+                    emb.set_footer(text=f"Page {i+1} of {total}{CDT_FOOTER_TAG}" )
                 except Exception:
                     pass
             out.append(emb)
