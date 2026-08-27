@@ -7,6 +7,7 @@ import json
 import aiohttp
 import discord
 from mcoc.common.champion_helpers import add_page_footers
+from mcoc.common.query_parser import parse_query
 from mcoc.common.componentsV2 import CDTEmbed, CDTPagesMenu
 
 log = logging.getLogger("red.mcoc.prefix.roster")
@@ -382,20 +383,13 @@ class RosterPrefix(commands.Cog):
     # -----------------------------
     # List (filters)
     # -----------------------------
+    from ..common.query_parser import parse_query
+    from ..common.hargs import parse_hargs
     @roster.command(name="list")
     async def roster_list(self, ctx, *items: str):
-        """
-        List roster entries. Accepts the same filter syntax as parse_hargs.
-        Usage:
-        ///mcoc roster list                -> your roster
-        ///mcoc roster list @user           -> other user's roster (if allowed)
-        ///mcoc roster list @user 6*r4      -> other user's roster filtered
-        """
         if not await self._require_parent(ctx):
             return
 
-        # If first token looks like a user mention/id, resolve it and treat as target
-        # inside roster_list (class) and inside _list (register_with_group)
         # Resolve optional leading user mention/id (prefer Member in guild)
         target_member = None
         items_list = list(items or [])
@@ -403,42 +397,54 @@ class RosterPrefix(commands.Cog):
             first = items_list[0]
             try:
                 if ctx.guild:
-                    # prefer MemberConverter so we get guild Member (avatar, display_name)
                     target_user = await commands.MemberConverter().convert(ctx, first)
                 else:
                     target_user = await commands.UserConverter().convert(ctx, first)
-                # resolved successfully -> use as target and drop token from filters
                 target_member = target_user
                 items_list = items_list[1:]
             except Exception:
-                # not a user token; keep all tokens as filters for invoking user's roster
                 target_member = ctx.author
-
         if target_member is None:
             target_member = ctx.author
 
-
-
         items_text = " ".join(items_list).strip()
-        parsed = parse_hargs(items_text) if items_text else {}
 
-        # privacy check: if target is not the invoking user, check profile privacy
+        # Resolve cache safely (avoid calling undefined helpers)
+        cache = getattr(self.parent, "cache", None)
+
+        # Parse query into explicit entries (if any) and a filters dict
+        try:
+            entries, filters = parse_query(items_text, cache=cache)
+        except Exception:
+            # fallback: use parse_hargs for simple filters
+            entries, filters = [], (parse_hargs(items_text) if items_text else {})
+
+        # If explicit entries were returned, convert them into a parsed_filters
+        # shape that build_roster_pages expects (champion + rarities/ranks etc).
+        parsed_filters = {}
+        if entries:
+            # Build a simple filter that matches any of the explicit entries
+            # (build_roster_pages can then filter by champion/rank/rarity if implemented)
+            parsed_filters = {"explicit_entries": entries}
+        else:
+            parsed_filters = filters or {}
+
+        # Privacy check
         users = ensure_user_manager(self.parent)
         profile = users.get_profile(target_member.id) if users and hasattr(users, "get_profile") else {}
-        # Example privacy flag: profile.get("public_roster", True)
         if target_member.id != ctx.author.id:
             if profile.get("public_roster") is False:
                 await ctx.send("That user's roster is private.")
                 return
 
-        # Build pages (pass target_member for branding so avatar shows)
-        pages = await build_roster_pages(self.parent, target_member, parsed)
+        # Build pages (pass target_member for branding)
+        pages = await build_roster_pages(self.parent, target_member, parsed_filters=parsed_filters)
 
         if not pages:
             await ctx.send(embed=CDTEmbed.embed(target_member, title="Roster", description="No roster entries match your filters."))
             return
 
-        # Optional: add page footers (mutates pages) before creating pager
+        # Add page footers
         try:
             pages = add_page_footers(pages, author_for_embed=target_member)
         except Exception:
@@ -447,28 +453,58 @@ class RosterPrefix(commands.Cog):
             except Exception:
                 pass
 
-        # Ensure pages are embeds (CDTv2.embed will have been used by build_roster_pages)
+        # Instantiate pager defensively (support multiple constructor shapes)
         try:
-            pager = CDTPagesMenu(pages, author=ctx.author)
+            try:
+                pager = CDTPagesMenu(pages=pages, author=ctx.author)
+            except TypeError:
+                try:
+                    pager = CDTPagesMenu(pages, ctx.author)
+                except TypeError:
+                    pager = CDTPagesMenu(pages)
+                    if hasattr(pager, "author"):
+                        try:
+                            pager.author = ctx.author
+                        except Exception:
+                            pass
+
             await pager.start(ctx)
 
-            # Merge brand buttons into the pager view (preferred)
+            # Merge brand buttons if possible, otherwise send them separately
             try:
                 brand_view = CDTEmbed.brand_view()
-                for item in getattr(brand_view, "children", []):
-                    pager.add_item(item)
-                if pager.message:
-                    await pager.message.edit(view=pager)
+                if hasattr(pager, "add_item"):
+                    for item in getattr(brand_view, "children", []):
+                        try:
+                            pager.add_item(item)
+                        except Exception:
+                            pass
+                    if getattr(pager, "message", None):
+                        try:
+                            await pager.message.edit(view=pager)
+                        except Exception:
+                            pass
+                else:
+                    # pager is not a View-like object we can mutate; send brand view separately
+                    try:
+                        await ctx.send(view=brand_view)
+                    except Exception:
+                        pass
             except Exception:
-                # fallback: send brand buttons as separate message
-                try:
-                    view = CDTEmbed.brand_view()
-                    await ctx.send(view=view)
-                except Exception:
-                    pass
+                pass
 
         except Exception:
-            names = [getattr(p, "title", "Entry") for p in pages][:50]
+            # Safe fallback: extract titles from embeds or dicts
+            names = []
+            for p in pages[:50]:
+                title = None
+                try:
+                    title = getattr(p, "title", None)
+                except Exception:
+                    title = None
+                if not title and isinstance(p, dict):
+                    title = p.get("title")
+                names.append(title or "Entry")
             await ctx.send(f"Matches ({len(pages)}): {', '.join(names)}")
 
 
@@ -844,7 +880,18 @@ def register_with_group(group: commands.Group, parent_getter):
 
 
         items_text = " ".join(items_list).strip()
-        parsed = parse_hargs(items_text) if items_text else {}
+
+        cache = getattr(parent, "cache", None)
+        try: 
+            entries, filters = parse_query(items_text, cache)
+        except Exception:
+            entries, filters = [], (parse_hargs(items_text) if items_text else {})
+
+        parsed_filters = {}
+        if entries: 
+            parsed_filters = {"explicit_entries": entries}
+        else:
+            parsed_filters = filters or {}
 
         # privacy check: if target is not the invoking user, check profile privacy
         users = ensure_user_manager(parent)
@@ -855,14 +902,14 @@ def register_with_group(group: commands.Group, parent_getter):
                 return
 
         # Build pages (pass target_member for branding/avatar)
-        pages = await build_roster_pages(parent, target_member, parsed)
+        pages = await build_roster_pages(parent, target_member, parsed_filters)
 
         if not pages:
             await ctx.send("No roster entries match your filters.")
             return
 
         try:
-            menu = CDTPagesMenu(pages, ctx.author)
+            menu = CDTPagesMenu(pages=pages, author=ctx.author)
             try:
                 from ..common.roster_helpers import add_page_footers  # optional
                 pages = add_page_footers(pages)
@@ -870,7 +917,17 @@ def register_with_group(group: commands.Group, parent_getter):
                 pass
             await menu.start(ctx)
         except Exception:
-            names = [p.get("title") or "Entry" for p in pages][:50]
+            names = []
+            for p in pages[:50]:
+                title = None
+                try:
+                    title = getattr(p, "title", None)
+                except Exception:
+                    title = None
+                if not title and isinstance(p, dict):
+                    title = p.get("title")
+                names.append(title or "Entry")
+
             await ctx.send(f"Matches ({len(pages)}): {', '.join(names)}")
 
     # export

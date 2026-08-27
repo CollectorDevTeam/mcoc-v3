@@ -111,7 +111,7 @@ class _ChampionGroup(app_commands.Group):
             await safe_respond_interaction(interaction, content=f"Champion `{champion}` not found.", ephemeral=True)
             return
         try:
-            embed = await CDTEmbed.abilities_embed(interaction, champ)
+            embed = await CDTEmbed.champions_embed(interaction, champ)
             await safe_respond_interaction(interaction, embed=embed)
         except Exception:
             log.exception("Failed to build abilities embed")

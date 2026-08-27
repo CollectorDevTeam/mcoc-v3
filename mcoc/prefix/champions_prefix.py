@@ -11,6 +11,10 @@ from ..common.champion_helpers import (
     lookup_stat,
     add_page_footers,
 )
+from ..common.query_parser import parse_query
+from ..common.hargs import parse_hargs
+from ..common.roster_helpers import _resolve_champion_slug  # optional helper if you need slug resolution
+
 
 # Keep the original Cog so it can still be loaded independently for testing,
 # but we will also provide a registrar function to attach these commands under
@@ -69,19 +73,55 @@ class ChampionsPrefix(commands.Cog):
             await safe_send_ctx(ctx, f"{champ.get('name','Unknown')}")
 
     @champ.command(name="abilities")
-    async def champ_abilities(self, ctx, *, champion: str):
+    async def champ_abilities(self, ctx, *terms: str):
         if not await self._require_parent(ctx):
             return
-        champ = resolve_champion(self.parent.cache, champion)
-        if not champ:
-            await safe_send_ctx(ctx, f"Champion `{champion}` not found.")
-            return
+
+        query_text = " ".join(terms).strip()
+        cache = getattr(self.parent, "cache", None)
+
         try:
-            embed = CDTEmbed.abilities_embed(ctx, champ)
-            await safe_send_ctx(ctx, embed=embed)
+            entries, filters = parse_query(query_text, cache=cache)
         except Exception:
-            log.exception("champ abilities failed")
+            entries, filters = [], (parse_hargs(query_text) if query_text else {})
+
+        target_champ = None
+
+        if entries:
+            # pick first explicit entry
+            ent = entries[0]
+            slug = ent.get("champion") or ent.get("raw")
+            try:
+                target_champ = cache.get_champion(slug) if cache else None
+            except Exception:
+                target_champ = None
+        else:
+            # fallback: use filters["name"] to find a champion
+            name = filters.get("name")
+            if name and cache:
+                try:
+                    for c in getattr(cache, "get_all_champions", lambda: [])() or []:
+                        if name.lower() in (c.get("name") or "").lower() or name.lower() == (c.get("slug") or "").lower():
+                            target_champ = c
+                            break
+                except Exception:
+                    target_champ = None
+
+        if not target_champ:
+            await safe_send_ctx(ctx, "Champion not found.")
+            return
+
+        try:
+            if hasattr(CDTEmbed, "abilities_embed"):
+                emb = CDTEmbed.abilities_embed(ctx, target_champ)
+            elif hasattr(CDTEmbed, "champion_embed"):
+                emb = CDTEmbed.champion_embed(ctx, target_champ)
+            else:
+                emb = CDTEmbed.embed(ctx, title=target_champ.get("name", "Unknown"), description="Abilities unavailable.")
+            await ctx.send(embed=emb)
+        except Exception:
             await safe_send_ctx(ctx, "Abilities unavailable.")
+
 
     @champ.command(name="synergies")
     async def champ_synergies(self, ctx, *, champion: str):
@@ -141,32 +181,120 @@ class ChampionsPrefix(commands.Cog):
             await safe_send_ctx(ctx, "Failed to build stats.")
 
     @champ.command(name="search")
-    async def champ_search(self, ctx, *, query: str):
+    async def champ_search(self, ctx, *terms: str):
+        """
+        Search champions by name, hargs tokens, or tags (#bleed).
+        Examples:
+        ///mcoc champ search blackbolt
+        ///mcoc champ search #bleed
+        ///mcoc champ search colossus7*r1a1
+        """
         if not await self._require_parent(ctx):
             return
+
+        query_text = " ".join(terms).strip()
+        cache = getattr(self.parent, "cache", None)
+
         try:
-            cache = getattr(self.parent, "cache", None)
-            champs = cache.get_all_champions() if cache else []
-            q = query.lower()
-            results = []
-            for c in champs:
+            entries, filters = parse_query(query_text, cache=cache)
+        except Exception:
+            entries, filters = [], (parse_hargs(query_text) if query_text else {})
+
+        results = []
+
+        # 1) If explicit entries were returned, treat them as exact lookups
+        if entries:
+            for ent in entries:
                 try:
-                    name = (c.get("name") or "").lower()
-                    slug = str(c.get("id") or c.get("slug") or "").lower()
-                    tags = [t.lower() for t in (c.get("tags") or []) if isinstance(t, str)]
-                    cls = (c.get("class") or "").lower()
-                    if q in name or q in slug or q in cls or q in tags:
-                        results.append(c)
+                    slug = ent.get("champion")
+                    if not slug and ent.get("raw"):
+                        # try to resolve via cache if slug missing
+                        try:
+                            slug = _resolve_champion_slug(ent.get("raw"), cache)
+                        except Exception:
+                            slug = ent.get("raw")
+                    champ_obj = None
+                    if cache and slug:
+                        try:
+                            champ_obj = cache.get_champion(slug)
+                        except Exception:
+                            champ_obj = None
+                    if champ_obj:
+                        results.append((champ_obj, ent))
+                    else:
+                        # fallback: try name scan
+                        if cache:
+                            for c in getattr(cache, "get_all_champions", lambda: [])() or []:
+                                if str(c.get("id") or c.get("slug") or "").lower() == str(slug).lower() or str(c.get("name") or "").lower() == str(slug).lower():
+                                    results.append((c, ent))
+                                    break
                 except Exception:
                     continue
-            if not results:
-                await safe_send_ctx(ctx, "No champions match your search.")
+
+        else:
+            # 2) No explicit entries: filter champions by name/tags/classes
+            name_filter = filters.get("name")
+            tag_filters = [t.lower() for t in (filters.get("tags") or [])]
+            class_filters = [c.lower() for c in (filters.get("classes") or [])]
+
+            # iterate cache champions and apply filters
+            if cache:
+                try:
+                    all_champs = getattr(cache, "get_all_champions", None)
+                    if callable(all_champs):
+                        for champ in all_champs() or []:
+                            try:
+                                # name match
+                                if name_filter:
+                                    if name_filter.lower() not in (str(champ.get("name") or "").lower() + " " + str(champ.get("slug") or "").lower()):
+                                        continue
+                                # tag match (if your champion objects include tags/abilities)
+                                if tag_filters:
+                                    champ_tags = [t.lower() for t in (champ.get("tags") or [])]
+                                    if not all(any(tf in ct for ct in champ_tags) for tf in tag_filters):
+                                        continue
+                                # class filter
+                                if class_filters:
+                                    if (champ.get("class") or "").lower() not in class_filters:
+                                        continue
+                                results.append((champ, None))
+                            except Exception:
+                                continue
+                except Exception:
+                    pass
+
+        # Build response
+        if not results:
+            await safe_send_ctx(ctx, "No champions match your search.")
+            return
+
+        # If single result and user asked for details, show champion embed
+        if len(results) == 1:
+            champ_obj, ent = results[0]
+            try:
+                # prefer abilities_embed if available (compatibility)
+                if hasattr(CDTEmbed, "abilities_embed"):
+                    emb = CDTEmbed.abilities_embed(ctx, champ_obj)
+                elif hasattr(CDTEmbed, "champion_embed"):
+                    emb = CDTEmbed.champion_embed(ctx, champ_obj)
+                else:
+                    emb = CDTEmbed.embed(ctx, title=champ_obj.get("name") or champ_obj.get("slug"), description="Details unavailable.")
+                await ctx.send(embed=emb)
                 return
-            names = [r.get("name", "Unknown") for r in results][:20]
-            await safe_send_ctx(ctx, f"Matches ({len(results)}): {', '.join(names)}")
-        except Exception:
-            log.exception("champ search failed")
-            await safe_send_ctx(ctx, "Search failed.")
+            except Exception:
+                pass
+
+        # Multiple results: show a compact list (or use pages)
+        lines = []
+        for champ_obj, ent in results[:50]:
+            try:
+                name = champ_obj.get("name") or champ_obj.get("slug") or "Unknown"
+                slug = champ_obj.get("slug") or champ_obj.get("id") or ""
+                lines.append(f"- **{name}** (`{slug}`)")
+            except Exception:
+                continue
+
+        await safe_send_ctx(ctx, "Matches:\n" + "\n".join(lines))
 
     @champ.command(name="calcstats")
     async def champ_calcstats(self, ctx, champion: str, rarity: Optional[int] = None, rank: Optional[int] = None, sig: Optional[int] = None, ascended: int = 0, use_roster: bool = False):
@@ -276,7 +404,7 @@ def register_with_group(group: commands.Group, parent_getter):
             await ctx.send(f"Champion `{champion}` not found.")
             return
         try:
-            embed = CDTEmbed.abilities_embed(ctx, champ)
+            embed = CDTEmbed.champions_embed(ctx, champ)
             await ctx.send(embed=embed)
         except Exception:
             log.exception("register abilities failed")
