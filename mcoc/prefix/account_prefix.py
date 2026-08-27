@@ -7,7 +7,7 @@ from redbot.core import commands
 
 log = logging.getLogger("red.mcoc.prefix.account")
 
-from ..common.componentsV2 import CDTEmbed, ConfirmView, PaginatorView
+from ..common.componentsV2 import CDTEmbed, CDTConfirm, CDTPageMenu
 from ..common.champion_helpers import safe_send_ctx
 from ..common.roster_helpers import ensure_user_manager
 from ..common.roster_helpers import _ensure_hook_registered
@@ -28,7 +28,7 @@ ACCOUNT_GROUP_HELP = "Account commands: info, view, set, link, unlink, delete, p
 # -----------------
 
 async def prompt_confirm(ctx, prompt: str, timeout: float = 30.0) -> Optional[bool]:
-    view = ConfirmView(timeout=timeout)
+    view = CDTConfirm(timeout=timeout)
     await ctx.send(prompt, view=view)
     return await view.wait_result()
 
@@ -379,7 +379,7 @@ class AccountPrefix(commands.Cog):
 
         try:
             prompt = "Are you sure you want to delete your profile and roster? Reply with Yes to confirm."
-            view = ConfirmView(timeout=20.0, confirm_label="Yes", cancel_label="No")
+            view = CDTConfirm(timeout=20.0, confirm_label="Yes", cancel_label="No")
             # send the prompt with the view attached so Discord renders the buttons
             await ctx.send(prompt, view=view)
             # wait for the user's response (True / False / None on timeout)

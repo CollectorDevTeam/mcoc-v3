@@ -6,7 +6,7 @@ from datetime import datetime
 
 from dateutil.parser import parse as date_parse
 from redbot.core import commands
-from ..common.componentsV2 import CDTEmbed, ConfirmView, PaginatorView
+from ..common.componentsV2 import CDTEmbed, CDTConfirm, CDTPageMenu
 from ..common.alliance_helpers import (
     get_guild_config, set_guild_config, role_id_for_key,
     register_alliance, create_or_link_role, join_alliance, leave_alliance,
@@ -75,7 +75,7 @@ class AlliancePrefix(commands.Cog):
             + "\n\nReply with `yes` to proceed or anything else to cancel."
         )
 
-        confirmed, _ = await ConfirmView.confirm(self.bot, ctx, prompt, timeout=30.0)
+        confirmed, _ = await CDTConfirm.confirm(self.bot, ctx, prompt, timeout=30.0)
         if not confirmed:
             await ctx.send("Cancelled. No changes were made.")
             return
@@ -99,7 +99,7 @@ class AlliancePrefix(commands.Cog):
         prompt = "This will create the following roles:\n" + "\n".join(f"- {r}" for r in roles_to_create)
         prompt += "\n\nReply with `yes` to proceed or anything else to cancel."
 
-        confirmed, _ = await ConfirmView.confirm(self.bot, ctx, prompt, timeout=30.0)
+        confirmed, _ = await CDTConfirm.confirm(self.bot, ctx, prompt, timeout=30.0)
         if not confirmed:
             await ctx.send("Cancelled. No roles were created.")
             return
@@ -159,7 +159,7 @@ class AlliancePrefix(commands.Cog):
             "Are you sure you want to unregister this alliance? This will remove the alliance configuration "
             "and optionally delete configured roles. Reply `yes` to confirm."
         )
-        confirmed, _ = await ConfirmView.confirm(self.bot, ctx, prompt, timeout=20.0)
+        confirmed, _ = await CDTConfirm.confirm(self.bot, ctx, prompt, timeout=20.0)
         if not confirmed:
             await ctx.send("Cancelled.")
             return
@@ -381,7 +381,7 @@ class AlliancePrefix(commands.Cog):
                     emb.set_footer(text=f"Server: {g.name} ({g.id})")
                     pages.append(emb)
                 # paginate results
-                menu = PaginatorView(pages, ctx.author, timeout=120)
+                menu = CDTPageMenu(pages, ctx.author, timeout=120)
                 await menu.start(ctx)
                 return
         except Exception:
@@ -836,7 +836,7 @@ def register_with_group(group: commands.Group, parent_getter):
     @_safe_add("unregister")
     async def _unregister(ctx, remove_roles: bool = False):
         prompt = "Are you sure you want to unregister this alliance? Reply `yes` to confirm."
-        confirmed, _ = await ConfirmView.confirm(ctx.bot, ctx, prompt, timeout=20.0)
+        confirmed, _ = await CDTConfirm.confirm(ctx.bot, ctx, prompt, timeout=20.0)
         if not confirmed:
             await ctx.send("Cancelled.")
             return

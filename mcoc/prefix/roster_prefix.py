@@ -7,7 +7,7 @@ import json
 import aiohttp
 import discord
 from mcoc.common.champion_helpers import add_page_footers
-from mcoc.common.componentsV2 import CDTEmbed, PaginatorView
+from mcoc.common.componentsV2 import CDTEmbed, CDTPageMenu
 
 log = logging.getLogger("red.mcoc.prefix.roster")
 
@@ -449,7 +449,7 @@ class RosterPrefix(commands.Cog):
 
         # Ensure pages are embeds (CDTv2.embed will have been used by build_roster_pages)
         try:
-            pager = PaginatorView(pages, author=ctx.author)
+            pager = CDTPageMenu(pages, author=ctx.author)
             await pager.start(ctx)
 
             # Merge brand buttons into the pager view (preferred)

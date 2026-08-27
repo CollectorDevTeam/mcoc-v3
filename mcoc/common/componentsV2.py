@@ -364,9 +364,9 @@ roster_entry_embed = CDTEmbed.roster_entry_embed
 tag_list_embed = CDTEmbed.tag_list_embed
 brand_view = CDTEmbed.brand_view
 
-class ConfirmView(discord.ui.View):
+class CDTConfirm(discord.ui.View):
     """
-    Simple confirm/cancel view. Use `await ctx.send(embed=..., view=ConfirmView())`
+    Simple confirm/cancel view. Use `await ctx.send(embed=..., view=CDTConfirm())`
     and then `result = await view.wait_result()` to get True/False/None.
     """
 
@@ -378,15 +378,15 @@ class ConfirmView(discord.ui.View):
         self.cancel_label = cancel_label
 
     @discord.ui.button(label="Yes", style=discord.ButtonStyle.success)
-    async def on_confirm(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def confirm(self, interaction: discord.Interaction, button: discord.ui.Button):
         self.value = True
         # disable buttons to prevent double clicks
         for item in self.children:
             item.disabled = True
         await interaction.response.edit_message(view=self)
         self.stop()
-    async def confirm(self, interaction: discord.Interaction, button: discord.ui.Button):
-        self.value = True
+    async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
+        self.value = False
         # disable buttons to prevent double clicks
         for item in self.children:
             item.disabled = True
@@ -405,7 +405,7 @@ class ConfirmView(discord.ui.View):
         await self.wait()
         return self.value
 
-class PaginatorView(discord.ui.View):
+class CDTPageMenu(discord.ui.View):
     def __init__(self, pages: list, *, author: Optional[discord.abc.User] = None, timeout: float = 120.0, show_brand: bool = True):
         super().__init__(timeout=timeout)
         self.pages = pages
