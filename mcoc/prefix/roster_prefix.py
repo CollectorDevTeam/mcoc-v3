@@ -7,7 +7,7 @@ import json
 import aiohttp
 import discord
 from mcoc.common.champion_helpers import add_page_footers
-from mcoc.common.componentsV2 import CDTEmbed, CDTPageMenu
+from mcoc.common.componentsV2 import CDTEmbed, CDTPagesMenu
 
 log = logging.getLogger("red.mcoc.prefix.roster")
 
@@ -449,7 +449,7 @@ class RosterPrefix(commands.Cog):
 
         # Ensure pages are embeds (CDTv2.embed will have been used by build_roster_pages)
         try:
-            pager = CDTPageMenu(pages, author=ctx.author)
+            pager = CDTPagesMenu(pages, author=ctx.author)
             await pager.start(ctx)
 
             # Merge brand buttons into the pager view (preferred)
@@ -862,7 +862,7 @@ def register_with_group(group: commands.Group, parent_getter):
             return
 
         try:
-            menu = CDTPageMenu(pages, ctx.author)
+            menu = CDTPagesMenu(pages, ctx.author)
             try:
                 from ..common.roster_helpers import add_page_footers  # optional
                 pages = add_page_footers(pages)

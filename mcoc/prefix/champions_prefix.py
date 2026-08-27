@@ -4,7 +4,7 @@ from typing import Optional, Any
 from redbot.core import commands
 log = logging.getLogger("red.mcoc.prefix.champions")
 
-from ..common.componentsV2 import CDTEmbed, CDTConfirm, CDTPageMenu
+from ..common.componentsV2 import CDTEmbed, CDTConfirm, CDTPagesMenu
 from ..common.champion_helpers import (
     resolve_champion,
     safe_send_ctx,

@@ -7,7 +7,7 @@ from redbot.core import commands
 
 log = logging.getLogger("red.mcoc.prefix.account")
 
-from ..common.componentsV2 import CDTEmbed, CDTConfirm, CDTPageMenu
+from ..common.componentsV2 import CDTEmbed, CDTConfirm, CDTPagesMenu
 from ..common.champion_helpers import safe_send_ctx
 from ..common.roster_helpers import ensure_user_manager
 from ..common.roster_helpers import _ensure_hook_registered

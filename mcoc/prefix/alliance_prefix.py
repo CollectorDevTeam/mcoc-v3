@@ -6,7 +6,7 @@ from datetime import datetime
 
 from dateutil.parser import parse as date_parse
 from redbot.core import commands
-from ..common.componentsV2 import CDTEmbed, CDTConfirm, CDTPageMenu
+from ..common.componentsV2 import CDTEmbed, CDTConfirm, CDTPagesMenu
 from ..common.alliance_helpers import (
     get_guild_config, set_guild_config, role_id_for_key,
     register_alliance, create_or_link_role, join_alliance, leave_alliance,
@@ -381,7 +381,7 @@ class AlliancePrefix(commands.Cog):
                     emb.set_footer(text=f"Server: {g.name} ({g.id})")
                     pages.append(emb)
                 # paginate results
-                menu = CDTPageMenu(pages, ctx.author, timeout=120)
+                menu = CDTPagesMenu(pages, ctx.author, timeout=120)
                 await menu.start(ctx)
                 return
         except Exception:
