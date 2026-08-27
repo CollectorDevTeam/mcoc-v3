@@ -40,13 +40,13 @@ async def setup(bot):
     except Exception:
         log.exception("Failed to load MCOCPrefix")
 
-    # 3) Load the unified slash root: /mcoc
-    try:
-        from .slash.core import MCOCSlash
-        await bot.add_cog(MCOCSlash(bot))
-        log.debug("MCOCSlash loaded")
-    except Exception:
-        log.exception("Failed to load MCOCSlash (non-fatal)")
+    # # 3) Load the unified slash root: /mcoc
+    # try:
+    #     from .slash.core import MCOCSlash
+    #     await bot.add_cog(MCOCSlash(bot))
+    #     log.debug("MCOCSlash loaded")
+    # except Exception:
+    #     log.exception("Failed to load MCOCSlash (non-fatal)")
 
     # 4) Diagnostics (optional)
     try:
