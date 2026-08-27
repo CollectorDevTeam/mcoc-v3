@@ -5,7 +5,7 @@ from redbot.core import commands
 log = logging.getLogger("red.mcoc.prefix.champions")
 
 # from ..common.embeds import cdt_embed
-from ..common.componentsV2 import CDTv2
+from ..common.componentsV2 import CDTEmbed
 from ..common.champion_helpers import (
     resolve_champion,
     safe_send_ctx,
@@ -63,8 +63,7 @@ class ChampionsPrefix(commands.Cog):
             await safe_send_ctx(ctx, f"Champion `{champion}` not found.")
             return
         try:
-            from ..common.embeds import champion_embed
-            embed = await champion_embed(ctx, champ)
+            embed = CDTEmbed.champions_embed(ctx, champ)
             await safe_send_ctx(ctx, embed=embed)
         except Exception:
             log.exception("champ info failed")
@@ -79,8 +78,7 @@ class ChampionsPrefix(commands.Cog):
             await safe_send_ctx(ctx, f"Champion `{champion}` not found.")
             return
         try:
-            from ..common.embeds import abilities_embed
-            embed = await abilities_embed(ctx, champ)
+            embed = CDTEmbed.abilities_embed(ctx, champ)
             await safe_send_ctx(ctx, embed=embed)
         except Exception:
             log.exception("champ abilities failed")
@@ -95,9 +93,8 @@ class ChampionsPrefix(commands.Cog):
             await safe_send_ctx(ctx, f"Champion `{champion}` not found.")
             return
         try:
-            from ..common.embeds import synergy_embed
             synergies = champ.get("synergies", []) or []
-            embed = await synergy_embed(ctx, champ, synergies)
+            embed = CDTEmbed.synergies_embed(ctx, champ, synergies)
             await safe_send_ctx(ctx, embed=embed)
         except Exception:
             log.exception("champ synergies failed")
@@ -114,8 +111,7 @@ class ChampionsPrefix(commands.Cog):
             if not matches:
                 await safe_send_ctx(ctx, f"No champions found with tag `{tag}`.")
                 return
-            from ..common.embeds import tag_list_embed
-            embed = await tag_list_embed(ctx, tag, matches)
+            embed = CDTEmbed.tag_list_embed(ctx, tag, matches)
             await safe_send_ctx(ctx, embed=embed)
         except Exception:
             log.exception("champ tags failed")
@@ -134,7 +130,7 @@ class ChampionsPrefix(commands.Cog):
             await safe_send_ctx(ctx, "No stats available for this champion.")
             return
         try:
-            embed = CDTv2.embed(ctx, title=f"{champ.get('name','Unknown')} — Stats", color=CDTv2._get_color_value(ctx, class_name=champ.get("class")))
+            embed = CDTEmbed.embed(ctx, title=f"{champ.get('name','Unknown')} — Stats", color=CDTEmbed._get_color_value(ctx, class_name=champ.get("class")))
             for rarity, ranks in stats.items():
                 for rank, values in ranks.items():
                     atk = values.get("attack", "N/A")
@@ -208,10 +204,10 @@ class ChampionsPrefix(commands.Cog):
 
         try:
             import discord
-            embed = CDTv2.embed(
+            embed = CDTEmbed.embed(
                 ctx,
                 title=f"{champ.get('name','Unknown')} — {rarity}★ Rank {rank}{' Ascended ' + str(ascended) if ascended else ''}",
-                color=CDTv2._get_color_value(ctx, class_name=champ.get("class"))
+                color=CDTEmbed._get_color_value(ctx, class_name=champ.get("class"))
             )
             embed.add_field(name="Attack", value=statline.get("attack", "N/A"))
             embed.add_field(name="Health", value=statline.get("health", "N/A"))
@@ -236,7 +232,7 @@ def register_with_group(group: commands.Group, parent_getter):
     """
 
     # local imports for embed builders (keeps module import light)
-    from ..common.embeds import champion_embed, abilities_embed, synergy_embed, tag_list_embed
+    from ..common.embeds import champions_embed, abilities_embed, synergies_embed, tag_list_embed
 
     def _safe_add(cmd_name):
         def _decorator(func):
@@ -263,7 +259,7 @@ def register_with_group(group: commands.Group, parent_getter):
             await ctx.send(f"Champion `{champion}` not found.")
             return
         try:
-            embed = await champion_embed(ctx, champ)
+            embed = champions_embed(ctx, champ)
             await ctx.send(embed=embed)
         except Exception:
             log.exception("register info failed")
@@ -282,7 +278,7 @@ def register_with_group(group: commands.Group, parent_getter):
             await ctx.send(f"Champion `{champion}` not found.")
             return
         try:
-            embed = await abilities_embed(ctx, champ)
+            embed = CDTEmbed.abilities_embed(ctx, champ)
             await ctx.send(embed=embed)
         except Exception:
             log.exception("register abilities failed")
@@ -302,7 +298,7 @@ def register_with_group(group: commands.Group, parent_getter):
             return
         try:
             synergies = champ.get("synergies", []) or []
-            embed = await synergy_embed(ctx, champ, synergies)
+            embed = CDTEmbed.synergies_embed(ctx, champ, synergies)
             await ctx.send(embed=embed)
         except Exception:
             log.exception("register synergies failed")
@@ -322,7 +318,7 @@ def register_with_group(group: commands.Group, parent_getter):
             await ctx.send(f"No champions found with tag `{tag}`.")
             return
         try:
-            embed = await tag_list_embed(ctx, tag, matches)
+            embed = CDTEmbed.tag_list_embed(ctx, tag, matches)
             await ctx.send(embed=embed)
         except Exception:
             log.exception("register tags failed")
@@ -390,7 +386,7 @@ def register_with_group(group: commands.Group, parent_getter):
 
         try:
             import discord
-            embed = CDTv2.embed(
+            embed = CDTEmbed.embed(
                 ctx,
                 title=f"{champ.get('name','Unknown')} — {rarity}★ Rank {rank}{' Ascended ' + str(ascended) if ascended else ''}",
                 color=discord.Color.gold()

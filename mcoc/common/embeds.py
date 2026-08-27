@@ -100,7 +100,7 @@ def cdt_embed(
     return embed
 
 
-def champion_embed(ctx_or_author, champ: dict):
+def champions_embed(ctx_or_author, champ: dict):
     desc = (
         f"Class: {champ.get('class','?').title()}\n"
         f"Tags: {', '.join(champ.get('tags', [])) or 'None'}"
@@ -170,7 +170,7 @@ def abilities_embed(ctx_or_author, champ: dict):
     return embed
 
 
-def synergy_embed(ctx_or_author, champ: dict, synergies: list):
+def synergies_embed(ctx_or_author, champ: dict, synergies: list):
     embed = cdt_embed(
         ctx_or_author,
         title=f"{champ.get('name','Unknown')} — Synergies",

@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import asyncio
 
 from .hargs import parse_harg_list, parse_harg_token
-from .componentsV2 import CDTv2, CDT_FOOTER_TAG
+from .componentsV2 import CDTEmbed, CDT_FOOTER_TAG
 
 log = logging.getLogger("red.mcoc.roster_helpers")
 
@@ -670,7 +670,7 @@ async def build_roster_pages(core: Any, ctx_or_author: Any, parsed_filters: Opti
         # If no roster lines after filtering, return a single "no matches" embed
         if not lines:
             try:
-                emb = CDTv2.embed(author_for_embed, title="Roster", description="No champions match the filters.", footer_text=f"Page 1 of 1{CDT_FOOTER_TAG}")
+                emb = CDTEmbed.embed(author_for_embed, title="Roster", description="No champions match the filters.", footer_text=f"Page 1 of 1{CDT_FOOTER_TAG}")
                 return [emb]
             except Exception:
                 return [{"title": "Roster", "description": "No champions match the filters.", "footer": {"text": f"Page 1 of 1{CDT_FOOTER_TAG}"}}]
@@ -702,7 +702,7 @@ async def build_roster_pages(core: Any, ctx_or_author: Any, parsed_filters: Opti
         try:
             for i, ptext in enumerate(page_texts):
                 footer = f"Page {i+1} of {len(page_texts)}{CDT_FOOTER_TAG}"
-                emb = CDTv2.embed(author_for_embed, title=roster_title, description=ptext, footer_text=footer)
+                emb = CDTEmbed.embed(author_for_embed, title=roster_title, description=ptext, footer_text=footer)
                 # footer already set via footer_text param; still attempt to set explicitly for safety
                 try:
                     emb.set_footer(text=footer)
@@ -731,7 +731,7 @@ def add_page_footers(pages: List[Any], author_for_embed: Any = None) -> List[Any
     for i, p in enumerate(pages):
         try:
             if isinstance(p, dict):
-                emb = CDTv2.embed(author_for_embed, title=p.get("title", "Roster"), description=p.get("description", ""))
+                emb = CDTEmbed.embed(author_for_embed, title=p.get("title", "Roster"), description=p.get("description", ""))
             else:
                 emb = p
             try:

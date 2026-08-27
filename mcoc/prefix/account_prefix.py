@@ -1,12 +1,13 @@
 # mcoc/prefix/account_prefix.py
 import logging
+import asyncio
 from typing import Any, Optional, Callable, Dict
 
 from redbot.core import commands
 
 log = logging.getLogger("red.mcoc.prefix.account")
 
-from ..common.embeds import cdt_embed
+from ..common.componentsV2 import CDTEmbed, ConfirmView, PaginatorView
 from ..common.champion_helpers import safe_send_ctx
 from ..common.roster_helpers import ensure_user_manager
 from ..common.roster_helpers import _ensure_hook_registered
@@ -21,9 +22,15 @@ from ..common.account_helpers import (
     delete_user_profile as helper_delete_user_profile,
 )
 
-from ..common.pagination import PagesMenu
-
 ACCOUNT_GROUP_HELP = "Account commands: info, view, set, link, unlink, delete, privacy, settings"
+
+# HELPERS
+# -----------------
+
+async def prompt_confirm(ctx, prompt: str, timeout: float = 30.0) -> Optional[bool]:
+    view = ConfirmView(timeout=timeout)
+    await ctx.send(prompt, view=view)
+    return await view.wait_result()
 
 class AccountPrefix(commands.Cog):
     """
@@ -57,6 +64,10 @@ class AccountPrefix(commands.Cog):
             return False
         return True
 
+
+
+    # ------------------------
+
     @commands.group(name="account", invoke_without_command=True)
     async def account(self, ctx):
         """Top-level account group help"""
@@ -82,7 +93,6 @@ class AccountPrefix(commands.Cog):
         lines.append(f"- `{prefix}mcoc account settings`  — show your saved settings")
         lines.append(f"- `{prefix}mcoc account view @User`  — view another user's profile (subject to privacy)")
         await safe_send_ctx(ctx, "\n".join(lines))
-
 
     @account.command(name="info")
     async def account_info(self, ctx):
@@ -178,10 +188,13 @@ class AccountPrefix(commands.Cog):
         # load roster (sync or async)
         roster = []
         try:
-            if asyncio.iscoroutinefunction(getattr(users, "list_roster", None)):
-                roster = await users.list_roster(target_id)
+            lr = getattr(users, "list_roster", None)
+            if lr is None:
+                raise AttributeError("users object has no attribute 'list_roster'")
+            elif asyncio.iscoroutinefunction(lr):
+                roster = await lr(target_id)
             else:
-                roster = users.list_roster(target_id) or []
+                roster = lr(target_id) or []
         except Exception:
             roster = []
 
@@ -236,7 +249,7 @@ class AccountPrefix(commands.Cog):
         # Build embed
         try:
             if discord:
-                emb = cdt_embed(ctx, title=f"{display_name} — Profile", colour=discord.Color.blue())
+                emb = CDTEmbed.embed(ctx, title=f"{display_name} — Profile", color=CDTEmbed._get_color_value(ctx))
                 # author / thumbnail
                 try:
                     member_obj = ctx.guild.get_member(target_id) if ctx.guild else None
@@ -365,14 +378,20 @@ class AccountPrefix(commands.Cog):
             return
 
         try:
-            prompt = "Are you sure you want to delete your profile and roster? Reply with `yes` to confirm."
-            confirmed, _ = await PagesMenu.confirm(self.bot, ctx, prompt, timeout=20.0)
+            prompt = "Are you sure you want to delete your profile and roster? Reply with Yes to confirm."
+            view = ConfirmView(timeout=20.0, confirm_label="Yes", cancel_label="No")
+            # send the prompt with the view attached so Discord renders the buttons
+            await ctx.send(prompt, view=view)
+            # wait for the user's response (True / False / None on timeout)
+            confirmed = await view.wait_result()
             if not confirmed:
                 await safe_send_ctx(ctx, "Deletion cancelled.")
                 return
 
+            # proceed with deletion
             ok, msg = helper_delete_user_profile(self.parent, ctx.author.id)
             await safe_send_ctx(ctx, msg)
+
         except Exception:
             log.exception("Failed to delete user data")
             await safe_send_ctx(ctx, "Failed to delete profile.")
@@ -601,7 +620,7 @@ def register_with_group(group: commands.Group, parent_getter: Callable[[], Any])
         users = ensure_user_manager(parent)
         try:
             prompt = "Are you sure you want to delete your profile and roster? Reply with `yes` to confirm."
-            confirmed, _ = await PagesMenu.confirm(ctx.bot, ctx, prompt, timeout=20.0)
+            confirmed = await prompt_confirm(ctx, prompt, timeout=20.0) 
             if not confirmed:
                 await safe_send_ctx(ctx, "Deletion cancelled.")
                 return

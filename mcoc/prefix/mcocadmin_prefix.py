@@ -8,7 +8,7 @@ import asyncio
 from discord import File
 from redbot.core import commands
 from pathlib import Path
-
+from ..common.componentsV2 import CDTEmbed, ConfirmView, PaginatorView
 log = logging.getLogger("red.mcoc.prefix")
 
 from ..common.champion_helpers import safe_send_ctx as reporter

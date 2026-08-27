@@ -76,7 +76,7 @@ def _brand_footer_text() -> str:
 
 
 # The CDTv2 helper class
-class CDTv2:
+class CDTEmbed:
     """
     Static helpers to build branded embeds and optional component Views.
     Use the synchronous API (no awaits required).
@@ -229,7 +229,7 @@ class CDTv2:
         tags = ", ".join(champ.get("tags", []) or []) or "None"
         desc = f"Class: {cls}\nTags: {tags}"
 
-        emb = CDTv2.embed(
+        emb = CDTEmbed.embed(
             ctx_or_author,
             title=name,
             description=desc,
@@ -284,7 +284,7 @@ class CDTv2:
             f"Tags: {', '.join(tags) if tags else 'None'}"
         )
 
-        emb = CDTv2.embed(
+        emb = CDTEmbed.embed(
             ctx_or_author,
             title=champ.get("name", "Unknown"),
             description=desc,
@@ -297,7 +297,7 @@ class CDTv2:
         """
         Embed listing champions for a tag.
         """
-        emb = CDTv2.embed(
+        emb = CDTEmbed.embed(
             ctx_or_author,
             title=f"Champions with #{tag}",
             description=f"{len(champions)} champions match this tag.",
@@ -358,11 +358,11 @@ class CDTv2:
 
 
 # Backwards-compatible aliases (if other modules import these names)
-cdt_embed = CDTv2.embed
-champion_embed = CDTv2.champion_embed
-roster_entry_embed = CDTv2.roster_entry_embed
-tag_list_embed = CDTv2.tag_list_embed
-brand_view = CDTv2.brand_view
+cdt_embed = CDTEmbed.embed
+champion_embed = CDTEmbed.champion_embed
+roster_entry_embed = CDTEmbed.roster_entry_embed
+tag_list_embed = CDTEmbed.tag_list_embed
+brand_view = CDTEmbed.brand_view
 
 class ConfirmView(discord.ui.View):
     """
@@ -446,7 +446,7 @@ class PaginatorView(discord.ui.View):
         view = self
         if self.show_brand:
             try:
-                brand = CDTv2.brand_view()
+                brand = CDTEmbed.brand_view()
                 # merge brand view children into this view
                 for item in getattr(brand, "children", []):
                     try:

@@ -7,7 +7,7 @@ import json
 import aiohttp
 import discord
 from mcoc.common.champion_helpers import add_page_footers
-from mcoc.common.componentsV2 import CDTv2, PaginatorView
+from mcoc.common.componentsV2 import CDTEmbed, PaginatorView
 
 log = logging.getLogger("red.mcoc.prefix.roster")
 
@@ -435,7 +435,7 @@ class RosterPrefix(commands.Cog):
         pages = await build_roster_pages(self.parent, target_member, parsed)
 
         if not pages:
-            await ctx.send(embed=CDTv2.embed(target_member, title="Roster", description="No roster entries match your filters."))
+            await ctx.send(embed=CDTEmbed.embed(target_member, title="Roster", description="No roster entries match your filters."))
             return
 
         # Optional: add page footers (mutates pages) before creating pager
@@ -454,7 +454,7 @@ class RosterPrefix(commands.Cog):
 
             # Merge brand buttons into the pager view (preferred)
             try:
-                brand_view = CDTv2.brand_view()
+                brand_view = CDTEmbed.brand_view()
                 for item in getattr(brand_view, "children", []):
                     pager.add_item(item)
                 if pager.message:
@@ -462,7 +462,7 @@ class RosterPrefix(commands.Cog):
             except Exception:
                 # fallback: send brand buttons as separate message
                 try:
-                    view = CDTv2.brand_view()
+                    view = CDTEmbed.brand_view()
                     await ctx.send(view=view)
                 except Exception:
                     pass

@@ -4,10 +4,9 @@ import asyncio
 from typing import Optional, Any, List
 from datetime import datetime
 
-import discord
 from dateutil.parser import parse as date_parse
 from redbot.core import commands
-from ..common.embeds import cdt_embed
+from ..common.componentsV2 import CDTEmbed, ConfirmView, PaginatorView
 from ..common.alliance_helpers import (
     get_guild_config, set_guild_config, role_id_for_key,
     register_alliance, create_or_link_role, join_alliance, leave_alliance,
@@ -17,7 +16,6 @@ from ..common.alliance_helpers import (
 )
 
 from ..common.roster_helpers import ensure_user_manager, _ensure_hook_registered
-from ..common.pagination import PagesMenu
 
 log = logging.getLogger("red.mcoc.prefix.alliance")
 
@@ -77,7 +75,7 @@ class AlliancePrefix(commands.Cog):
             + "\n\nReply with `yes` to proceed or anything else to cancel."
         )
 
-        confirmed, _ = await PagesMenu.confirm(self.bot, ctx, prompt, timeout=30.0)
+        confirmed, _ = await ConfirmView.confirm(self.bot, ctx, prompt, timeout=30.0)
         if not confirmed:
             await ctx.send("Cancelled. No changes were made.")
             return
@@ -101,7 +99,7 @@ class AlliancePrefix(commands.Cog):
         prompt = "This will create the following roles:\n" + "\n".join(f"- {r}" for r in roles_to_create)
         prompt += "\n\nReply with `yes` to proceed or anything else to cancel."
 
-        confirmed, _ = await PagesMenu.confirm(self.bot, ctx, prompt, timeout=30.0)
+        confirmed, _ = await ConfirmView.confirm(self.bot, ctx, prompt, timeout=30.0)
         if not confirmed:
             await ctx.send("Cancelled. No roles were created.")
             return
@@ -161,7 +159,7 @@ class AlliancePrefix(commands.Cog):
             "Are you sure you want to unregister this alliance? This will remove the alliance configuration "
             "and optionally delete configured roles. Reply `yes` to confirm."
         )
-        confirmed, _ = await PagesMenu.confirm(self.bot, ctx, prompt, timeout=20.0)
+        confirmed, _ = await ConfirmView.confirm(self.bot, ctx, prompt, timeout=20.0)
         if not confirmed:
             await ctx.send("Cancelled.")
             return
@@ -301,7 +299,7 @@ class AlliancePrefix(commands.Cog):
                 await ctx.send("No alliance configured for this guild.")
                 return
             info = cfg.get("info", {})
-            emb = cdt_embed(ctx, title=info.get("name") or ctx.guild.name, colour=discord.Color.gold())
+            emb = CDTEmbed.embed(ctx, title=info.get("name") or ctx.guild.name, color=CDTEmbed.get_color_value(ctx))
             if info.get("tag"):
                 emb.add_field(name="Tag", value=info.get("tag"), inline=False)
             if info.get("about"):
@@ -334,7 +332,7 @@ class AlliancePrefix(commands.Cog):
             if member_alliance_name:
                 # private view: show member's roles and membership info
                 cfg = get_guild_config(ctx.guild.id)
-                emb = cdt_embed(ctx, title=f"{member.display_name} — {cfg.get('info', {}).get('name', ctx.guild.name)}", colour=member.color or discord.Color.gold())
+                emb = CDTEmbed.embed(ctx, title=f"{member.display_name} — {cfg.get('info', {}).get('name', ctx.guild.name)}", color=CDTEmbed.get_color_value(ctx))
                 # show member roles relevant to alliance
                 role_info = []
                 for key, r in cfg.get("roles", {}).items():
@@ -368,7 +366,7 @@ class AlliancePrefix(commands.Cog):
                     return
                 pages = []
                 for g, cfg in found:
-                    emb = cdt_embed(ctx, title=cfg.get("info", {}).get("name", g.name), colour=discord.Color.gold())
+                    emb = CDTEmbed.embed(ctx, title=cfg.get("info", {}).get("name", g.name), color=CDTEmbed.get_color_value(ctx))
                     if cfg.get("info", {}).get("tag"):
                         emb.add_field(name="Tag", value=cfg.get("info", {}).get("tag"), inline=False)
                     # show member's role in that guild if available
@@ -383,7 +381,7 @@ class AlliancePrefix(commands.Cog):
                     emb.set_footer(text=f"Server: {g.name} ({g.id})")
                     pages.append(emb)
                 # paginate results
-                menu = PagesMenu(pages, ctx.author, timeout=120)
+                menu = PaginatorView(pages, ctx.author, timeout=120)
                 await menu.start(ctx)
                 return
         except Exception:
@@ -838,7 +836,7 @@ def register_with_group(group: commands.Group, parent_getter):
     @_safe_add("unregister")
     async def _unregister(ctx, remove_roles: bool = False):
         prompt = "Are you sure you want to unregister this alliance? Reply `yes` to confirm."
-        confirmed, _ = await PagesMenu.confirm(ctx.bot, ctx, prompt, timeout=20.0)
+        confirmed, _ = await ConfirmView.confirm(ctx.bot, ctx, prompt, timeout=20.0)
         if not confirmed:
             await ctx.send("Cancelled.")
             return
