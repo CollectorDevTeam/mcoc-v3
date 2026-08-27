@@ -172,7 +172,56 @@ class UserDataManager:
     # -----------------------------
     # Roster operations (sync)
     # -----------------------------
-    def add_champion(self, user_id: int, champ_slug: str, rarity: int, rank: int, sig: int, tags: Optional[List[str]] = None) -> None:
+    def add_champion(self, user_id: int, champ_slug: str, rarity: int, rank: int, sig: int, tags: Optional[List[str]] = None, ascended: int = 1, name: Optional[str] = None) -> None:
+        data = self._load(user_id)
+        tags = tags or []
+
+        entry = {
+            "champion": str(champ_slug),
+            "rarity": int(rarity),
+            "rank": int(rank),
+            "sig": int(sig),
+            "tags": list(tags),
+            "ascended": int(ascended),
+            # optional fields that may be filled by roster builder
+            "stars": int(rarity),
+            "prestige": None,
+            "name": name or None,
+        }
+
+        # prevent duplicates (same champion + rarity)
+        for c in data.get("roster", []):
+            if c.get("champion") == entry["champion"] and c.get("rarity") == entry["rarity"]:
+                log.info("Champion %s already exists for user %s. Updating instead.", champ_slug, user_id)
+                c.update(entry)
+                self._save(user_id, data)
+                self._call_post_hook(user_id)
+                return
+
+        data.setdefault("roster", []).append(entry)
+        self._save(user_id, data)
+        self._call_post_hook(user_id)
+
+
+    def update_champion(self, user_id: int, champ_slug: str, rarity: int, rank: Optional[int] = None, sig: Optional[int] = None, tags: Optional[List[str]] = None, ascended: Optional[int] = None, name: Optional[str] = None) -> bool:
+        data = self._load(user_id)
+        for c in data.get("roster", []):
+            if c.get("champion") == str(champ_slug) and c.get("rarity") == int(rarity):
+                if rank is not None:
+                    c["rank"] = int(rank)
+                if sig is not None:
+                    c["sig"] = int(sig)
+                if tags is not None:
+                    c["tags"] = list(tags)
+                if ascended is not None:
+                    c["ascended"] = int(ascended)
+                if name is not None:
+                    c["name"] = str(name)
+
+                self._save(user_id, data)
+                self._call_post_hook(user_id)
+                return True
+        return False
         data = self._load(user_id)
         tags = tags or []
 
@@ -217,25 +266,6 @@ class UserDataManager:
         self._call_post_hook(user_id)
 
         return before - len(data.get("roster", []))
-
-    def update_champion(self, user_id: int, champ_slug: str, rarity: int, rank: Optional[int] = None, sig: Optional[int] = None, tags: Optional[List[str]] = None) -> bool:
-        data = self._load(user_id)
-        for c in data.get("roster", []):
-            if c.get("champion") == str(champ_slug) and c.get("rarity") == int(rarity):
-                if rank is not None:
-                    c["rank"] = int(rank)
-                if sig is not None:
-                    c["sig"] = int(sig)
-                if tags is not None:
-                    c["tags"] = list(tags)
-
-                self._save(user_id, data)
-
-                # call optional post-mutation hook (non-blocking)
-                self._call_post_hook(user_id)
-
-                return True
-        return False
 
     def list_roster(self, user_id: int) -> List[Dict[str, Any]]:
         data = self._load(user_id)

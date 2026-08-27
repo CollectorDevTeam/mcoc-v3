@@ -61,8 +61,8 @@ class CDTv2:
         color: Any = None,
         image: Optional[str] = None,
         thumbnail: Optional[str] = CDT_LOGO,
-        url: str = None, #PATREON,
-        footer_text: Optional[str] = CDT_FOOTER_TAG,
+        url: str = None,
+        footer_text: Optional[str] = None,
         footer_url: Optional[str] = CDT_ICON,
         include_brand_button_row: bool = True,
     ) -> Any:
@@ -332,28 +332,29 @@ class PaginatorView(discord.ui.View):
         self.message: Optional[discord.Message] = None
         self.show_brand = show_brand
 
+
+
     async def _render_page(self):
         page = self.pages[self.index]
-        # page may be an Embed or a string/dict fallback
         if isinstance(page, discord.Embed):
             emb = page
         elif isinstance(page, dict):
-            # fallback dict -> embed-like
             emb = discord.Embed(title=page.get("title", "Page"), description=page.get("description", ""))
         else:
             emb = discord.Embed(title="Page", description=str(page))
-        # footer with page number and brand tag
+
+        # Build footer: preserve existing footer text if present, append page numbering and brand tag
         try:
             base = emb.footer.text if getattr(emb, "footer", None) and getattr(emb.footer, "text", None) else ""
-            # If embed already has a footer, preserve it and append page info; otherwise use brand footer
+            # prefer explicit base if present, otherwise brand text
             if base:
-                footer_text = f"{base} • Page {self.index+1} of {len(self.pages)}"
+                footer_text = f"{base} • Page {self.index+1} of {len(self.pages)}{CDT_FOOTER_TAG}"
             else:
-                footer_text = f"{_brand_footer_text()} • Page {self.index+1} of {len(self.pages)}"
-            emb.set_footer(text=footer_text, icon_url=CDT_LOGO)
+                footer_text = f"Page {self.index+1} of {len(self.pages)}{CDT_FOOTER_TAG}"
+            emb.set_footer(text=footer_text, icon_url=CDT_ICON)
         except Exception:
             try:
-                emb.set_footer(text=f"Page {self.index+1} of {len(self.pages)}", icon_url=CDT_LOGO)
+                emb.set_footer(text=f"Page {self.index+1} of {len(self.pages)}", icon_url=CDT_ICON)
             except Exception:
                 pass
         return emb
@@ -362,14 +363,24 @@ class PaginatorView(discord.ui.View):
         emb = await self._render_page()
         view = self
         if self.show_brand:
-            # caller can also attach CDTv2.brand_view() separately
-            pass
+            try:
+                brand = CDTv2.brand_view()
+                # merge brand view children into this view
+                for item in getattr(brand, "children", []):
+                    try:
+                        self.add_item(item)
+                    except Exception:
+                        # some items may not be addable; ignore
+                        pass
+            except Exception:
+                pass
+
         if hasattr(ctx, "send"):
             self.message = await ctx.send(embed=emb, view=view)
         else:
-            # Interaction response path
             await ctx.response.send_message(embed=emb, view=view)
             self.message = await ctx.original_response()
+
 
     # Buttons
     @discord.ui.button(emoji="⏮️", style=discord.ButtonStyle.secondary)

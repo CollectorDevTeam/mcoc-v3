@@ -484,125 +484,112 @@ class RosterPrefix(commands.Cog):
     @roster.command(name="import")
     async def roster_import(self, ctx, *, data: str = None):
         """
-        Import roster JSON. Accepts either:
-          - inline JSON string: ///mcoc roster import {"roster": [...]}
-          - or a file attachment on the invoking message (JSON)
-        The stub will try to call users.import_data if available, otherwise will
-        iterate entries and call update/add as best-effort.
+        Import roster data. Accepts either:
+          - Inline JSON string as argument, or
+          - A JSON file attached to the invoking message (first attachment).
+        Examples:
+          ///mcoc roster import {"roster":[...]}
+          ///mcoc roster import   (with a .json file attached)
         """
         if not await self._require_parent(ctx):
             return
 
         users = ensure_user_manager(self.parent)
-        if users is None:
-            await ctx.send("User manager unavailable.")
-            return
-
         payload = None
 
-        # 1) If an attachment is present, try to download it
-        try:
-            if getattr(ctx.message, "attachments", None):
-                att = ctx.message.attachments[0]
-                # only attempt for likely JSON/text files
-                if att.size > 0:
-                    async with aiohttp.ClientSession() as session:
-                        async with session.get(att.url) as resp:
-                            if resp.status == 200:
-                                text = await resp.text()
-                                try:
-                                    payload = json.loads(text)
-                                except Exception:
-                                    payload = None
-        except Exception:
-            payload = None
-
-        # 2) If no attachment or download failed, try inline data param
-        if payload is None and data:
+        # 1) If user provided inline data, try to parse it as JSON
+        if data:
             try:
+                import json
                 payload = json.loads(data)
+            except Exception:
+                await ctx.send("Failed to parse inline JSON. If you intended to attach a file, attach a .json file and run `///mcoc roster import` with no arguments.")
+                return
+
+        # 2) If no inline data, check for attachments on the message
+        if payload is None:
+            try:
+                attachments = getattr(ctx.message, "attachments", []) or []
+                if attachments:
+                    # take the first attachment
+                    att = attachments[0]
+                    # read bytes (discord.py provides .read() coroutine)
+                    try:
+                        raw = await att.read()
+                        import json
+                        payload = json.loads(raw.decode("utf-8"))
+                    except Exception:
+                        # fallback: try to fetch via URL (if read not available)
+                        try:
+                            import aiohttp
+                            async with aiohttp.ClientSession() as s:
+                                async with s.get(att.url) as r:
+                                    raw = await r.read()
+                                    payload = json.loads(raw.decode("utf-8"))
+                        except Exception:
+                            payload = None
+                else:
+                    payload = None
             except Exception:
                 payload = None
 
-        if payload is None:
-            await ctx.send("No valid JSON roster provided. Attach a JSON file or pass JSON text.")
+        if not payload:
+            await ctx.send("No valid JSON payload found. Provide inline JSON or attach a .json file to the message.")
             return
 
-        # If users.import_data exists, prefer it
+        # Basic validation: expect a dict with 'roster' or 'entries'
         try:
-            if hasattr(users, "import_data"):
-                users.import_data(ctx.author.id, json.dumps(payload) if not isinstance(payload, str) else payload)
-                await ctx.send("Imported your roster data via users.import_data.")
+            if isinstance(payload, dict) and ("roster" in payload or "entries" in payload):
+                roster_list = payload.get("roster") or payload.get("entries")
+                # If roster_list is a list of entry dicts, try to import/update them
+                if isinstance(roster_list, list):
+                    successes = []
+                    failures = []
+                    for e in roster_list:
+                        try:
+                            # Expect keys: champion (slug or name), rarity, rank, sig, ascended, tags
+                            champ = e.get("champion") or e.get("slug") or e.get("name")
+                            if not champ:
+                                failures.append(f"Missing champion in entry: {e}")
+                                continue
+                            rarity = int(e.get("rarity", e.get("stars", 6)))
+                            rank = int(e.get("rank", 1))
+                            sig = int(e.get("sig", 0))
+                            asc = int(e.get("ascended", e.get("asc", 1)))
+                            tags = e.get("tags", []) or []
+                            # Try update first; if not found, add
+                            updated = users.update_champion(ctx.author.id, champ_slug=champ, rarity=rarity, rank=rank, sig=sig, tags=tags, ascended=asc, name=e.get("name"))
+                            if not updated:
+                                users.add_champion(ctx.author.id, champ_slug=champ, rarity=rarity, rank=rank, sig=sig, tags=tags, ascended=asc, name=e.get("name"))
+                                successes.append(f"Added {champ} {rarity}★ r{rank}")
+                            else:
+                                successes.append(f"Updated {champ} {rarity}★ r{rank}")
+                        except Exception as exc:
+                            failures.append(f"Entry error: {e} -> {exc}")
+                    # schedule persist
+                    try:
+                        schedule_persist_user_prestige(self.parent, ctx.author.id)
+                    except Exception:
+                        pass
+                    lines = []
+                    if successes:
+                        lines.append("Imported/Updated:")
+                        lines.extend(f"- {s}" for s in successes)
+                    if failures:
+                        lines.append("")
+                        lines.append("Failed:")
+                        lines.extend(f"- {f}" for f in failures)
+                    await ctx.send("\n".join(lines))
+                    return
+            # fallback: if payload is a list of entries directly
+            if isinstance(payload, list):
+                # same handling as above
+                await ctx.invoke(self.roster_import, data=json.dumps({"roster": payload}))
                 return
         except Exception:
-            # fall through to manual processing
             pass
 
-        # Manual processing: expect payload to be a list of entries or dict with 'roster'
-        entries = payload if isinstance(payload, list) else payload.get("roster") if isinstance(payload, dict) else None
-        if not entries:
-            await ctx.send("JSON did not contain a roster list under top-level array or 'roster' key.")
-            return
-
-        successes = []
-        failures = []
-        cache = getattr(self.parent, "cache", None)
-        for e in entries:
-            try:
-                # Expect each entry to have champion slug or name and rarity/rank
-                champ = e.get("champion") or e.get("slug") or e.get("name")
-                if not champ:
-                    failures.append(f"Missing champion in entry: {e}")
-                    continue
-                # try to resolve slug via cache if available
-                slug = None
-                if cache:
-                    try:
-                        cobj = cache.get_champion(champ)
-                        if cobj:
-                            slug = cobj.get("slug") or cobj.get("id")
-                    except Exception:
-                        slug = None
-                slug = slug or champ
-                # call update/add as best-effort
-                updated = _call_update_champion(
-                    users,
-                    ctx.author.id,
-                    champ_slug=slug,
-                    rarity=e.get("rarity"),
-                    rank=e.get("rank"),
-                    sig=e.get("sig"),
-                    tags=e.get("tags"),
-                )
-                if updated:
-                    successes.append(str(champ))
-                else:
-                    # try add_champion if update failed
-                    try:
-                        users.add_champion(
-                            ctx.author.id,
-                            champ_slug=slug,
-                            rarity=int(e.get("rarity") or 6),
-                            rank=int(e.get("rank") or 1),
-                            sig=int(e.get("sig") or 0),
-                            tags=e.get("tags") or [],
-                            ascended=int(e.get("ascended") or 1),
-                        )
-                        successes.append(str(champ))
-                    except Exception:
-                        failures.append(str(champ))
-            except Exception:
-                failures.append(str(e))
-
-        lines = []
-        if successes:
-            lines.append("Imported/Updated:")
-            lines.extend(f"- {s}" for s in successes)
-        if failures:
-            lines.append("")
-            lines.append("Failed:")
-            lines.extend(f"- {f}" for f in failures)
-        await ctx.send("\n".join(lines))
+        await ctx.send("JSON payload format not recognized. Expected {\"roster\": [ {champion, rarity, rank, sig, ascended, tags}, ... ] }")
 
     @roster.command(name="clear")
     async def roster_clear(self, ctx):

@@ -24,7 +24,7 @@ SIG_RE2 = re.compile(r"s(?P<sig>\d{1,3})", re.IGNORECASE)
 ASC_RE2 = re.compile(r"A(?P<asc>\d)", re.IGNORECASE)
 RANK_RE2 = re.compile(r"r(?P<rank>[1-5])", re.IGNORECASE)
 # Rarity digit 1-7; may be followed by '*' or '★' or a bare 's' (star marker).
-RARITY_DIGIT_RE = re.compile(r"(?P<rarity>[1-7])(?:\*|★)?")
+RARITY_DIGIT_RE = re.compile(r"(?P<rarity>[1-7])(?=(?:\*|★|\s|[rR]|[aA]|$))")
 
 # Defaults for harg parsing (as requested)
 DEFAULT_RARITY = 6
@@ -185,15 +185,30 @@ def parse_harg_token(token: str) -> Dict[str, Any]:
 
     # 4) Rarity digit 1-7 (take first occurrence not part of a name)
     rarity = None
-    # We try to find a digit that is not clearly inside an alpha-only name.
-    # Use a simple search for the first digit 1-7.
-    for m in RARITY_DIGIT_RE.finditer(working):
+    # Prefer explicit markers first: digit followed by '*' or '★'
+    m = re.search(r"(?P<rarity>[1-7])(?:\*|★)", working)
+    if m:
         try:
             rarity = int(m.group("rarity"))
             components_spans.append(m.span())
-            break
         except Exception:
-            continue
+            rarity = None
+    else:
+        # fallback: accept a bare digit only if it's clearly a rarity (not embedded in a name)
+        for m in RARITY_DIGIT_RE.finditer(working):
+            try:
+                # ensure the digit isn't part of an alphanumeric run (e.g., "X7" inside a name)
+                s, e = m.span()
+                left = working[s-1] if s-1 >= 0 else ""
+                right = working[e] if e < len(working) else ""
+                if (left.isalpha() and left.islower()) and (right.isalpha() and right.islower()):
+                    # looks like part of a name, skip
+                    continue
+                rarity = int(m.group("rarity"))
+                components_spans.append(m.span())
+                break
+            except Exception:
+                continue
 
     # Build champion name by removing matched spans
     name_candidate = _extract_name_by_removing_components(working, components_spans)
