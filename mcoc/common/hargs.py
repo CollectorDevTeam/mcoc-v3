@@ -21,15 +21,15 @@ INLINE_HARGS_RE = re.compile(
 # Note: SIG_RE2 looks for 's' followed by digits (signature). We intentionally
 # match signature first to avoid confusing a bare 's' star marker with signature.
 SIG_RE2 = re.compile(r"s(?P<sig>\d{1,3})", re.IGNORECASE)
-ASC_RE2 = re.compile(r"A(?P<asc>\d)", re.IGNORECASE)
+ASC_RE2 = re.compile(r"a(?P<asc>\d)", re.IGNORECASE)
 RANK_RE2 = re.compile(r"r(?P<rank>[1-5])", re.IGNORECASE)
 # Rarity digit 1-7; may be followed by '*' or '★' or a bare 's' (star marker).
 RARITY_DIGIT_RE = re.compile(r"(?P<rarity>[1-7])(?=(?:\*|★|\s|[rR]|[aA]|$))")
 
 # Defaults for harg parsing (as requested)
-DEFAULT_RARITY = 6
+DEFAULT_RARITY = 7
 DEFAULT_RANK = 1
-DEFAULT_ASCENDED = 1
+DEFAULT_ASCENDED = 0
 DEFAULT_SIG = 0
 
 
@@ -218,6 +218,13 @@ def parse_harg_token(token: str) -> Dict[str, Any]:
         mname = re.search(r"[A-Za-z][A-Za-z0-9 '\-\.]{0,80}", working)
         if mname:
             name_candidate = mname.group(0).strip()
+
+    if not name_candidate:
+        # try to find an alphabetic run anywhere (handles concatenated tokens)
+        mname = re.search(r"[A-Za-z][A-Za-z0-9 '\-\.]{0,80}", working)
+        if mname:
+            name_candidate = mname.group(0).strip()
+
 
     # Normalize values with defaults and bounds
     final_rarity = rarity if (isinstance(rarity, int) and 1 <= rarity <= 7) else DEFAULT_RARITY
