@@ -4,7 +4,8 @@ from typing import Optional, Any
 from redbot.core import commands
 log = logging.getLogger("red.mcoc.prefix.champions")
 
-from ..common.embeds import cdt_embed
+# from ..common.embeds import cdt_embed
+from ..common.componentsV2 import CDTv2
 from ..common.champion_helpers import (
     resolve_champion,
     safe_send_ctx,
@@ -133,8 +134,7 @@ class ChampionsPrefix(commands.Cog):
             await safe_send_ctx(ctx, "No stats available for this champion.")
             return
         try:
-            import discord
-            embed = cdt_embed(ctx, title=f"{champ.get('name','Unknown')} — Stats", colour=discord.Color.gold())
+            embed = CDTv2.embed(ctx, title=f"{champ.get('name','Unknown')} — Stats", color=CDTv2._get_color_value(ctx, class_name=champ.get("class")))
             for rarity, ranks in stats.items():
                 for rank, values in ranks.items():
                     atk = values.get("attack", "N/A")
@@ -208,10 +208,10 @@ class ChampionsPrefix(commands.Cog):
 
         try:
             import discord
-            embed = cdt_embed(
+            embed = CDTv2.embed(
                 ctx,
                 title=f"{champ.get('name','Unknown')} — {rarity}★ Rank {rank}{' Ascended ' + str(ascended) if ascended else ''}",
-                colour=discord.Color.gold()
+                color=CDTv2._get_color_value(ctx, class_name=champ.get("class"))
             )
             embed.add_field(name="Attack", value=statline.get("attack", "N/A"))
             embed.add_field(name="Health", value=statline.get("health", "N/A"))
@@ -390,10 +390,10 @@ def register_with_group(group: commands.Group, parent_getter):
 
         try:
             import discord
-            embed = cdt_embed(
+            embed = CDTv2.embed(
                 ctx,
                 title=f"{champ.get('name','Unknown')} — {rarity}★ Rank {rank}{' Ascended ' + str(ascended) if ascended else ''}",
-                colour=discord.Color.gold()
+                color=discord.Color.gold()
             )
             embed.add_field(name="Attack", value=statline.get("attack", "N/A"))
             embed.add_field(name="Health", value=statline.get("health", "N/A"))

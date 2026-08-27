@@ -344,7 +344,7 @@ class RosterPrefix(commands.Cog):
                     continue
 
                 # previous: updated = users.update_champion(...)
-                updated = _call_update_champion(
+                updated = users.update_champion(
                     users,
                     ctx.author.id,
                     champ_slug=champ_key,
@@ -352,6 +352,7 @@ class RosterPrefix(commands.Cog):
                     rank=entry.get("rank"),
                     sig=entry.get("sig"),
                     tags=entry.get("tags"),
+                    ascended=entry.get("ascended")
                 )
 
                 if updated:
@@ -562,6 +563,10 @@ def register_with_group(group: commands.Group, parent_getter):
     @_safe_add("roster")
     async def _roster(ctx, *items: str):
         """Top-level roster group for dynamic registration."""
+        parent = parent_getter()
+        if not parent:
+            await ctx.send("MCOC core not attached; roster unavailable.")
+            return
         # inside register_with_group._roster
         try:
             list_cmd = group.get_command("list")
@@ -572,6 +577,15 @@ def register_with_group(group: commands.Group, parent_getter):
             await _list(ctx, *items)
         except Exception:
             await ctx.send(ROSTER_GROUP_HELP.get("roster", "Roster commands: add, remove, update, list, export, clear"))
+
+
+        # Forward to the registered list command (the dynamic _list implementation)
+        try:
+            # The dynamic _list function is registered under the same group; call it directly
+            await _list(ctx, *items)
+        except Exception:
+            await ctx.send(ROSTER_GROUP_HELP.get("roster", "Roster commands: add, remove, update, list, export, clear"))
+
 
     # add
     @_safe_add("add")

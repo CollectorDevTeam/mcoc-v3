@@ -25,6 +25,36 @@ DOCS_URL = "https://github.com/CollectorDevTeam/CollectorBot"  # example docs li
 IMPORT_HELP_URL = ""
 CDT_FOOTER_TAG = " | CollectorBot by CollectorDevTeam"
 
+# Static color palette (hex integers)
+# Picked to be visually distinct and readable on Discord embeds
+CLASS_COLOR_MAP = {
+    "superior": 0x03F193,       # neutral teal
+    "all": 0x03F193,
+    "tech": 0x0033FF,      # blue
+    "skill": 0xDB1200,     # red
+    "mutant": 0xFFD400,    # yellow
+    "mystic": 0x7F0DA8,    # purple
+    "cosmic": 0x2799F7,    # blue
+    "science": 0x0B8C13,   # green
+    # fallback / special
+    "collector_gold": 0xFFD700,  # Collector gold
+    "default": 0xFFD700,   # use collector gold as default
+}
+
+NAMED_COLOR_MAP = {
+    "teal": 0x03F193,       # neutral teal
+    "all": 0x03F193,
+    "blue": 0x0033FF,      # blue
+    "red": 0xDB1200,     # red
+    "yellow": 0xFFD400,    # yellow
+    "purple": 0x7F0DA8,    # purple
+    "cyan": 0x2799F7,    # blue
+    "green": 0x0B8C13,   # green
+    # fallback / special
+    "gold": 0xFFD700,  # Collector gold
+    "default": 0xFFD700,   # use collector gold as default
+}
+
 # Minimal author extraction (works with Context or Member/User)
 def _get_author_info(ctx_or_author: Any) -> Tuple[str, Optional[str]]:
     if ctx_or_author is None:
@@ -52,6 +82,58 @@ class CDTv2:
     Use the synchronous API (no awaits required).
     """
 
+
+    def _get_color_value(ctx_or_author: Any = None, color_param: Any = None, class_name: Optional[str] = None) -> int:
+        """
+        Resolve an integer color value for embeds without importing discord.
+        Priority:
+        1. explicit color_param if it's an int or hex string
+        2. class_name mapping from CLASS_COLOR_MAP
+        3. author's color attribute if present and convertible
+        4. default collector gold
+        """
+        # 1) explicit color param
+        if isinstance(color_param, int):
+            return color_param
+        if isinstance(color_param, str):
+            try:
+                # accept "#RRGGBB" or "RRGGBB"
+                s = color_param.strip().lstrip("#")
+                return int(s, 16)
+            except Exception:
+                pass
+
+        # 2) class name mapping
+        if isinstance(class_name, str):
+            key = class_name.lower()
+            if key in CLASS_COLOR_MAP:
+                return CLASS_COLOR_MAP[key]
+
+        # 3) try to extract author color if available
+        try:
+            author = getattr(ctx_or_author, "author", ctx_or_author)
+            if author is not None:
+                # some objects expose .color as an int or as an object with .value
+                col = getattr(author, "color", None)
+                if isinstance(col, int):
+                    return col
+                # discord.py Color objects often have .value or __int__
+                if hasattr(col, "value"):
+                    try:
+                        return int(getattr(col, "value"))
+                    except Exception:
+                        pass
+                try:
+                    # fallback: try int(col) if supported
+                    return int(col)
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
+        # 4) fallback
+        return CLASS_COLOR_MAP.get("default", 0xD4AF37)
+
     @staticmethod
     def embed(
         ctx_or_author: Any = None,
@@ -59,7 +141,7 @@ class CDTv2:
         title: str = "",
         description: str = "",
         color: Any = None,
-        image: Optional[str] = None,
+        image: Optional[str] = CLASS_COLOR_MAP.get("default"),
         thumbnail: Optional[str] = CDT_LOGO,
         url: str = None,
         footer_text: Optional[str] = None,
