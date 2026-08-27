@@ -482,114 +482,54 @@ class RosterPrefix(commands.Cog):
 
     # mcoc/prefix/roster_prefix.py (class-based) and in register_with_group version
     @roster.command(name="import")
-    async def roster_import(self, ctx, *, data: str = None):
+    async def roster_import(self, ctx, *, data: Optional[str] = None):
         """
-        Import roster data. Accepts either:
-          - Inline JSON string as argument, or
-          - A JSON file attached to the invoking message (first attachment).
-        Examples:
-          ///mcoc roster import {"roster":[...]}
-          ///mcoc roster import   (with a .json file attached)
+        Import roster JSON. Accepts inline JSON text or a single file attachment (JSON).
+        Usage:
+        ///mcoc roster import <paste JSON>
+        ///mcoc roster import   (attach a .json file to the message)
         """
-        if not await self._require_parent(ctx):
-            return
-
         users = ensure_user_manager(self.parent)
         payload = None
 
-        # 1) If user provided inline data, try to parse it as JSON
+        # 1) If inline data provided, try to parse as JSON
         if data:
             try:
                 import json
                 payload = json.loads(data)
             except Exception:
-                await ctx.send("Failed to parse inline JSON. If you intended to attach a file, attach a .json file and run `///mcoc roster import` with no arguments.")
+                await ctx.send("Failed to parse provided text as JSON. If you attached a file, omit inline text.")
                 return
 
-        # 2) If no inline data, check for attachments on the message
+        # 2) If no inline data, check attachments on the message
         if payload is None:
             try:
-                attachments = getattr(ctx.message, "attachments", []) or []
-                if attachments:
-                    # take the first attachment
-                    att = attachments[0]
-                    # read bytes (discord.py provides .read() coroutine)
+                # ctx.message may be present in prefix commands
+                msg = getattr(ctx, "message", None)
+                if msg and getattr(msg, "attachments", None):
+                    att = msg.attachments[0]
+                    # only accept small files; fetch content
+                    content = await att.read()
                     try:
-                        raw = await att.read()
                         import json
-                        payload = json.loads(raw.decode("utf-8"))
+                        payload = json.loads(content.decode("utf-8"))
                     except Exception:
-                        # fallback: try to fetch via URL (if read not available)
-                        try:
-                            import aiohttp
-                            async with aiohttp.ClientSession() as s:
-                                async with s.get(att.url) as r:
-                                    raw = await r.read()
-                                    payload = json.loads(raw.decode("utf-8"))
-                        except Exception:
-                            payload = None
-                else:
-                    payload = None
+                        await ctx.send("Failed to parse attached file as JSON.")
+                        return
             except Exception:
-                payload = None
+                pass
 
-        if not payload:
-            await ctx.send("No valid JSON payload found. Provide inline JSON or attach a .json file to the message.")
+        if payload is None:
+            await ctx.send("No JSON provided. Paste JSON after the command or attach a JSON file to the message.")
             return
 
-        # Basic validation: expect a dict with 'roster' or 'entries'
+        # Basic validation and import
         try:
-            if isinstance(payload, dict) and ("roster" in payload or "entries" in payload):
-                roster_list = payload.get("roster") or payload.get("entries")
-                # If roster_list is a list of entry dicts, try to import/update them
-                if isinstance(roster_list, list):
-                    successes = []
-                    failures = []
-                    for e in roster_list:
-                        try:
-                            # Expect keys: champion (slug or name), rarity, rank, sig, ascended, tags
-                            champ = e.get("champion") or e.get("slug") or e.get("name")
-                            if not champ:
-                                failures.append(f"Missing champion in entry: {e}")
-                                continue
-                            rarity = int(e.get("rarity", e.get("stars", 6)))
-                            rank = int(e.get("rank", 1))
-                            sig = int(e.get("sig", 0))
-                            asc = int(e.get("ascended", e.get("asc", 1)))
-                            tags = e.get("tags", []) or []
-                            # Try update first; if not found, add
-                            updated = users.update_champion(ctx.author.id, champ_slug=champ, rarity=rarity, rank=rank, sig=sig, tags=tags, ascended=asc, name=e.get("name"))
-                            if not updated:
-                                users.add_champion(ctx.author.id, champ_slug=champ, rarity=rarity, rank=rank, sig=sig, tags=tags, ascended=asc, name=e.get("name"))
-                                successes.append(f"Added {champ} {rarity}★ r{rank}")
-                            else:
-                                successes.append(f"Updated {champ} {rarity}★ r{rank}")
-                        except Exception as exc:
-                            failures.append(f"Entry error: {e} -> {exc}")
-                    # schedule persist
-                    try:
-                        schedule_persist_user_prestige(self.parent, ctx.author.id)
-                    except Exception:
-                        pass
-                    lines = []
-                    if successes:
-                        lines.append("Imported/Updated:")
-                        lines.extend(f"- {s}" for s in successes)
-                    if failures:
-                        lines.append("")
-                        lines.append("Failed:")
-                        lines.extend(f"- {f}" for f in failures)
-                    await ctx.send("\n".join(lines))
-                    return
-            # fallback: if payload is a list of entries directly
-            if isinstance(payload, list):
-                # same handling as above
-                await ctx.invoke(self.roster_import, data=json.dumps({"roster": payload}))
-                return
-        except Exception:
-            pass
-
-        await ctx.send("JSON payload format not recognized. Expected {\"roster\": [ {champion, rarity, rank, sig, ascended, tags}, ... ] }")
+            users.import_data(ctx.author.id, payload)
+            await ctx.send("Imported your roster data.")
+        except Exception as exc:
+            log.exception("Failed roster import: %s", exc)
+            await ctx.send("Failed to import roster data. Ensure the JSON is valid and matches expected schema.")
 
     @roster.command(name="clear")
     async def roster_clear(self, ctx):
@@ -622,22 +562,16 @@ def register_with_group(group: commands.Group, parent_getter):
     @_safe_add("roster")
     async def _roster(ctx, *items: str):
         """Top-level roster group for dynamic registration."""
-        parent = parent_getter()
-        if not parent:
-            await ctx.send("MCOC core not attached; roster unavailable.")
-            return
-
-        if not items:
-            await ctx.send(ROSTER_GROUP_HELP.get("roster", "Roster commands: add, remove, update, list, export, clear"))
-            return
-
-        # Forward to the registered list command (the dynamic _list implementation)
+        # inside register_with_group._roster
         try:
-            # The dynamic _list function is registered under the same group; call it directly
+            list_cmd = group.get_command("list")
+            if list_cmd:
+                await ctx.invoke(list_cmd, *items)
+                return
+            # fallback to calling _list directly if invoke not available
             await _list(ctx, *items)
         except Exception:
             await ctx.send(ROSTER_GROUP_HELP.get("roster", "Roster commands: add, remove, update, list, export, clear"))
-
 
     # add
     @_safe_add("add")
