@@ -119,17 +119,19 @@ class CDTv2:
         except Exception:
             pass
 
+        # Footer: ensure deterministic brand tag + optional custom footer_text
         try:
-            # Build final footer text: prefer provided footer_text, always append CDT_FOOTER_TAG
-            final_footer = (footer_text or "").strip()
-            if final_footer:
-                final_footer = f"{final_footer}{CDT_FOOTER_TAG}"
+            if footer_text is None:
+                # use default brand footer
+                footer_final = _brand_footer_text()
             else:
-                final_footer = _brand_footer_text()
-
-            emb.set_footer(text=final_footer, icon_url=footer_url or CDT_ICON)
+                # if caller passed an explicit footer_text (possibly empty string),
+                # append the CDT_FOOTER_TAG to ensure consistent branding
+                footer_final = (footer_text or "") + CDT_FOOTER_TAG
+            emb.set_footer(text=footer_final, icon_url=footer_url or CDT_ICON)
         except Exception:
             pass
+
 
 
 
@@ -340,12 +342,18 @@ class PaginatorView(discord.ui.View):
             emb = discord.Embed(title=page.get("title", "Page"), description=page.get("description", ""))
         else:
             emb = discord.Embed(title="Page", description=str(page))
-        # mcoc/common/componentsV2.py inside PaginatorView._render_page
+        # footer with page number and brand tag
         try:
-            emb.set_footer(text=f"{emb.footer.text if emb.footer and emb.footer.text else ''} • Page {self.index+1} of {len(self.pages)}", icon_url=CDT_ICON)
+            base = emb.footer.text if getattr(emb, "footer", None) and getattr(emb.footer, "text", None) else ""
+            # If embed already has a footer, preserve it and append page info; otherwise use brand footer
+            if base:
+                footer_text = f"{base} • Page {self.index+1} of {len(self.pages)}"
+            else:
+                footer_text = f"{_brand_footer_text()} • Page {self.index+1} of {len(self.pages)}"
+            emb.set_footer(text=footer_text, icon_url=CDT_LOGO)
         except Exception:
             try:
-                emb.set_footer(text=f"Page {self.index+1} of {len(self.pages)}", icon_url=CDT_ICON)
+                emb.set_footer(text=f"Page {self.index+1} of {len(self.pages)}", icon_url=CDT_LOGO)
             except Exception:
                 pass
         return emb

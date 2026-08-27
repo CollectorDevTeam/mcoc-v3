@@ -2,7 +2,9 @@
 import logging
 from typing import Optional, Any, List, Dict
 from redbot.core import commands
-
+import inspect
+import json
+import aiohttp
 import discord
 from mcoc.common.champion_helpers import add_page_footers
 from mcoc.common.componentsV2 import CDTv2, PaginatorView
@@ -59,6 +61,52 @@ class RosterPrefix(commands.Cog):
                 pass
             return False
         return True
+
+    def _call_update_champion(users, user_id: int, champ_slug: str, rarity: int = None, rank: int = None, sig: int = None, tags=None):
+        """
+        Call users.update_champion with the correct parameter names depending on the
+        UserDataManager implementation. Some implementations expect 'ascended' or 'asc',
+        others don't accept it at all. This helper inspects the signature and adapts.
+        """
+        tags = tags or []
+        func = getattr(users, "update_champion", None)
+        if not callable(func):
+            return False
+        try:
+            sig = inspect.signature(func)
+            params = sig.parameters
+            kwargs = {"user_id": user_id} if "user_id" in params else {}
+            # common param names: ctx_user_id / user_id / discord_id — try to be permissive
+            # Build kwargs for champion update
+            if "champ_slug" in params:
+                kwargs["champ_slug"] = champ_slug
+            elif "champion" in params:
+                kwargs["champion"] = champ_slug
+            elif "slug" in params:
+                kwargs["slug"] = champ_slug
+            if rarity is not None and "rarity" in params:
+                kwargs["rarity"] = rarity
+            if rank is not None and "rank" in params:
+                kwargs["rank"] = rank
+            if sig is not None and "sig" in params:
+                kwargs["sig"] = sig
+            if "tags" in params:
+                kwargs["tags"] = tags
+            # ascension param name variants
+            if "ascended" in params:
+                kwargs["ascended"] = 1
+            elif "asc" in params:
+                kwargs["asc"] = 1
+            # call with only the supported kwargs
+            call_kwargs = {k: v for k, v in kwargs.items() if k in params}
+            return func(**call_kwargs)
+        except Exception:
+            # last resort: try positional fallback (user_id, champ_slug, rarity, rank, sig)
+            try:
+                return func(user_id, champ_slug, rarity, rank, sig)
+            except Exception:
+                return False
+
 
     @commands.group(name="roster", invoke_without_command=True)
     async def roster(self, ctx, *items: str):
@@ -295,15 +343,17 @@ class RosterPrefix(commands.Cog):
                     failures.append(f"{champ_key}: missing rarity for update")
                     continue
 
-                updated = users.update_champion(
+                # previous: updated = users.update_champion(...)
+                updated = _call_update_champion(
+                    users,
                     ctx.author.id,
                     champ_slug=champ_key,
                     rarity=entry.get("rarity"),
                     rank=entry.get("rank"),
                     sig=entry.get("sig"),
                     tags=entry.get("tags"),
-                    ascended=entry.get("ascended", 1),
                 )
+
                 if updated:
                     successes.append(f"{champ_key}: updated to {entry.get('rarity')}★ r{entry.get('rank',1)} s{entry.get('sig',0)} A{entry.get('ascended',1)}")
                 else:
@@ -434,106 +484,115 @@ class RosterPrefix(commands.Cog):
     @roster.command(name="import")
     async def roster_import(self, ctx, *, data: str = None):
         """
-        Import roster JSON either from an inline JSON text block or from an attached file.
-        Usage:
-          ///mcoc roster import <json text>
-          ///mcoc roster import   (with a .json file attached to the message)
+        Import roster JSON. Accepts either:
+          - inline JSON string: ///mcoc roster import {"roster": [...]}
+          - or a file attachment on the invoking message (JSON)
+        The stub will try to call users.import_data if available, otherwise will
+        iterate entries and call update/add as best-effort.
         """
         if not await self._require_parent(ctx):
             return
 
         users = ensure_user_manager(self.parent)
+        if users is None:
+            await ctx.send("User manager unavailable.")
+            return
+
         payload = None
 
-        # 1) If inline data provided, try parse it
-        if data:
+        # 1) If an attachment is present, try to download it
+        try:
+            if getattr(ctx.message, "attachments", None):
+                att = ctx.message.attachments[0]
+                # only attempt for likely JSON/text files
+                if att.size > 0:
+                    async with aiohttp.ClientSession() as session:
+                        async with session.get(att.url) as resp:
+                            if resp.status == 200:
+                                text = await resp.text()
+                                try:
+                                    payload = json.loads(text)
+                                except Exception:
+                                    payload = None
+        except Exception:
+            payload = None
+
+        # 2) If no attachment or download failed, try inline data param
+        if payload is None and data:
             try:
-                import json
                 payload = json.loads(data)
-            except Exception as exc:
-                await ctx.send(f"Failed to parse provided JSON: {exc}")
-                return
+            except Exception:
+                payload = None
 
-        # 2) If no inline data, check attachments
         if payload is None:
-            try:
-                attachments = getattr(ctx.message, "attachments", []) or []
-                if attachments:
-                    att = attachments[0]
-                    # read bytes and decode
-                    raw = await att.read()
-                    try:
-                        import json
-                        payload = json.loads(raw.decode("utf-8"))
-                    except Exception:
-                        # try to treat as plain text roster lines fallback
-                        payload = None
-                else:
-                    payload = None
-            except Exception as exc:
-                await ctx.send(f"Failed to read attachment: {exc}")
-                return
-
-        if not payload:
-            await ctx.send("No valid JSON payload found. Provide JSON inline or attach a .json file.")
+            await ctx.send("No valid JSON roster provided. Attach a JSON file or pass JSON text.")
             return
 
-        # If the user manager exposes import_data, prefer that
+        # If users.import_data exists, prefer it
         try:
             if hasattr(users, "import_data"):
-                users.import_data(ctx.author.id, payload)
-                await ctx.send("Imported your roster data.")
-                try:
-                    schedule_persist_user_prestige(self.parent, ctx.author.id)
-                except Exception:
-                    pass
+                users.import_data(ctx.author.id, json.dumps(payload) if not isinstance(payload, str) else payload)
+                await ctx.send("Imported your roster data via users.import_data.")
                 return
         except Exception:
-            # fall through to manual import
+            # fall through to manual processing
             pass
 
-        # Manual import fallback: expect payload to be a list of entries
-        successes = []
-        failures = []
-        try:
-            for entry in (payload if isinstance(payload, list) else payload.get("roster", []) if isinstance(payload, dict) else []):
-                try:
-                    # Expect entry to contain champion slug/id and hargs fields
-                    champ_slug = entry.get("champion") or entry.get("slug") or entry.get("id")
-                    rarity = int(entry.get("rarity") or entry.get("stars") or 6)
-                    rank = int(entry.get("rank") or 1)
-                    sig = int(entry.get("sig") or 0)
-                    asc = int(entry.get("ascended") or entry.get("asc") or 1)
-                    # Use update_champion if present, otherwise add_champion
-                    if hasattr(users, "update_champion"):
-                        updated = users.update_champion(ctx.author.id, champ_slug, rarity=rarity, rank=rank, sig=sig, ascended=asc)
-                        if updated:
-                            successes.append(f"{champ_slug}: updated")
-                        else:
-                            # try add
-                            if hasattr(users, "add_champion"):
-                                users.add_champion(ctx.author.id, champ_slug=champ_slug, rarity=rarity, rank=rank, sig=sig, ascended=asc)
-                                successes.append(f"{champ_slug}: added")
-                            else:
-                                failures.append(f"{champ_slug}: not updated")
-                    else:
-                        # fallback add
-                        if hasattr(users, "add_champion"):
-                            users.add_champion(ctx.author.id, champ_slug=champ_slug, rarity=rarity, rank=rank, sig=sig, ascended=asc)
-                            successes.append(f"{champ_slug}: added")
-                        else:
-                            failures.append(f"{champ_slug}: no import method available")
-                except Exception as exc:
-                    failures.append(f"{entry}: {exc}")
-        except Exception as exc:
-            await ctx.send(f"Failed to import roster entries: {exc}")
+        # Manual processing: expect payload to be a list of entries or dict with 'roster'
+        entries = payload if isinstance(payload, list) else payload.get("roster") if isinstance(payload, dict) else None
+        if not entries:
+            await ctx.send("JSON did not contain a roster list under top-level array or 'roster' key.")
             return
 
-        # schedule persist
-        try:
-            schedule_persist_user_prestige(self.parent, ctx.author.id)
-        except Exception:
-            pass
+        successes = []
+        failures = []
+        cache = getattr(self.parent, "cache", None)
+        for e in entries:
+            try:
+                # Expect each entry to have champion slug or name and rarity/rank
+                champ = e.get("champion") or e.get("slug") or e.get("name")
+                if not champ:
+                    failures.append(f"Missing champion in entry: {e}")
+                    continue
+                # try to resolve slug via cache if available
+                slug = None
+                if cache:
+                    try:
+                        cobj = cache.get_champion(champ)
+                        if cobj:
+                            slug = cobj.get("slug") or cobj.get("id")
+                    except Exception:
+                        slug = None
+                slug = slug or champ
+                # call update/add as best-effort
+                updated = _call_update_champion(
+                    users,
+                    ctx.author.id,
+                    champ_slug=slug,
+                    rarity=e.get("rarity"),
+                    rank=e.get("rank"),
+                    sig=e.get("sig"),
+                    tags=e.get("tags"),
+                )
+                if updated:
+                    successes.append(str(champ))
+                else:
+                    # try add_champion if update failed
+                    try:
+                        users.add_champion(
+                            ctx.author.id,
+                            champ_slug=slug,
+                            rarity=int(e.get("rarity") or 6),
+                            rank=int(e.get("rank") or 1),
+                            sig=int(e.get("sig") or 0),
+                            tags=e.get("tags") or [],
+                            ascended=int(e.get("ascended") or 1),
+                        )
+                        successes.append(str(champ))
+                    except Exception:
+                        failures.append(str(champ))
+            except Exception:
+                failures.append(str(e))
 
         lines = []
         if successes:
@@ -543,7 +602,8 @@ class RosterPrefix(commands.Cog):
             lines.append("")
             lines.append("Failed:")
             lines.extend(f"- {f}" for f in failures)
-        await ctx.send("\n".join(lines) if lines else "Import completed with no changes.")
+        await ctx.send("\n".join(lines))
+
     @roster.command(name="clear")
     async def roster_clear(self, ctx):
         if not await self._require_parent(ctx):

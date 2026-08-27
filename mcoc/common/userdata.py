@@ -1,4 +1,4 @@
-# mcoc/userdata.py
+# mcoc/common/userdata.py
 import json
 import pathlib
 import logging

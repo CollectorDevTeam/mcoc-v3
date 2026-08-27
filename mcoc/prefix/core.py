@@ -211,6 +211,9 @@ class MCOCPrefix(commands.Cog):
 
         # mcoc/prefix/core.py inside @mcoc.group(name="roster", ...)
         # Args present -> forward to the registered group's list subcommand if available
+# Replace the forwarding block inside MCOCPrefix.roster with this:
+
+        # Args present -> forward to the registered group's list subcommand if available
         try:
             list_cmd = None
             try:
@@ -219,7 +222,7 @@ class MCOCPrefix(commands.Cog):
                 list_cmd = None
 
             if list_cmd:
-                # invoke the group's list command with the provided args
+                # ctx.invoke will call the subcommand with the provided args
                 await ctx.invoke(list_cmd, *items)
                 return
 
