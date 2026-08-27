@@ -61,7 +61,7 @@ def get_profile_settings(profile: dict) -> dict:
 import discord
 import datetime
 from typing import Any, Dict, Optional, List
-from ..common.embeds import cdt_embed
+from .componentsV2 import CDTEmbed
 
 def _format_date_iso(iso_str: Optional[str]) -> str:
     if not iso_str:
@@ -80,7 +80,7 @@ async def format_profile_embed(ctx, profile: Dict[str, Any], member: Optional[An
     # Resolve display name
     display_name = profile.get("mcoc_name") or profile.get("display_name") or (member.display_name if getattr(member, "display_name", None) else None) or str(profile.get("mcoc_id") or "User")
 
-    emb = cdt_embed(ctx, title=f"{display_name} — Profile", colour=discord.Color.blue())
+    emb = CDTEmbed(ctx, title=f"{display_name} — Profile", colour=discord.Color.blue())
     # author / thumbnail
     try:
         if member and getattr(member, "avatar_url", None):

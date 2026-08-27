@@ -12,6 +12,9 @@ from ..common.champion_helpers import (
     safe_respond_interaction,
     lookup_stat,
     add_page_footers,
+    CDTEmbed,
+    CDTConfirm,
+    CDTPagesMenu,
 )
 
 # Keep the app_commands.Group lightweight and import-neutral
@@ -94,8 +97,7 @@ class _ChampionGroup(app_commands.Group):
             await safe_respond_interaction(interaction, content=f"Champion `{champion}` not found.", ephemeral=True)
             return
         try:
-            from ..common.embeds import champion_embed
-            embed = await champion_embed(interaction, champ)
+            embed = await CDTEmbed.champions_embed(interaction, champ)
             await safe_respond_interaction(interaction, embed=embed)
         except Exception:
             log.exception("Failed to build champion embed")
@@ -109,8 +111,7 @@ class _ChampionGroup(app_commands.Group):
             await safe_respond_interaction(interaction, content=f"Champion `{champion}` not found.", ephemeral=True)
             return
         try:
-            from ..common.embeds import abilities_embed
-            embed = await abilities_embed(interaction, champ)
+            embed = await CDTEmbed.abilities_embed(interaction, champ)
             await safe_respond_interaction(interaction, embed=embed)
         except Exception:
             log.exception("Failed to build abilities embed")
@@ -124,9 +125,8 @@ class _ChampionGroup(app_commands.Group):
             await safe_respond_interaction(interaction, content=f"Champion `{champion}` not found.", ephemeral=True)
             return
         try:
-            from ..common.embeds import synergy_embed
             synergies = champ.get("synergies", []) or []
-            embed = await synergy_embed(interaction, champ, synergies)
+            embed = await CDTEmbed.synergy_embed(interaction, champ, synergies)
             await safe_respond_interaction(interaction, embed=embed)
         except Exception:
             log.exception("Failed to build synergies embed")
@@ -142,8 +142,7 @@ class _ChampionGroup(app_commands.Group):
             await safe_respond_interaction(interaction, content=f"No champions found with tag `{tag}`.", ephemeral=True)
             return
         try:
-            from ..common.embeds import tag_list_embed
-            embed = await tag_list_embed(interaction, tag, matches)
+            embed = await CDTEmbed.tag_list_embed(interaction, tag, matches)
             await safe_respond_interaction(interaction, embed=embed)
         except Exception:
             await safe_respond_interaction(interaction, content=f"{len(matches)} champions found for tag `{tag}`.", ephemeral=True)
@@ -253,14 +252,12 @@ class _ChampionGroup(app_commands.Group):
         # Build pages and send with pagination view if available
         pages = []
         try:
-            from ..common.embeds import champion_embed
-            from ..common.pagination import PagesMenu
             for champ in results:
-                pages.append(await champion_embed(interaction, champ))
+                pages.append(await CDTEmbed.champions_embed(interaction, champ))
             pages = add_page_footers(pages)
             await safe_respond_interaction(interaction, embed=pages[0], followup=False)
             # attach view via direct tree response (discord will accept view on initial response)
-            await interaction.response.edit_message(embed=pages[0], view=PagesMenu(pages, interaction.user))
+            await interaction.response.edit_message(embed=pages[0], view=CDTPagesMenu(pages, interaction.user))
         except Exception:
             names = [c.get("name", "Unknown") for c in results][:50]
             await safe_respond_interaction(interaction, content=f"Matches ({len(results)}): {', '.join(names)}", ephemeral=True)

@@ -13,7 +13,7 @@ from ..common.roster_helpers import (
     build_roster_pages,
     validate_entry_for_add,
 )
-from ..common.embeds import roster_entry_embed  # used as fallback in some handlers
+from ..common.componentsV2 import CDTEmbed, CDTPagesMenu, CDTConfirm
 
 
 class _RosterGroup(app_commands.Group):
@@ -102,7 +102,7 @@ class _RosterGroup(app_commands.Group):
             return
 
         try:
-            embed = await roster_entry_embed(interaction, champ, {
+            embed = await CDTEmbed.roster_entry_embed(interaction, champ, {
                 "rarity": entry["rarity"],
                 "rank": entry["rank"],
                 "sig": entry.get("sig", 0),
@@ -169,7 +169,7 @@ class _RosterGroup(app_commands.Group):
         cache = getattr(self.core, "cache", None)
         champ = cache.get_champion(champion) if cache else None
         try:
-            embed = await roster_entry_embed(interaction, champ, {
+            embed = await CDTEmbed.roster_entry_embed(interaction, champ, {
                 "rarity": entry["rarity"],
                 "rank": entry.get("rank") or 0,
                 "sig": entry.get("sig") or 0,
@@ -195,14 +195,12 @@ class _RosterGroup(app_commands.Group):
 
         # add page numbers and send with PagesMenu if available
         try:
-            from ..common.pagination import PagesMenu
             # add footers if helper exists
             try:
-                from ..common.roster_helpers import add_page_footers  # optional; may not exist
-                pages = add_page_footers(pages)
+                pages = CDTEmbed.add_page_footers(pages)
             except Exception:
                 pass
-            await interaction.response.send_message(embed=pages[0], view=PagesMenu(pages, interaction.user))
+            await interaction.response.send_message(embed=pages[0], view=CDTPagesMenu(pages, author=interaction.user))
         except Exception:
             # fallback: send simple list
             names = [p.get("title") or "Entry" for p in pages][:50]

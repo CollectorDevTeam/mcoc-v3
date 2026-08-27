@@ -862,8 +862,7 @@ def register_with_group(group: commands.Group, parent_getter):
             return
 
         try:
-            from ..common.pagination import PagesMenu
-            menu = PagesMenu(pages, ctx.author)
+            menu = CDTPageMenu(pages, ctx.author)
             try:
                 from ..common.roster_helpers import add_page_footers  # optional
                 pages = add_page_footers(pages)

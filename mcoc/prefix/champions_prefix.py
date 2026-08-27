@@ -4,8 +4,7 @@ from typing import Optional, Any
 from redbot.core import commands
 log = logging.getLogger("red.mcoc.prefix.champions")
 
-# from ..common.embeds import cdt_embed
-from ..common.componentsV2 import CDTEmbed
+from ..common.componentsV2 import CDTEmbed, CDTConfirm, CDTPageMenu
 from ..common.champion_helpers import (
     resolve_champion,
     safe_send_ctx,
@@ -232,7 +231,6 @@ def register_with_group(group: commands.Group, parent_getter):
     """
 
     # local imports for embed builders (keeps module import light)
-    from ..common.embeds import champions_embed, abilities_embed, synergies_embed, tag_list_embed
 
     def _safe_add(cmd_name):
         def _decorator(func):
@@ -259,7 +257,7 @@ def register_with_group(group: commands.Group, parent_getter):
             await ctx.send(f"Champion `{champion}` not found.")
             return
         try:
-            embed = champions_embed(ctx, champ)
+            embed = CDTEmbed.champions_embed(ctx, champ)
             await ctx.send(embed=embed)
         except Exception:
             log.exception("register info failed")

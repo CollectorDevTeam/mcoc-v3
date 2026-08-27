@@ -405,7 +405,7 @@ class CDTConfirm(discord.ui.View):
         await self.wait()
         return self.value
 
-class CDTPageMenu(discord.ui.View):
+class CDTPagesMenu(discord.ui.View):
     def __init__(self, pages: list, *, author: Optional[discord.abc.User] = None, timeout: float = 120.0, show_brand: bool = True):
         super().__init__(timeout=timeout)
         self.pages = pages
