@@ -34,7 +34,8 @@ def format_champion_line(champ_obj: Optional[Dict[str, Any]], entry: Dict[str, A
     asc = int(entry.get("ascended") or 0)
 
     if asc > 0:
-        asc_emoji = CLASS_EMOJI.get("ascended", "")
+        # asc_emoji = CLASS_EMOJI.get("ascended", "")
+        asc_emoji = f"A{asc}"
     else:
         asc_emoji = ""
 
@@ -50,7 +51,7 @@ def format_champion_line(champ_obj: Optional[Dict[str, Any]], entry: Dict[str, A
 
     # final line
     # return f"{cls_emoji} {star_display} {name} r{rank} {sig_text} {asc_emoji}"
-    return f"{cls_emoji} {star_display} {name} r{rank} {sig_text} A{asc}"
+    return f"{cls_emoji} {star_display} {name} r{rank} {sig_text} {asc_emoji}"
 
 def format_champion_prestige_line(champ_obj: Optional[Dict[str, Any]], entry: Dict[str, Any]) -> str:
     """
@@ -59,7 +60,7 @@ def format_champion_prestige_line(champ_obj: Optional[Dict[str, Any]], entry: Di
     Returns: formatted string like:
       "<:skill:...> 7A1 7★ Colossus r1 s0 P3"
     """
-     name = None
+    name = None
     cls = ""
     if champ_obj:
         name = champ_obj.get("name") or champ_obj.get("slug")
@@ -73,7 +74,8 @@ def format_champion_prestige_line(champ_obj: Optional[Dict[str, Any]], entry: Di
     asc = int(entry.get("ascended") or 0)
 
     if asc > 0:
-        asc_emoji = CLASS_EMOJI.get("ascended", "")
+        # asc_emoji = CLASS_EMOJI.get("ascended", "")
+        asc_emoji = f"A{asc}"
     else:
         asc_emoji = ""
 
