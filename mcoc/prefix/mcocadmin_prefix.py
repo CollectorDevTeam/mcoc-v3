@@ -11,7 +11,7 @@ from pathlib import Path
 from ..common.componentsV2 import CDTEmbed, CDTConfirm, CDTPagesMenu
 log = logging.getLogger("red.mcoc.prefix")
 
-from ..common.champion_helpers import safe_send_ctx as reporter
+from ..common.prefix_utils import safe_send_ctx as reporter
 
 
 class MCOCAdminPrefix(commands.Cog):

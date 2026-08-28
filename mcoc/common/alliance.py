@@ -1,19 +1,39 @@
-# mcoc/common/alliance_helpers.py
+# mcoc/common/alliance.py
+"""
+Alliance helpers (consolidated).
+
+Provides a single, well-documented API for:
+  - persistent per-guild alliance configuration (roles, info, settings)
+  - role creation/linking and registration/unregistration
+  - join/leave operations for members
+  - simple permission checks (leader/officer/manager)
+  - info getters/setters and officer management
+
+This module is intentionally defensive: it logs errors and returns clear
+success/failure tuples so prefix/slash layers can present friendly messages.
+"""
+
+from typing import Any, Dict, Optional, List, Tuple, Union
 import json
 import pathlib
 import logging
 import asyncio
-from typing import Optional, Dict, Any, List, Tuple, Union
 import time
 
-log = logging.getLogger("red.mcoc.alliance_helpers")
+log = logging.getLogger("red.mcoc.alliance")
+
+# persistent storage path
 DATA_PATH = pathlib.Path("data") / "account" / "alliances.json"
 DATA_PATH.parent.mkdir(parents=True, exist_ok=True)
 
 
+# -----------------------------
+# Low-level persistence
+# -----------------------------
 def _load_alliances() -> Dict[str, Any]:
     try:
-        return json.loads(DATA_PATH.read_text(encoding="utf-8"))
+        text = DATA_PATH.read_text(encoding="utf-8")
+        return json.loads(text) if text else {}
     except Exception:
         return {}
 
@@ -48,7 +68,7 @@ def remove_guild_config(guild_id: int) -> None:
 
 
 # -----------------------------
-# High-level operations (async)
+# Role creation / linking
 # -----------------------------
 async def create_or_link_role(guild, role_name: str, key: str, role_obj=None) -> Optional[Dict[str, Any]]:
     """
@@ -62,7 +82,6 @@ async def create_or_link_role(guild, role_name: str, key: str, role_obj=None) ->
         if role_obj:
             role = role_obj
         else:
-            # create role (may raise if bot lacks permissions)
             role = await guild.create_role(name=role_name, reason="mcoc alliance role creation")
         if not role:
             return None
@@ -74,11 +93,14 @@ async def create_or_link_role(guild, role_name: str, key: str, role_obj=None) ->
         return None
 
 
+# -----------------------------
+# Registration / unregistration
+# -----------------------------
 async def register_alliance(guild, alliance_name: str, alliance_tag: Optional[str] = None, type_: str = "simple") -> bool:
     """
     Register an alliance on this guild.
     - simple: create core roles (alliance, officers, members)
-    - complex: create core roles plus leader and battlegroup roles (bg1..bg3, aqbg1, awbg1)
+    - complex: create core roles plus leader and battlegroup roles
     """
     try:
         cfg = get_guild_config(guild.id) or {}
@@ -91,12 +113,10 @@ async def register_alliance(guild, alliance_name: str, alliance_tag: Optional[st
         await create_or_link_role(guild, f"{alliance_name} Members", "members")
 
         if type_ and type_.lower() == "complex":
-            # additional roles for complex alliances
             await create_or_link_role(guild, f"{alliance_name} Leader", "leader")
             await create_or_link_role(guild, f"{alliance_name} BG1", "bg1")
             await create_or_link_role(guild, f"{alliance_name} BG2", "bg2")
             await create_or_link_role(guild, f"{alliance_name} BG3", "bg3")
-            # optional raid roles
             await create_or_link_role(guild, f"{alliance_name} AQBG1", "aqbg1")
             await create_or_link_role(guild, f"{alliance_name} AWBG1", "awbg1")
 
@@ -116,14 +136,12 @@ async def register_alliance(guild, alliance_name: str, alliance_tag: Optional[st
 async def unregister_alliance(guild, remove_roles: bool = False) -> bool:
     """
     Unregister alliance for guild. Optionally remove roles (careful with rate limits).
-    This will remove the guild's config entry. If remove_roles is True, it will
-    attempt to delete configured roles with a short pause between deletions.
     """
     try:
         cfg = get_guild_config(guild.id)
         if not cfg:
             return False
-        
+
         roles = cfg.get("roles", {})
         if remove_roles:
             for k, r in list(roles.items()):
@@ -131,12 +149,10 @@ async def unregister_alliance(guild, remove_roles: bool = False) -> bool:
                     role = guild.get_role(r.get("id"))
                     if role:
                         await role.delete(reason="mcoc alliance unregister")
-                        # small pause to avoid hitting rate limits when deleting multiple roles
                         await asyncio.sleep(0.35)
                 except Exception:
                     log.exception("Failed to delete role %s in guild %s", k, guild.id)
-        backup_path = _backup_alliance_cfg(guild.id)
-        log.info("Backup of alliance config saved to %s before unregistering guild %s", backup_path, guild.id)
+        _backup_alliance_cfg(guild.id)
         remove_guild_config(guild.id)
         return True
     except Exception:
@@ -144,10 +160,12 @@ async def unregister_alliance(guild, remove_roles: bool = False) -> bool:
         return False
 
 
+# -----------------------------
+# Join / leave operations
+# -----------------------------
 async def join_alliance(member, guild, role_key: str = "members") -> Tuple[bool, str]:
     """
-    Add member to alliance members role (role_key). Enforce single-alliance rule within this guild.
-    Returns (success, message).
+    Add member to alliance members role (role_key). Returns (success, message).
     """
     try:
         cfg = get_guild_config(guild.id)
@@ -158,7 +176,6 @@ async def join_alliance(member, guild, role_key: str = "members") -> Tuple[bool,
         if not target:
             return False, "Members role not configured."
 
-        # enforce max members
         max_m = cfg.get("settings", {}).get("max_members", 30)
         mids = cfg.setdefault("member_ids", [])
         if member.id not in mids and len(mids) >= max_m:
@@ -177,13 +194,11 @@ async def join_alliance(member, guild, role_key: str = "members") -> Tuple[bool,
                 except Exception:
                     log.exception("Failed to remove old alliance role %s from member %s", rid, member.id)
 
-        # add target role
         role_obj = guild.get_role(target["id"])
         if not role_obj:
             return False, "Configured role not found on server."
         await member.add_roles(role_obj, reason="Joining alliance via mcoc")
 
-        # update member_ids
         if member.id not in mids:
             mids.append(member.id)
             cfg["member_ids"] = mids
@@ -204,7 +219,6 @@ async def leave_alliance(member, guild) -> Tuple[bool, str]:
         if not cfg:
             return False, "Alliance not configured."
         roles = cfg.get("roles", {})
-        # remove all alliance-related roles
         for k, r in roles.items():
             rid = r.get("id") if isinstance(r, dict) else None
             if rid:
@@ -214,7 +228,6 @@ async def leave_alliance(member, guild) -> Tuple[bool, str]:
                         await member.remove_roles(role_obj, reason="Leaving alliance via mcoc")
                     except Exception:
                         log.exception("Failed to remove role %s from member %s", rid, member.id)
-        # update member_ids
         mids = cfg.get("member_ids", [])
         if member.id in mids:
             mids.remove(member.id)
@@ -233,6 +246,7 @@ def role_id_for_key(cfg: Dict[str, Any], key: str) -> Optional[int]:
     r = cfg.get("roles", {}).get(key)
     return r.get("id") if isinstance(r, dict) else None
 
+
 def _backup_alliance_cfg(guild_id):
     cfg = get_guild_config(guild_id)
     if not cfg:
@@ -242,10 +256,8 @@ def _backup_alliance_cfg(guild_id):
     path.write_text(json.dumps({str(guild_id): cfg}, indent=2), encoding="utf-8")
     return str(path)
 
+
 def get_user_alliance_in_guild(user_id: int, guild_id: int) -> Optional[str]:
-    """
-    Return the alliance name for the user in this guild, or None.
-    """
     cfg = get_guild_config(guild_id)
     mids = cfg.get("member_ids", [])
     if user_id in mids:
@@ -273,10 +285,6 @@ def get_alliance_role_for_user(user_id: int, guild_id: int) -> Optional[int]:
 # Role / permission helpers
 # -----------------------------
 def _role_obj_for_key(cfg: Dict[str, Any], guild, key: str):
-    """
-    Return a discord.Role for a configured role key (roles[key]) or None.
-    Safe to call when cfg or role entry is missing.
-    """
     try:
         r = cfg.get("roles", {}).get(key)
         if not isinstance(r, dict):
@@ -288,10 +296,6 @@ def _role_obj_for_key(cfg: Dict[str, Any], guild, key: str):
 
 
 def is_leader_or_officer(member, guild) -> bool:
-    """
-    Return True if member is alliance leader or officer in this guild.
-    Leader is the 'alliance' role; officers are 'officers' role.
-    """
     try:
         cfg = get_guild_config(guild.id)
         if not cfg:
@@ -302,7 +306,6 @@ def is_leader_or_officer(member, guild) -> bool:
             return True
         if officers_role and officers_role in member.roles:
             return True
-        # fallback to officer_ids in config
         officers_ids = cfg.get("officer_ids", [])
         if member.id in officers_ids:
             return True
@@ -311,24 +314,20 @@ def is_leader_or_officer(member, guild) -> bool:
         log.exception("is_leader_or_officer check failed for member %s", getattr(member, "id", None))
         return False
 
+
 def is_alliance_manager(member, guild) -> bool:
-    """Return True if member is alliance leader, officer, or in manager role (configurable)."""
     cfg = get_guild_config(guild.id) or {}
-    # check leader/officer roles
     if is_leader_or_officer(member, guild):
         return True
-    # check manager role key
     mgr_role = _role_obj_for_key(cfg, guild, "managers")
     if mgr_role and mgr_role in member.roles:
         return True
-    # check manager ids list
     if member.id in cfg.get("manager_ids", []):
         return True
     return False
 
 
 def is_leader(member, guild) -> bool:
-    """Return True if member has the alliance leader role."""
     try:
         cfg = get_guild_config(guild.id)
         if not cfg:
@@ -341,19 +340,14 @@ def is_leader(member, guild) -> bool:
 
 
 # -----------------------------
-# Info getters/setters
+# Info getters/setters and officer management
 # -----------------------------
 def get_alliance_info(guild_id: int) -> Dict[str, Any]:
-    """Return the info dict for the guild (may be empty)."""
     cfg = get_guild_config(guild_id)
     return cfg.get("info", {}) if cfg else {}
 
 
 def set_alliance_info_field(guild_id: int, field: str, value: Union[str, None]) -> bool:
-    """
-    Set a single info field (name, tag, invite, about, started, poster, wartool).
-    Use None to clear.
-    """
     try:
         cfg = get_guild_config(guild_id) or {}
         info = cfg.setdefault("info", {})
@@ -367,12 +361,8 @@ def set_alliance_info_field(guild_id: int, field: str, value: Union[str, None]) 
         log.exception("Failed to set alliance info field %s for guild %s", field, guild_id)
         return False
 
+
 def set_alliance_type(guild_id: int, type_: str, guild_obj=None) -> bool:
-    """
-    Change the alliance type for a guild and create any missing roles.
-    - type_: 'simple' or 'complex'
-    - guild_obj: optional discord.Guild object; if provided, used to create roles when needed.
-    """
     try:
         cfg = get_guild_config(guild_id) or {}
         type_norm = (type_ or "").lower()
@@ -381,14 +371,9 @@ def set_alliance_type(guild_id: int, type_: str, guild_obj=None) -> bool:
         cfg["type"] = type_norm
         set_guild_config(guild_id, cfg)
 
-        # If we need to create extra roles for complex type and a guild object is provided,
-        # attempt to create/link them.
         if type_norm == "complex" and guild_obj is not None:
             name = cfg.get("info", {}).get("name", "Alliance")
-            # create or link missing keys
             keys = ["leader", "bg1", "bg2", "bg3", "aqbg1", "awbg1"]
-            # use the async create_or_link_role if available; otherwise create synchronously if role exists
-            import asyncio
             async def _ensure_roles():
                 for k in keys:
                     if not cfg.get("roles", {}).get(k):
@@ -396,27 +381,18 @@ def set_alliance_type(guild_id: int, type_: str, guild_obj=None) -> bool:
             try:
                 loop = asyncio.get_event_loop()
                 if loop.is_running():
-                    # schedule and wait
-                    coro = _ensure_roles()
-                    # run in background without blocking caller
-                    loop.create_task(coro)
+                    loop.create_task(_ensure_roles())
                 else:
                     loop.run_until_complete(_ensure_roles())
             except Exception:
-                # best-effort; role creation failures are logged by create_or_link_role
                 pass
-
         return True
     except Exception:
         log.exception("Failed to set alliance type for guild %s", guild_id)
         return False
 
 
-# -----------------------------
-# Officer management
-# -----------------------------
 def add_officer_by_id(guild_id: int, user_id: int) -> bool:
-    """Record a user id in officer_ids list (does not assign role)."""
     try:
         cfg = get_guild_config(guild_id) or {}
         officers = cfg.setdefault("officer_ids", [])
@@ -445,7 +421,6 @@ def remove_officer_by_id(guild_id: int, user_id: int) -> bool:
 
 
 def get_officer_ids(guild_id: int) -> List[int]:
-    """Return the list of officer user IDs for the guild."""
     try:
         cfg = get_guild_config(guild_id) or {}
         return cfg.get("officer_ids", [])
@@ -454,5 +429,30 @@ def get_officer_ids(guild_id: int) -> List[int]:
         return []
 
 
-# Backwards-compatible alias (some code referenced this name previously)
+# Backwards-compatible alias
 alliance_info = get_alliance_info
+
+
+# Public exports
+__all__ = (
+    "get_guild_config",
+    "set_guild_config",
+    "remove_guild_config",
+    "create_or_link_role",
+    "register_alliance",
+    "unregister_alliance",
+    "join_alliance",
+    "leave_alliance",
+    "role_id_for_key",
+    "get_user_alliance_in_guild",
+    "get_alliance_role_for_user",
+    "is_leader_or_officer",
+    "is_alliance_manager",
+    "is_leader",
+    "get_alliance_info",
+    "set_alliance_info_field",
+    "set_alliance_type",
+    "add_officer_by_id",
+    "remove_officer_by_id",
+    "get_officer_ids",
+)

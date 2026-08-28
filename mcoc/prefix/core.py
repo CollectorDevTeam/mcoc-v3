@@ -1,13 +1,21 @@
 # mcoc/prefix/core.py
-import logging
-from typing import Any, Dict
+"""
+Prefix command root for MCOC.
+
+This cog is a thin orchestration layer: it exposes the top-level ///mcoc group,
+dynamically attaches registrar modules (account, alliance, champions, roster, admin),
+and provides small helpers used by the prefix handlers (dynamic help, forwarding).
+"""
+
+from typing import Any, Dict, Optional
 import importlib
+import logging
+import asyncio
+
 from redbot.core import commands
 
-log = logging.getLogger("red.mcoc.prefix.core")
-
-from ..common.champion_helpers import safe_send_ctx
-from ..common.alliance_helpers import (
+from ..common.prefix_utils import safe_send_ctx
+from ..common.alliance import (
     get_guild_config,
     set_guild_config,
     role_id_for_key,
@@ -15,79 +23,79 @@ from ..common.alliance_helpers import (
     _role_obj_for_key,
     get_alliance_info,
 )
+from ..common.roster import ensure_user_manager, _ensure_hook_registered
 
-from ..common.roster_helpers import ensure_user_manager, _ensure_hook_registered
+log = logging.getLogger("red.mcoc.prefix.core")
 
 
 class MCOCPrefix(commands.Cog):
     """
     Unified prefix command root for MCOC.
-    Provides:
-        ///mcoc champ   (champion lookup and info)
-        ///mcoc roster  (manage your champion roster)
-        ///mcoc admin   (administration and sync tools)
-        ///mcoc account (user profile and privacy)
-        ///mcoc alliance (alliance management)
+
+    Subgroups are attached via registrar modules. Registrar modules should expose
+    a `register_with_group(group, parent_getter)` function that attaches commands
+    to the provided group.
     """
 
     def __init__(self, bot: Any):
         self.bot = bot
-
-        # core may not be loaded yet; attach later
+        # parent is the shared core container (bot.mcoc_core) or the main MCOC cog
         self.parent = getattr(bot, "mcoc_core", None) or bot.get_cog("MCOC")
         self._registrars_attached = set()
 
-        # attempt registrar attach now
+        # attempt registrar attach now (may be retried in cog_load)
         try:
             self._attach_registrars()
         except Exception:
             log.exception("Initial registrar attach failed; will retry in cog_load")
 
-    async def cog_load(self):
-        # refresh core reference
+    async def cog_load(self) -> None:
+        # refresh core reference and try to attach registrars again
         self.parent = getattr(self.bot, "mcoc_core", None) or self.bot.get_cog("MCOC")
-
         try:
             self._attach_registrars()
         except Exception:
             log.exception("Registrar attach failed in cog_load")
 
-    def _ensure_parent(self):
-        """
-        Return the core cog if available.
-        """
+    def _ensure_parent(self) -> Optional[Any]:
+        """Return the core object if available."""
         return getattr(self, "parent", None) or self.bot.get_cog("MCOC")
 
+    @staticmethod
     def can_view_profile(viewer_id: int, target_id: int, profile: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Simple privacy filter used by some prefix handlers.
+        Returns a filtered profile dict appropriate for the viewer.
+        """
         mode = profile.get("privacy_mode", "private")
         if viewer_id == target_id:
             return profile
         if mode == "public":
             return profile
         if mode == "guild":
-            # caller must pass guild context; simplified here
-            return {k: v for k, v in profile.items() if k in ("display_name","roster_public")}
+            return {k: v for k, v in profile.items() if k in ("display_name", "roster_public")}
         return {k: v for k, v in profile.items() if k in ("display_name",)}
 
+    def _attach_registrars(self) -> None:
+        """
+        Dynamically import and attach registrar modules.
 
-    # inside MCOCPrefix.__init__ (ensure this exists)
-    # self._registrars_attached = set()
-
-    def _attach_registrars(self):
+        Registrar modules are optional; missing modules are skipped quietly.
+        Registrar module names are relative to this package (mcoc.prefix).
+        Each registrar module should expose `register_with_group(group, parent_getter)`.
+        """
         parent_getter = lambda: self._ensure_parent()
 
-        def _try_attach(name: str, importer_path: str, group_attr: str):
-            # already attached? skip
-            if name in getattr(self, "_registrars_attached", set()):
+        def _try_attach(name: str, importer_path: str, group_attr: str) -> None:
+            if name in self._registrars_attached:
                 log.debug("Registrar %s already attached; skipping", name)
                 return
 
             try:
-                # Use importlib.import_module with package context so relative imports work
                 module = importlib.import_module(importer_path, package=__package__)
                 reg = getattr(module, "register_with_group", None)
-                if not reg:
-                    log.debug("Registrar %s has no register_with_group; skipping", name)
+                if not callable(reg):
+                    log.debug("Registrar %s has no register_with_group; skipping", importer_path)
                     return
                 group = getattr(self, group_attr, None)
                 if group is None:
@@ -100,32 +108,25 @@ class MCOCPrefix(commands.Cog):
                 except Exception:
                     log.exception("Failed to attach %s registrar", name)
             except ModuleNotFoundError:
-                # Optional registrars may not exist in some installs; log at debug to reduce noise
+                # optional registrars may not exist in some installs
                 log.debug("Registrar module %s not found (optional); skipping", importer_path)
             except Exception:
                 log.exception("Failed to import registrar module for %s", name)
 
-        # call for each registrar (use relative module paths because core.py is in mcoc.prefix)
+        # Attach known registrars (module paths are relative to mcoc.prefix)
         _try_attach("account", ".account_prefix", "account")
         _try_attach("alliance", ".alliance_prefix", "alliance")
         _try_attach("champions", ".champions_prefix", "champ")
         _try_attach("roster", ".roster_prefix", "roster")
         _try_attach("admin", ".mcocadmin_prefix", "admin")
 
-
     # ============================================================
-    # TOP-LEVEL GROUP
+    # Top-level group and status
     # ============================================================
     @commands.group(name="mcoc", invoke_without_command=True)
     async def mcoc(self, ctx):
         """
-        MCOC root command.
-        Use subcommands to access features:
-          - ///mcoc champ   : champion lookup and stats
-          - ///mcoc roster  : manage your roster (add/remove/list/export)
-          - ///mcoc alliance : alliance registration and membership
-          - ///mcoc account  : user profile and privacy settings
-          - ///mcoc admin    : administrative utilities (if available)
+        MCOC root command. Shows available subgroups and a short help blurb.
         """
         await safe_send_ctx(
             ctx,
@@ -143,36 +144,26 @@ class MCOCPrefix(commands.Cog):
         )
 
     # ============================================================
-    # SUBGROUPS
+    # Dynamic subgroup help and forwarding
     # ============================================================
-    # place near the other subgroup methods in mcoc/prefix/core.py
-
     def _group_help_text(self, group: commands.Group, title: str, fallback: str = "") -> str:
         """
         Build a short help string for a commands.Group by enumerating its subcommands.
-        Uses command.short_doc, command.help, or function docstring for descriptions.
         """
         try:
             cmds = []
             for name, cmd in sorted(group.commands.items(), key=lambda kv: kv[0]):
-                # skip hidden or internal commands
                 try:
                     if getattr(cmd, "hidden", False):
                         continue
                 except Exception:
                     pass
-                # prefer short_doc (Red/discord), then help, then func docstring
                 desc = getattr(cmd, "short_doc", None) or getattr(cmd, "help", None) or (cmd.callback.__doc__ if getattr(cmd, "callback", None) else None)
-                if desc:
-                    # take first line only and trim
-                    desc_line = str(desc).strip().splitlines()[0]
-                else:
-                    desc_line = ""
+                desc_line = str(desc).strip().splitlines()[0] if desc else ""
                 cmds.append((name, desc_line))
             if not cmds:
                 return fallback or f"{title} (no commands registered)"
             lines = [f"**{title}**"]
-            # show up to 10 commands inline, then indicate more if present
             for name, desc in cmds[:20]:
                 if desc:
                     lines.append(f"`{name}` — {desc}")
@@ -180,27 +171,20 @@ class MCOCPrefix(commands.Cog):
                     lines.append(f"`{name}`")
             return "\n".join(lines)
         except Exception:
-            # fallback to the static fallback text on any error
             return fallback or f"{title} (help unavailable)"
 
     @mcoc.group(name="champ", invoke_without_command=True)
     async def champ(self, ctx):
         """Champion commands help (dynamic)."""
         try:
-            text = self._group_help_text(self.champ, "Champion commands", "Champion commands: `info`, `abilities`, `synergies`, `tags`, `stats`, `search`, `calcstats`.")
+            text = self._group_help_text(self.champ, "Champion commands", "Champion commands: `info`, `abilities`, `search`, `stats`.")
             await safe_send_ctx(ctx, text)
         except Exception:
-            await safe_send_ctx(ctx, "Champion commands: `info`, `abilities`, `synergies`, `tags`, `stats`, `search`, `calcstats`.")
+            await safe_send_ctx(ctx, "Champion commands: `info`, `abilities`, `search`, `stats`.")
 
     @mcoc.group(name="roster", invoke_without_command=True)
     async def roster(self, ctx, *items: str):
-        """Roster commands help (dynamic).
-
-        Behavior:
-          - no args -> show help
-          - args present -> forward to `roster list <args>`
-        """
-        # No args -> show help
+        """Roster commands help (dynamic). If args provided, forward to roster list subcommand."""
         if not items:
             try:
                 text = self._group_help_text(self.roster, "Roster commands", "Roster commands: `add`, `remove`, `update`, `list`, `import`, `export`, `clear`.")
@@ -208,10 +192,6 @@ class MCOCPrefix(commands.Cog):
             except Exception:
                 await safe_send_ctx(ctx, "Roster commands: `add`, `remove`, `update`, `list`, `import`, `export`, `clear`.")
             return
-
-        # mcoc/prefix/core.py inside @mcoc.group(name="roster", ...)
-        # Args present -> forward to the registered group's list subcommand if available
-# Replace the forwarding block inside MCOCPrefix.roster with this:
 
         # Args present -> forward to the registered group's list subcommand if available
         try:
@@ -222,7 +202,7 @@ class MCOCPrefix(commands.Cog):
                 list_cmd = None
 
             if list_cmd:
-                # ctx.invoke will call the subcommand with the provided args
+                # ctx.invoke accepts a Command object
                 await ctx.invoke(list_cmd, *items)
                 return
 
@@ -254,10 +234,10 @@ class MCOCPrefix(commands.Cog):
     async def account(self, ctx):
         """Account commands help (dynamic)."""
         try:
-            text = self._group_help_text(self.account, "Account commands", "Account commands: `info`, `set`, `link`, `unlink`, `delete`, `privacy`.")
+            text = self._group_help_text(self.account, "Account commands", "Account commands: `info`, `profile`, `set`, `link`, `unlink`, `delete`, `privacy`.")
             await safe_send_ctx(ctx, text)
         except Exception:
-            await safe_send_ctx(ctx, "Account commands: `info`, `set`, `link`, `unlink`, `delete`, `privacy`.")
+            await safe_send_ctx(ctx, "Account commands: `info`, `profile`, `set`, `link`, `unlink`, `delete`, `privacy`.")
 
     @mcoc.group(name="alliance", invoke_without_command=True)
     async def alliance(self, ctx):
@@ -268,37 +248,47 @@ class MCOCPrefix(commands.Cog):
         except Exception:
             await safe_send_ctx(ctx, "Alliance commands: `info`, `create`, `join`, `leave`, `settings`, `manage`.")
 
-
-
-    # in your main cog or a dedicated event cog
+    # ============================================================
+    # Event listeners (guild/role/member hooks)
+    # ============================================================
     @commands.Cog.listener()
     async def on_guild_role_delete(self, role):
-        from ..common.alliance_helpers import _load_alliances, remove_guild_config, get_guild_config
-        cfg = get_guild_config(role.guild.id)
-        if not cfg:
-            return
-        # remove references to deleted role and persist
-        changed = False
-        for k, r in list(cfg.get("roles", {}).items()):
-            if isinstance(r, dict) and r.get("id") == role.id:
-                cfg["roles"].pop(k, None)
-                changed = True
-        if changed:
-            await set_guild_config(role.guild.id, cfg)
+        """
+        Remove references to a deleted role from the alliance config for that guild.
+        """
+        try:
+            cfg = get_guild_config(role.guild.id)
+            if not cfg:
+                return
+            changed = False
+            for k, r in list(cfg.get("roles", {}).items()):
+                if isinstance(r, dict) and r.get("id") == role.id:
+                    cfg["roles"].pop(k, None)
+                    changed = True
+            if changed:
+                set_guild_config(role.guild.id, cfg)
+        except Exception:
+            log.exception("on_guild_role_delete failed for role %s", getattr(role, "id", None))
 
     @commands.Cog.listener()
     async def on_member_update(self, before, after):
-        # detect manual role grants to alliance member role and call join_alliance
-        guild = after.guild
-        cfg = get_guild_config(guild.id)
-        if not cfg:
-            return
-        members_role_id = role_id_for_key(cfg, "members")
-        if members_role_id and any(r.id == members_role_id for r in after.roles) and not any(r.id == members_role_id for r in before.roles):
-            # user was given members role manually
-            await join_alliance(after, guild, role_key="members")
+        """
+        Detect manual role grants to the configured members role and call join_alliance.
+        """
+        try:
+            guild = after.guild
+            cfg = get_guild_config(guild.id)
+            if not cfg:
+                return
+            members_role_id = role_id_for_key(cfg, "members")
+            if members_role_id and any(r.id == members_role_id for r in after.roles) and not any(r.id == members_role_id for r in before.roles):
+                # user was given members role manually
+                await join_alliance(after, guild, role_key="members")
+        except Exception:
+            log.exception("on_member_update failed for member %s", getattr(after, "id", None))
 
 
+# Cog setup for Red (async setup)
 async def setup(bot):
     try:
         await bot.add_cog(MCOCPrefix(bot))

@@ -20,7 +20,7 @@ def parse_query(
     """
 
 from .hargs import parse_harg_list
-from .roster_helpers import parse_roster_entries_from_input
+from .roster import parse_roster_entries_from_input
 from .hargs import parse_hargs
 from typing import Any, Dict, List, Tuple, Optional
 

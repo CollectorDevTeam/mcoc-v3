@@ -7,7 +7,7 @@ from redbot.core import commands
 log = logging.getLogger("red.mcoc.slash.roster")
 
 from ..common.hargs import parse_hargs
-from ..common.roster_helpers import (
+from ..common.roster import (
     ensure_user_manager,
     extract_entry_from_parsed,
     build_roster_pages,

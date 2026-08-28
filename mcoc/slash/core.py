@@ -30,21 +30,21 @@ class MCOCSlash(commands.Cog):
 
     async def _attach_slash_cogs(self):
         try:
-            from .champions_slash import ChampionSlashCog
+            from .champions import ChampionSlashCog
             await self.bot.add_cog(ChampionSlashCog(self.bot))
             log.debug("ChampionSlashCog loaded (slash)")
         except Exception:
             log.exception("Failed to load ChampionSlashCog")
 
         try:
-            from .roster_slash import RosterSlashCog
+            from .roster import RosterSlashCog
             await self.bot.add_cog(RosterSlashCog(self.bot))
             log.debug("RosterSlashCog loaded (slash)")
         except Exception:
             log.exception("Failed to load RosterSlashCog")
 
         try:
-            from .admin_slash import AdminSlashCog
+            from .admin import AdminSlashCog
             await self.bot.add_cog(AdminSlashCog(self.bot))
             log.debug("AdminSlashCog loaded (slash)")
         except Exception:
