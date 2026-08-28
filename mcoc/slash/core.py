@@ -62,11 +62,11 @@ class MCOCSlash(commands.Cog):
             pass
 
 
-async def setup(bot):
-    try:
-        cog = MCOCSlash(bot)
-        await bot.add_cog(cog)
-        bot.mcoc_slash = cog
-        log.debug("MCOCSlash loaded")
-    except Exception:
-        log.exception("Failed to add MCOCSlash")
+# async def setup(bot):
+#     try:
+#         cog = MCOCSlash(bot)
+#         await bot.add_cog(cog)
+#         bot.mcoc_slash = cog
+#         log.debug("MCOCSlash loaded")
+#     except Exception:
+#         log.exception("Failed to add MCOCSlash")
