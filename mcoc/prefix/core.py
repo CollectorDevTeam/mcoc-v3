@@ -12,6 +12,7 @@ Behavior:
 """
 
 from typing import Any, Dict, Optional, Sequence
+from ..common.componentsV2 import CDTEmbed
 import importlib
 import logging
 
@@ -72,25 +73,28 @@ class MCOCPrefix(commands.Cog):
         command with that name exists, forward the invocation to it.
         Otherwise show a short help pointing to top-level commands.
         """
-        # If user provided a subcommand name, attempt to forward
+        # If user provided a subcommand name, attempt to forward (existing logic)...
         if subcommand:
             cmd = self._find_top_command(subcommand)
             if cmd:
                 try:
-                    # ctx.invoke accepts a Command object; pass remaining args
                     await ctx.invoke(cmd, *args)
                     return
                 except Exception:
-                    # If forwarding fails, log and fall through to help
                     log.exception("Forwarding ///mcoc %s to top-level command failed", subcommand)
 
-        # No forwarding possible: show short help and list top-level commands
-        await safe_send_ctx(
-            ctx,
-            "MCOC compatibility root. Use the top-level commands directly:\n"
-            "`///account`, `///roster`, `///alliance`, `///champ`, `///mcocadmin`, `///mcoc status`.\n"
-            "Example: `///account profile @User`."
-        )
+        # No forwarding possible: show attractive embed help (use CDTEmbed)
+        try:
+            emb = CDTEmbed.embed(ctx, title="Challenger Help Menu", color=CDTEmbed.get_color_value(ctx))
+            emb.add_field(name="Syntax", value="`///mcoc [subcommand] [args...]`", inline=False)
+            emb.add_field(name="Description", value="Compatibility root. Use top-level commands directly for faster access.", inline=False)
+            emb.add_field(name="Top-level commands", value="`///account`, `///roster`, `///alliance`, `///champ`, `///mcocadmin`, `///mcoc status`", inline=False)
+            emb.set_footer(text="Type `///help <command>` for more details.")
+            await safe_send_ctx(ctx, None, embed=emb)
+        except Exception:
+            # fallback to text only if embed fails
+            await safe_send_ctx(ctx, "MCOC compatibility root. Use `///account`, `///roster`, `///alliance`, `///champ`, `///mcocadmin`.")
+
 
     @mcoc.command(name="status")
     async def mcoc_status(self, ctx):

@@ -18,6 +18,7 @@ from pathlib import Path
 from discord import File
 from redbot.core import commands
 
+from ..common.cache_status import CacheStatusPoster
 from ..common.componentsV2 import CDTEmbed, CDTConfirm, CDTPagesMenu
 from ..common.prefix_utils import safe_send_ctx
 
@@ -133,6 +134,9 @@ class MCOCAdminPrefix(commands.Cog):
             log.exception("Failed to fetch shared API tokens")
             await safe_send_ctx(ctx, "Failed to fetch shared API tokens.")
 
+    # -------------------------
+    # Sync using CacheStatusPoster
+    # -------------------------
     @commands.is_owner()
     @mcocadmin.command(name="sync")
     async def sync(self, ctx):
@@ -142,91 +146,32 @@ class MCOCAdminPrefix(commands.Cog):
             await safe_send_ctx(ctx, "MCOC core not attached; cache and API unavailable.")
             return
 
-        status_msg = await ctx.send("Starting full cache sync…")
-        update_queue: "asyncio.Queue[str]" = asyncio.Queue()
-        stop_worker = False
+        poster = CacheStatusPoster(ctx, title="MCOC Full Sync")
+        await poster.post_initial()
 
-        async def _worker():
-            last = 0.0
-            min_interval = 1.0
-            while True:
-                try:
-                    pending = await asyncio.wait_for(update_queue.get(), timeout=2.0)
-                except asyncio.TimeoutError:
-                    if stop_worker and update_queue.empty():
-                        break
-                    continue
-                try:
-                    # drain queue to latest
-                    while True:
-                        pending = update_queue.get_nowait()
-                except asyncio.QueueEmpty:
-                    pass
-                now = asyncio.get_event_loop().time()
-                wait = max(0.0, min_interval - (now - last))
-                if wait:
-                    await asyncio.sleep(wait)
-                try:
-                    await status_msg.edit(content=pending)
-                except Exception:
-                    log.exception("Failed to edit status message")
-                finally:
-                    try:
-                        update_queue.task_done()
-                    except Exception:
-                        pass
-                last = asyncio.get_event_loop().time()
-
-        worker_task = asyncio.create_task(_worker())
-
+        # reporter used by cache.sync to provide progress updates
         async def reporter(text: str):
             try:
-                if update_queue.qsize() > 10:
-                    try:
-                        _ = update_queue.get_nowait()
-                    except Exception:
-                        pass
-                try:
-                    update_queue.put_nowait(text)
-                except asyncio.QueueFull:
-                    pass
+                # update a general progress field
+                await poster.update_section("Progress", text)
             except Exception:
-                log.exception("Reporter enqueue failed")
+                log.exception("Reporter failed to update poster")
 
         try:
+            await poster.update_section("Overall", "Starting full sync…")
             updated = await parent.cache.sync(parent.api, progress=reporter)
-            final = "Sync complete." if updated else "No update performed."
-            stop_worker = True
-            try:
-                await update_queue.join()
-            except Exception:
-                pass
-            worker_task.cancel()
-            try:
-                await worker_task
-            except asyncio.CancelledError:
-                pass
-            try:
-                await status_msg.edit(content=f"{final}\nLast update: {datetime.datetime.utcnow().isoformat()}")
-            except Exception:
-                log.exception("Failed to edit final status message")
-            await ctx.send(final)
+            if updated:
+                await poster.update_section("Overall", "Sync complete")
+            else:
+                await poster.update_section("Overall", "No update performed")
+            await poster.update_section("Last update", datetime.datetime.utcnow().isoformat())
+            await ctx.send("Sync finished.")
         except Exception as e:
-            stop_worker = True
-            try:
-                await update_queue.join()
-            except Exception:
-                pass
-            worker_task.cancel()
-            try:
-                await worker_task
-            except asyncio.CancelledError:
-                pass
-            try:
-                await status_msg.edit(content=f"Sync failed: {e}")
-            except Exception:
-                log.exception("Failed to edit failure status message")
             log.exception("Sync failed")
+            try:
+                await poster.update_section("Overall", f"Sync failed: {e}")
+            except Exception:
+                pass
             await safe_send_ctx(ctx, f"Sync failed: {e}")
 
     @commands.is_owner()
@@ -237,20 +182,51 @@ class MCOCAdminPrefix(commands.Cog):
         if not parent:
             await safe_send_ctx(ctx, "MCOC core not attached; cache and API unavailable.")
             return
+
+        poster = CacheStatusPoster(ctx, title="MCOC Force Sync")
+        await poster.post_initial()
+
         try:
-            await ctx.send("Forcing full sync…")
+            await poster.update_section("Overall", "Forcing full sync…")
+
+            await poster.update_section("Champions", "fetching...")
             champions = await parent.api.get_champions()
+            await poster.update_section("Champions", f"fetched: {len(champions)}")
+
+            await poster.update_section("Tags", "fetching...")
             tags = await parent.api.get_tags()
+            await poster.update_section("Tags", f"fetched: {len(tags)}")
+
+            await poster.update_section("Abilities", "fetching...")
             abilities = await parent.api.get_abilities()
+            await poster.update_section("Abilities", f"fetched: {len(abilities)}")
+
+            await poster.update_section("Immunities", "fetching...")
             immunities = await parent.api.get_immunities()
+            await poster.update_section("Immunities", f"fetched: {len(immunities)}")
+
+            await poster.update_section("Saving", "writing to cache...")
             await parent.cache._diff_and_save("champions", champions)
             await parent.cache._diff_and_save("tags", tags)
             await parent.cache._diff_and_save("abilities", abilities)
             await parent.cache._diff_and_save("immunities", immunities)
+            await poster.update_section("Saving", "saved")
+
             try:
-                await parent.cache.check_update_prestige(parent.api, force=False, progress=safe_send_ctx)
+                await poster.update_section("Prestige", "checking/updating...")
+                # pass a reporter that appends prestige progress lines
+                async def prestige_reporter(text: str):
+                    try:
+                        await poster.update_prestige_line(text)
+                    except Exception:
+                        log.exception("Prestige reporter failed")
+                await parent.cache.check_update_prestige(parent.api, force=False, progress=prestige_reporter)
+                await poster.update_section("Prestige", "completed")
             except Exception:
                 log.exception("Prestige check during sync failed")
+                await poster.update_section("Prestige", "failed (see logs)")
+
+            await poster.finalize("Forced sync complete")
             await ctx.send("Forced sync complete.")
         except Exception:
             log.exception("force-sync failed")
@@ -264,20 +240,21 @@ class MCOCAdminPrefix(commands.Cog):
         if not core or not getattr(core, "cache", None) or not getattr(core, "api", None):
             await safe_send_ctx(ctx, "Core/cache/api not available.")
             return
-        status_msg = await ctx.send("Starting prestige update…")
+
+        poster = CacheStatusPoster(ctx, title="Prestige Update")
+        await poster.post_initial()
+        await poster.update_section("Prestige", "starting...")
 
         async def reporter(text: str):
             try:
-                await status_msg.edit(content=text)
+                # prestige progress lines are appended
+                await poster.update_prestige_line(text)
             except Exception:
-                log.exception("Failed to edit prestige status message")
+                log.exception("Prestige reporter failed to update poster")
 
         try:
             updated = await core.cache.check_update_prestige(core.api, force=force, progress=reporter)
-            try:
-                await status_msg.edit(content=f"Prestige update complete. Updated: {updated}")
-            except Exception:
-                pass
+            await poster.update_section("Prestige", f"complete. Updated: {updated}")
             try:
                 close_fn = getattr(core.api, "close", None)
                 if callable(close_fn):
@@ -289,10 +266,11 @@ class MCOCAdminPrefix(commands.Cog):
                             await res
             except Exception:
                 log.exception("Failed to close api session after prestige update")
+            await poster.finalize("Prestige update complete")
         except Exception as e:
             log.exception("Prestige update failed")
             try:
-                await status_msg.edit(content=f"Prestige update failed: {e}")
+                await poster.update_section("Prestige", f"failed: {e}")
             except Exception:
                 pass
             await safe_send_ctx(ctx, f"Prestige update failed: {e}")

@@ -13,9 +13,12 @@ Designed to be a drop-in, modern replacement for mcoc/common/embeds.py with
 preset styling, footer, and optional component (View) generation for V2 components.
 """
 
-from typing import Any, Dict, List, Optional, Tuple
+from asyncio import log
+from typing import Any, Dict, List, Optional, Tuple, Sequence
+from urllib.parse import urlparse
 import discord
 from typing import Optional
+from redbot.logging import log
 
 CDT_LOGO = "https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/cdt_logo.png"
 CDT_ICON = "https://raw.githubusercontent.com/CollectorDevTeam/assets/master/data/cdt_icon.png"
@@ -24,6 +27,7 @@ DOCS_URL = "https://github.com/CollectorDevTeam/CollectorBot"  # example docs li
 # IMPORT_HELP_URL = "https://hook.github.io/champions/#/roster"
 IMPORT_HELP_URL = ""
 CDT_FOOTER_TAG = " | CollectorBot by CollectorDevTeam"
+CDT_FOOTER_TEXT = "Collector | Contest of Champions | CollectorDevTeam"
 
 # Static color palette (hex integers)
 # Picked to be visually distinct and readable on Discord embeds
@@ -55,6 +59,11 @@ NAMED_COLOR_MAP = {
     "default": 0xFFD700,   # use collector gold as default
 }
 
+log.debug("ComponentsV2 module loaded.")
+
+# -------------------------------------
+# HELPERS
+# -------------------------------------
 # Minimal author extraction (works with Context or Member/User)
 def _get_author_info(ctx_or_author: Any) -> Tuple[str, Optional[str]]:
     if ctx_or_author is None:
@@ -71,8 +80,23 @@ def _get_author_info(ctx_or_author: Any) -> Tuple[str, Optional[str]]:
     return (name, avatar)
 
 
-def _brand_footer_text() -> str:
-    return "Collector | Contest of Champions | CollectorDevTeam"
+def _brand_footer() -> Dict[str, Any]:
+    return {
+        "text": CDT_FOOTER_TEXT,
+        "icon_url": CDT_ICON,
+    }
+
+def _is_valid_http_url(url: Optional[str]) -> bool:
+    """
+    Return True if url is a well-formed absolute HTTP/HTTPS URL.
+    """
+    try:
+        if not url or not isinstance(url, str):
+            return False
+        p = urlparse(url)
+        return p.scheme in ("http", "https") and bool(p.netloc)
+    except Exception:
+        return False
 
 
 # The CDTv2 helper class
@@ -81,8 +105,6 @@ class CDTEmbed:
     Static helpers to build branded embeds and optional component Views.
     Use the synchronous API (no awaits required).
     """
-
-
     def _get_color_value(ctx_or_author: Any = None, color_param: Any = None, class_name: Optional[str] = None) -> int:
         """
         Resolve an integer color value for embeds without importing discord.
@@ -138,15 +160,16 @@ class CDTEmbed:
     def embed(
         ctx_or_author: Any = None,
         *,
-        title: str = "",
+        color: Any = CLASS_COLOR_MAP.get("default"),
         description: str = "",
-        color: Any = None,
-        image: Optional[str] = CLASS_COLOR_MAP.get("default"),
+        footer: Optional[Dict[str, Any]] = None,
+        image: Optional[str] = None,
         thumbnail: Optional[str] = CDT_LOGO,
+        title: str = "",
         url: str = None,
-        footer_text: Optional[str] = None,
-        footer_url: Optional[str] = CDT_ICON,
-        include_brand_button_row: bool = True,
+        # footer_text: Optional[str] = None,
+        # footer_icon: Optional[str] = CDT_LOGO,
+        # include_brand_button_row: bool = True,
     ) -> Any:
         """
         Build a branded embed. Returns a discord.Embed when discord is available,
@@ -166,7 +189,7 @@ class CDTEmbed:
                 "thumbnail": thumbnail or CDT_LOGO,
                 "url": url,
                 "author": _get_author_info(ctx_or_author),
-                "footer": (footer_text or "") + CDT_FOOTER_TAG if footer_text is not None else _brand_footer_text(),
+                "footer": footer or _brand_footer(),
             }
 
         # Determine color: prefer author's color if available
@@ -189,35 +212,76 @@ class CDTEmbed:
             except Exception:
                 pass
 
-        # Images
-        if image:
+        # Images (validate)
+        if image and _is_valid_http_url(image):
             try:
                 emb.set_image(url=image)
             except Exception:
                 pass
-
         try:
-            emb.set_thumbnail(url=thumbnail or CDT_LOGO)
+            if _is_valid_http_url(thumbnail or CDT_LOGO):
+                emb.set_thumbnail(url=thumbnail or CDT_LOGO)
         except Exception:
             pass
 
-        # Footer: ensure deterministic brand tag + optional custom footer_text
+        # Footer
         try:
-            if footer_text is None:
-                # use default brand footer
-                footer_final = _brand_footer_text()
-            else:
-                # if caller passed an explicit footer_text (possibly empty string),
-                # append the CDT_FOOTER_TAG to ensure consistent branding
-                footer_final = (footer_text or "") + CDT_FOOTER_TAG
-            emb.set_footer(text=footer_final, icon_url=footer_url or CDT_ICON)
+            footer_final = footer or _brand_footer()
+            emb.set_footer(text=footer_final.get("text"), icon_url=footer_final.get("icon_url", CDT_LOGO))
         except Exception:
             pass
-
-
-
 
         return emb
+
+    # Author setter wrapper matching discord.Embed.set_author signature
+    def set_author(ctx_or_author: Any, emb: "discord.Embed", *, name: str, url: Optional[str] = None, icon_url: Optional[str] = None) -> "discord.Embed":
+        try:
+            # validate icon_url if provided
+            if icon_url and not _is_valid_http_url(icon_url):
+                icon_url = None
+            emb.set_author(name=name, url=url, icon_url=icon_url)
+        except Exception:
+            try:
+                emb.set_author(name=name)
+            except Exception:
+                pass
+        return emb
+
+    # Field helpers (add_field already existed; ensure signature parity)
+    def add_field(ctx_or_author: Any, emb: "discord.Embed", *, name: str, value: str, inline: bool = True) -> "discord.Embed":
+        try:
+            emb.add_field(name=name, value=value, inline=inline)
+        except Exception:
+            pass
+        return emb
+
+    def insert_field_at(ctx_or_author: Any, emb: "discord.Embed", index: int, *, name: str, value: str, inline: bool = True) -> "discord.Embed":
+        try:
+            emb.insert_field_at(index=index, name=name, value=value, inline=inline)
+        except Exception:
+            pass
+        return emb
+
+    def set_field_at(ctx_or_author: Any, emb: "discord.Embed", index: int, *, name: str, value: str, inline: bool = True) -> "discord.Embed":
+        try:
+            emb.set_field_at(index=index, name=name, value=value, inline=inline)
+        except Exception:
+            pass
+        return emb
+
+    def set_footer(ctx_or_author: Any, emb: "discord.Embed", *, text: Optional[str] = None, icon_url: Optional[str] = None) -> "discord.Embed":
+        try:
+            if icon_url and not _is_valid_http_url(icon_url):
+                icon_url = None
+            if text is None:
+                footer_final = CDT_FOOTER_TEXT
+            else:
+                footer_final = (text or "")
+            emb.set_footer(text=footer_final, icon_url=icon_url or CDT_LOGO)
+        except Exception:
+            pass
+        return emb
+
 
     @staticmethod
     def champion_embed(ctx_or_author: Any, champ: Dict[str, Any]) -> Any:
@@ -337,22 +401,25 @@ class CDTEmbed:
             return buttons
 
         view = discord.ui.View()
-        # Add buttons as Link buttons (no callback required)
         if include_patreon:
             try:
-                view.add_item(discord.ui.Button(label=patreon_label, url=PATREON, style=discord.ButtonStyle.link))
+                if _is_valid_http_url(PATREON):
+                    view.add_item(discord.ui.Button(label=patreon_label, url=PATREON, style=discord.ButtonStyle.link))
             except Exception:
                 pass
         if include_docs:
             try:
-                view.add_item(discord.ui.Button(label=docs_label, url=DOCS_URL, style=discord.ButtonStyle.link))
+                if _is_valid_http_url(DOCS_URL):
+                    view.add_item(discord.ui.Button(label=docs_label, url=DOCS_URL, style=discord.ButtonStyle.link))
             except Exception:
                 pass
         if include_import_help:
             try:
-                view.add_item(discord.ui.Button(label=import_label, url=IMPORT_HELP_URL, style=discord.ButtonStyle.link))
+                if _is_valid_http_url(IMPORT_HELP_URL):
+                    view.add_item(discord.ui.Button(label=import_label, url=IMPORT_HELP_URL, style=discord.ButtonStyle.link))
             except Exception:
                 pass
+
 
         return view
 
@@ -414,8 +481,6 @@ class CDTPagesMenu(discord.ui.View):
         self.message: Optional[discord.Message] = None
         self.show_brand = show_brand
 
-
-
     async def _render_page(self):
         page = self.pages[self.index]
         if isinstance(page, discord.Embed):
@@ -441,28 +506,52 @@ class CDTPagesMenu(discord.ui.View):
                 pass
         return emb
 
+    # In CDTPagesMenu._render_page: preserve existing behavior but ensure embed is a discord.Embed
+    # (no change needed beyond image/thumbnail validation already applied in CDTEmbed.embed)
+
+    # In CDTPagesMenu.start: wrap ctx.send in a try/except and retry sanitized embed
     async def start(self, ctx: discord.Interaction | discord.ext.commands.Context):
         emb = await self._render_page()
         view = self
         if self.show_brand:
             try:
                 brand = CDTEmbed.brand_view()
-                # merge brand view children into this view
                 for item in getattr(brand, "children", []):
                     try:
+                        # only add items with valid link URLs (brand_view already validated)
                         self.add_item(item)
                     except Exception:
-                        # some items may not be addable; ignore
                         pass
             except Exception:
                 pass
 
-        if hasattr(ctx, "send"):
-            self.message = await ctx.send(embed=emb, view=view)
-        else:
-            await ctx.response.send_message(embed=emb, view=view)
-            self.message = await ctx.original_response()
-
+        # Try sending; if it fails due to invalid embed content, retry with sanitized embed
+        try:
+            if hasattr(ctx, "send"):
+                self.message = await ctx.send(embed=emb, view=view)
+            else:
+                await ctx.response.send_message(embed=emb, view=view)
+                self.message = await ctx.original_response()
+        except Exception:
+            # Log and attempt a sanitized retry (remove image/thumbnail)
+            try:
+                log.exception("CDTPagesMenu.start failed; retrying with sanitized embed")
+                try:
+                    emb.set_image(url=None)
+                except Exception:
+                    pass
+                try:
+                    emb.set_thumbnail(url=None)
+                except Exception:
+                    pass
+                if hasattr(ctx, "send"):
+                    self.message = await ctx.send(embed=emb, view=view)
+                else:
+                    await ctx.response.send_message(embed=emb, view=view)
+                    self.message = await ctx.original_response()
+            except Exception:
+                log.exception("CDTPagesMenu.start retry failed; aborting")
+                raise
 
     # Buttons
     @discord.ui.button(emoji="⏮️", style=discord.ButtonStyle.secondary)
