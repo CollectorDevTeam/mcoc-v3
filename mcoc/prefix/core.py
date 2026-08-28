@@ -114,11 +114,11 @@ class MCOCPrefix(commands.Cog):
                 log.exception("Failed to import registrar module for %s", name)
 
         # Attach known registrars (module paths are relative to mcoc.prefix)
-        _try_attach("account", ".account_prefix", "account")
-        _try_attach("alliance", ".alliance_prefix", "alliance")
-        _try_attach("champions", ".champions_prefix", "champ")
-        _try_attach("roster", ".roster_prefix", "roster")
-        _try_attach("admin", ".mcocadmin_prefix", "admin")
+        _try_attach("account", ".account", "account")
+        _try_attach("alliance", ".alliance", "alliance")
+        _try_attach("champions", ".champions", "champ")
+        _try_attach("roster", ".roster", "roster")
+        _try_attach("admin", ".mcocadmin", "admin")
 
     # ============================================================
     # Top-level group and status
