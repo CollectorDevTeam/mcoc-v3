@@ -9,6 +9,7 @@ CLASS_EMOJI = {
     "mystic": "<:mystic:748808953701335080>",
     "cosmic": "<:cosmic:748808707328180265>",
     "science": "<:science:748809185398882404>",
+    "ascended": "<:ascend:1137124043506585691>"
 }
 
 def format_champion_line(champ_obj: Optional[Dict[str, Any]], entry: Dict[str, Any]) -> str:
@@ -32,11 +33,10 @@ def format_champion_line(champ_obj: Optional[Dict[str, Any]], entry: Dict[str, A
     rank = int(entry.get("rank") or 1)
     asc = int(entry.get("ascended") or 0)
 
-    # tier-or-tierAscended: prefer showing ascension when asc > 0 for 6/7 tiers
-    if rarity >= 6 and asc:
-        tier_text = f"{rarity}A{asc}"
+    if asc > 0:
+        asc_emoji = CLASS_EMOJI.get("ascended", "")
     else:
-        tier_text = f"{rarity}"
+        asc_emoji = ""
 
     # star display: use a star glyph and show rarity number before it
     star_glyph = "★"
@@ -49,4 +49,4 @@ def format_champion_line(champ_obj: Optional[Dict[str, Any]], entry: Dict[str, A
     cls_emoji = CLASS_EMOJI.get(cls, CLASS_EMOJI["all"])
 
     # final line
-    return f"{cls_emoji} {tier_text} {star_display} **{name}** r{rank} {sig_text}"
+    return f"{cls_emoji} {rarity} {star_display} {name} | r{rank} {sig_text} {asc_emoji}"
