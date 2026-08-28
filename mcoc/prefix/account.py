@@ -85,10 +85,12 @@ class AccountPrefix(commands.Cog):
             return False
         return True
 
+
+
     # -----------------------------
     # Group and aliases
     # -----------------------------
-    @commands.group(name="account", invoke_without_command=True)
+    @commands.group(name="account", names=["profile"], invoke_without_command=True)
     async def account(self, ctx, member: Optional[Any] = None):
         """
         Top-level account command.
@@ -100,12 +102,6 @@ class AccountPrefix(commands.Cog):
             return
         prefix = get_runtime_prefix(ctx, default="///")
         await safe_send_ctx(ctx, f"Account commands: info, profile, set, link, unlink, delete, privacy, settings. Use `{prefix}mcoc account help` for details.")
-
-    # alias: ///mcoc profile -> account profile
-    @commands.command(name="profile")
-    async def profile_alias(self, ctx, member: Optional[Any] = None):
-        """Alias for `mcoc account profile`."""
-        await self.account_profile(ctx, member=member)
 
     @account.command(name="help")
     async def account_help(self, ctx):
@@ -417,5 +413,5 @@ class AccountPrefix(commands.Cog):
         log.debug("Account registrar attached to group (legacy)")
 
 # Cog setup for Red (if used as a cog)
-def setup(bot):
+async def setup(bot):
     bot.add_cog(AccountPrefix(bot))

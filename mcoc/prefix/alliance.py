@@ -464,5 +464,5 @@ class AlliancePrefix(commands.Cog):
 
 
 # Cog setup for Red (if used as a cog)
-def setup(bot):
+async def setup(bot):
     bot.add_cog(AlliancePrefix(bot))

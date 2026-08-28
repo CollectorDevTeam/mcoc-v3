@@ -256,3 +256,6 @@ class RosterPrefix(commands.Cog):
             log.exception("Unexpected error in roster_list")
             await safe_send_ctx(ctx, "An unexpected error occurred while building roster pages.")
             return
+
+async def setup(bot):
+    bot.add_cog(RosterPrefix(bot))

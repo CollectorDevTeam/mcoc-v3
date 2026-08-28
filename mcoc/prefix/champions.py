@@ -53,7 +53,7 @@ class ChampionsPrefix(commands.Cog):
     # -----------------------------
     # Champion search
     # -----------------------------
-    @commands.group(name="champ", invoke_without_command=True)
+    @commands.group(name="champ", names=["champions"], invoke_without_command=True)
     async def champ(self, ctx):
         """Champion commands: search, abilities, info."""
         await safe_send_ctx(ctx, "Champion commands: search, abilities, info.")
@@ -273,3 +273,7 @@ class ChampionsPrefix(commands.Cog):
         except Exception:
             log.exception("Failed to render champion info for %s", name)
             await safe_send_ctx(ctx, "Champion info unavailable.")
+
+# Cog setup for Red (if used as a cog)
+async def setup(bot):
+    bot.add_cog(ChampionsPrefix(bot))
