@@ -83,7 +83,7 @@ def _get_author_info(ctx_or_author: Any) -> Tuple[str, Optional[str]]:
 def _brand_footer() -> Dict[str, Any]:
     return {
         "text": CDT_FOOTER_TEXT,
-        "icon_url": CDT_ICON,
+        "icon_url": CDT_LOGO,
     }
 
 def _is_valid_http_url(url: Optional[str]) -> bool:
@@ -191,7 +191,7 @@ class CDTEmbed:
                 "author": _get_author_info(ctx_or_author),
                 "footer": footer or {
                     "text": footer_text or (CDT_FOOTER_TEXT),
-                    "icon_url": footer_icon or (CDT_ICON),
+                    "icon_url": footer_icon or (CDT_LOGO),
                 },
             }
 

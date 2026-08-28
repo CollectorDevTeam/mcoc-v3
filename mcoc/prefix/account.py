@@ -123,36 +123,39 @@ class AccountPrefix(commands.Cog):
         # If we have an embed object, add fields in a compact, attractive layout
         if emb is not None:
             # group fields into categories for readability
-            personal = ["display_name", "mcoc_name", "mcoc_id", "about", "website", "invite"]
-            meta = ["alliance", "job", "timezone", "region", "age", "gender", "started"]
-            privacy = ["roster_public", "privacy_mode", "linked"]
-
             def add_field_list(name, keys):
                 lines = []
                 for k in keys:
-                    meta_info = ALLOWED_PROFILE_FIELDS.get(k) or {}
-                    desc = meta_info.get("desc", "")
+                    meta = ALLOWED_PROFILE_FIELDS.get(k) or {}
+                    desc = meta.get("desc", "") if isinstance(meta, dict) else str(meta)
+                    # show canonical key exactly as users must type it
                     lines.append(f"**{k}** — {desc}")
                 try:
                     emb.add_field(name=name, value="\n".join(lines), inline=False)
                 except Exception:
                     pass
 
+            # Choose groups using canonical keys present in ALLOWED_PROFILE_FIELDS
+            personal = [k for k in ("display_name", "mcoc_name", "mcoc_id", "about", "website", "invite") if k in ALLOWED_PROFILE_FIELDS]
+            meta = [k for k in ("alliance", "job", "timezone", "region", "age", "gender", "started") if k in ALLOWED_PROFILE_FIELDS]
+            privacy = [k for k in ("roster_public", "privacy_mode", "linked") if k in ALLOWED_PROFILE_FIELDS]
+
             add_field_list("Personal", personal)
             add_field_list("Meta / Play", meta)
             add_field_list("Privacy / Flags", privacy)
 
-            # compact examples field
+            # Examples: use canonical keys (map user-visible aliases to canonical via FIELD_CANONICAL if needed)
             examples = [
-                f"`{prefix}mcoc account set mcoc-name \"jjw\"`",
-                f"`{prefix}mcoc account set start-date \"Oct 15, 2015\"`",
-                f"`{prefix}mcoc account set timezone \"America/Chicago\"`",
-                f"`{prefix}mcoc account set region \"US\"`",
+                f"`{prefix}account set mcoc_name \"jjw\"`",
+                f"`{prefix}account set started \"2015-10-15\"`",
+                f"`{prefix}account set timezone \"America/Chicago\"`",
+                f"`{prefix}account set region \"US\"`",
             ]
             try:
                 emb.add_field(name="Quick examples", value="\n".join(examples), inline=False)
             except Exception:
                 pass
+
 
             try:
                 await safe_send_ctx(ctx, None, embed=emb)
@@ -229,6 +232,13 @@ class AccountPrefix(commands.Cog):
             users = ensure_user_manager(self.parent)
             profile = users.get_profile(ctx.author.id) or {}
             settings = get_profile_settings(profile)
+            # humanize started if present
+            if "started" in settings:
+                try:
+                    settings["started"] = self._format_playing_since(settings.get("started"))
+                except Exception:
+                    pass
+
             # present attractively
             try:
                 emb = CDTEmbed.embed(ctx.author, title="Your Account Settings", description="Current saved preferences")
@@ -272,14 +282,21 @@ class AccountPrefix(commands.Cog):
 
         field = (field or "").strip()
         # normalize common aliases (allow hyphens and underscores)
-        canonical_field = field.replace("-", "_")
+        field_raw = (field or "").strip()
+        canonical_field = field_raw.replace("-", "_").lower()
         # map user-visible names to stored keys if present
         stored_key = FIELD_CANONICAL.get(canonical_field, canonical_field)
 
-        if not validate_profile_field(canonical_field) and stored_key not in FIELD_CANONICAL.values():
+        # validate against allowed fields (use canonical stored_key)
+        if stored_key not in ALLOWED_PROFILE_FIELDS and not validate_profile_field(canonical_field):
             allowed = ", ".join(sorted(ALLOWED_PROFILE_FIELDS.keys()))
-            await safe_send_ctx(ctx, f"Invalid field. Allowed fields: {allowed}")
+            await safe_send_ctx(ctx, f"Invalid field. Allowed fields: {allowed}\nTip: common aliases: `mcoc-name` -> `mcoc_name`, `start-date` -> `started`")
             return
+
+        # if not validate_profile_field(canonical_field) and stored_key not in FIELD_CANONICAL.values():
+        #     allowed = ", ".join(sorted(ALLOWED_PROFILE_FIELDS.keys()))
+        #     await safe_send_ctx(ctx, f"Invalid field. Allowed fields: {allowed}\nTip: common aliases: `mcoc-name` -> `mcoc_name`, `start-date` -> `started`")
+        #     return
 
         # allow clearing with explicit empty string
         if value is None:
@@ -371,6 +388,10 @@ class AccountPrefix(commands.Cog):
         except Exception:
             log.exception("Failed to delete user data")
             await safe_send_ctx(ctx, "Failed to delete profile.")
+
+    # -----------------------------
+    # Additional account-related commands can be added here
+    # -----------------------------
 
     # -----------------------------
     # Registrar helper for legacy registration (optional)
