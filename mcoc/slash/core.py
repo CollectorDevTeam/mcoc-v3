@@ -28,27 +28,27 @@ class MCOCSlash(commands.Cog):
         except Exception:
             log.exception("Failed to attach slash cogs in cog_load")
 
-    async def _attach_slash_cogs(self):
-        try:
-            from .champions import ChampionSlashCog
-            await self.bot.add_cog(ChampionSlashCog(self.bot))
-            log.debug("ChampionSlashCog loaded (slash)")
-        except Exception:
-            log.exception("Failed to load ChampionSlashCog")
+    # async def _attach_slash_cogs(self):
+    #     try:
+    #         from .champions import ChampionSlashCog
+    #         await self.bot.add_cog(ChampionSlashCog(self.bot))
+    #         log.debug("ChampionSlashCog loaded (slash)")
+    #     except Exception:
+    #         log.exception("Failed to load ChampionSlashCog")
 
-        try:
-            from .roster import RosterSlashCog
-            await self.bot.add_cog(RosterSlashCog(self.bot))
-            log.debug("RosterSlashCog loaded (slash)")
-        except Exception:
-            log.exception("Failed to load RosterSlashCog")
+    #     try:
+    #         from .roster import RosterSlashCog
+    #         await self.bot.add_cog(RosterSlashCog(self.bot))
+    #         log.debug("RosterSlashCog loaded (slash)")
+    #     except Exception:
+    #         log.exception("Failed to load RosterSlashCog")
 
-        try:
-            from .admin import AdminSlashCog
-            await self.bot.add_cog(AdminSlashCog(self.bot))
-            log.debug("AdminSlashCog loaded (slash)")
-        except Exception:
-            log.debug("AdminSlashCog not present (optional)")
+    #     try:
+    #         from .admin import AdminSlashCog
+    #         await self.bot.add_cog(AdminSlashCog(self.bot))
+    #         log.debug("AdminSlashCog loaded (slash)")
+    #     except Exception:
+    #         log.debug("AdminSlashCog not present (optional)")
 
     @commands.Cog.listener()
     async def on_ready(self):

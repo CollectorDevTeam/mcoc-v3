@@ -167,8 +167,8 @@ class CDTEmbed:
         thumbnail: Optional[str] = CDT_LOGO,
         title: str = "",
         url: str = None,
-        # footer_text: Optional[str] = None,
-        # footer_icon: Optional[str] = CDT_LOGO,
+        footer_text: Optional[str] = None,
+        footer_icon: Optional[str] = CDT_LOGO,
         # include_brand_button_row: bool = True,
     ) -> Any:
         """
@@ -189,7 +189,10 @@ class CDTEmbed:
                 "thumbnail": thumbnail or CDT_LOGO,
                 "url": url,
                 "author": _get_author_info(ctx_or_author),
-                "footer": footer or _brand_footer(),
+                "footer": footer or {
+                    "text": footer_text or (CDT_FOOTER_TEXT),
+                    "icon_url": footer_icon or (CDT_ICON),
+                },
             }
 
         # Determine color: prefer author's color if available
