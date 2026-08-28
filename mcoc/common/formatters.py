@@ -49,4 +49,4 @@ def format_champion_line(champ_obj: Optional[Dict[str, Any]], entry: Dict[str, A
     cls_emoji = CLASS_EMOJI.get(cls, CLASS_EMOJI["all"])
 
     # final line
-    return f"{cls_emoji} {rarity} {star_display} {name} | r{rank} {sig_text} {asc_emoji}"
+    return f"{cls_emoji} {star_display} {name} r{rank} {sig_text} {asc_emoji}"
