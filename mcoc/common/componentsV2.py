@@ -164,11 +164,11 @@ class CDTEmbed:
         description: str = "",
         footer: Optional[Dict[str, Any]] = None,
         image: Optional[str] = None,
-        thumbnail: Optional[str] = CDT_LOGO,
+        thumbnail: Optional[str] = None,
         title: str = "",
         url: str = None,
         footer_text: Optional[str] = None,
-        footer_icon: Optional[str] = CDT_LOGO,
+        footer_icon: Optional[str] = CDT_ICON,
         # include_brand_button_row: bool = True,
     ) -> Any:
         """

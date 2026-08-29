@@ -15,12 +15,15 @@ import asyncio
 import logging
 from pathlib import Path
 
-from discord import File
+import discord
 from redbot.core import commands
 
 from ..common.cache_status import CacheStatusPoster
 from ..common.componentsV2 import CDTEmbed, CDTConfirm, CDTPagesMenu
+from ..common.feature_system import CDTEntitlements
 from ..common.prefix_utils import safe_send_ctx
+
+
 
 log = logging.getLogger("red.mcoc.prefix")
 
@@ -54,6 +57,73 @@ class MCOCAdminPrefix(commands.Cog):
     # -------------------------
     # Owner-only utilities
     # -------------------------
+    @mcocadmin.command(name="features")
+    async def features(self, ctx):
+        """List all features and their status for this guild."""
+        guild_cfg = CDTEntitlements.get_guild_config(ctx.guild.id)
+
+        emb = CDTEmbed.embed(ctx, title="Feature Flags")
+
+        for fname, meta in CDTEntitlements.FEATURES.items():
+            enabled = guild_cfg.feature_flags.get(fname, False)
+            tier = meta["tier"]
+            desc = meta["description"]
+            emb.add_field(
+                name=f"{fname} ({tier})",
+                value=f"{'ENABLED' if enabled else 'disabled'}\n{desc}",
+                inline=False
+            )
+
+        await safe_send_ctx(ctx, None, embed=emb)
+
+    @mcocadmin.command(name="feature-enable")
+    async def feature_enable(self, ctx, feature: str):
+        """Enable a feature for this guild."""
+        guild_cfg = CDTEntitlements.get_guild_config(ctx.guild.id)
+
+        if feature not in CDTEntitlements.FEATURES:
+            await safe_send_ctx(ctx, f"Unknown feature: {feature}")
+            return
+
+        guild_cfg.set_flag(feature, True)
+        CDTEntitlements.log_action(guild_cfg, ctx.author.id, "enable_feature", feature)
+
+        await safe_send_ctx(ctx, f"Feature `{feature}` enabled.")
+
+    @mcocadmin.command(name="feature-disable")
+    async def feature_disable(self, ctx, feature: str):
+        """Disable a feature for this guild."""
+        guild_cfg = CDTEntitlements.get_guild_config(ctx.guild.id)
+
+        if feature not in CDTEntitlements.FEATURES:
+            await safe_send_ctx(ctx, f"Unknown feature: {feature}")
+            return
+
+        guild_cfg.set_flag(feature, False)
+        CDTEntitlements.log_action(guild_cfg, ctx.author.id, "disable_feature", feature)
+
+        await safe_send_ctx(ctx, f"Feature `{feature}` disabled.")
+
+    @mcocadmin.command(name="feature-map-roles")
+    @commands.has_permissions(administrator=True)
+    async def feature_map_roles(self, ctx, feature: str, *roles: discord.Role):
+        if feature not in CDTEntitlements.FEATURES:
+            await safe_send_ctx(ctx, f"Unknown feature: {feature}")
+            return
+        guild_cfg = CDTEntitlements.get_guild_config(ctx.guild.id)
+        for role in roles:
+            key = f"role:{role.id}"
+            ent = guild_cfg.entitlements.get(key) or {}
+            tier = CDTEntitlements.FEATURES[feature]["tier"]
+            if tier == "subscriber":
+                ent["subscriber"] = True
+            if tier == "guild_owner_plus":
+                ent["guild_owner_plus"] = True
+            guild_cfg.entitlements[key] = ent
+            CDTEntitlements.log_action(guild_cfg, ctx.author.id, "map_role_feature", f"{role.id} -> {feature}")
+        CDTEntitlements.set_guild_config(ctx.guild.id, guild_cfg)
+        await safe_send_ctx(ctx, f"Mapped roles {[r.name for r in roles]} to {feature}")
+
     @commands.is_owner()
     @mcocadmin.command(name="status")
     async def status(self, ctx):
@@ -347,13 +417,13 @@ class MCOCAdminPrefix(commands.Cog):
             bio.seek(0)
             filename = f"{kind}-{key}.json"
             try:
-                await ctx.send(file=File(bio, filename=filename))
+                await ctx.send(file=discord.File(bio, filename=filename))
             except Exception:
                 # fallback: send truncated inline then file
                 await ctx.send(f"Large payload; sending first {MAX_INLINE} chars:\n```json\n{payload[:MAX_INLINE]}\n```")
                 bio.seek(0)
                 try:
-                    await ctx.send(file=File(bio, filename=filename))
+                    await ctx.send(file=discord.File(bio, filename=filename))
                 except Exception:
                     log.exception("Failed to send dump file")
 

@@ -13,6 +13,8 @@ Behavior:
 
 from typing import Any, Dict, Optional, Sequence
 from ..common.componentsV2 import CDTEmbed
+from ..common.feature_system import CDTEntitlements
+
 import importlib
 import logging
 
@@ -204,6 +206,34 @@ class MCOCPrefix(commands.Cog):
                 log.exception("Failed to forward ///mcoc admin to ///mcocadmin")
         await safe_send_ctx(ctx, "Admin commands: status, sync, debug. Use ///mcocadmin for top-level access.")
 
+    def apply_role_entitlements_to_user(guild_cfg, role_id, user_id):
+        role_key = f"role:{role_id}"
+        role_ent = guild_cfg.entitlements.get(role_key)
+        if not role_ent:
+            return
+        user_key = f"user:{user_id}"
+        user_ent = guild_cfg.entitlements.get(user_key) or CDTEntitlements.UserEntitlement()
+        user_ent.subscriber = user_ent.subscriber or getattr(role_ent, "subscriber", False)
+        user_ent.guild_owner_plus = user_ent.guild_owner_plus or getattr(role_ent, "guild_owner_plus", False)
+        if getattr(role_ent, "expires_at", None):
+            user_ent.expires_at = role_ent.expires_at
+        guild_cfg.entitlements[user_key] = user_ent
+        CDTEntitlements.set_guild_config(guild_cfg.guild_id, guild_cfg)
+        CDTEntitlements.log_action(guild_cfg, 0, "apply_role_entitlement", f"role:{role_id} -> user:{user_id}")
+
+    def render_group_help_embed(ctx, group: commands.Group, title: str, fallback: str = ""):
+        text = ""
+        try:
+            text = MCOCPrefix._group_help_text(None, group, title, fallback)  # or call instance method appropriately
+        except Exception:
+            text = fallback or title
+        emb = CDTEmbed.embed(ctx, title=title, description=text)
+        try:
+            CDTEmbed.set_footer(ctx, emb, footer_text="Type ///help <command> for details")
+        except Exception:
+            pass
+        return emb
+
     # -------------------------
     # Event listeners (guild/role/member hooks)
     # -------------------------
@@ -228,18 +258,29 @@ class MCOCPrefix(commands.Cog):
 
     @commands.Cog.listener()
     async def on_member_update(self, before, after):
-        """
-        Detect manual role grants to the configured members role and call join_alliance.
-        """
         try:
             guild = after.guild
             cfg = get_guild_config(guild.id)
             if not cfg:
                 return
+            before_ids = {r.id for r in before.roles}
+            after_ids = {r.id for r in after.roles}
+            added = after_ids - before_ids
+            removed = before_ids - after_ids
+
+            for rid in added:
+                if f"role:{rid}" in cfg.get("entitlements", {}):
+                    CDTEntitlements.apply_role_entitlements_to_user(cfg, rid, after.id)
+
+            for rid in removed:
+                if f"role:{rid}" in cfg.get("entitlements", {}):
+                    CDTEntitlements.remove_role_entitlements_from_user(cfg, rid, after.id)
+
+            # existing members role behavior
             members_role_id = role_id_for_key(cfg, "members")
-            if members_role_id and any(r.id == members_role_id for r in after.roles) and not any(r.id == members_role_id for r in before.roles):
-                # user was given members role manually
+            if members_role_id and members_role_id in added:
                 await join_alliance(after, guild, role_key="members")
+            
         except Exception:
             log.exception("on_member_update failed for member %s", getattr(after, "id", None))
 
