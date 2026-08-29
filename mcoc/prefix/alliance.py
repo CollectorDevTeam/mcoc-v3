@@ -15,6 +15,7 @@ from redbot.core import commands
 
 from ..common.componentsV2 import CDTEmbed, CDTConfirm, CDTPagesMenu
 from ..common.prefix_utils import safe_send_ctx
+from ..common.help_utils import send_or_brand_help
 from ..common.alliance import (
     get_guild_config, set_guild_config, register_alliance, create_or_link_role,
     join_alliance, leave_alliance, is_leader_or_officer, is_leader,
@@ -45,7 +46,7 @@ class AlliancePrefix(commands.Cog):
             f"`{prefix}mcoc alliance manage` — management overview and quick actions\n"
             f"`{prefix}mcoc alliance profile [@member]` — show alliance or member profile\n"
         )
-        await safe_send_ctx(ctx, help_text)
+        await send_or_brand_help(ctx, "alliance", title="Alliance Help", fallback_text=help_text)
 
     # -----------------------------
     # Create / template

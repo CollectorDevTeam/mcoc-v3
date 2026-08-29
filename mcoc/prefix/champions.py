@@ -23,6 +23,7 @@ from ..common.champions import make_champion_pager, get_champion_pages
 from ..common.query_parser import parse_query
 from ..common.componentsV2 import CDTEmbed, CDTPagesMenu
 from ..common.prefix_utils import safe_send_ctx
+from ..common.help_utils import send_or_brand_help
 
 log = logging.getLogger("red.mcoc.prefix.champions")
 
@@ -56,7 +57,7 @@ class ChampionsPrefix(commands.Cog):
     @commands.group(name="champ", names=["champions"], invoke_without_command=True)
     async def champ(self, ctx):
         """Champion commands: search, abilities, info."""
-        await safe_send_ctx(ctx, "Champion commands: search, abilities, info.")
+        await send_or_brand_help(ctx, "champions", title="Champion Help", fallback_text="Champion commands: search, abilities, info.")
 
     @champ.command(name="search")
     async def champ_search(self, ctx, *items: str):

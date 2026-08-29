@@ -25,6 +25,7 @@ from ..common.roster import ensure_user_manager, get_roster_pages, make_roster_p
 from ..common.query_parser import parse_query
 from ..common.componentsV2 import CDTEmbed, CDTPagesMenu
 from ..common.prefix_utils import safe_send_ctx
+from ..common.help_utils import send_or_brand_help 
 
 log = logging.getLogger("red.mcoc.prefix.roster")
 
@@ -77,7 +78,7 @@ class RosterPrefix(commands.Cog):
     @commands.group(name="roster", invoke_without_command=True)
     async def roster(self, ctx):
         """Top-level roster group help."""
-        await safe_send_ctx(ctx, "Roster commands: add, remove, update, list, export, clear.")
+        await send_or_brand_help(ctx, "roster", title="Roster Help", fallback_text="Roster commands: add, remove, update, list, export, clear.")
 
     # -----------------------------
     # List (filters)

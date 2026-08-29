@@ -21,6 +21,7 @@ from redbot.core import commands
 from ..common.cache_status import CacheStatusPoster
 from ..common.componentsV2 import CDTEmbed, CDTConfirm, CDTPagesMenu
 from ..common.feature_system import CDTEntitlements
+from ..common.help_utils import send_or_brand_help
 from ..common.prefix_utils import safe_send_ctx
 
 
@@ -52,7 +53,7 @@ class MCOCAdminPrefix(commands.Cog):
         """Admin commands for MCOC (development / fallback)."""
         if not args:
             # show help for this group
-            await ctx.send_help("mcocadmin")
+            await send_or_brand_help(ctx, "mcocadmin", title="MCOC Admin Help", fallback_text="Admin commands for MCOC (development / fallback).")
 
     # -------------------------
     # Owner-only utilities

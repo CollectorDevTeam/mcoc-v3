@@ -186,7 +186,7 @@ class CDTEmbed:
                 "description": description,
                 "color": color,
                 "image": image,
-                "thumbnail": thumbnail or CDT_LOGO,
+                "thumbnail": thumbnail,
                 "url": url,
                 "author": _get_author_info(ctx_or_author),
                 "footer": footer or {
@@ -222,15 +222,15 @@ class CDTEmbed:
             except Exception:
                 pass
         try:
-            if _is_valid_http_url(thumbnail or CDT_LOGO):
-                emb.set_thumbnail(url=thumbnail or CDT_LOGO)
+            if _is_valid_http_url(thumbnail):
+                emb.set_thumbnail(url=thumbnail)
         except Exception:
             pass
 
         # Footer
         try:
             footer_final = footer or _brand_footer()
-            emb.set_footer(text=footer_final.get("text"), icon_url=footer_final.get("icon_url", CDT_LOGO))
+            emb.set_footer(text=footer_final.get("text"), icon_url=footer_final.get("icon_url"))
         except Exception:
             pass
 
@@ -280,7 +280,7 @@ class CDTEmbed:
                 footer_final = CDT_FOOTER_TEXT
             else:
                 footer_final = (text or "")
-            emb.set_footer(text=footer_final, icon_url=icon_url or CDT_LOGO)
+            emb.set_footer(text=footer_final, icon_url=icon_url)
         except Exception:
             pass
         return emb

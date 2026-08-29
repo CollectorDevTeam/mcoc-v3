@@ -29,6 +29,7 @@ from redbot.core import commands
 from ..prefix.core import MCOCPrefix
 from ..common.componentsV2 import CDTEmbed, CDTConfirm, CDTPagesMenu
 from ..common.prefix_utils import get_runtime_prefix, safe_send_ctx
+from ..common.help_utils import send_or_brand_help
 from ..common.roster import ensure_user_manager, _ensure_hook_registered
 from ..common.account import (
     ALLOWED_PROFILE_FIELDS,
@@ -107,6 +108,7 @@ class AccountPrefix(commands.Cog):
     @account.command(name="help")
     async def account_help(self, ctx):
         """Show account help and allowed fields (attractive embed)."""
+        await send_or_brand_help(ctx, "account", title="Account Help", fallback_text="Use ///account <subcommand> for account management.")
         if not await self._require_parent(ctx):
             return
         prefix = get_runtime_prefix(ctx, default="///")
