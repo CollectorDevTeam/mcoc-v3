@@ -6,7 +6,7 @@ This module centralizes logic previously in prefix/champions.py and provides:
   - champion deck retrieval and safe cache access
   - filtering by name, tags, classes and hargs-like filters
   - formatting lines via format_champion_line
-  - chunking results into branded CDTEmbed pages
+  - chunking results into branded Embed pages
   - convenience pager factory make_champion_pager
 
 Prefix handlers should be thin: call make_champion_pager or get_champion_pages and start the pager.
@@ -16,8 +16,14 @@ from typing import Any, Dict, List, Optional, Tuple
 import logging
 import asyncio
 
+from mcoc.common import Core
+Embed = Core.Embed
+PagesMenu = Core.PagesMenu
+Confirm = Core.Confirm
+
+CHAMPIONS_FOOTER = " | CollectorDevTeam"
+
 from ..formatters import format_champion_line
-from ..componentsV2 import CDTEmbed, CDTPagesMenu, CDT_FOOTER_TAG
 
 log = logging.getLogger("red.mcoc.champions")
 
@@ -125,7 +131,7 @@ def _format_champion_entry(champ: Dict[str, Any], default_entry: Optional[Dict[s
 
 async def build_champion_pages(core: Any, ctx_or_author: Any, filters: Optional[Dict[str, Any]] = None, *, lines_per_page: int = 15, char_limit: int = 1800) -> List[Any]:
     """
-    Build a list of CDTEmbed pages for champion search results.
+    Build a list of Embed pages for champion search results.
 
     Parameters:
       - core: bot/core object (used to access cache)
@@ -134,7 +140,7 @@ async def build_champion_pages(core: Any, ctx_or_author: Any, filters: Optional[
       - lines_per_page, char_limit: pagination controls
 
     Returns:
-      - List of CDTEmbed embed objects (normal path) or list of dict fallbacks on catastrophic failure.
+      - List of Embed embed objects (normal path) or list of dict fallbacks on catastrophic failure.
     """
     # normalize author_for_embed
     author_for_embed = None
@@ -153,10 +159,10 @@ async def build_champion_pages(core: Any, ctx_or_author: Any, filters: Optional[
         if not deck:
             # no champions available
             try:
-                emb = CDTEmbed.embed(author_for_embed, title="Champions", description="No champion data available.", footer_text=f"Page 1 of 1{CDT_FOOTER_TAG}")
+                emb = Embed.embed(author_for_embed, title="Champions", description="No champion data available.", footer_text=f"Page 1 of 1{CHAMPIONS_FOOTER}")
                 return [emb]
             except Exception:
-                return [{"title": "Champions", "description": "No champion data available.", "footer": {"text": f"Page 1 of 1{CDT_FOOTER_TAG}"}}]
+                return [{"title": "Champions", "description": "No champion data available.", "footer": {"text": f"Page 1 of 1{CHAMPIONS_FOOTER}"}}]
 
         # apply deck-first filtering
         filt = filters or {}
@@ -199,10 +205,10 @@ async def build_champion_pages(core: Any, ctx_or_author: Any, filters: Optional[
 
         if not matched:
             try:
-                emb = CDTEmbed.embed(author_for_embed, title="Champions", description="No champions match your search.", footer_text=f"Page 1 of 1{CDT_FOOTER_TAG}")
+                emb = Embed.embed(author_for_embed, title="Champions", description="No champions match your search.", footer_text=f"Page 1 of 1{CHAMPIONS_FOOTER}")
                 return [emb]
             except Exception:
-                return [{"title": "Champions", "description": "No champions match your search.", "footer": {"text": f"Page 1 of 1{CDT_FOOTER_TAG}"}}]
+                return [{"title": "Champions", "description": "No champions match your search.", "footer": {"text": f"Page 1 of 1{CHAMPIONS_FOOTER}"}}]
 
         # Build formatted lines
         lines: List[str] = []
@@ -232,8 +238,8 @@ async def build_champion_pages(core: Any, ctx_or_author: Any, filters: Optional[
         embed_pages: List[Any] = []
         try:
             for i, ptext in enumerate(page_texts):
-                footer = f"Page {i+1} of {len(page_texts)}{CDT_FOOTER_TAG}"
-                emb = CDTEmbed.embed(author_for_embed, title=title, description=ptext, footer_text=footer)
+                footer = f"Page {i+1} of {len(page_texts)}{CHAMPIONS_FOOTER}"
+                emb = Embed.embed(author_for_embed, title=title, description=ptext, footer_text=footer)
                 try:
                     emb.set_footer(text=footer)
                 except Exception:
@@ -243,7 +249,7 @@ async def build_champion_pages(core: Any, ctx_or_author: Any, filters: Optional[
         except Exception:
             out = []
             for i, ptext in enumerate(page_texts):
-                out.append({"title": title, "description": ptext, "footer": {"text": f"Page {i+1} of {len(page_texts)}{CDT_FOOTER_TAG}"}})
+                out.append({"title": title, "description": ptext, "footer": {"text": f"Page {i+1} of {len(page_texts)}{CHAMPIONS_FOOTER}"}})
             return out
 
     except Exception:
@@ -261,7 +267,7 @@ async def get_champion_pages(core: Any, ctx_or_author: Any, filters: Optional[Di
     for p in pages:
         if isinstance(p, dict):
             try:
-                emb = CDTEmbed.embed(ctx_or_author, title=p.get("title"), description=p.get("description"), footer_text=(p.get("footer") or {}).get("text"))
+                emb = Embed.embed(ctx_or_author, title=p.get("title"), description=p.get("description"), footer_text=(p.get("footer") or {}).get("text"))
                 out.append(emb)
             except Exception:
                 out.append(p)
@@ -270,9 +276,9 @@ async def get_champion_pages(core: Any, ctx_or_author: Any, filters: Optional[Di
     return out
 
 
-async def make_champion_pager(core: Any, ctx_or_author: Any, *, raw_input: Optional[str] = None, parsed_filters: Optional[Dict[str, Any]] = None, author_for_controls: Optional[Any] = None) -> Optional[CDTPagesMenu]:
+async def make_champion_pager(core: Any, ctx_or_author: Any, *, raw_input: Optional[str] = None, parsed_filters: Optional[Dict[str, Any]] = None, author_for_controls: Optional[Any] = None) -> Optional[PagesMenu]:
     """
-    Convenience wrapper that builds champion pages and returns a ready CDTPagesMenu with brand buttons merged.
+    Convenience wrapper that builds champion pages and returns a ready PagesMenu with brand buttons merged.
 
     Parameters:
       - core: bot/core object
@@ -282,7 +288,7 @@ async def make_champion_pager(core: Any, ctx_or_author: Any, *, raw_input: Optio
       - author_for_controls: who should control the pager (defaults to ctx_or_author.author or ctx_or_author)
 
     Returns:
-      - CDTPagesMenu instance ready to start, or None on failure.
+      - PagesMenu instance ready to start, or None on failure.
     """
     try:
         parsed = parsed_filters or {}
@@ -306,13 +312,13 @@ async def make_champion_pager(core: Any, ctx_or_author: Any, *, raw_input: Optio
 
         # Instantiate pager
         try:
-            pager = CDTPagesMenu(pages, author=(author_for_controls or (ctx_or_author.author if hasattr(ctx_or_author, "author") else ctx_or_author)))
+            pager = PagesMenu(pages, author=(author_for_controls or (ctx_or_author.author if hasattr(ctx_or_author, "author") else ctx_or_author)))
         except TypeError:
             try:
-                pager = CDTPagesMenu(pages, ctx_or_author)
+                pager = PagesMenu(pages, ctx_or_author)
             except TypeError:
                 try:
-                    pager = CDTPagesMenu(pages)
+                    pager = PagesMenu(pages)
                     if hasattr(pager, "author"):
                         try:
                             pager.author = (author_for_controls or (ctx_or_author.author if hasattr(ctx_or_author, "author") else ctx_or_author))
@@ -323,7 +329,7 @@ async def make_champion_pager(core: Any, ctx_or_author: Any, *, raw_input: Optio
 
         # Merge brand buttons if available
         try:
-            brand_view = CDTEmbed.brand_view()
+            brand_view = Embed.brand_view()
             if hasattr(pager, "add_item"):
                 for item in getattr(brand_view, "children", []):
                     try:
@@ -352,17 +358,17 @@ def add_page_footers(pages: List[Any], author_for_embed: Any = None) -> List[Any
     for i, p in enumerate(pages):
         try:
             if isinstance(p, dict):
-                emb = CDTEmbed.embed(author_for_embed, title=p.get("title", "Champions"), description=p.get("description", ""))
+                emb = Embed.embed(author_for_embed, title=p.get("title", "Champions"), description=p.get("description", ""))
             else:
                 emb = p
             try:
                 base = emb.footer.text if getattr(emb, "footer", None) and getattr(emb.footer, "text", None) else ""
                 footer_text = f"{base} • Page {i+1} of {total}" if base else f"Page {i+1} of {total}"
-                footer_text += f"{CDT_FOOTER_TAG}"
+                footer_text += f"{CHAMPIONS_FOOTER}"
                 emb.set_footer(text=footer_text)
             except Exception:
                 try:
-                    emb.set_footer(text=f"Page {i+1} of {total}{CDT_FOOTER_TAG}")
+                    emb.set_footer(text=f"Page {i+1} of {total}{CHAMPIONS_FOOTER}")
                 except Exception:
                     pass
             out.append(emb)

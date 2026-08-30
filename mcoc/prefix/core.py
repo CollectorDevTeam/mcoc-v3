@@ -12,8 +12,12 @@ Behavior:
 """
 
 from typing import Any, Dict, Optional, Sequence
-from ..common.componentsV2 import CDTEmbed
-from ..common.feature_system import CDTEntitlements
+from mcoc.common import Core
+Embed = Core.Embed
+Entitlements = Core.Entitlements
+Helpers = Core.Helpers
+Alliance = Helpers.alliance
+Roster = Helpers.roster
 
 import importlib
 import logging
@@ -21,13 +25,6 @@ import logging
 from redbot.core import commands
 
 from ..common.prefix_utils import safe_send_ctx
-from ..common.helpers.alliance import (
-    get_guild_config,
-    set_guild_config,
-    role_id_for_key,
-    join_alliance,
-)
-from ..common.helpers.roster import ensure_user_manager, _ensure_hook_registered
 
 log = logging.getLogger("red.mcoc.prefix.core")
 
@@ -47,7 +44,7 @@ class MCOCPrefix(commands.Cog):
         self.parent = getattr(bot, "mcoc_core", None) or bot.get_cog("MCOC")
         # ensure roster hooks if parent present
         try:
-            _ensure_hook_registered(self.parent)
+            Roster._ensure_hook_registered(self.parent)
         except Exception:
             pass
 
@@ -85,9 +82,9 @@ class MCOCPrefix(commands.Cog):
                 except Exception:
                     log.exception("Forwarding ///mcoc %s to top-level command failed", subcommand)
 
-        # No forwarding possible: show attractive embed help (use CDTEmbed)
+        # No forwarding possible: show attractive embed help (use Embed)
         try:
-            emb = CDTEmbed.embed(ctx, title="Challenger Help Menu", color=CDTEmbed.get_color_value(ctx))
+            emb = Embed.embed(ctx, title="Challenger Help Menu", color=Embed.get_color_value(ctx))
             emb.add_field(name="Syntax", value="`///mcoc [subcommand] [args...]`", inline=False)
             emb.add_field(name="Description", value="Compatibility root. Use top-level commands directly for faster access.", inline=False)
             emb.add_field(name="Top-level commands", value="`///account`, `///roster`, `///alliance`, `///champ`, `///mcocadmin`, `///mcoc status`", inline=False)
@@ -212,14 +209,14 @@ class MCOCPrefix(commands.Cog):
         if not role_ent:
             return
         user_key = f"user:{user_id}"
-        user_ent = guild_cfg.entitlements.get(user_key) or CDTEntitlements.UserEntitlement()
+        user_ent = guild_cfg.entitlements.get(user_key) or Entitlements.UserEntitlement()
         user_ent.subscriber = user_ent.subscriber or getattr(role_ent, "subscriber", False)
         user_ent.guild_owner_plus = user_ent.guild_owner_plus or getattr(role_ent, "guild_owner_plus", False)
         if getattr(role_ent, "expires_at", None):
             user_ent.expires_at = role_ent.expires_at
         guild_cfg.entitlements[user_key] = user_ent
-        CDTEntitlements.set_guild_config(guild_cfg.guild_id, guild_cfg)
-        CDTEntitlements.log_action(guild_cfg, 0, "apply_role_entitlement", f"role:{role_id} -> user:{user_id}")
+        Entitlements.set_guild_config(guild_cfg.guild_id, guild_cfg)
+        Entitlements.log_action(guild_cfg, 0, "apply_role_entitlement", f"role:{role_id} -> user:{user_id}")
 
     def render_group_help_embed(ctx, group: commands.Group, title: str, fallback: str = ""):
         text = ""
@@ -227,9 +224,9 @@ class MCOCPrefix(commands.Cog):
             text = MCOCPrefix._group_help_text(None, group, title, fallback)  # or call instance method appropriately
         except Exception:
             text = fallback or title
-        emb = CDTEmbed.embed(ctx, title=title, description=text)
+        emb = Embed.embed(ctx, title=title, description=text)
         try:
-            CDTEmbed.set_footer(ctx, emb, footer_text="Type ///help <command> for details")
+            Embed.set_footer(ctx, emb, footer_text="Type ///help <command> for details")
         except Exception:
             pass
         return emb
@@ -243,7 +240,7 @@ class MCOCPrefix(commands.Cog):
         Remove references to a deleted role from the alliance config for that guild.
         """
         try:
-            cfg = get_guild_config(role.guild.id)
+            cfg = Alliance.get_guild_config(role.guild.id)
             if not cfg:
                 return
             changed = False
@@ -252,7 +249,7 @@ class MCOCPrefix(commands.Cog):
                     cfg["roles"].pop(k, None)
                     changed = True
             if changed:
-                set_guild_config(role.guild.id, cfg)
+                Alliance.set_guild_config(role.guild.id, cfg)
         except Exception:
             log.exception("on_guild_role_delete failed for role %s", getattr(role, "id", None))
 
@@ -260,7 +257,7 @@ class MCOCPrefix(commands.Cog):
     async def on_member_update(self, before, after):
         try:
             guild = after.guild
-            cfg = get_guild_config(guild.id)
+            cfg = Alliance.get_guild_config(guild.id)
             if not cfg:
                 return
             before_ids = {r.id for r in before.roles}
@@ -270,16 +267,16 @@ class MCOCPrefix(commands.Cog):
 
             for rid in added:
                 if f"role:{rid}" in cfg.get("entitlements", {}):
-                    CDTEntitlements.apply_role_entitlements_to_user(cfg, rid, after.id)
+                    Entitlements.apply_role_entitlements_to_user(cfg, rid, after.id)
 
             for rid in removed:
                 if f"role:{rid}" in cfg.get("entitlements", {}):
-                    CDTEntitlements.remove_role_entitlements_from_user(cfg, rid, after.id)
+                    Entitlements.remove_role_entitlements_from_user(cfg, rid, after.id)
 
             # existing members role behavior
-            members_role_id = role_id_for_key(cfg, "members")
+            members_role_id = Alliance.role_id_for_key(cfg, "members")
             if members_role_id and members_role_id in added:
-                await join_alliance(after, guild, role_key="members")
+                await Alliance.join_alliance(after, guild, role_key="members")
             
         except Exception:
             log.exception("on_member_update failed for member %s", getattr(after, "id", None))

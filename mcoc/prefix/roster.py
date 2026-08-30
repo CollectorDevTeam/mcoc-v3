@@ -4,7 +4,7 @@ Prefix command handler for roster operations.
 
 This module is intentionally thin: it resolves the command context and target member,
 delegates parsing, filtering, formatting and embed/page construction to
-`mcoc.common.roster` helpers, and then starts a branded pager (CDTPagesMenu).
+`mcoc.common.roster` helpers, and then starts a branded pager (PagesMenu).
 
 Responsibilities kept here:
 - Resolve optional leading mention/id into a Member/User (prefer guild Member).
@@ -20,10 +20,14 @@ from typing import Any, Optional, List, Tuple
 import logging
 
 from redbot.core import commands
+from mcoc.common import Core
+Embed = Core.Embed
+PagesMenu = Core.PagesMenu
+Roster = Core.Helpers.roster
 
-from ..common.helpers.roster import ensure_user_manager, get_roster_pages, make_roster_pager
+# from ..common.helpers.roster import ensure_user_manager, get_roster_pages, make_roster_pager
 from ..common.query_parser import parse_query
-from ..common.componentsV2 import CDTEmbed, CDTPagesMenu
+# from ..common.componentsV2 import Embed, PagesMenu
 from ..common.prefix_utils import safe_send_ctx
 from ..common.help_utils import send_or_brand_help 
 
@@ -111,7 +115,7 @@ class RosterPrefix(commands.Cog):
         items_text = " ".join(tokens).strip()
 
         # Privacy check: quick guard using user manager if available
-        users = ensure_user_manager(self.parent)
+        users = Roster.ensure_user_manager(self.parent)
         try:
             profile = users.get_profile(target_member.id) if users and hasattr(users, "get_profile") else {}
         except Exception:
@@ -154,7 +158,7 @@ class RosterPrefix(commands.Cog):
             parsed_filters.update(filters)
 
         # Prefer the convenience wrapper that returns a ready pager if available.
-        # make_roster_pager should return a CDTPagesMenu instance (or None on failure).
+        # make_roster_pager should return a PagesMenu instance (or None on failure).
         try:
             pager = None
             if hasattr(self.parent, "mcoc_core"):  # defensive check; not required
@@ -162,7 +166,7 @@ class RosterPrefix(commands.Cog):
 
             # Try to get a ready pager from common helper (preferred)
             try:
-                pager = await make_roster_pager(self.parent, ctx, raw_input=items_text, target_token=None, parsed_filters=parsed_filters)
+                pager = await Roster.make_roster_pager(self.parent, ctx, raw_input=items_text, target_token=None, parsed_filters=parsed_filters)
             except TypeError:
                 # older helper signature may not accept these args; fall back to get_roster_pages
                 pager = None
@@ -174,7 +178,7 @@ class RosterPrefix(commands.Cog):
                 try:
                     # Merge brand buttons if possible
                     try:
-                        brand_view = CDTEmbed.brand_view()
+                        brand_view = Embed.brand_view()
                         if hasattr(pager, "add_item"):
                             for item in getattr(brand_view, "children", []):
                                 try:
@@ -190,36 +194,22 @@ class RosterPrefix(commands.Cog):
                     log.exception("Failed to start pager returned by make_roster_pager; falling back to pages")
 
             # Otherwise, request pages (embeds) and instantiate a pager here
-            pages = await get_roster_pages(self.parent, target_member, parsed_filters=parsed_filters)
+            pages = await Roster.get_roster_pages(self.parent, target_member, parsed_filters=parsed_filters)
 
             if not pages:
                 # No matches: send a single decorated embed
                 try:
-                    await ctx.send(embed=CDTEmbed.embed(target_member, title="Roster", description="No roster entries match your filters."))
+                    await ctx.send(embed=Embed.embed(target_member, title="Roster", description="No roster entries match your filters."))
                 except Exception:
                     await safe_send_ctx(ctx, "No roster entries match your filters.")
                 return
 
             # Ensure pages are embed objects; instantiate a pager defensively
             try:
-                pager = None
+                pager = PagesMenu(pages, author=ctx.author)
+                                # Merge brand buttons into pager view if possible
                 try:
-                    pager = CDTPagesMenu(pages, author=ctx.author)
-                except TypeError:
-                    try:
-                        pager = CDTPagesMenu(pages, ctx.author)
-                    except TypeError:
-                        # last resort: try single-arg constructor
-                        pager = CDTPagesMenu(pages)
-                        if hasattr(pager, "author"):
-                            try:
-                                pager.author = ctx.author
-                            except Exception:
-                                pass
-
-                # Merge brand buttons into pager view if possible
-                try:
-                    brand_view = CDTEmbed.brand_view()
+                    brand_view = Embed.brand_view()
                     if hasattr(pager, "add_item"):
                         for item in getattr(brand_view, "children", []):
                             try:
@@ -234,7 +224,7 @@ class RosterPrefix(commands.Cog):
                 return
 
             except Exception:
-                log.exception("Failed to instantiate/start CDTPagesMenu; falling back to sending first embed")
+                log.exception("Failed to instantiate/start PagesMenu; falling back to sending first embed")
                 # Fallback: send the first embed (still decorated)
                 try:
                     first = pages[0]

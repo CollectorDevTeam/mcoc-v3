@@ -9,7 +9,7 @@ Responsibilities:
   - Resolve optional leading mention/id (when commands accept a target)
   - Delegate parsing to common.query_parser.parse_query
   - Call common.champions.make_champion_pager or get_champion_pages
-  - Instantiate and start CDTPagesMenu when needed
+  - Instantiate and start PagesMenu when needed
   - Merge brand buttons into pager view when possible
   - Provide robust fallbacks and helpful user-facing messages
 """
@@ -18,10 +18,14 @@ from typing import Any, List, Optional, Tuple
 import logging
 
 from redbot.core import commands
+from mcoc.common import Core
+Embed = Core.Embed
+PagesMenu = Core.PagesMenu
+Champions = Core.Helpers.champions
 
-from ..common.helpers.champions import make_champion_pager, get_champion_pages
+# from ..common.helpers.champions import make_champion_pager, get_champion_pages
 from ..common.query_parser import parse_query
-from ..common.componentsV2 import CDTEmbed, CDTPagesMenu
+# from ..common.componentsV2 import Embed, PagesMenu
 from ..common.prefix_utils import safe_send_ctx
 from ..common.help_utils import send_or_brand_help
 
@@ -89,14 +93,14 @@ class ChampionsPrefix(commands.Cog):
 
         # Preferred: get a ready pager from common helper
         try:
-            pager = await make_champion_pager(self.parent, ctx, raw_input=raw, parsed_filters=parsed_filters, author_for_controls=ctx.author)
+            pager = await Champions.make_champion_pager(self.parent, ctx, raw_input=raw, parsed_filters=parsed_filters, author_for_controls=ctx.author)
         except Exception:
             pager = None
 
         if pager:
             # Merge brand buttons if possible
             try:
-                brand_view = CDTEmbed.brand_view()
+                brand_view = Embed.brand_view()
                 if hasattr(pager, "add_item"):
                     for item in getattr(brand_view, "children", []):
                         try:
@@ -114,35 +118,24 @@ class ChampionsPrefix(commands.Cog):
 
         # Fallback: request pages and instantiate pager here
         try:
-            pages = await get_champion_pages(self.parent, ctx.author, filters=parsed_filters)
+            pages = await Champions.get_champion_pages(self.parent, ctx.author, filters=parsed_filters)
         except Exception:
             pages = []
 
         if not pages:
             try:
-                await ctx.send(embed=CDTEmbed.embed(ctx.author, title="Champions", description="No champions match your search."))
+                await ctx.send(embed=Embed.embed(ctx.author, title="Champions", description="No champions match your search."))
             except Exception:
                 await safe_send_ctx(ctx, "No champions match your search.")
             return
 
         # Instantiate pager defensively (support multiple constructor shapes)
         try:
-            try:
-                pager = CDTPagesMenu(pages, author=ctx.author)
-            except TypeError:
-                try:
-                    pager = CDTPagesMenu(pages, ctx.author)
-                except TypeError:
-                    pager = CDTPagesMenu(pages)
-                    if hasattr(pager, "author"):
-                        try:
-                            pager.author = ctx.author
-                        except Exception:
-                            pass
+            pager = PagesMenu(pages, author=ctx.author)
 
             # Merge brand buttons if possible
             try:
-                brand_view = CDTEmbed.brand_view()
+                brand_view = Embed.brand_view()
                 if hasattr(pager, "add_item"):
                     for item in getattr(brand_view, "children", []):
                         try:
@@ -155,7 +148,7 @@ class ChampionsPrefix(commands.Cog):
             await pager.start(ctx)
             return
         except Exception:
-            log.exception("Failed to instantiate/start CDTPagesMenu for champion search")
+            log.exception("Failed to instantiate/start PagesMenu for champion search")
             # Last resort: send first embed or compact summary
             try:
                 first = pages[0]
@@ -179,7 +172,7 @@ class ChampionsPrefix(commands.Cog):
     @champ.command(name="abilities")
     async def champ_abilities(self, ctx, *, name: str):
         """
-        Show champion abilities. Uses CDTEmbed.abilities_embed if available.
+        Show champion abilities. Uses Embed.abilities_embed if available.
         """
         if not await self._require_parent(ctx):
             return
@@ -204,10 +197,10 @@ class ChampionsPrefix(commands.Cog):
             await safe_send_ctx(ctx, "Champion not found.")
             return
 
-        # Try to use CDTEmbed.abilities_embed if present
+        # Try to use Embed.abilities_embed if present
         try:
-            if hasattr(CDTEmbed, "abilities_embed"):
-                emb = CDTEmbed.abilities_embed(ctx, champ_obj)
+            if hasattr(Embed, "abilities_embed"):
+                emb = Embed.abilities_embed(ctx, champ_obj)
                 if emb:
                     await ctx.send(embed=emb)
                     return
@@ -226,7 +219,7 @@ class ChampionsPrefix(commands.Cog):
                     continue
             desc = "\n\n".join(desc_lines) or "Abilities unavailable."
             try:
-                await ctx.send(embed=CDTEmbed.embed(ctx.author, title=f"{champ_obj.get('name') or champ_obj.get('slug')}'s Abilities", description=desc))
+                await ctx.send(embed=Embed.embed(ctx.author, title=f"{champ_obj.get('name') or champ_obj.get('slug')}'s Abilities", description=desc))
             except Exception:
                 await safe_send_ctx(ctx, desc)
             return
@@ -270,7 +263,7 @@ class ChampionsPrefix(commands.Cog):
             tags = ", ".join(champ_obj.get("tags") or []) or "None"
             role = champ_obj.get("role") or champ_obj.get("archetype") or "Unknown"
             desc = f"**Class:** {cls}\n**Role:** {role}\n**Tags:** {tags}"
-            await ctx.send(embed=CDTEmbed.embed(ctx.author, title=f"{name_text} — Info", description=desc))
+            await ctx.send(embed=Embed.embed(ctx.author, title=f"{name_text} — Info", description=desc))
         except Exception:
             log.exception("Failed to render champion info for %s", name)
             await safe_send_ctx(ctx, "Champion info unavailable.")

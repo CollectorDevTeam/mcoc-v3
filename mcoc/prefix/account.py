@@ -26,23 +26,31 @@ import asyncio
 
 from redbot.core import commands
 
-from ..prefix.core import MCOCPrefix
-from ..common.componentsV2 import CDTEmbed, CDTConfirm, CDTPagesMenu
+from mcoc.common import Core
+
 from ..common.prefix_utils import get_runtime_prefix, safe_send_ctx
 from ..common.help_utils import send_or_brand_help
-from ..common.helpers.roster import ensure_user_manager, _ensure_hook_registered
-from ..common.helpers.account import (
-    ALLOWED_PROFILE_FIELDS,
-    FIELD_CANONICAL,
-    validate_profile_field,
-    get_profile_settings,
-    link_account as helper_link_account,
-    unlink_account as helper_unlink_account,
-    delete_user_profile as helper_delete_user_profile,
-    build_profile_display,
-    get_profile,
-    set_profile_field,
-)
+# from Roster import ensure_user_manager, _ensure_hook_registered
+# from ..common.helpers.account import (
+#     ALLOWED_PROFILE_FIELDS,
+#     FIELD_CANONICAL,
+#     validate_profile_field,
+#     get_profile_settings,
+#     link_account as helper_link_account,
+#     unlink_account as helper_unlink_account,
+#     delete_user_profile as helper_delete_user_profile,
+#     build_profile_display,
+#     get_profile,
+#     set_profile_field,
+# )
+
+Embed = Core.Embed
+PagesMenu = Core.PagesMenu
+Confirm = Core.Confirm
+Entitlements = Core.Entitlements
+Helpers = Core.Helpers
+Roster = Core.Helpers.roster
+Account = Core.Helpers.account
 
 log = logging.getLogger("red.mcoc.prefix.account")
 
@@ -68,7 +76,7 @@ class AccountPrefix(commands.Cog):
 
         # ensure prestige hook registered if parent available
         try:
-            _ensure_hook_registered(self.parent)
+            Roster._ensure_hook_registered(self.parent)
         except Exception:
             pass
 
@@ -79,7 +87,7 @@ class AccountPrefix(commands.Cog):
             if core:
                 self.parent = core
                 try:
-                    _ensure_hook_registered(self.parent)
+                    Roster._ensure_hook_registered(self.parent)
                 except Exception:
                     pass
                 return True
@@ -115,11 +123,11 @@ class AccountPrefix(commands.Cog):
 
         # Build an attractive embed listing settable fields with short descriptions and examples
         try:
-            emb = CDTEmbed.embed(ctx.author, title="Account Settings — What you can set", description="Set your public profile fields. Use `///mcoc account set <field> <value>` to update. Use an empty string `\"\"` to clear a value.", footer_text=f"Examples: {prefix}mcoc account set mcoc-name jjw • {prefix}mcoc account set start-date \"Oct. 15, 2015\"{CDTEmbed._footer_tag() if hasattr(CDTEmbed, '_footer_tag') else ''}")
+            emb = Embed.embed(ctx.author, title="Account Settings — What you can set", description="Set your public profile fields. Use `///mcoc account set <field> <value>` to update. Use an empty string `\"\"` to clear a value.", footer_text=f"Examples: {prefix}mcoc account set mcoc-name jjw • {prefix}mcoc account set start-date \"Oct. 15, 2015\"")
         except Exception:
             # fallback simple embed construction
             try:
-                emb = CDTEmbed(ctx.author, title="Account Settings — What you can set")
+                emb = Embed(ctx.author, title="Account Settings — What you can set")
             except Exception:
                 emb = None
 
@@ -129,7 +137,7 @@ class AccountPrefix(commands.Cog):
             def add_field_list(name, keys):
                 lines = []
                 for k in keys:
-                    meta = ALLOWED_PROFILE_FIELDS.get(k) or {}
+                    meta = Account.ALLOWED_PROFILE_FIELDS.get(k) or {}
                     desc = meta.get("desc", "") if isinstance(meta, dict) else str(meta)
                     # show canonical key exactly as users must type it
                     lines.append(f"**{k}** — {desc}")
@@ -139,9 +147,9 @@ class AccountPrefix(commands.Cog):
                     pass
 
             # Choose groups using canonical keys present in ALLOWED_PROFILE_FIELDS
-            personal = [k for k in ("display_name", "mcoc_name", "mcoc_id", "about", "website", "invite") if k in ALLOWED_PROFILE_FIELDS]
-            meta = [k for k in ("alliance", "job", "timezone", "region", "age", "gender", "started") if k in ALLOWED_PROFILE_FIELDS]
-            privacy = [k for k in ("roster_public", "privacy_mode", "linked") if k in ALLOWED_PROFILE_FIELDS]
+            personal = [k for k in ("display_name", "mcoc_name", "mcoc_id", "about", "website", "invite") if k in Account.ALLOWED_PROFILE_FIELDS]
+            meta = [k for k in ("alliance", "job", "timezone", "region", "age", "gender", "started") if k in Account.ALLOWED_PROFILE_FIELDS]
+            privacy = [k for k in ("roster_public", "privacy_mode", "linked") if k in Account.ALLOWED_PROFILE_FIELDS]
 
             add_field_list("Personal", personal)
             add_field_list("Meta / Play", meta)
@@ -169,7 +177,7 @@ class AccountPrefix(commands.Cog):
 
         # Text fallback (readable)
         lines = ["Account fields you can set:"]
-        for field, meta in ALLOWED_PROFILE_FIELDS.items():
+        for field, meta in Account.ALLOWED_PROFILE_FIELDS.items():
             desc = meta.get("desc") if isinstance(meta, dict) else str(meta)
             lines.append(f"- **{field}**: {desc}")
         lines.append("")
@@ -209,7 +217,7 @@ class AccountPrefix(commands.Cog):
         try:
             # viewer id for privacy checks
             viewer_id = getattr(ctx.author, "id", None)
-            emb, text = build_profile_display(self.parent, ctx, target_id, viewer_id=viewer_id, prefer_embed=True)
+            emb, text = Account.build_profile_display(self.parent, ctx, target_id, viewer_id=viewer_id, prefer_embed=True)
             if emb is not None:
                 await safe_send_ctx(ctx, None, embed=emb)
                 return
@@ -232,9 +240,9 @@ class AccountPrefix(commands.Cog):
         if not await self._require_parent(ctx):
             return
         try:
-            users = ensure_user_manager(self.parent)
+            users = Roster.ensure_user_manager(self.parent)
             profile = users.get_profile(ctx.author.id) or {}
-            settings = get_profile_settings(profile)
+            settings = Account.get_profile_settings(profile)
             # humanize started if present
             if "started" in settings:
                 try:
@@ -244,7 +252,7 @@ class AccountPrefix(commands.Cog):
 
             # present attractively
             try:
-                emb = CDTEmbed.embed(ctx.author, title="Your Account Settings", description="Current saved preferences")
+                emb = Embed.embed(ctx.author, title="Your Account Settings", description="Current saved preferences")
                 # add fields in two columns where possible
                 for k, v in settings.items():
                     try:
@@ -288,11 +296,11 @@ class AccountPrefix(commands.Cog):
         field_raw = (field or "").strip()
         canonical_field = field_raw.replace("-", "_").lower()
         # map user-visible names to stored keys if present
-        stored_key = FIELD_CANONICAL.get(canonical_field, canonical_field)
+        stored_key = Account.FIELD_CANONICAL.get(canonical_field, canonical_field)
 
         # validate against allowed fields (use canonical stored_key)
-        if stored_key not in ALLOWED_PROFILE_FIELDS and not validate_profile_field(canonical_field):
-            allowed = ", ".join(sorted(ALLOWED_PROFILE_FIELDS.keys()))
+        if stored_key not in Account.ALLOWED_PROFILE_FIELDS and not Account.validate_profile_field(canonical_field):
+            allowed = ", ".join(sorted(Account.ALLOWED_PROFILE_FIELDS.keys()))
             await safe_send_ctx(ctx, f"Invalid field. Allowed fields: {allowed}\nTip: common aliases: `mcoc-name` -> `mcoc_name`, `start-date` -> `started`")
             return
 
@@ -331,7 +339,7 @@ class AccountPrefix(commands.Cog):
 
         # persist via common.account helper
         try:
-            ok = set_profile_field(self.parent, ctx.author.id, stored_key, new_val)
+            ok = Account.set_profile_field(self.parent, ctx.author.id, stored_key, new_val)
             if ok:
                 if new_val is None:
                     await safe_send_ctx(ctx, f"Cleared **{field}**.")
@@ -356,7 +364,7 @@ class AccountPrefix(commands.Cog):
             await safe_send_ctx(ctx, f"Usage: `{prefix}mcoc account link <mcoc_id>`")
             return
         try:
-            ok, msg = helper_link_account(self.parent, ctx.author.id, str(mcoc_id).strip())
+            ok, msg = Account.helper_link_account(self.parent, ctx.author.id, str(mcoc_id).strip())
             await safe_send_ctx(ctx, msg)
         except Exception:
             log.exception("Failed to link account")
@@ -368,7 +376,7 @@ class AccountPrefix(commands.Cog):
         if not await self._require_parent(ctx):
             return
         try:
-            ok, msg = helper_unlink_account(self.parent, ctx.author.id)
+            ok, msg = Account.helper_unlink_account(self.parent, ctx.author.id)
             await safe_send_ctx(ctx, msg)
         except Exception:
             log.exception("Failed to unlink account")
@@ -380,13 +388,13 @@ class AccountPrefix(commands.Cog):
         if not await self._require_parent(ctx):
             return
         try:
-            view = CDTConfirm(timeout=20.0, confirm_label="Yes", cancel_label="No")
+            view = Confirm(timeout=20.0, confirm_label="Yes", cancel_label="No")
             await ctx.send("Are you sure you want to delete your profile and roster? Click Yes to confirm.", view=view)
             confirmed = await view.wait_result()
             if not confirmed:
                 await safe_send_ctx(ctx, "Deletion cancelled.")
                 return
-            ok, msg = helper_delete_user_profile(self.parent, ctx.author.id)
+            ok, msg = Account.helper_delete_user_profile(self.parent, ctx.author.id)
             await safe_send_ctx(ctx, msg)
         except Exception:
             log.exception("Failed to delete user data")
@@ -426,7 +434,7 @@ class AccountPrefix(commands.Cog):
             if not parent:
                 await safe_send_ctx(ctx, "MCOC core not attached; account unavailable.")
                 return
-            users = ensure_user_manager(parent)
+            users = Roster.ensure_user_manager(parent)
             try:
                 target = ctx.author.id if member is None else getattr(member, "id", member)
                 profile = users.get_profile(int(target)) or {}

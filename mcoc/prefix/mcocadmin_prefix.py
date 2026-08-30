@@ -17,10 +17,13 @@ from pathlib import Path
 
 import discord
 from redbot.core import commands
+from mcoc.common import Core
+Embed = Core.Embed
+PagesMenu = Core.PagesMenu
+Confirm = Core.Confirm
+Entitlements = Core.Entitlements
 
 from ..common.api.cache_status import CacheStatusPoster
-from ..common.componentsV2 import CDTEmbed, CDTConfirm, CDTPagesMenu
-from ..common.feature_system import CDTEntitlements
 from ..common.help_utils import send_or_brand_help
 from ..common.prefix_utils import safe_send_ctx
 
@@ -61,11 +64,11 @@ class MCOCAdminPrefix(commands.Cog):
     @mcocadmin.command(name="features")
     async def features(self, ctx):
         """List all features and their status for this guild."""
-        guild_cfg = CDTEntitlements.get_guild_config(ctx.guild.id)
+        guild_cfg = Entitlements.get_guild_config(ctx.guild.id)
 
-        emb = CDTEmbed.embed(ctx, title="Feature Flags")
+        emb = Embed.embed(ctx, title="Feature Flags")
 
-        for fname, meta in CDTEntitlements.FEATURES.items():
+        for fname, meta in Entitlements.FEATURES.items():
             enabled = guild_cfg.feature_flags.get(fname, False)
             tier = meta["tier"]
             desc = meta["description"]
@@ -80,49 +83,49 @@ class MCOCAdminPrefix(commands.Cog):
     @mcocadmin.command(name="feature-enable")
     async def feature_enable(self, ctx, feature: str):
         """Enable a feature for this guild."""
-        guild_cfg = CDTEntitlements.get_guild_config(ctx.guild.id)
+        guild_cfg = Entitlements.get_guild_config(ctx.guild.id)
 
-        if feature not in CDTEntitlements.FEATURES:
+        if feature not in Entitlements.FEATURES:
             await safe_send_ctx(ctx, f"Unknown feature: {feature}")
             return
 
         guild_cfg.set_flag(feature, True)
-        CDTEntitlements.log_action(guild_cfg, ctx.author.id, "enable_feature", feature)
+        Entitlements.log_action(guild_cfg, ctx.author.id, "enable_feature", feature)
 
         await safe_send_ctx(ctx, f"Feature `{feature}` enabled.")
 
     @mcocadmin.command(name="feature-disable")
     async def feature_disable(self, ctx, feature: str):
         """Disable a feature for this guild."""
-        guild_cfg = CDTEntitlements.get_guild_config(ctx.guild.id)
+        guild_cfg = Entitlements.get_guild_config(ctx.guild.id)
 
-        if feature not in CDTEntitlements.FEATURES:
+        if feature not in Entitlements.FEATURES:
             await safe_send_ctx(ctx, f"Unknown feature: {feature}")
             return
 
         guild_cfg.set_flag(feature, False)
-        CDTEntitlements.log_action(guild_cfg, ctx.author.id, "disable_feature", feature)
+        Entitlements.log_action(guild_cfg, ctx.author.id, "disable_feature", feature)
 
         await safe_send_ctx(ctx, f"Feature `{feature}` disabled.")
 
     @mcocadmin.command(name="feature-map-roles")
     @commands.has_permissions(administrator=True)
     async def feature_map_roles(self, ctx, feature: str, *roles: discord.Role):
-        if feature not in CDTEntitlements.FEATURES:
+        if feature not in Entitlements.FEATURES:
             await safe_send_ctx(ctx, f"Unknown feature: {feature}")
             return
-        guild_cfg = CDTEntitlements.get_guild_config(ctx.guild.id)
+        guild_cfg = Entitlements.get_guild_config(ctx.guild.id)
         for role in roles:
             key = f"role:{role.id}"
             ent = guild_cfg.entitlements.get(key) or {}
-            tier = CDTEntitlements.FEATURES[feature]["tier"]
+            tier = Entitlements.FEATURES[feature]["tier"]
             if tier == "subscriber":
                 ent["subscriber"] = True
             if tier == "guild_owner_plus":
                 ent["guild_owner_plus"] = True
             guild_cfg.entitlements[key] = ent
-            CDTEntitlements.log_action(guild_cfg, ctx.author.id, "map_role_feature", f"{role.id} -> {feature}")
-        CDTEntitlements.set_guild_config(ctx.guild.id, guild_cfg)
+            Entitlements.log_action(guild_cfg, ctx.author.id, "map_role_feature", f"{role.id} -> {feature}")
+        Entitlements.set_guild_config(ctx.guild.id, guild_cfg)
         await safe_send_ctx(ctx, f"Mapped roles {[r.name for r in roles]} to {feature}")
 
     @commands.is_owner()

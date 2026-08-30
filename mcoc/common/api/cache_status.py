@@ -1,7 +1,9 @@
 # mcoc/common/cache_status.py
 from typing import Any, Dict, Optional
 import logging
-from ..componentsV2 import CDTEmbed, _is_valid_http_url
+from mcoc.common import CollectorCore
+
+Embed = CollectorCore.Embed
 
 log = logging.getLogger("red.mcoc.cache_status")
 
@@ -25,7 +27,7 @@ class CacheStatusPoster:
         self.message = None
 
     def _build_embed(self):
-        emb = CDTEmbed.embed(self.ctx, title=self.title, description="Progress updates will appear below.", footer_text="Sync progress")
+        emb = Embed.embed(self.ctx, title=self.title, description="Progress updates will appear below.", footer_text="Sync progress")
         # add section fields
         for name, value in self.sections.items():
             emb.add_field(name=name, value=value or "pending", inline=False)

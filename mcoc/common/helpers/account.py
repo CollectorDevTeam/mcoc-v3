@@ -22,7 +22,8 @@ from typing import Any, Dict, Optional, Tuple, List
 import logging
 import datetime
 
-from ..componentsV2 import CDTEmbed
+from mcoc.common import Core
+Embed = Core.Embed
 
 log = logging.getLogger("red.mcoc.account_helpers")
 
@@ -356,11 +357,11 @@ def build_profile_display(parent: Any, ctx_or_author: Any, target_id: int, viewe
       - ctx_or_author: Context or author-like object used for branding (author/avatar) when building embeds
       - target_id: user id to display
       - viewer_id: id of the viewer (for permission checks); if None, permission checks are not enforced here
-      - prefer_embed: if True, attempt to return a CDTEmbed; otherwise return text
+      - prefer_embed: if True, attempt to return a Embed; otherwise return text
 
     Returns:
       - (embed_or_none, text_fallback_or_none)
-        * If an embed was built, embed_or_none is a CDTEmbed (or discord.Embed) and text_fallback_or_none is None.
+        * If an embed was built, embed_or_none is a Embed (or discord.Embed) and text_fallback_or_none is None.
         * If embed could not be built, embed_or_none is None and text_fallback_or_none is a string summary.
     Notes:
       - This function does not send messages; callers should send the returned embed/text via safe_send_ctx or ctx.send.
@@ -408,12 +409,12 @@ def build_profile_display(parent: Any, ctx_or_author: Any, target_id: int, viewe
 
         # Manual embed construction (defensive)
         try:
-            # prefer to use CDTEmbed.embed if available
+            # prefer to use Embed.embed if available
             try:
-                emb = CDTEmbed.embed(ctx_or_author, title="CollectorVerse Profile")
+                emb = Embed.embed(ctx_or_author, title="CollectorVerse Profile")
             except Exception:
-                # fallback to constructing a CDTEmbed instance directly
-                emb = CDTEmbed(ctx_or_author, title=f"{profile.get('mcoc_name') or profile.get('display_name') or str(target_id)} — Profile")
+                # fallback to constructing a Embed instance directly
+                emb = Embed(ctx_or_author, title=f"{profile.get('mcoc_name') or profile.get('display_name') or str(target_id)} — Profile")
             # Linked / ID
             linked = profile.get("linked", False)
             mcoc_id = profile.get("mcoc_id") or profile.get("mcoc_name") or None

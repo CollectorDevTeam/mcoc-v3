@@ -13,16 +13,16 @@ import asyncio
 
 from redbot.core import commands
 
-from ..common.componentsV2 import CDTEmbed, CDTConfirm, CDTPagesMenu
+from mcoc.common import Core
+Embed = Core.Embed
+Confirm = Core.Confirm
+PagesMenu = Core.PagesMenu
+Alliance = Core.Helpers.alliance
+
+
 from ..common.prefix_utils import safe_send_ctx
 from ..common.help_utils import send_or_brand_help
-from ..common.helpers.alliance import (
-    get_guild_config, set_guild_config, register_alliance, create_or_link_role,
-    join_alliance, leave_alliance, is_leader_or_officer, is_leader,
-    is_alliance_manager, get_alliance_info, set_alliance_info_field,
-    add_officer_by_id, remove_officer_by_id, unregister_alliance,
-    get_user_alliance_in_guild, set_alliance_type
-)
+
 
 log = logging.getLogger("red.mcoc.prefix.alliance")
 
@@ -32,6 +32,7 @@ class AlliancePrefix(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
+        self.parent = getattr(bot, "mcoc_core", None)
 
     @commands.group(name="alliance", send_or_brand_help=True)
     async def alliance(self, ctx):
@@ -65,12 +66,12 @@ class AlliancePrefix(commands.Cog):
             roles_to_create += [f"{name} Leader", f"{name} BG1", f"{name} BG2", f"{name} BG3", f"{name} AQBG1", f"{name} AWBG1"]
 
         prompt = "This will create/link the following roles:\n" + "\n".join(f"- {r}" for r in roles_to_create)
-        confirmed = await CDTConfirm.confirm(self.bot, ctx, prompt, timeout=30.0)
+        confirmed = await Confirm(self.bot, ctx, prompt, timeout=30.0)
         if not confirmed:
             await safe_send_ctx(ctx, "Cancelled. No changes were made.")
             return
 
-        ok = await register_alliance(ctx.guild, name, alliance_tag=None, type_=type_norm)
+        ok = await Alliance.register_alliance(ctx.guild, name, alliance_tag=None, type_=type_norm)
         if ok:
             await safe_send_ctx(ctx, f"Alliance **{name}** registered on this guild.")
         else:
@@ -84,7 +85,7 @@ class AlliancePrefix(commands.Cog):
         name = guild.name.split()[0] if guild and guild.name else "Alliance"
         roles_to_create = [f"{name} Alliance", f"{name} Officers", f"{name} Members", f"{name} Leader", f"{name} BG1", f"{name} BG2", f"{name} BG3"]
         prompt = "This will create the following roles:\n" + "\n".join(f"- {r}" for r in roles_to_create)
-        confirmed = await CDTConfirm.confirm(self.bot, ctx, prompt, timeout=30.0)
+        confirmed = await Confirm(self.bot, ctx, prompt, timeout=30.0)
         if not confirmed:
             await safe_send_ctx(ctx, "Cancelled. No roles were created.")
             return
@@ -109,7 +110,7 @@ class AlliancePrefix(commands.Cog):
         if role is None:
             await safe_send_ctx(ctx, "Usage: ///mcoc alliance setrole <key> <@role>")
             return
-        mapped = await create_or_link_role(ctx.guild, role.name, key, role_obj=role)
+        mapped = await Alliance.create_or_link_role(ctx.guild, role.name, key, role_obj=role)
         if mapped:
             await safe_send_ctx(ctx, f"Linked role `{role.name}` to key `{key}`.")
         else:
@@ -123,7 +124,7 @@ class AlliancePrefix(commands.Cog):
         if type_norm not in ("simple", "complex"):
             await safe_send_ctx(ctx, "Invalid type. Allowed: simple, complex.")
             return
-        ok = set_alliance_type(ctx.guild.id, type_norm, guild_obj=ctx.guild)
+        ok = Alliance.set_alliance_type(ctx.guild.id, type_norm, guild_obj=ctx.guild)
         if ok:
             await safe_send_ctx(ctx, f"Alliance type set to `{type_norm}`.")
         else:
@@ -135,13 +136,13 @@ class AlliancePrefix(commands.Cog):
     @alliance.command(name="join")
     async def alliance_join(self, ctx):
         """Join this guild's alliance (adds the configured members role)."""
-        ok, msg = await join_alliance(ctx.author, ctx.guild, role_key="members")
+        ok, msg = await Alliance.join_alliance(ctx.author, ctx.guild, role_key="members")
         await safe_send_ctx(ctx, msg)
 
     @alliance.command(name="leave")
     async def alliance_leave(self, ctx):
         """Leave this guild's alliance (removes alliance roles)."""
-        ok, msg = await leave_alliance(ctx.author, ctx.guild)
+        ok, msg = await Alliance.leave_alliance(ctx.author, ctx.guild)
         await safe_send_ctx(ctx, msg)
 
     # -----------------------------
@@ -150,16 +151,16 @@ class AlliancePrefix(commands.Cog):
     @alliance.command(name="unregister")
     @commands.has_permissions(manage_guild=True)
     async def alliance_unregister(self, ctx, remove_roles: bool = False):
-        cfg = get_guild_config(ctx.guild.id)
+        cfg = Alliance.get_guild_config(ctx.guild.id)
         if not cfg:
             await safe_send_ctx(ctx, "No alliance configured.")
             return
         prompt = "Are you sure you want to unregister this alliance? Reply `yes` to confirm."
-        confirmed = await CDTConfirm.confirm(self.bot, ctx, prompt, timeout=20.0)
+        confirmed = await Confirm(self.bot, ctx, prompt, timeout=20.0)
         if not confirmed:
             await safe_send_ctx(ctx, "Cancelled.")
             return
-        ok = await unregister_alliance(ctx.guild, remove_roles=remove_roles)
+        ok = await Alliance.unregister_alliance(ctx.guild, remove_roles=remove_roles)
         if ok:
             await safe_send_ctx(ctx, "Alliance unregistered. A backup of the configuration was created.")
         else:
@@ -171,10 +172,10 @@ class AlliancePrefix(commands.Cog):
     @alliance.command(name="manage")
     async def alliance_manage(self, ctx):
         """Show management actions and configured role keys for this guild."""
-        if not is_alliance_manager(ctx.author, ctx.guild):
+        if not Alliance.is_alliance_manager(ctx.author, ctx.guild):
             await safe_send_ctx(ctx, "You do not have permission to manage this alliance.")
             return
-        cfg = get_guild_config(ctx.guild.id)
+        cfg = Alliance.get_guild_config(ctx.guild.id)
         if not cfg:
             await safe_send_ctx(ctx, "No alliance configured for this guild.")
             return
@@ -189,12 +190,12 @@ class AlliancePrefix(commands.Cog):
     @alliance.command(name="settings")
     async def alliance_settings(self, ctx):
         """Show alliance settings and configured roles for this guild."""
-        cfg = get_guild_config(ctx.guild.id)
+        cfg = Alliance.get_guild_config(ctx.guild.id)
         if not cfg:
             await safe_send_ctx(ctx, "No alliance configured for this guild.")
             return
         info = cfg.get("info", {})
-        emb = CDTEmbed.embed(ctx.author, title=info.get("name") or ctx.guild.name, description=info.get("about") or "")
+        emb = Embed.embed(ctx.author, title=info.get("name") or ctx.guild.name, description=info.get("about") or "")
         if info.get("tag"):
             emb.add_field(name="Tag", value=info.get("tag"), inline=False)
         if info.get("invite"):
@@ -220,12 +221,12 @@ class AlliancePrefix(commands.Cog):
         Show a user's alliance profile or the guild's public alliance profile.
         """
         if member is None:
-            cfg = get_guild_config(ctx.guild.id)
+            cfg = Alliance.get_guild_config(ctx.guild.id)
             if not cfg:
                 await safe_send_ctx(ctx, "No alliance configured for this guild.")
                 return
             info = cfg.get("info", {})
-            emb = CDTEmbed.embed(ctx.author, title=info.get("name") or ctx.guild.name, description=info.get("about") or "")
+            emb = Embed.embed(ctx.author, title=info.get("name") or ctx.guild.name, description=info.get("about") or "")
             if info.get("tag"):
                 emb.add_field(name="Tag", value=info.get("tag"), inline=False)
             if info.get("invite"):
@@ -248,10 +249,10 @@ class AlliancePrefix(commands.Cog):
 
         # member provided: show private view if member is in this guild's alliance
         try:
-            member_alliance_name = get_user_alliance_in_guild(member.id, ctx.guild.id)
+            member_alliance_name = Alliance.get_user_alliance_in_guild(member.id, ctx.guild.id)
             if member_alliance_name:
-                cfg = get_guild_config(ctx.guild.id)
-                emb = CDTEmbed.embed(ctx.author, title=f"{member.display_name} — {cfg.get('info', {}).get('name', ctx.guild.name)}")
+                cfg = Alliance.get_guild_config(ctx.guild.id)
+                emb = Embed.embed(ctx.author, title=f"{member.display_name} — {cfg.get('info', {}).get('name', ctx.guild.name)}")
                 role_info = []
                 for key, r in cfg.get("roles", {}).items():
                     if isinstance(r, dict):
@@ -271,7 +272,7 @@ class AlliancePrefix(commands.Cog):
                 # public profile: search configured guilds for membership and show pages
                 found = []
                 for g in self.bot.guilds:
-                    cfg = get_guild_config(g.id)
+                    cfg = Alliance.get_guild_config(g.id)
                     if not cfg:
                         continue
                     mids = cfg.get("member_ids", [])
@@ -282,7 +283,7 @@ class AlliancePrefix(commands.Cog):
                     return
                 pages = []
                 for g, cfg in found:
-                    emb = CDTEmbed.embed(ctx.author, title=cfg.get("info", {}).get("name", g.name))
+                    emb = Embed.embed(ctx.author, title=cfg.get("info", {}).get("name", g.name))
                     if cfg.get("info", {}).get("tag"):
                         emb.add_field(name="Tag", value=cfg.get("info", {}).get("tag"), inline=False)
                     role_lines = []
@@ -295,7 +296,7 @@ class AlliancePrefix(commands.Cog):
                         emb.add_field(name=f"{member.display_name}'s roles", value="\n".join(role_lines), inline=False)
                     emb.set_footer(text=f"Server: {g.name} ({g.id})")
                     pages.append(emb)
-                menu = CDTPagesMenu(pages, ctx.author, timeout=120)
+                menu = PagesMenu(pages, ctx.author, timeout=120)
                 await menu.start(ctx)
                 return
         except Exception:
@@ -316,13 +317,13 @@ class AlliancePrefix(commands.Cog):
         if field not in allowed:
             await safe_send_ctx(ctx, "Invalid field. Allowed: " + ", ".join(sorted(allowed)))
             return
-        if not is_leader_or_officer(ctx.author, ctx.guild):
+        if not Alliance.is_leader_or_officer(ctx.author, ctx.guild):
             await safe_send_ctx(ctx, "Only alliance leaders or officers can set alliance info.")
             return
         val = value.strip() if value else None
         if val == "":
             val = None
-        ok = set_alliance_info_field(ctx.guild.id, field, val)
+        ok = Alliance.set_alliance_info_field(ctx.guild.id, field, val)
         if ok:
             await safe_send_ctx(ctx, f"Set `{field}` to `{val}`." if val is not None else f"Cleared `{field}`.")
         else:
@@ -334,20 +335,20 @@ class AlliancePrefix(commands.Cog):
     @alliance.command(name="addofficer")
     async def alliance_addofficer(self, ctx, member: Optional[commands.MemberConverter] = None):
         """Add an officer (leader only)."""
-        if not is_leader(ctx.author, ctx.guild):
+        if not Alliance.is_leader(ctx.author, ctx.guild):
             await safe_send_ctx(ctx, "Only the alliance leader can add officers.")
             return
         if member is None:
             await safe_send_ctx(ctx, "Usage: ///mcoc alliance addofficer @member")
             return
-        cfg = get_guild_config(ctx.guild.id)
+        cfg = Alliance.get_guild_config(ctx.guild.id)
         officers_role = None
         if cfg:
             officers_role = ctx.guild.get_role(cfg.get("roles", {}).get("officers", {}).get("id")) if cfg.get("roles", {}).get("officers") else None
         try:
             if officers_role:
                 await member.add_roles(officers_role, reason="Promoted to alliance officer")
-            add_officer_by_id(ctx.guild.id, member.id)
+            Alliance.add_officer_by_id(ctx.guild.id, member.id)
             await safe_send_ctx(ctx, f"{member.display_name} is now an officer.")
         except Exception:
             log.exception("Failed to add officer role for %s", member.id)
@@ -356,20 +357,20 @@ class AlliancePrefix(commands.Cog):
     @alliance.command(name="removeofficer")
     async def alliance_removeofficer(self, ctx, member: Optional[commands.MemberConverter] = None):
         """Remove an officer (leader only)."""
-        if not is_leader(ctx.author, ctx.guild):
+        if not Alliance.is_leader(ctx.author, ctx.guild):
             await safe_send_ctx(ctx, "Only the alliance leader can remove officers.")
             return
         if member is None:
             await safe_send_ctx(ctx, "Usage: ///mcoc alliance removeofficer @member")
             return
-        cfg = get_guild_config(ctx.guild.id)
+        cfg = Alliance.get_guild_config(ctx.guild.id)
         officers_role = None
         if cfg:
             officers_role = ctx.guild.get_role(cfg.get("roles", {}).get("officers", {}).get("id")) if cfg.get("roles", {}).get("officers") else None
         try:
             if officers_role and officers_role in member.roles:
                 await member.remove_roles(officers_role, reason="Demoted from alliance officer")
-            remove_officer_by_id(ctx.guild.id, member.id)
+            Alliance.remove_officer_by_id(ctx.guild.id, member.id)
             await safe_send_ctx(ctx, f"{member.display_name} is no longer an officer.")
         except Exception:
             log.exception("Failed to remove officer role for %s", member.id)
@@ -381,13 +382,13 @@ class AlliancePrefix(commands.Cog):
     @alliance.command(name="promote")
     async def alliance_promote(self, ctx, member: Optional[commands.MemberConverter] = None, role_key: str = "members"):
         """Promote a member into a battlegroup or officer. Leader only."""
-        if not is_leader(ctx.author, ctx.guild):
+        if not Alliance.is_leader(ctx.author, ctx.guild):
             await safe_send_ctx(ctx, "Only the alliance leader can promote members.")
             return
         if member is None:
             await safe_send_ctx(ctx, "Usage: ///mcoc alliance promote @member <role_key>")
             return
-        cfg = get_guild_config(ctx.guild.id)
+        cfg = Alliance.get_guild_config(ctx.guild.id)
         if not cfg:
             await safe_send_ctx(ctx, "No alliance configured for this guild.")
             return
@@ -401,7 +402,7 @@ class AlliancePrefix(commands.Cog):
             mids = cfg.setdefault("member_ids", [])
             if member.id not in mids:
                 mids.append(member.id)
-                set_guild_config(ctx.guild.id, cfg)
+                Alliance.set_guild_config(ctx.guild.id, cfg)
             await safe_send_ctx(ctx, f"Promoted {member.display_name} to `{role_key}`.")
         except Exception:
             log.exception("Failed to promote %s to %s", member.id, role_key)
@@ -410,13 +411,13 @@ class AlliancePrefix(commands.Cog):
     @alliance.command(name="demote")
     async def alliance_demote(self, ctx, member: Optional[commands.MemberConverter] = None, role_key: str = "members"):
         """Demote a member by removing a configured role. Leader only."""
-        if not is_leader(ctx.author, ctx.guild):
+        if not Alliance.is_leader(ctx.author, ctx.guild):
             await safe_send_ctx(ctx, "Only the alliance leader can demote members.")
             return
         if member is None:
             await safe_send_ctx(ctx, "Usage: ///mcoc alliance demote @member <role_key>")
             return
-        cfg = get_guild_config(ctx.guild.id)
+        cfg = Alliance.get_guild_config(ctx.guild.id)
         role_map = cfg.get("roles", {})
         target = role_map.get(role_key)
         if not target:
@@ -434,7 +435,7 @@ class AlliancePrefix(commands.Cog):
                 if member.id in mids:
                     mids.remove(member.id)
                     cfg["member_ids"] = mids
-                    set_guild_config(ctx.guild.id, cfg)
+                    Alliance.set_guild_config(ctx.guild.id, cfg)
             await safe_send_ctx(ctx, f"Demoted {member.display_name} from `{role_key}`.")
         except Exception:
             log.exception("Failed to demote %s from %s", member.id, role_key)
@@ -446,12 +447,12 @@ class AlliancePrefix(commands.Cog):
     @alliance.command(name="listmembers")
     async def alliance_listmembers(self, ctx):
         """List alliance members (brief). Officers and leaders see full list; public sees count."""
-        cfg = get_guild_config(ctx.guild.id)
+        cfg = Alliance.get_guild_config(ctx.guild.id)
         if not cfg:
             await safe_send_ctx(ctx, "No alliance configured for this guild.")
             return
         mids = cfg.get("member_ids", [])
-        if is_leader_or_officer(ctx.author, ctx.guild):
+        if Alliance.is_leader_or_officer(ctx.author, ctx.guild):
             mentions = []
             for uid in mids:
                 member = ctx.guild.get_member(uid)
