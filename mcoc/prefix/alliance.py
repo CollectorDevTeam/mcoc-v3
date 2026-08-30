@@ -195,7 +195,7 @@ class AlliancePrefix(commands.Cog):
             await safe_send_ctx(ctx, "No alliance configured for this guild.")
             return
         info = cfg.get("info", {})
-        emb = Embed.embed(ctx.author, title=info.get("name") or ctx.guild.name, description=info.get("about") or "")
+        emb = Embed(ctx.author, title=info.get("name") or ctx.guild.name, description=info.get("about") or "")
         if info.get("tag"):
             emb.add_field(name="Tag", value=info.get("tag"), inline=False)
         if info.get("invite"):
@@ -226,7 +226,7 @@ class AlliancePrefix(commands.Cog):
                 await safe_send_ctx(ctx, "No alliance configured for this guild.")
                 return
             info = cfg.get("info", {})
-            emb = Embed.embed(ctx.author, title=info.get("name") or ctx.guild.name, description=info.get("about") or "")
+            emb = Embed(ctx.author, title=info.get("name") or ctx.guild.name, description=info.get("about") or "")
             if info.get("tag"):
                 emb.add_field(name="Tag", value=info.get("tag"), inline=False)
             if info.get("invite"):
@@ -252,7 +252,7 @@ class AlliancePrefix(commands.Cog):
             member_alliance_name = Alliance.get_user_alliance_in_guild(member.id, ctx.guild.id)
             if member_alliance_name:
                 cfg = Alliance.get_guild_config(ctx.guild.id)
-                emb = Embed.embed(ctx.author, title=f"{member.display_name} — {cfg.get('info', {}).get('name', ctx.guild.name)}")
+                emb = Embed(ctx.author, title=f"{member.display_name} — {cfg.get('info', {}).get('name', ctx.guild.name)}")
                 role_info = []
                 for key, r in cfg.get("roles", {}).items():
                     if isinstance(r, dict):
@@ -283,7 +283,7 @@ class AlliancePrefix(commands.Cog):
                     return
                 pages = []
                 for g, cfg in found:
-                    emb = Embed.embed(ctx.author, title=cfg.get("info", {}).get("name", g.name))
+                    emb = Embed(ctx.author, title=cfg.get("info", {}).get("name", g.name))
                     if cfg.get("info", {}).get("tag"):
                         emb.add_field(name="Tag", value=cfg.get("info", {}).get("tag"), inline=False)
                     role_lines = []

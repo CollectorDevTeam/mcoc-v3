@@ -110,7 +110,7 @@ class AccountPrefix(commands.Cog):
 
         # Build an attractive embed listing settable fields with short descriptions and examples
         try:
-            emb = Embed.embed(ctx.author, title="Account Settings — What you can set", description="Set your public profile fields. Use `///mcoc account set <field> <value>` to update. Use an empty string `\"\"` to clear a value.", footer_text=f"Examples: {prefix}mcoc account set mcoc-name jjw • {prefix}mcoc account set start-date \"Oct. 15, 2015\"")
+            emb = Embed(ctx.author, title="Account Settings — What you can set", description="Set your public profile fields. Use `///mcoc account set <field> <value>` to update. Use an empty string `\"\"` to clear a value.", footer_text=f"Examples: {prefix}mcoc account set mcoc-name jjw • {prefix}mcoc account set start-date \"Oct. 15, 2015\"")
         except Exception:
             # fallback simple embed construction
             try:
@@ -239,7 +239,7 @@ class AccountPrefix(commands.Cog):
 
             # present attractively
             try:
-                emb = Embed.embed(ctx.author, title="Your Account Settings", description="Current saved preferences")
+                emb = Embed(ctx.author, title="Your Account Settings", description="Current saved preferences")
                 # add fields in two columns where possible
                 for k, v in settings.items():
                     try:

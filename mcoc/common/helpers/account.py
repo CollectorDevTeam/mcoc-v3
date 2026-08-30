@@ -396,7 +396,7 @@ def build_profile_display(parent: Any, ctx_or_author: Any, target_id: int, viewe
         try:
             # prefer to use Embed.embed if available
             try:
-                emb = Embed.embed(ctx_or_author, title="CollectorVerse Profile")
+                emb = Embed(ctx_or_author, title="CollectorVerse Profile")
             except Exception:
                 # fallback to constructing a Embed instance directly
                 emb = Embed(ctx_or_author, title=f"{profile.get('mcoc_name') or profile.get('display_name') or str(target_id)} — Profile")

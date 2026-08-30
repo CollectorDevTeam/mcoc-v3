@@ -84,7 +84,7 @@ class MCOCPrefix(commands.Cog):
 
         # No forwarding possible: show attractive embed help (use Embed)
         try:
-            emb = Embed.embed(ctx, title="Challenger Help Menu", color=Embed.get_color_value(ctx))
+            emb = Embed(ctx, title="Challenger Help Menu", color=Embed.get_color_value(ctx))
             emb.add_field(name="Syntax", value="`///mcoc [subcommand] [args...]`", inline=False)
             emb.add_field(name="Description", value="Compatibility root. Use top-level commands directly for faster access.", inline=False)
             emb.add_field(name="Top-level commands", value="`///account`, `///roster`, `///alliance`, `///champ`, `///mcocadmin`, `///mcoc status`", inline=False)
@@ -224,7 +224,7 @@ class MCOCPrefix(commands.Cog):
             text = MCOCPrefix._group_help_text(None, group, title, fallback)  # or call instance method appropriately
         except Exception:
             text = fallback or title
-        emb = Embed.embed(ctx, title=title, description=text)
+        emb = Embed(ctx, title=title, description=text)
         try:
             Embed.set_footer(ctx, emb, footer_text="Type ///help <command> for details")
         except Exception:

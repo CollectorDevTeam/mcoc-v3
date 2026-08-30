@@ -687,7 +687,7 @@ async def build_roster_pages(core: Any, ctx_or_author: Any, parsed_filters: Opti
         # If no lines, return a single "no matches" embed
         if not lines:
             try:
-                emb = Embed.embed(author_for_embed, title="Roster", description="No champions match the filters.", footer_text=f"Page 1 of 1{ROSTER_FOOTER}")
+                emb = Embed(author_for_embed, title="Roster", description="No champions match the filters.", footer_text=f"Page 1 of 1{ROSTER_FOOTER}")
                 return [emb]
             except Exception:
                 return [{"title": "Roster", "description": "No champions match the filters.", "footer": {"text": f"Page 1 of 1{ROSTER_FOOTER}"}}]
@@ -716,7 +716,7 @@ async def build_roster_pages(core: Any, ctx_or_author: Any, parsed_filters: Opti
         try:
             for i, ptext in enumerate(page_texts):
                 footer = f"Page {i+1} of {len(page_texts)}{ROSTER_FOOTER}"
-                emb = Embed.embed(author_for_embed, title=roster_title, description=ptext, footer_text=footer)
+                emb = Embed(author_for_embed, title=roster_title, description=ptext, footer_text=footer)
                 try:
                     emb.set_footer(text=footer)
                 except Exception:
@@ -745,7 +745,7 @@ async def get_roster_pages(core: Any, ctx_or_author: Any, parsed_filters: Option
     for p in pages:
         if isinstance(p, dict):
             try:
-                emb = Embed.embed(ctx_or_author, title=p.get("title"), description=p.get("description"), footer_text=(p.get("footer") or {}).get("text"))
+                emb = Embed(ctx_or_author, title=p.get("title"), description=p.get("description"), footer_text=(p.get("footer") or {}).get("text"))
                 out.append(emb)
             except Exception:
                 out.append(p)
@@ -843,7 +843,7 @@ def add_page_footers(pages: List[Any], author_for_embed: Any = None) -> List[Any
     for i, p in enumerate(pages):
         try:
             if isinstance(p, dict):
-                emb = Embed.embed(author_for_embed, title=p.get("title", "Roster"), description=p.get("description", ""))
+                emb = Embed(author_for_embed, title=p.get("title", "Roster"), description=p.get("description", ""))
             else:
                 emb = p
             try:
