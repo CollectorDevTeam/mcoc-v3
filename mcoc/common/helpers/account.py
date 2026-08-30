@@ -392,20 +392,6 @@ def build_profile_display(parent: Any, ctx_or_author: Any, target_id: int, viewe
         if not profile:
             return None, "No profile found for that user."
 
-        # Attempt to build embed using format_profile_embed (which may rely on discord)
-        try:
-            # lazy import to avoid circulars and to keep this function testable
-            from .account import format_profile_embed  # type: ignore
-            # If format_profile_embed exists in this module (it might be defined below), call it.
-            # However, to avoid circular import we check for attribute first.
-            if "format_profile_embed" in globals():
-                # call local function if present
-                emb = format_profile_embed(ctx_or_author, profile, None)
-                return emb, None
-        except Exception:
-            # ignore and fall back to manual embed construction below
-            pass
-
         # Manual embed construction (defensive)
         try:
             # prefer to use Embed.embed if available
@@ -446,10 +432,43 @@ def build_profile_display(parent: Any, ctx_or_author: Any, target_id: int, viewe
 
             if total_prestige is not None:
                 emb.add_field(name="Prestige (sum)", value=str(total_prestige), inline=False)
+            # Format Top 5 using prestige formatter
+            formatted_top5 = []
             if top5_lines:
-                emb.add_field(name="Top 5 Champions", value="\n".join(top5_lines), inline=False)
+                try:
+                    from mcoc.common.formatters import format_champion_prestige_line
+                    cache = getattr(parent, "cache", None)
+
+                    for line in top5_lines:
+                        # line looks like "1. slug [prestige]"
+                        try:
+                            slug = line.split(". ", 1)[1].split(" [", 1)[0]
+                        except Exception:
+                            slug = line
+
+                        champ_obj = None
+                        if cache:
+                            try:
+                                champ_obj = cache.get_champion(slug)
+                            except Exception:
+                                champ_obj = None
+
+                        entry = {
+                            "champion": slug,
+                            "rarity": 6,        # best guess; prestige_map doesn't store rarity
+                            "rank": 1,
+                            "sig": 0,
+                            "ascended": 0,
+                            "prestige": int(line.split("[")[-1].rstrip("]")) if "[" in line else 0,
+                        }
+
+                        formatted_top5.append(format_champion_prestige_line(champ_obj, entry))
+                except Exception:
+                    formatted_top5 = top5_lines
             else:
-                emb.add_field(name="Top 5 Champions", value="No roster or prestige data available.", inline=False)
+                formatted_top5 = ["No roster or prestige data available."]
+
+            emb.add_field(name="Top 5 Champions", value="\n".join(formatted_top5), inline=False)
 
             # Add other profile fields in a compact layout
             display_order = ["alliance", "job", "timezone", "website", "invite", "age", "gender", "mastery"]

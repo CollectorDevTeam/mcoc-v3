@@ -30,19 +30,6 @@ from mcoc.common import Core
 
 from mcoc.common.prefix_utils import get_runtime_prefix, safe_send_ctx
 from mcoc.common.help_utils import send_or_brand_help
-# from Roster import ensure_user_manager, _ensure_hook_registered
-# from ..common.helpers.account import (
-#     ALLOWED_PROFILE_FIELDS,
-#     FIELD_CANONICAL,
-#     validate_profile_field,
-#     get_profile_settings,
-#     link_account as helper_link_account,
-#     unlink_account as helper_unlink_account,
-#     delete_user_profile as helper_delete_user_profile,
-#     build_profile_display,
-#     get_profile,
-#     set_profile_field,
-# )
 
 Embed = Core.Embed
 PagesMenu = Core.PagesMenu
