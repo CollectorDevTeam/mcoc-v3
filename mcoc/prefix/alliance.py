@@ -195,18 +195,18 @@ class AlliancePrefix(commands.Cog):
             await safe_send_ctx(ctx, "No alliance configured for this guild.")
             return
         info = cfg.get("info", {})
-        emb = Embed(ctx.author, title=info.get("name") or ctx.guild.name, description=info.get("about") or "")
+        emb = Embed.embed(ctx.author, title=info.get("name") or ctx.guild.name, description=info.get("about") or "")
         if info.get("tag"):
-            emb.add_field(name="Tag", value=info.get("tag"), inline=False)
+            Embed.add_field(name="Tag", value=info.get("tag"), inline=False)
         if info.get("invite"):
-            emb.add_field(name="Invite", value=info.get("invite"), inline=False)
+            Embed.add_field(name="Invite", value=info.get("invite"), inline=False)
         roles = cfg.get("roles", {})
         role_lines = []
         for key in ("alliance", "leader", "officers", "members", "bg1", "bg2", "bg3"):
             r = roles.get(key)
             role_lines.append(f"{key}: {r.get('name') if isinstance(r, dict) else (r or 'not set')}")
         if role_lines:
-            emb.add_field(name="Configured roles", value="\n".join(role_lines), inline=False)
+            Embed.add_field(name="Configured roles", value="\n".join(role_lines), inline=False)
         try:
             await safe_send_ctx(ctx, None, embed=emb)
         except Exception:
@@ -226,22 +226,22 @@ class AlliancePrefix(commands.Cog):
                 await safe_send_ctx(ctx, "No alliance configured for this guild.")
                 return
             info = cfg.get("info", {})
-            emb = Embed(ctx.author, title=info.get("name") or ctx.guild.name, description=info.get("about") or "")
+            emb = Embed.embed(ctx.author, title=info.get("name") or ctx.guild.name, description=info.get("about") or "")
             if info.get("tag"):
-                emb.add_field(name="Tag", value=info.get("tag"), inline=False)
+                Embed.add_field(name="Tag", value=info.get("tag"), inline=False)
             if info.get("invite"):
-                emb.add_field(name="Invite", value=info.get("invite"), inline=False)
+                Embed.add_field(name="Invite", value=info.get("invite"), inline=False)
             if info.get("started"):
-                emb.add_field(name="Started", value=info.get("started"), inline=False)
+                Embed.add_field(name="Started", value=info.get("started"), inline=False)
             role_lines = []
             for key in ("alliance", "leader", "officers", "members", "bg1", "bg2", "bg3"):
                 r = cfg.get("roles", {}).get(key)
                 role_lines.append(f"{key}: {r.get('name') if isinstance(r, dict) else (r or 'not set')}")
             if role_lines:
-                emb.add_field(name="Configured roles", value="\n".join(role_lines), inline=False)
+                Embed.add_field(name="Configured roles", value="\n".join(role_lines), inline=False)
             try:
                 if getattr(ctx.guild, "icon_url", None):
-                    emb.set_thumbnail(url=ctx.guild.icon_url)
+                    Embed.set_thumbnail(url=ctx.guild.icon_url)
             except Exception:
                 pass
             await safe_send_ctx(ctx, None, embed=emb)
@@ -252,7 +252,7 @@ class AlliancePrefix(commands.Cog):
             member_alliance_name = Alliance.get_user_alliance_in_guild(member.id, ctx.guild.id)
             if member_alliance_name:
                 cfg = Alliance.get_guild_config(ctx.guild.id)
-                emb = Embed(ctx.author, title=f"{member.display_name} — {cfg.get('info', {}).get('name', ctx.guild.name)}")
+                emb = Embed.embed(ctx.author, title=f"{member.display_name} — {cfg.get('info', {}).get('name', ctx.guild.name)}")
                 role_info = []
                 for key, r in cfg.get("roles", {}).items():
                     if isinstance(r, dict):
@@ -260,10 +260,10 @@ class AlliancePrefix(commands.Cog):
                         if role_obj and role_obj in member.roles:
                             role_info.append(f"{key}: {role_obj.name}")
                 if role_info:
-                    emb.add_field(name="Roles", value="\n".join(role_info), inline=False)
-                emb.add_field(name="Member ID", value=str(member.id), inline=True)
+                    Embed.add_field(name="Roles", value="\n".join(role_info), inline=False)
+                Embed.add_field(name="Member ID", value=str(member.id), inline=True)
                 try:
-                    emb.set_thumbnail(url=member.avatar.url)
+                    Embed.set_thumbnail(url=member.avatar.url)
                 except Exception:
                     pass
                 await safe_send_ctx(ctx, None, embed=emb)
@@ -283,9 +283,9 @@ class AlliancePrefix(commands.Cog):
                     return
                 pages = []
                 for g, cfg in found:
-                    emb = Embed(ctx.author, title=cfg.get("info", {}).get("name", g.name))
+                    emb = Embed.embed(ctx.author, title=cfg.get("info", {}).get("name", g.name))
                     if cfg.get("info", {}).get("tag"):
-                        emb.add_field(name="Tag", value=cfg.get("info", {}).get("tag"), inline=False)
+                        Embed.add_field(name="Tag", value=cfg.get("info", {}).get("tag"), inline=False)
                     role_lines = []
                     for key, r in cfg.get("roles", {}).items():
                         if isinstance(r, dict):
@@ -293,8 +293,8 @@ class AlliancePrefix(commands.Cog):
                             if role_obj and role_obj in member.roles:
                                 role_lines.append(f"{key}: {role_obj.name}")
                     if role_lines:
-                        emb.add_field(name=f"{member.display_name}'s roles", value="\n".join(role_lines), inline=False)
-                    emb.set_footer(text=f"Server: {g.name} ({g.id})")
+                        Embed.add_field(name=f"{member.display_name}'s roles", value="\n".join(role_lines), inline=False)
+                    Embed.set_footer(text=f"Server: {g.name} ({g.id})")
                     pages.append(emb)
                 menu = PagesMenu(pages, ctx.author, timeout=120)
                 await menu.start(ctx)

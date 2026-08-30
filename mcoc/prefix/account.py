@@ -110,11 +110,11 @@ class AccountPrefix(commands.Cog):
 
         # Build an attractive embed listing settable fields with short descriptions and examples
         try:
-            emb = Embed(ctx.author, title="Account Settings — What you can set", description="Set your public profile fields. Use `///mcoc account set <field> <value>` to update. Use an empty string `\"\"` to clear a value.", footer_text=f"Examples: {prefix}mcoc account set mcoc-name jjw • {prefix}mcoc account set start-date \"Oct. 15, 2015\"")
+            emb = Embed.embed(ctx.author, title="Account Settings — What you can set", description="Set your public profile fields. Use `///mcoc account set <field> <value>` to update. Use an empty string `\"\"` to clear a value.", footer_text=f"Examples: {prefix}mcoc account set mcoc-name jjw • {prefix}mcoc account set start-date \"Oct. 15, 2015\"")
         except Exception:
             # fallback simple embed construction
             try:
-                emb = Embed(ctx.author, title="Account Settings — What you can set")
+                emb = Embed.embed(ctx.author, title="Account Settings — What you can set")
             except Exception:
                 emb = None
 
@@ -129,7 +129,7 @@ class AccountPrefix(commands.Cog):
                     # show canonical key exactly as users must type it
                     lines.append(f"**{k}** — {desc}")
                 try:
-                    emb.add_field(name=name, value="\n".join(lines), inline=False)
+                    Embed.add_field(name=name, value="\n".join(lines), inline=False)
                 except Exception:
                     pass
 
@@ -150,7 +150,7 @@ class AccountPrefix(commands.Cog):
                 f"`{prefix}account set region \"US\"`",
             ]
             try:
-                emb.add_field(name="Quick examples", value="\n".join(examples), inline=False)
+                Embed.add_field(name="Quick examples", value="\n".join(examples), inline=False)
             except Exception:
                 pass
 
@@ -239,11 +239,11 @@ class AccountPrefix(commands.Cog):
 
             # present attractively
             try:
-                emb = Embed(ctx.author, title="Your Account Settings", description="Current saved preferences")
+                emb = Embed.embed(ctx.author, title="Your Account Settings", description="Current saved preferences")
                 # add fields in two columns where possible
                 for k, v in settings.items():
                     try:
-                        emb.add_field(name=k.replace("_", " ").title(), value=str(v) if v is not None else "Not set", inline=True)
+                        Embed.add_field(name=k.replace("_", " ").title(), value=str(v) if v is not None else "Not set", inline=True)
                     except Exception:
                         pass
                 await safe_send_ctx(ctx, None, embed=emb)

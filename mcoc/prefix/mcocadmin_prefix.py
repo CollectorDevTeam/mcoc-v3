@@ -66,13 +66,13 @@ class MCOCAdminPrefix(commands.Cog):
         """List all features and their status for this guild."""
         guild_cfg = Entitlements.get_guild_config(ctx.guild.id)
 
-        emb = Embed(ctx, title="Feature Flags")
+        emb = Embed.embed(ctx, title="Feature Flags")
 
         for fname, meta in Entitlements.FEATURES.items():
             enabled = guild_cfg.feature_flags.get(fname, False)
             tier = meta["tier"]
             desc = meta["description"]
-            emb.add_field(
+            Embed.add_field(
                 name=f"{fname} ({tier})",
                 value=f"{'ENABLED' if enabled else 'disabled'}\n{desc}",
                 inline=False

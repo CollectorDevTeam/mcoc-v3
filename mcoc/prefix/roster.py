@@ -199,7 +199,7 @@ class RosterPrefix(commands.Cog):
             if not pages:
                 # No matches: send a single decorated embed
                 try:
-                    await ctx.send(embed=Embed.embed(target_member, title="Roster", description="No roster entries match your filters."))
+                    await ctx.send(embed=Embed.Embed.embed(target_member, title="Roster", description="No roster entries match your filters."))
                 except Exception:
                     await safe_send_ctx(ctx, "No roster entries match your filters.")
                 return

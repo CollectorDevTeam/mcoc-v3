@@ -105,7 +105,8 @@ class CDTEmbed:
     Static helpers to build branded embeds and optional component Views.
     Use the synchronous API (no awaits required).
     """
-    def _get_color_value(ctx_or_author: Any = None, color_param: Any = None, class_name: Optional[str] = None) -> int:
+    @classmethod
+    def _get_color_value(cls, ctx_or_author: Any = None, color_param: Any = None, class_name: Optional[str] = None) -> int:
         """
         Resolve an integer color value for embeds without importing discord.
         Priority:
@@ -156,46 +157,14 @@ class CDTEmbed:
         # 4) fallback
         return CLASS_COLOR_MAP.get("default", 0xD4AF37)
 
-    @staticmethod
-    def embed(
-        ctx_or_author: Any = None,
-        *,
-        color: Any = CLASS_COLOR_MAP.get("default"),
-        description: str = "",
-        footer: Optional[Dict[str, Any]] = None,
-        image: Optional[str] = None,
-        thumbnail: Optional[str] = None,
-        title: str = "",
-        url: str = None,
-        footer_text: Optional[str] = None,
-        footer_icon: Optional[str] = CDT_ICON,
-        # include_brand_button_row: bool = True,
-    ) -> Any:
-        """
-        Build a branded embed. Returns a discord.Embed when discord is available,
-        otherwise returns a dict fallback.
+    @classmethod
+    def embed(cls, ctx_or_author=None, *, title="", description="", color=None,
+            image=None, thumbnail=None, url=None, footer=None,
+            footer_text=None, footer_icon=CDT_ICON):
 
-        If include_brand_button_row is True and discord is available, callers can
-        also call CDTv2.brand_view() to get a View with branded buttons.
-        """
-        try:
-            import discord
-        except Exception:
-            return {
-                "title": title,
-                "description": description,
-                "color": color,
-                "image": image,
-                "thumbnail": thumbnail,
-                "url": url,
-                "author": _get_author_info(ctx_or_author),
-                "footer": footer or {
-                    "text": footer_text or (CDT_FOOTER_TEXT),
-                    "icon_url": footer_icon or (CDT_LOGO),
-                },
-            }
+        import discord
 
-        # Determine color: prefer author's color if available
+        # Resolve color
         if color is None:
             author = getattr(ctx_or_author, "author", ctx_or_author)
             color = getattr(author, "color", None) or discord.Color.gold()
@@ -203,42 +172,39 @@ class CDTEmbed:
         emb = discord.Embed(title=title, description=description, color=color, url=url)
 
         # Author
-        display_name, avatar_url = _get_author_info(ctx_or_author)
-        try:
-            if avatar_url:
-                emb.set_author(name=display_name, icon_url=avatar_url)
-            else:
-                emb.set_author(name=display_name)
-        except Exception:
-            try:
-                emb.set_author(name=display_name)
-            except Exception:
-                pass
+        name, avatar = _get_author_info(ctx_or_author)
+        if avatar:
+            emb.set_author(name=name, icon_url=avatar)
+        else:
+            emb.set_author(name=name)
 
-        # Images (validate)
+        # Images
         if image and _is_valid_http_url(image):
-            try:
-                emb.set_image(url=image)
-            except Exception:
-                pass
-        try:
-            if _is_valid_http_url(thumbnail):
-                emb.set_thumbnail(url=thumbnail)
-        except Exception:
-            pass
+            emb.set_image(url=image)
+        if thumbnail and _is_valid_http_url(thumbnail):
+            emb.set_thumbnail(url=thumbnail)
 
         # Footer
-        try:
-            footer_final = footer or _brand_footer()
-            emb.set_footer(text=footer_final.get("text"), icon_url=footer_final.get("icon_url"))
-        except Exception:
-            pass
+        if footer:
+            emb.set_footer(text=footer.get("text"), icon_url=footer.get("icon_url"))
+        else:
+            emb.set_footer(text=footer_text or CDT_FOOTER_TEXT, icon_url=footer_icon)
 
         return emb
 
+    @classmethod
+    def add_field(cls, ctx_or_author, emb, *, name, value, inline=True):
+        emb.add_field(name=name, value=value, inline=inline)
+        return emb
+
+    @classmethod
+    def set_footer(cls, ctx_or_author, emb, *, text=None, icon_url=None):
+        emb.set_footer(text=text or CDT_FOOTER_TEXT, icon_url=icon_url or CDT_ICON)
+        return emb
+
     # Author setter wrapper matching discord.Embed.set_author signature
-    @staticmethod
-    def set_author(ctx_or_author: Any, emb: "discord.Embed", *, name: str, url: Optional[str] = None, icon_url: Optional[str] = None) -> "discord.Embed":
+    @classmethod
+    def set_author(cls, ctx_or_author: Any, emb: "discord.Embed", *, name: str, url: Optional[str] = None, icon_url: Optional[str] = None) -> "discord.Embed":
         try:
             # validate icon_url if provided
             if icon_url and not _is_valid_http_url(icon_url):
@@ -251,48 +217,24 @@ class CDTEmbed:
                 pass
         return emb
 
-    # Field helpers (add_field already existed; ensure signature parity)
-    @staticmethod
-    def add_field(ctx_or_author: Any, emb: "discord.Embed", *, name: str, value: str, inline: bool = True) -> "discord.Embed":
-        try:
-            emb.add_field(name=name, value=value, inline=inline)
-        except Exception:
-            pass
-        return emb
-
-    @staticmethod
-    def insert_field_at(ctx_or_author: Any, emb: "discord.Embed", index: int, *, name: str, value: str, inline: bool = True) -> "discord.Embed":
+    @classmethod
+    def insert_field_at(cls, ctx_or_author: Any, emb: "discord.Embed", index: int, *, name: str, value: str, inline: bool = True) -> "discord.Embed":
         try:
             emb.insert_field_at(index=index, name=name, value=value, inline=inline)
         except Exception:
             pass
         return emb
 
-    @staticmethod
-    def set_field_at(ctx_or_author: Any, emb: "discord.Embed", index: int, *, name: str, value: str, inline: bool = True) -> "discord.Embed":
+    @classmethod
+    def set_field_at(cls, ctx_or_author: Any, emb: "discord.Embed", index: int, *, name: str, value: str, inline: bool = True) -> "discord.Embed":
         try:
             emb.set_field_at(index=index, name=name, value=value, inline=inline)
         except Exception:
             pass
         return emb
 
-    @staticmethod   
-    def set_footer(ctx_or_author: Any, emb: "discord.Embed", *, text: Optional[str] = None, icon_url: Optional[str] = None) -> "discord.Embed":
-        try:
-            if icon_url and not _is_valid_http_url(icon_url):
-                icon_url = None
-            if text is None:
-                footer_final = CDT_FOOTER_TEXT
-            else:
-                footer_final = (text or "")
-            emb.set_footer(text=footer_final, icon_url=icon_url)
-        except Exception:
-            pass
-        return emb
-
-
-    @staticmethod
-    def champion_embed(ctx_or_author: Any, champ: Dict[str, Any]) -> Any:
+    @classmethod
+    def champion_embed(cls, ctx_or_author: Any, champ: Dict[str, Any]) -> Any:
         """
         Champion detail embed (name, class, tags, abilities, immunities).
         """
@@ -317,7 +259,7 @@ class CDTEmbed:
                 aname = a.get("name", "?")
                 lines.append(f"• {aname} ({t})")
             try:
-                emb.add_field(name="Abilities", value="\n".join(lines), inline=False)
+                CDTEmbed.add_field(ctx_or_author, emb, name="Abilities", value="\n".join(lines), inline=False)
             except Exception:
                 pass
 
@@ -333,14 +275,14 @@ class CDTEmbed:
                 else:
                     lines.append(f"• {iname} ({t})")
             try:
-                emb.add_field(name="Immunities", value="\n".join(lines), inline=False)
+                CDTEmbed.add_field(ctx_or_author, emb, name="Immunities", value="\n".join(lines), inline=False)
             except Exception:
                 pass
 
         return emb
 
-    @staticmethod
-    def roster_entry_embed(ctx_or_author: Any, champ: Dict[str, Any], entry: Dict[str, Any]) -> Any:
+    @classmethod
+    def roster_entry_embed(cls, ctx_or_author: Any, champ: Dict[str, Any], entry: Dict[str, Any]) -> Any:
         """
         Embed for a single roster entry (champion object + user entry metadata).
         """
@@ -364,8 +306,8 @@ class CDTEmbed:
         )
         return emb
 
-    @staticmethod
-    def tag_list_embed(ctx_or_author: Any, tag: str, champions: List[Dict[str, Any]]) -> Any:
+    @classmethod
+    def tag_list_embed(cls, ctx_or_author: Any, tag: str, champions: List[Dict[str, Any]]) -> Any:
         """
         Embed listing champions for a tag.
         """
@@ -376,13 +318,13 @@ class CDTEmbed:
         )
         lines = [c.get("name", "Unknown") for c in champions or []]
         try:
-            emb.add_field(name="Matches", value="\n".join(lines) or "None", inline=False)
+            CDTEmbed.add_field(ctx_or_author, emb, name="Matches", value="\n".join(lines) or "None", inline=False)
         except Exception:
             pass
         return emb
 
-    @staticmethod
-    def brand_view(
+    @classmethod
+    def brand_view(cls,
         *,
         include_patreon: bool = True,
         include_docs: bool = True,

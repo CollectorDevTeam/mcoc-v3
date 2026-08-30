@@ -124,7 +124,7 @@ class ChampionsPrefix(commands.Cog):
 
         if not pages:
             try:
-                await ctx.send(embed=Embed.embed(ctx.author, title="Champions", description="No champions match your search."))
+                await ctx.send(embed=Embed.Embed.embed(ctx.author, title="Champions", description="No champions match your search."))
             except Exception:
                 await safe_send_ctx(ctx, "No champions match your search.")
             return
@@ -200,7 +200,7 @@ class ChampionsPrefix(commands.Cog):
         # Try to use Embed.abilities_embed if present
         try:
             if hasattr(Embed, "abilities_embed"):
-                emb = Embed.abilities_embed(ctx, champ_obj)
+                emb = Embed.abilities_Embed.embed(ctx, champ_obj)
                 if emb:
                     await ctx.send(embed=emb)
                     return
@@ -219,7 +219,7 @@ class ChampionsPrefix(commands.Cog):
                     continue
             desc = "\n\n".join(desc_lines) or "Abilities unavailable."
             try:
-                await ctx.send(embed=Embed.embed(ctx.author, title=f"{champ_obj.get('name') or champ_obj.get('slug')}'s Abilities", description=desc))
+                await ctx.send(embed=Embed.Embed.embed(ctx.author, title=f"{champ_obj.get('name') or champ_obj.get('slug')}'s Abilities", description=desc))
             except Exception:
                 await safe_send_ctx(ctx, desc)
             return
@@ -263,7 +263,7 @@ class ChampionsPrefix(commands.Cog):
             tags = ", ".join(champ_obj.get("tags") or []) or "None"
             role = champ_obj.get("role") or champ_obj.get("archetype") or "Unknown"
             desc = f"**Class:** {cls}\n**Role:** {role}\n**Tags:** {tags}"
-            await ctx.send(embed=Embed.embed(ctx.author, title=f"{name_text} — Info", description=desc))
+            await ctx.send(embed=Embed.Embed.embed(ctx.author, title=f"{name_text} — Info", description=desc))
         except Exception:
             log.exception("Failed to render champion info for %s", name)
             await safe_send_ctx(ctx, "Champion info unavailable.")
