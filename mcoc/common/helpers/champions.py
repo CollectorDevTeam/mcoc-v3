@@ -16,14 +16,11 @@ from typing import Any, Dict, List, Optional, Tuple
 import logging
 import asyncio
 
-from mcoc.common import Core
-Embed = Core.Embed
-PagesMenu = Core.PagesMenu
-Confirm = Core.Confirm
+from mcoc.common.componentsV2 import CDTEmbed as Embed, CDTPagesMenu as PagesMenu
 
 CHAMPIONS_FOOTER = " | CollectorDevTeam"
 
-from ..formatters import format_champion_line
+from mcoc.common.formatters import format_champion_line
 
 log = logging.getLogger("red.mcoc.champions")
 

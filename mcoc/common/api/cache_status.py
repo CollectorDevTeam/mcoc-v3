@@ -1,9 +1,7 @@
 # mcoc/common/cache_status.py
 from typing import Any, Dict, Optional
 import logging
-from mcoc.common import Core
-
-Embed = Core.Embed
+from mcoc.common.componentsV2 import CDTEmbed as Embed
 
 log = logging.getLogger("red.mcoc.cache_status")
 

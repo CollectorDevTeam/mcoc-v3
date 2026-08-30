@@ -26,10 +26,10 @@ PagesMenu = Core.PagesMenu
 Roster = Core.Helpers.roster
 
 # from ..common.helpers.roster import ensure_user_manager, get_roster_pages, make_roster_pager
-from ..common.query_parser import parse_query
+from mcoc.common.query_parser import parse_query
 # from ..common.componentsV2 import Embed, PagesMenu
-from ..common.prefix_utils import safe_send_ctx
-from ..common.help_utils import send_or_brand_help 
+from mcoc.common.prefix_utils import safe_send_ctx
+from mcoc.common.help_utils import send_or_brand_help 
 
 log = logging.getLogger("red.mcoc.prefix.roster")
 

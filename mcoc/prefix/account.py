@@ -28,8 +28,8 @@ from redbot.core import commands
 
 from mcoc.common import Core
 
-from ..common.prefix_utils import get_runtime_prefix, safe_send_ctx
-from ..common.help_utils import send_or_brand_help
+from mcoc.common.prefix_utils import get_runtime_prefix, safe_send_ctx
+from mcoc.common.help_utils import send_or_brand_help
 # from Roster import ensure_user_manager, _ensure_hook_registered
 # from ..common.helpers.account import (
 #     ALLOWED_PROFILE_FIELDS,
@@ -58,7 +58,7 @@ log = logging.getLogger("red.mcoc.prefix.account")
 # Try to import a flexible date parser from prefix_utils if available.
 # If not present, we'll store the raw string as-is.
 try:
-    from ..common.prefix_utils import parse_flexible_date  # type: ignore
+    from mcoc.common.prefix_utils import parse_flexible_date  # type: ignore
 except Exception:
     parse_flexible_date = None  # type: ignore
 

@@ -23,11 +23,11 @@ Embed = Core.Embed
 PagesMenu = Core.PagesMenu
 Champions = Core.Helpers.champions
 
-# from ..common.helpers.champions import make_champion_pager, get_champion_pages
-from ..common.query_parser import parse_query
-# from ..common.componentsV2 import Embed, PagesMenu
-from ..common.prefix_utils import safe_send_ctx
-from ..common.help_utils import send_or_brand_help
+# from mcoc.common.helpers.champions import make_champion_pager, get_champion_pages
+from mcoc.common.query_parser import parse_query
+# from mcoc.common.componentsV2 import Embed, PagesMenu
+from mcoc.common.prefix_utils import safe_send_ctx
+from mcoc.common.help_utils import send_or_brand_help
 
 log = logging.getLogger("red.mcoc.prefix.champions")
 

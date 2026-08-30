@@ -23,9 +23,9 @@ PagesMenu = Core.PagesMenu
 Confirm = Core.Confirm
 Entitlements = Core.Entitlements
 
-from ..common.api.cache_status import CacheStatusPoster
-from ..common.help_utils import send_or_brand_help
-from ..common.prefix_utils import safe_send_ctx
+from mcoc.common.api.cache_status import CacheStatusPoster
+from mcoc.common.help_utils import send_or_brand_help
+from mcoc.common.prefix_utils import safe_send_ctx
 
 
 

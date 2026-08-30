@@ -8,8 +8,8 @@ This module provides a single canonical place for:
   - applying filters (rarity, rank, sig, ascended, tags, classes)
   - resolving prestige values using core.cache / cacheindex
   - formatting lines via format_champion_line
-  - chunking lines into pages and building Embed embeds
-  - returning either a list of embeds or a ready PagesMenu pager
+  - chunking lines into pages and building CDTEmbed embeds
+  - returning either a list of embeds or a ready CDTPagesMenu pager
 
 Prefix handlers should be thin: resolve mention -> call make_roster_pager or get_roster_pages -> start pager.
 """
@@ -19,12 +19,9 @@ import re
 import logging
 import asyncio
 
-from mcoc.common.componentsV2 import CDTEmbed as Embed, CDTPagesMenu as PagesMenu
-
-ROSTER_FOOTER = " | CollectorDevTeam"
-
-from mcoc.common.hargs import parse_harg_list, parse_harg_token
-from mcoc.common.formatters import format_champion_line
+from .hargs import parse_harg_list, parse_harg_token
+from .componentsV2 import CDTEmbed, CDTPagesMenu, CDT_FOOTER_TAG
+from .formatters import format_champion_line
 
 log = logging.getLogger("red.mcoc.roster")
 
@@ -42,7 +39,7 @@ def ensure_user_manager(core_or_bot) -> Any:
     """
     try:
         if core_or_bot is None:
-            from .userdata import UserDataManager
+            from .helpers.userdata import UserDataManager
             return UserDataManager()
         um = getattr(core_or_bot, "users", None) or getattr(core_or_bot, "user_manager", None)
         if um:
@@ -51,7 +48,7 @@ def ensure_user_manager(core_or_bot) -> Any:
         log.exception("Error resolving existing user manager")
 
     try:
-        from .userdata import UserDataManager
+        from .helpers.userdata import UserDataManager
         return UserDataManager()
     except Exception:
         log.exception("Failed to create UserDataManager")
@@ -538,7 +535,7 @@ async def _resolve_prestige_for_entry(core: Any, entry: Dict[str, Any], prestige
 
 async def build_roster_pages(core: Any, ctx_or_author: Any, parsed_filters: Optional[Dict[str, Any]] = None, *, lines_per_page: int = 15, char_limit: int = 1800) -> List[Any]:
     """
-    Build a list of Embed pages for a user's roster.
+    Build a list of CDTEmbed pages for a user's roster.
 
     Parameters:
       - core: bot/core object (used to access cache, cacheindex, users)
@@ -548,7 +545,7 @@ async def build_roster_pages(core: Any, ctx_or_author: Any, parsed_filters: Opti
       - char_limit: approximate character limit per embed description
 
     Returns:
-      - List of Embed embed objects (normal path) or list of dict fallbacks on catastrophic failure.
+      - List of CDTEmbed embed objects (normal path) or list of dict fallbacks on catastrophic failure.
     """
     # normalize ctx_or_author -> author_for_embed, user_id
     author_for_embed = None
@@ -687,10 +684,10 @@ async def build_roster_pages(core: Any, ctx_or_author: Any, parsed_filters: Opti
         # If no lines, return a single "no matches" embed
         if not lines:
             try:
-                emb = Embed.embed(author_for_embed, title="Roster", description="No champions match the filters.", footer_text=f"Page 1 of 1{ROSTER_FOOTER}")
+                emb = CDTEmbed.embed(author_for_embed, title="Roster", description="No champions match the filters.", footer_text=f"Page 1 of 1{CDT_FOOTER_TAG}")
                 return [emb]
             except Exception:
-                return [{"title": "Roster", "description": "No champions match the filters.", "footer": {"text": f"Page 1 of 1{ROSTER_FOOTER}"}}]
+                return [{"title": "Roster", "description": "No champions match the filters.", "footer": {"text": f"Page 1 of 1{CDT_FOOTER_TAG}"}}]
 
         # Chunk lines into pages
         page_texts: List[str] = []
@@ -706,7 +703,7 @@ async def build_roster_pages(core: Any, ctx_or_author: Any, parsed_filters: Opti
         if cur:
             page_texts.append("\n".join(cur))
 
-        # Build title and convert page_texts into Embed pages
+        # Build title and convert page_texts into CDTEmbed pages
         title_count = len(filtered_entries)
         prestige_vals = [int(x["prestige"]) for x in filtered_entries if isinstance(x.get("prestige"), (int, float))]
         title_prestige = int(round(sum(prestige_vals) / len(prestige_vals))) if prestige_vals else "N/A"
@@ -715,8 +712,8 @@ async def build_roster_pages(core: Any, ctx_or_author: Any, parsed_filters: Opti
         embed_pages: List[Any] = []
         try:
             for i, ptext in enumerate(page_texts):
-                footer = f"Page {i+1} of {len(page_texts)}{ROSTER_FOOTER}"
-                emb = Embed.embed(author_for_embed, title=roster_title, description=ptext, footer_text=footer)
+                footer = f"Page {i+1} of {len(page_texts)}{CDT_FOOTER_TAG}"
+                emb = CDTEmbed.embed(author_for_embed, title=roster_title, description=ptext, footer_text=footer)
                 try:
                     emb.set_footer(text=footer)
                 except Exception:
@@ -727,7 +724,7 @@ async def build_roster_pages(core: Any, ctx_or_author: Any, parsed_filters: Opti
             # fallback to dict pages
             out = []
             for i, ptext in enumerate(page_texts):
-                out.append({"title": roster_title, "description": ptext, "footer": {"text": f"Page {i+1} of {len(page_texts)}{ROSTER_FOOTER}"}})
+                out.append({"title": roster_title, "description": ptext, "footer": {"text": f"Page {i+1} of {len(page_texts)}{CDT_FOOTER_TAG}"}})
             return out
 
     except Exception:
@@ -738,14 +735,14 @@ async def build_roster_pages(core: Any, ctx_or_author: Any, parsed_filters: Opti
 async def get_roster_pages(core: Any, ctx_or_author: Any, parsed_filters: Optional[Dict[str, Any]] = None) -> List[Any]:
     """
     Public wrapper that guarantees embed objects where possible.
-    Returns List[Embed] or dict fallbacks.
+    Returns List[CDTEmbed] or dict fallbacks.
     """
     pages = await build_roster_pages(core, ctx_or_author, parsed_filters=parsed_filters)
     out: List[Any] = []
     for p in pages:
         if isinstance(p, dict):
             try:
-                emb = Embed.embed(ctx_or_author, title=p.get("title"), description=p.get("description"), footer_text=(p.get("footer") or {}).get("text"))
+                emb = CDTEmbed.embed(ctx_or_author, title=p.get("title"), description=p.get("description"), footer_text=(p.get("footer") or {}).get("text"))
                 out.append(emb)
             except Exception:
                 out.append(p)
@@ -757,9 +754,9 @@ async def get_roster_pages(core: Any, ctx_or_author: Any, parsed_filters: Option
 # -----------------------------
 # Pager convenience
 # -----------------------------
-async def make_roster_pager(core: Any, ctx_or_author: Any, *, raw_input: Optional[str] = None, target_member: Optional[Any] = None, parsed_filters: Optional[Dict[str, Any]] = None, author_for_controls: Optional[Any] = None) -> Optional[PagesMenu]:
+async def make_roster_pager(core: Any, ctx_or_author: Any, *, raw_input: Optional[str] = None, target_member: Optional[Any] = None, parsed_filters: Optional[Dict[str, Any]] = None, author_for_controls: Optional[Any] = None) -> Optional[CDTPagesMenu]:
     """
-    Convenience wrapper that builds pages and returns a ready PagesMenu with brand buttons merged.
+    Convenience wrapper that builds pages and returns a ready CDTPagesMenu with brand buttons merged.
 
     Parameters:
       - core: bot/core object
@@ -770,14 +767,14 @@ async def make_roster_pager(core: Any, ctx_or_author: Any, *, raw_input: Optiona
       - author_for_controls: who should control the pager (defaults to ctx_or_author.author or ctx_or_author)
 
     Returns:
-      - PagesMenu instance ready to start, or None on failure.
+      - CDTPagesMenu instance ready to start, or None on failure.
     """
     try:
         # If parsed_filters not provided, attempt to parse raw_input using query parser if available
         parsed = parsed_filters or {}
         if not parsed and raw_input:
             try:
-                from ..query_parser import parse_query
+                from .query_parser import parse_query
                 cache = getattr(core, "cache", None)
                 entries, filters = parse_query(raw_input, cache=cache)
                 parsed = {}
@@ -797,13 +794,13 @@ async def make_roster_pager(core: Any, ctx_or_author: Any, *, raw_input: Optiona
 
         # Instantiate pager with canonical constructor
         try:
-            pager = PagesMenu(pages, author=(author_for_controls or (ctx_or_author.author if hasattr(ctx_or_author, "author") else ctx_or_author)))
+            pager = CDTPagesMenu(pages, author=(author_for_controls or (ctx_or_author.author if hasattr(ctx_or_author, "author") else ctx_or_author)))
         except TypeError:
             try:
-                pager = PagesMenu(pages, ctx_or_author)
+                pager = CDTPagesMenu(pages, ctx_or_author)
             except TypeError:
                 try:
-                    pager = PagesMenu(pages)
+                    pager = CDTPagesMenu(pages)
                     if hasattr(pager, "author"):
                         try:
                             pager.author = (author_for_controls or (ctx_or_author.author if hasattr(ctx_or_author, "author") else ctx_or_author))
@@ -814,7 +811,7 @@ async def make_roster_pager(core: Any, ctx_or_author: Any, *, raw_input: Optiona
 
         # Merge brand buttons into pager view if possible
         try:
-            brand_view = Embed.brand_view()
+            brand_view = CDTEmbed.brand_view()
             if hasattr(pager, "add_item"):
                 for item in getattr(brand_view, "children", []):
                     try:
@@ -843,17 +840,17 @@ def add_page_footers(pages: List[Any], author_for_embed: Any = None) -> List[Any
     for i, p in enumerate(pages):
         try:
             if isinstance(p, dict):
-                emb = Embed.embed(author_for_embed, title=p.get("title", "Roster"), description=p.get("description", ""))
+                emb = CDTEmbed.embed(author_for_embed, title=p.get("title", "Roster"), description=p.get("description", ""))
             else:
                 emb = p
             try:
                 base = emb.footer.text if getattr(emb, "footer", None) and getattr(emb.footer, "text", None) else ""
                 footer_text = f"{base} • Page {i+1} of {total}" if base else f"Page {i+1} of {total}"
-                footer_text += f"{ROSTER_FOOTER}"
+                footer_text += f"{CDT_FOOTER_TAG}"
                 emb.set_footer(text=footer_text)
             except Exception:
                 try:
-                    emb.set_footer(text=f"Page {i+1} of {total}{ROSTER_FOOTER}")
+                    emb.set_footer(text=f"Page {i+1} of {total}{CDT_FOOTER_TAG}")
                 except Exception:
                     pass
             out.append(emb)

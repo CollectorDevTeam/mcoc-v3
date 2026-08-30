@@ -24,7 +24,7 @@ import logging
 
 from redbot.core import commands
 
-from ..common.prefix_utils import safe_send_ctx
+from mcoc.common.prefix_utils import safe_send_ctx
 
 log = logging.getLogger("red.mcoc.prefix.core")
 
