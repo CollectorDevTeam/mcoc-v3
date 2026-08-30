@@ -237,6 +237,7 @@ class CDTEmbed:
         return emb
 
     # Author setter wrapper matching discord.Embed.set_author signature
+    @staticmethod
     def set_author(ctx_or_author: Any, emb: "discord.Embed", *, name: str, url: Optional[str] = None, icon_url: Optional[str] = None) -> "discord.Embed":
         try:
             # validate icon_url if provided
@@ -251,6 +252,7 @@ class CDTEmbed:
         return emb
 
     # Field helpers (add_field already existed; ensure signature parity)
+    @staticmethod
     def add_field(ctx_or_author: Any, emb: "discord.Embed", *, name: str, value: str, inline: bool = True) -> "discord.Embed":
         try:
             emb.add_field(name=name, value=value, inline=inline)
@@ -258,6 +260,7 @@ class CDTEmbed:
             pass
         return emb
 
+    @staticmethod
     def insert_field_at(ctx_or_author: Any, emb: "discord.Embed", index: int, *, name: str, value: str, inline: bool = True) -> "discord.Embed":
         try:
             emb.insert_field_at(index=index, name=name, value=value, inline=inline)
@@ -265,6 +268,7 @@ class CDTEmbed:
             pass
         return emb
 
+    @staticmethod
     def set_field_at(ctx_or_author: Any, emb: "discord.Embed", index: int, *, name: str, value: str, inline: bool = True) -> "discord.Embed":
         try:
             emb.set_field_at(index=index, name=name, value=value, inline=inline)
@@ -272,6 +276,7 @@ class CDTEmbed:
             pass
         return emb
 
+    @staticmethod   
     def set_footer(ctx_or_author: Any, emb: "discord.Embed", *, text: Optional[str] = None, icon_url: Optional[str] = None) -> "discord.Embed":
         try:
             if icon_url and not _is_valid_http_url(icon_url):
