@@ -2,9 +2,9 @@
 Unified namespace for all common MCOC systems.
 """
 
-from .componentsV2 import CDTEmbed, CDTConfirm, CDTPagesMenu
-from .feature_system import CDTEntitlements
-from .helpers import CDTHelpers
+from mcoc.common.componentsV2 import CDTEmbed, CDTConfirm, CDTPagesMenu
+from mcoc.common.feature_system import CDTEntitlements
+from mcoc.common.helpers import CDTHelpers
 
 class Core:
     """
