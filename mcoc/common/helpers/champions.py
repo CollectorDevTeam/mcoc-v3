@@ -16,7 +16,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import logging
 import asyncio
 
-from mcoc.common.componentsV2 import CDTEmbed as Embed, CDTPagesMenu as PagesMenu
+from mcoc.common.componentsV2 import CDTEmbed, CDTPagesMenu
 
 CHAMPIONS_FOOTER = " | CollectorDevTeam"
 
@@ -156,7 +156,7 @@ async def build_champion_pages(core: Any, ctx_or_author: Any, filters: Optional[
         if not deck:
             # no champions available
             try:
-                emb = Embed(author_for_embed, title="Champions", description="No champion data available.", footer_text=f"Page 1 of 1{CHAMPIONS_FOOTER}")
+                emb = CDTEmbed.embed(author_for_embed, title="Champions", description="No champion data available.", footer_text=f"Page 1 of 1{CHAMPIONS_FOOTER}")
                 return [emb]
             except Exception:
                 return [{"title": "Champions", "description": "No champion data available.", "footer": {"text": f"Page 1 of 1{CHAMPIONS_FOOTER}"}}]
@@ -202,7 +202,7 @@ async def build_champion_pages(core: Any, ctx_or_author: Any, filters: Optional[
 
         if not matched:
             try:
-                emb = Embed(author_for_embed, title="Champions", description="No champions match your search.", footer_text=f"Page 1 of 1{CHAMPIONS_FOOTER}")
+                emb = CDTEmbed.embed(author_for_embed, title="Champions", description="No champions match your search.", footer_text=f"Page 1 of 1{CHAMPIONS_FOOTER}")
                 return [emb]
             except Exception:
                 return [{"title": "Champions", "description": "No champions match your search.", "footer": {"text": f"Page 1 of 1{CHAMPIONS_FOOTER}"}}]
@@ -236,9 +236,9 @@ async def build_champion_pages(core: Any, ctx_or_author: Any, filters: Optional[
         try:
             for i, ptext in enumerate(page_texts):
                 footer = f"Page {i+1} of {len(page_texts)}{CHAMPIONS_FOOTER}"
-                emb = Embed(author_for_embed, title=title, description=ptext, footer_text=footer)
+                emb = CDTEmbed.embed(author_for_embed, title=title, description=ptext, footer_text=footer)
                 try:
-                    emb.set_footer(text=footer)
+                    CDTEmbed.set_footer(emb, text=footer)
                 except Exception:
                     pass
                 embed_pages.append(emb)
@@ -264,7 +264,7 @@ async def get_champion_pages(core: Any, ctx_or_author: Any, filters: Optional[Di
     for p in pages:
         if isinstance(p, dict):
             try:
-                emb = Embed(ctx_or_author, title=p.get("title"), description=p.get("description"), footer_text=(p.get("footer") or {}).get("text"))
+                emb = CDTEmbed.embed(ctx_or_author, title=p.get("title"), description=p.get("description"), footer_text=(p.get("footer") or {}).get("text"))
                 out.append(emb)
             except Exception:
                 out.append(p)
@@ -273,7 +273,7 @@ async def get_champion_pages(core: Any, ctx_or_author: Any, filters: Optional[Di
     return out
 
 
-async def make_champion_pager(core: Any, ctx_or_author: Any, *, raw_input: Optional[str] = None, parsed_filters: Optional[Dict[str, Any]] = None, author_for_controls: Optional[Any] = None) -> Optional[PagesMenu]:
+async def make_champion_pager(core: Any, ctx_or_author: Any, *, raw_input: Optional[str] = None, parsed_filters: Optional[Dict[str, Any]] = None, author_for_controls: Optional[Any] = None) -> Optional[CDTPagesMenu]:
     """
     Convenience wrapper that builds champion pages and returns a ready PagesMenu with brand buttons merged.
 
@@ -309,13 +309,13 @@ async def make_champion_pager(core: Any, ctx_or_author: Any, *, raw_input: Optio
 
         # Instantiate pager
         try:
-            pager = PagesMenu(pages, author=(author_for_controls or (ctx_or_author.author if hasattr(ctx_or_author, "author") else ctx_or_author)))
+            pager = CDTPagesMenu(pages, author=(author_for_controls or (ctx_or_author.author if hasattr(ctx_or_author, "author") else ctx_or_author)))
         except TypeError:
             try:
-                pager = PagesMenu(pages, ctx_or_author)
+                pager = CDTPagesMenu(pages, ctx_or_author)
             except TypeError:
                 try:
-                    pager = PagesMenu(pages)
+                    pager = CDTPagesMenu(pages)
                     if hasattr(pager, "author"):
                         try:
                             pager.author = (author_for_controls or (ctx_or_author.author if hasattr(ctx_or_author, "author") else ctx_or_author))
@@ -326,7 +326,7 @@ async def make_champion_pager(core: Any, ctx_or_author: Any, *, raw_input: Optio
 
         # Merge brand buttons if available
         try:
-            brand_view = Embed.brand_view()
+            brand_view = CDTEmbed.brand_view()
             if hasattr(pager, "add_item"):
                 for item in getattr(brand_view, "children", []):
                     try:
@@ -355,17 +355,17 @@ def add_page_footers(pages: List[Any], author_for_embed: Any = None) -> List[Any
     for i, p in enumerate(pages):
         try:
             if isinstance(p, dict):
-                emb = Embed(author_for_embed, title=p.get("title", "Champions"), description=p.get("description", ""))
+                emb = CDTEmbed.embed(author_for_embed, title=p.get("title", "Champions"), description=p.get("description", ""))
             else:
                 emb = p
             try:
                 base = emb.footer.text if getattr(emb, "footer", None) and getattr(emb.footer, "text", None) else ""
                 footer_text = f"{base} • Page {i+1} of {total}" if base else f"Page {i+1} of {total}"
                 footer_text += f"{CHAMPIONS_FOOTER}"
-                emb.set_footer(text=footer_text)
+                CDTEmbed.set_footer(author_for_embed, emb, text=footer_text)
             except Exception:
                 try:
-                    emb.set_footer(text=f"Page {i+1} of {total}{CHAMPIONS_FOOTER}")
+                    CDTEmbed.set_footer(author_for_embed, emb, text=f"Page {i+1} of {total}{CHAMPIONS_FOOTER}")
                 except Exception:
                     pass
             out.append(emb)

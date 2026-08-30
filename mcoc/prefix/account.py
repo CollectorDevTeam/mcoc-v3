@@ -31,11 +31,11 @@ from mcoc.common import Core
 from mcoc.common.prefix_utils import get_runtime_prefix, safe_send_ctx
 from mcoc.common.help_utils import send_or_brand_help
 
-Embed = Core.Embed
-PagesMenu = Core.PagesMenu
-Confirm = Core.Confirm
-Entitlements = Core.Entitlements
-Helpers = Core.Helpers
+CDTEmbed = Core.Embed
+CDTPagesMenu = Core.PagesMenu
+CDTConfirm = Core.Confirm
+CDTEntitlements = Core.Entitlements
+CDTHelpers = Core.Helpers
 Roster = Core.Helpers.roster
 Account = Core.Helpers.account
 
@@ -97,8 +97,8 @@ class AccountPrefix(commands.Cog):
             # redirect to profile display
             await self.account_profile(ctx, member=member)
             return
-        emb = send_or_brand_help(ctx, self.account, "Account commands", "Account commands: info, profile, set, link, unlink, delete, privacy.")
-        await safe_send_ctx(ctx, None, embed=emb)
+        await send_or_brand_help(ctx, self.account, "Account commands", "Account commands: info, profile, set, link, unlink, delete, privacy.")
+        return
 
     @account.command(name="help")
     async def account_help(self, ctx):
@@ -110,11 +110,11 @@ class AccountPrefix(commands.Cog):
 
         # Build an attractive embed listing settable fields with short descriptions and examples
         try:
-            emb = Embed.embed(ctx.author, title="Account Settings — What you can set", description="Set your public profile fields. Use `///mcoc account set <field> <value>` to update. Use an empty string `\"\"` to clear a value.", footer_text=f"Examples: {prefix}mcoc account set mcoc-name jjw • {prefix}mcoc account set start-date \"Oct. 15, 2015\"")
+            emb = CDTEmbed.embed(ctx.author, title="Account Settings — What you can set", description="Set your public profile fields. Use `///mcoc account set <field> <value>` to update. Use an empty string `\"\"` to clear a value.", footer_text=f"Examples: {prefix}mcoc account set mcoc-name jjw • {prefix}mcoc account set start-date \"Oct. 15, 2015\"")
         except Exception:
             # fallback simple embed construction
             try:
-                emb = Embed.embed(ctx.author, title="Account Settings — What you can set")
+                emb = CDTEmbed.embed(ctx.author, title="Account Settings — What you can set")
             except Exception:
                 emb = None
 
@@ -129,7 +129,7 @@ class AccountPrefix(commands.Cog):
                     # show canonical key exactly as users must type it
                     lines.append(f"**{k}** — {desc}")
                 try:
-                    Embed.add_field(name=name, value="\n".join(lines), inline=False)
+                    CDTEmbed.add_field(ctx.author, emb, name=name, value="\n".join(lines), inline=False)
                 except Exception:
                     pass
 
@@ -150,7 +150,7 @@ class AccountPrefix(commands.Cog):
                 f"`{prefix}account set region \"US\"`",
             ]
             try:
-                Embed.add_field(name="Quick examples", value="\n".join(examples), inline=False)
+                CDTEmbed.add_field(ctx.author, emb, name="Quick examples", value="\n".join(examples), inline=False)
             except Exception:
                 pass
 
@@ -239,11 +239,11 @@ class AccountPrefix(commands.Cog):
 
             # present attractively
             try:
-                emb = Embed.embed(ctx.author, title="Your Account Settings", description="Current saved preferences")
+                emb = CDTEmbed.embed(ctx.author, title="Your Account Settings", description="Current saved preferences")
                 # add fields in two columns where possible
                 for k, v in settings.items():
                     try:
-                        Embed.add_field(name=k.replace("_", " ").title(), value=str(v) if v is not None else "Not set", inline=True)
+                        CDTEmbed.add_field(emb, name=k.replace("_", " ").title(), value=str(v) if v is not None else "Not set", inline=True)
                     except Exception:
                         pass
                 await safe_send_ctx(ctx, None, embed=emb)
@@ -375,7 +375,7 @@ class AccountPrefix(commands.Cog):
         if not await self._require_parent(ctx):
             return
         try:
-            view = Confirm(timeout=20.0, confirm_label="Yes", cancel_label="No")
+            view = CDTConfirm(timeout=20.0, confirm_label="Yes", cancel_label="No")
             await ctx.send("Are you sure you want to delete your profile and roster? Click Yes to confirm.", view=view)
             confirmed = await view.wait_result()
             if not confirmed:

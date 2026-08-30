@@ -194,7 +194,7 @@ class CDTEmbed:
 
     @classmethod
     def add_field(cls, ctx_or_author, emb, *, name, value, inline=True):
-        emb.add_field(name=name, value=value, inline=inline)
+        CDTEmbed.add_field(name=name, value=value, inline=inline)
         return emb
 
     @classmethod
@@ -373,6 +373,25 @@ class CDTEmbed:
 
         return view
 
+    @classmethod
+    def set_image(cls, embed: "discord.Embed", image_url: str) -> None:
+        """
+        Set the image of the given embed.
+        """
+        try:
+            embed.set_image(url=image_url)
+        except Exception:
+            pass
+
+    @classmethod
+    def set_url(cls, embed: "discord.Embed", url: str) -> None:
+        """
+        Set the URL of the given embed.
+        """
+        try:
+            embed.url = url
+        except Exception:
+            pass
 
 # Backwards-compatible aliases (if other modules import these names)
 cdt_embed = CDTEmbed.embed

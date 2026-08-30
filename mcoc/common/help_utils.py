@@ -37,7 +37,7 @@ async def send_or_brand_help(ctx: commands.Context, target: str, title: Optional
                     try:
                         for f in getattr(orig, "fields", []):
                             try:
-                                emb.add_field(name=f.name, value=f.value, inline=f.inline)
+                                CDTEmbed.add_field(ctx, emb, name=f.name, value=f.value, inline=f.inline)
                             except Exception:
                                 pass
                     except Exception:
@@ -45,12 +45,12 @@ async def send_or_brand_help(ctx: commands.Context, target: str, title: Optional
                     # copy url if present
                     try:
                         if getattr(orig, "url", None):
-                            emb.url = orig.url
+                            CDTEmbed.set_url(emb, orig.url)
                     except Exception:
                         pass
                     # set branded footer
                     try:
-                        CDTEmbed.set_footer(ctx, emb, footer_text="Type ///help <command> for more info")
+                        CDTEmbed.set_footer(ctx, emb, footer_text="Type `///help <command>` for more info")
                     except Exception:
                         pass
                     # edit the message to replace embed with branded one
