@@ -2,5 +2,9 @@
 """
 Minimal package init. Prefer explicit imports from submodules.
 """
+from feature_system import CDTEntitlements
+from .helpers import Helpers
 
-__all__ = []
+class CollectorCore:
+    pass
+    __all__ = [Helpers, CDTEntitlements]

@@ -1,7 +1,7 @@
 # mcoc/common/cache_status.py
 from typing import Any, Dict, Optional
 import logging
-from .componentsV2 import CDTEmbed, _is_valid_http_url
+from ..componentsV2 import CDTEmbed, _is_valid_http_url
 
 log = logging.getLogger("red.mcoc.cache_status")
 

@@ -18,7 +18,7 @@ from pathlib import Path
 import discord
 from redbot.core import commands
 
-from ..common.cache_status import CacheStatusPoster
+from ..common.api.cache_status import CacheStatusPoster
 from ..common.componentsV2 import CDTEmbed, CDTConfirm, CDTPagesMenu
 from ..common.feature_system import CDTEntitlements
 from ..common.help_utils import send_or_brand_help
@@ -48,7 +48,7 @@ class MCOCAdminPrefix(commands.Cog):
 
     # ADMIN COMMANDS GROUP
     @commands.is_owner()
-    @commands.group(name="mcocadmin", invoke_without_command=True)
+    @commands.group(name="mcocadmin", send_or_brand_help=True)
     async def mcocadmin(self, ctx, *args):
         """Admin commands for MCOC (development / fallback)."""
         if not args:

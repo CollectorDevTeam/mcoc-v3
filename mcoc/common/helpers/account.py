@@ -22,7 +22,7 @@ from typing import Any, Dict, Optional, Tuple, List
 import logging
 import datetime
 
-from .componentsV2 import CDTEmbed
+from ..componentsV2 import CDTEmbed
 
 log = logging.getLogger("red.mcoc.account_helpers")
 

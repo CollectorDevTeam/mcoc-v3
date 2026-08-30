@@ -231,6 +231,22 @@ class MCOCHubAPI:
         return await self._fetch("immunities")
 
     # -----------------------------
+    # AW Season
+    # -----------------------------
+    async def get_aw(self) -> Optional[Any]:
+        log.debug("Fetching aw from MCOCHub")
+        return await self._fetch("aw")
+
+    # -----------------------------
+    # Tierlist (public JSON)
+    # -----------------------------
+    async def get_tierlist(self) -> Optional[Any]:
+        log.debug("Fetching tierlist.json from mcoc.app")
+        url = "https://mcoc.app/data/tierlist.json"
+        return await self._fetch_public_json(url)
+
+
+    # -----------------------------
     # Cleanup
     # -----------------------------
     async def close(self) -> None:

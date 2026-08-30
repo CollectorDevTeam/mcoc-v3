@@ -30,8 +30,8 @@ from ..prefix.core import MCOCPrefix
 from ..common.componentsV2 import CDTEmbed, CDTConfirm, CDTPagesMenu
 from ..common.prefix_utils import get_runtime_prefix, safe_send_ctx
 from ..common.help_utils import send_or_brand_help
-from ..common.roster import ensure_user_manager, _ensure_hook_registered
-from ..common.account import (
+from ..common.helpers.roster import ensure_user_manager, _ensure_hook_registered
+from ..common.helpers.account import (
     ALLOWED_PROFILE_FIELDS,
     FIELD_CANONICAL,
     validate_profile_field,
@@ -92,7 +92,7 @@ class AccountPrefix(commands.Cog):
     # -----------------------------
     # Group and aliases
     # -----------------------------
-    @commands.group(name="account", names=["profile"], invoke_without_command=True)
+    @commands.group(name="account", names=["profile"], send_or_brand_help=True)
     async def account(self, ctx, member: Optional[Any] = None):
         """
         Top-level account command.
@@ -102,7 +102,7 @@ class AccountPrefix(commands.Cog):
             # redirect to profile display
             await self.account_profile(ctx, member=member)
             return
-        emb = MCOCPrefix.render_group_help_embed(ctx, self.account, "Account commands", "Account commands: info, profile, set, link, unlink, delete, privacy.")
+        emb = send_or_brand_help(ctx, self.account, "Account commands", "Account commands: info, profile, set, link, unlink, delete, privacy.")
         await safe_send_ctx(ctx, None, embed=emb)
 
     @account.command(name="help")

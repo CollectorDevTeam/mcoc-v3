@@ -21,13 +21,13 @@ import logging
 from redbot.core import commands
 
 from ..common.prefix_utils import safe_send_ctx
-from ..common.alliance import (
+from ..common.helpers.alliance import (
     get_guild_config,
     set_guild_config,
     role_id_for_key,
     join_alliance,
 )
-from ..common.roster import ensure_user_manager, _ensure_hook_registered
+from ..common.helpers.roster import ensure_user_manager, _ensure_hook_registered
 
 log = logging.getLogger("red.mcoc.prefix.core")
 

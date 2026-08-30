@@ -18,8 +18,9 @@ import time
 import inspect
 import asyncio
 
-from .cache import CacheManager
-from .api import MCOCHubAPI
+from .helpers import Helpers
+from .api.cache import CacheManager
+from .api.api import MCOCHubAPI
 
 log = logging.getLogger("red.mcoc.common.core")
 

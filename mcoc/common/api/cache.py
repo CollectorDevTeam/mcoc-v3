@@ -55,11 +55,12 @@ class CacheManager:
             if not self.metadata_file.exists():
                 return {
                     "versions": {
-                        "champions": None,
-                        "tags": None,
                         "abilities": None,
+                        "aw": None,
+                        "champions": None,
                         "immunities": None,
-                        "prestige": None
+                        "prestige": None,
+                        "tags": None
                     },
                     "last_sync": None,
                 }
@@ -70,11 +71,12 @@ class CacheManager:
                 log.exception("Failed to read metadata.json; resetting metadata")
                 return {
                     "versions": {
-                        "champions": None,
-                        "tags": None,
                         "abilities": None,
+                        "aw": None,
+                        "champions": None,
                         "immunities": None,
-                        "prestige": None
+                        "prestige": None,
+                        "tags": None
                     },
                     "last_sync": None,
                 }
@@ -84,11 +86,12 @@ class CacheManager:
             data.setdefault(
                 "versions",
                 {
-                    "champions": None,
-                    "tags": None,
                     "abilities": None,
+                    "aw": None,
+                    "champions": None,
                     "immunities": None,
-                    "prestige": None
+                    "prestige": None,
+                    "tags": None,
                 },
             )
             data.setdefault("last_sync", None)
@@ -97,11 +100,12 @@ class CacheManager:
             log.exception("Failed to load metadata.json; resetting metadata")
             return {
                 "versions": {
-                    "champions": None,
-                    "tags": None,
                     "abilities": None,
+                    "aw": None,
+                    "champions": None,
                     "immunities": None,
-                    "prestige": None
+                    "prestige": None,
+                    "tags": None,
                 },
                 "last_sync": None,
             }
@@ -110,11 +114,12 @@ class CacheManager:
         if not isinstance(self.metadata, dict):
             self.metadata = {
                 "versions": {
-                    "champions": None,
-                    "tags": None,
                     "abilities": None,
+                    "aw": None,
+                    "champions": None,
                     "immunities": None,
-                    "prestige": None
+                    "prestige": None,
+                    "tags": None,
                 },
                 "last_sync": None,
             }
@@ -364,6 +369,32 @@ class CacheManager:
     def normalize_abilities_payload(self, payload: Any) -> Optional[Dict[str, Any]]:
         return self.normalize_list_payload(payload, "abilities")
 
+    def normalize_aw_payload(self, payload: Any) -> Optional[Dict[str, Any]]:
+        """
+        Canonicalize AW payload into:
+        {
+            "version": ...,
+            "updated_at": ...,
+            "aw": { ... }   # entire AW object preserved
+        }
+        """
+        if not payload:
+            return None
+
+        version = payload.get("version")
+        updated_at = payload.get("updated_at")
+        aw = payload.get("aw")
+
+        if not isinstance(aw, dict):
+            return None
+
+        return {
+            "version": version,
+            "updated_at": updated_at,
+            "aw": aw
+        }
+
+
     def normalize_hargs_by_tier(self, stars: int, rank: int, sig: int, asc: int) -> Tuple[int,int,int,int]:
         """
         Enforce valid ranges:
@@ -418,6 +449,27 @@ class CacheManager:
     def normalize_tags_payload(self, payload: Any) -> Optional[Dict[str, Any]]:
         return self.normalize_list_payload(payload, "tags")
 
+    def normalize_tierlist_payload(self, payload: Any) -> Optional[Dict[str, Any]]:
+        """
+        Canonicalize tierlist payload into:
+        { "version": <hash>, "champions": [...] }
+        """
+        if not payload:
+            return None
+
+        champions = payload.get("champions")
+        if not isinstance(champions, list):
+            return None
+
+        # Create a stable version hash from the data
+        version = self._hash(champions)
+
+        return {
+            "version": version,
+            "champions": champions
+        }
+
+
     # -----------------------------
     # Diff + Save
     # -----------------------------
@@ -431,11 +483,16 @@ class CacheManager:
             new_data = self.normalize_champions_payload(new_data)
         elif name == "abilities":
             new_data = self.normalize_abilities_payload(new_data)
+        elif name == "aw":
+            new_data = self.normalize_aw_payload(new_data)
         elif name in ("immunity", "immunities"):
             new_data = self.normalize_immunities_payload(new_data)
             name = "immunities"
         elif name == "tags":
             new_data = self.normalize_tags_payload(new_data)
+        elif name == "tierlist":
+            new_data = self.normalize_tierlist_payload(new_data)
+
 
         if not new_data:
             log.warning("Payload for %s could not be normalized; skipping.", name)
@@ -522,6 +579,22 @@ class CacheManager:
                     await _report("Abilities endpoint returned no data; aborting sync.")
                     return False
 
+                await _report("Fetchign AW Season")
+                aw = await api.get_aw()
+                if aw is None:
+                    await _report("AW Season endpoint returned no data; aborting sync.")
+                    return False
+
+                await _report("Fetching tierlist...")
+                tierlist = await api.get_tierlist()
+                if tierlist is None:
+                    await _report("Tierlist endpoint returned no data; aborting sync.")
+                    return False
+
+                await _report("Saving tierlist...")
+                updated |= await self._diff_and_save("tierlist", tierlist)
+
+                
                 await _report("Fetching immunities...")
                 immunities = await api.get_immunities()
                 if immunities is None:
@@ -599,6 +672,13 @@ class CacheManager:
         if isinstance(abilities, dict):
             return list(abilities.values())
         return abilities or []
+
+    def get_all_aw(self) -> list:
+        data = self._load_file("aw")
+        aw = data.get("aw", {})
+        if isinstance(aw, dict):
+            return list(aw.values())
+        return aw or []
 
     def get_all_immunities(self) -> list:
         data = self._load_file("immunities")

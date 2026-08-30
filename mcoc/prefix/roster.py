@@ -21,7 +21,7 @@ import logging
 
 from redbot.core import commands
 
-from ..common.roster import ensure_user_manager, get_roster_pages, make_roster_pager
+from ..common.helpers.roster import ensure_user_manager, get_roster_pages, make_roster_pager
 from ..common.query_parser import parse_query
 from ..common.componentsV2 import CDTEmbed, CDTPagesMenu
 from ..common.prefix_utils import safe_send_ctx
@@ -75,7 +75,7 @@ class RosterPrefix(commands.Cog):
             # Not a mention/id; caller will treat as filters for invoking user
             return None, tokens
 
-    @commands.group(name="roster", invoke_without_command=True)
+    @commands.group(name="roster", send_or_brand_help=True)
     async def roster(self, ctx):
         """Top-level roster group help."""
         await send_or_brand_help(ctx, "roster", title="Roster Help", fallback_text="Roster commands: add, remove, update, list, export, clear.")

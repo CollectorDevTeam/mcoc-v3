@@ -7,7 +7,7 @@ from redbot.core import commands
 log = logging.getLogger("red.mcoc.slash.champions")
 
 # Import shared helpers from common/champion_helpers.py
-from ..common.champions import (
+from ..common.helpers.champions import (
     resolve_champion,
     safe_respond_interaction,
     lookup_stat,

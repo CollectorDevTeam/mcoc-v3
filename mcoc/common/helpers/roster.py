@@ -19,9 +19,9 @@ import re
 import logging
 import asyncio
 
-from .hargs import parse_harg_list, parse_harg_token
-from .componentsV2 import CDTEmbed, CDTPagesMenu, CDT_FOOTER_TAG
-from .formatters import format_champion_line
+from ..hargs import parse_harg_list, parse_harg_token
+from ..componentsV2 import CDTEmbed, CDTPagesMenu, CDT_FOOTER_TAG
+from ..formatters import format_champion_line
 
 log = logging.getLogger("red.mcoc.roster")
 
@@ -39,7 +39,7 @@ def ensure_user_manager(core_or_bot) -> Any:
     """
     try:
         if core_or_bot is None:
-            from .userdata import UserDataManager
+            from ..userdata import UserDataManager
             return UserDataManager()
         um = getattr(core_or_bot, "users", None) or getattr(core_or_bot, "user_manager", None)
         if um:
@@ -48,7 +48,7 @@ def ensure_user_manager(core_or_bot) -> Any:
         log.exception("Error resolving existing user manager")
 
     try:
-        from .userdata import UserDataManager
+        from ..userdata import UserDataManager
         return UserDataManager()
     except Exception:
         log.exception("Failed to create UserDataManager")
@@ -774,7 +774,7 @@ async def make_roster_pager(core: Any, ctx_or_author: Any, *, raw_input: Optiona
         parsed = parsed_filters or {}
         if not parsed and raw_input:
             try:
-                from .query_parser import parse_query
+                from ..query_parser import parse_query
                 cache = getattr(core, "cache", None)
                 entries, filters = parse_query(raw_input, cache=cache)
                 parsed = {}

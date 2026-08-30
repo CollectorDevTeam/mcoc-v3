@@ -2,6 +2,7 @@
 import logging
 import threading
 import asyncio
+import re
 from typing import Any, Dict, List, Optional
 
 log = logging.getLogger("red.mcoc.cacheindex")
@@ -26,6 +27,13 @@ class CacheIndex:
         self.tags: List[str] = []
         self.abilities: List[Dict[str, Any]] = []
         self.immunities: List[Dict[str, Any]] = []
+        self.aw: Dict[str, Any] = {}
+        self.aw_attack_champions: Dict[str, Any] = []
+        self.aw_defense_champions: Dict[str, Any] = []
+        self.tierlist = []
+        self.tier_by_name = {}
+        self.tier_by_slug = {}
+
 
         # Reverse lookup tables
         self.champions_by_id: Dict[str, Dict[str, Any]] = {}
@@ -48,6 +56,54 @@ class CacheIndex:
                 self.start_background_build()
             except Exception:
                 log.exception("Failed to start background build in __init__")
+
+    def _normalize_name(self, name: str) -> str:
+        """
+        Normalize champion names for fuzzy matching.
+        Removes punctuation, parentheses, hyphens, periods, and expands common abbreviations.
+        """
+        if not name:
+            return ""
+
+        n = name.lower()
+
+        # Expand common abbreviations
+        n = n.replace("mr.", "mister")
+        n = n.replace("mr ", "mister ")
+        n = n.replace("dr.", "doctor")
+        n = n.replace("dr ", "doctor ")
+
+        # Remove punctuation
+        n = re.sub(r"[^\w\s]", "", n)
+
+        # Collapse whitespace
+        n = re.sub(r"\s+", " ", n).strip()
+
+        return n
+
+    def tierlist_best_match(self, name: str) -> Optional[Dict[str, Any]]:
+        """
+        Return the best tierlist entry for a given champion name.
+        Uses normalized name matching and fallback heuristics.
+        """
+        if not name:
+            return None
+
+        norm = self._normalize_name(name)
+
+        # Exact normalized match
+        if norm in self.tier_by_name:
+            return self.tier_by_name[norm]
+
+        # Fallback: try substring matches
+        for k, v in self.tier_by_name.items():
+            if norm in k or k in norm:
+                return v
+
+        # Fallback: try class_rank or tier similarity (optional)
+        # Could add more heuristics here
+
+        return None
 
     # ---------------------------------------------------------
     # Rebuild the entire index from cache files
@@ -101,6 +157,85 @@ class CacheIndex:
             if isinstance(abilities_raw, list):
                 abilities_raw = {str(i): item for i, item in enumerate(abilities_raw)}
             abilities_list = list(abilities_raw.values()) if isinstance(abilities_raw, dict) else []
+
+            # AW (Alliance War Tactics)
+            try:
+                aw_raw = load_file("aw") or {}
+                aw_obj = aw_raw.get("aw") if isinstance(aw_raw, dict) else None
+            except Exception:
+                log.exception("Failed to load AW file")
+                aw_obj = None
+
+            self.aw = aw_obj or {}
+
+            # Optional AW champion indexes
+            aw_def_champs = []
+            aw_atk_champs = []
+
+            if aw_obj:
+                try:
+                    for c in aw_obj.get("defense", {}).get("champions", []) or []:
+                        if isinstance(c, dict):
+                            aw_def_champs.append(c)
+                except Exception:
+                    pass
+
+                try:
+                    for c in aw_obj.get("attack", {}).get("champions", []) or []:
+                        if isinstance(c, dict):
+                            aw_atk_champs.append(c)
+                except Exception:
+                    pass
+
+            self.aw_defense_champions = aw_def_champs
+            self.aw_attack_champions = aw_atk_champs
+
+            # Optional AW tag → champions mapping
+            aw_tag_map = {}
+            if aw_obj:
+                try:
+                    def_tag = aw_obj.get("defense", {}).get("tag", {}).get("id")
+                    if def_tag:
+                        aw_tag_map[def_tag.lower()] = aw_def_champs
+                except Exception:
+                    pass
+
+                try:
+                    atk_tag = aw_obj.get("attack", {}).get("tag", {}).get("id")
+                    if atk_tag:
+                        aw_tag_map[atk_tag.lower()] = aw_atk_champs
+                except Exception:
+                    pass
+
+            self.aw_tag_map = aw_tag_map
+
+            # Tierlist
+            try:
+                tier_raw = load_file("tierlist") or {}
+                tier_list = tier_raw.get("champions", []) if isinstance(tier_raw, dict) else []
+            except Exception:
+                log.exception("Failed to load tierlist file")
+                tier_list = []
+
+            self.tierlist = tier_list
+
+            tier_by_name = {}
+            tier_by_slug = {}
+
+            for entry in tier_list:
+                name = entry.get("name")
+                if not isinstance(name, str):
+                    continue
+
+                norm = self._normalize_name(name)
+                tier_by_name[norm] = entry
+
+                slug = norm.replace(" ", "-")
+                tier_by_slug[slug] = entry
+
+            self.tier_by_name = tier_by_name
+            self.tier_by_slug = tier_by_slug
+
 
             # Immunities
             try:
@@ -216,6 +351,15 @@ class CacheIndex:
             self.tags = tags_list
             self._tags_lower = [t.lower() for t in tags_list if isinstance(t, str)]
             self.prestige_index = prestige_index
+            self.aw = aw_obj or {}
+            self.aw_defense_champions = aw_def_champs
+            self.aw_attack_champions = aw_atk_champs
+            self.aw_tag_map = aw_tag_map
+
+            self.tierlist = tier_list
+            self.tier_by_name = tier_by_name
+            self.tier_by_slug = tier_by_slug
+
 
             self.champions_by_id = champions_by_id
             self.champions_by_name = champions_by_name
@@ -226,9 +370,16 @@ class CacheIndex:
         except Exception:
             log.exception("Failed to rebuild CacheIndex")
             # Reset to safe defaults
+            self.abilities = []
+            self.aw = {}
+            self.aw_defense_champions = []
+            self.aw_attack_champions = []
+            self.aw_tag_map = {}
             self.champions = []
             self.tags = []
-            self.abilities = []
+            self.tierlist = []
+            self.tier_by_name = {}
+            self.tier_by_slug = {}
             self.immunities = []
             self.champions_by_id = {}
             self.champions_by_name = {}

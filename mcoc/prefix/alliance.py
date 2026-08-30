@@ -16,7 +16,7 @@ from redbot.core import commands
 from ..common.componentsV2 import CDTEmbed, CDTConfirm, CDTPagesMenu
 from ..common.prefix_utils import safe_send_ctx
 from ..common.help_utils import send_or_brand_help
-from ..common.alliance import (
+from ..common.helpers.alliance import (
     get_guild_config, set_guild_config, register_alliance, create_or_link_role,
     join_alliance, leave_alliance, is_leader_or_officer, is_leader,
     is_alliance_manager, get_alliance_info, set_alliance_info_field,
@@ -33,7 +33,7 @@ class AlliancePrefix(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.group(name="alliance", invoke_without_command=True)
+    @commands.group(name="alliance", send_or_brand_help=True)
     async def alliance(self, ctx):
         """Alliance commands: create, template, setrole, settype, join, leave, unregister, settings, manage, export, reconcile, promote, demote, profile"""
         prefix = getattr(ctx, "prefix", "///")

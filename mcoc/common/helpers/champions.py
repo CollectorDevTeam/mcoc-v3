@@ -16,8 +16,8 @@ from typing import Any, Dict, List, Optional, Tuple
 import logging
 import asyncio
 
-from .formatters import format_champion_line
-from .componentsV2 import CDTEmbed, CDTPagesMenu, CDT_FOOTER_TAG
+from ..formatters import format_champion_line
+from ..componentsV2 import CDTEmbed, CDTPagesMenu, CDT_FOOTER_TAG
 
 log = logging.getLogger("red.mcoc.champions")
 
@@ -289,7 +289,7 @@ async def make_champion_pager(core: Any, ctx_or_author: Any, *, raw_input: Optio
         if not parsed and raw_input:
             try:
                 # lazy import to avoid circulars
-                from .query_parser import parse_query
+                from ..query_parser import parse_query
                 cache = getattr(core, "cache", None)
                 entries, filters = parse_query(raw_input, cache=cache)
                 parsed = {}
