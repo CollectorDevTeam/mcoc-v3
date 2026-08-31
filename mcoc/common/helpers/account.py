@@ -23,6 +23,7 @@ import logging
 import datetime
 
 from mcoc.common.componentsV2 import CDTEmbed
+from mcoc.common.formatters import format_top5_prestige
 
 log = logging.getLogger("red.mcoc.account_helpers")
 
@@ -296,7 +297,10 @@ def compute_top5_from_profile(profile: Dict[str, Any]) -> Tuple[List[str], Optio
         items = [(k, v) for k, v in pm.items() if isinstance(v, int)]
         items.sort(key=lambda x: -x[1])
         top5 = items[:5]
-        top5_lines = [f"{i+1}. {k.split('|')[0]} [{v}]" for i, (k, v) in enumerate(top5)]
+        top5_lines = []
+        for i, (k, v) in enumerate(top5):
+            top5_lines.append(format_top5_prestige(None, {"champion": k.split('|')[0], "rarity": int(k.split('|')[1]), "prestige": v}))
+        # top5_lines = [f"{i+1}. {k.split('|')[0]} [{v}]" for i, (k, v) in enumerate(top5)]
         total = sum(v for _, v in items) if items else None
         average = total / len(items) if items else None
         average_rounded = round(average, None) if average is not None else None
@@ -462,7 +466,7 @@ def build_profile_display(parent: Any, ctx_or_author: Any, target_id: int, viewe
             formatted_top5 = []
             if top5_lines:
                 try:
-                    from mcoc.common.formatters import format_champion_prestige_line
+                    from mcoc.common.formatters import format_top5_prestige
                     cache = getattr(parent, "cache", None)
 
                     for line in top5_lines:
@@ -488,7 +492,7 @@ def build_profile_display(parent: Any, ctx_or_author: Any, target_id: int, viewe
                             "prestige": int(line.split("[")[-1].rstrip("]")) if "[" in line else 0,
                         }
 
-                        formatted_top5.append(format_champion_prestige_line(champ_obj, entry))
+                        formatted_top5.append(format_top5_prestige(champ_obj, entry))
                 except Exception:
                     formatted_top5 = top5_lines
             else:
