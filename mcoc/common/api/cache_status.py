@@ -42,7 +42,7 @@ class CacheStatusPoster:
             # try sanitized
             try:
                 try:
-                    CDTEmbed.set_image(emb, image_url=None)
+                    CDTEmbed.set_image(self.ctx, emb, image_url=None)
                 except Exception:
                     pass
                 self.message = await self.ctx.send(embed=emb)
@@ -61,7 +61,7 @@ class CacheStatusPoster:
                 log.exception("Failed to edit cache status embed; retrying sanitized")
                 try:
                     try:
-                        CDTEmbed.set_image(emb, image_url=None)
+                        CDTEmbed.set_image(self.ctx, emb, image_url=None)
                     except Exception:
                         pass
                     await self.message.edit(embed=emb)

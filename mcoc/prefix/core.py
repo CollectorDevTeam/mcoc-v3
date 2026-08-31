@@ -77,7 +77,13 @@ class MCOCPrefix(commands.Cog):
             cmd = self._find_top_command(subcommand)
             if cmd:
                 try:
-                    await ctx.invoke(cmd, *args)
+                    # Forward as a single joined argument to avoid mismatched signatures
+                    # (some top-level groups accept *tokens, others accept a single optional member).
+                    joined = " ".join(args).strip()
+                    if joined:
+                        await ctx.invoke(cmd, joined)
+                    else:
+                        await ctx.invoke(cmd)
                     return
                 except Exception:
                     log.exception("Forwarding ///mcoc %s to top-level command failed", subcommand)
@@ -93,7 +99,6 @@ class MCOCPrefix(commands.Cog):
         except Exception:
             # fallback to text only if embed fails
             await safe_send_ctx(ctx, "MCOC compatibility root. Use `///account`, `///roster`, `///alliance`, `///champ`, `///mcocadmin`.")
-
 
     @mcoc.command(name="status")
     async def mcoc_status(self, ctx):
@@ -138,11 +143,13 @@ class MCOCPrefix(commands.Cog):
             return fallback or f"{title} (help unavailable)"
 
     # -------------------------
-    # Convenience forwarding endpoints (optional)
+    # Convenience forwarding endpoints (fixed)
     # -------------------------
     # These are small helpers so users can type ///mcoc account and still get
     # the top-level behavior. They are intentionally minimal and simply call
-    # the top-level command if present.
+    # the top-level command if present. Forwarding always passes a single joined
+    # argument (or none) to avoid TypeError when the target command signature
+    # doesn't accept many positional args.
 
     @mcoc.group(name="account", invoke_without_command=True)
     async def mcoc_account(self, ctx, *args: str):
@@ -152,7 +159,11 @@ class MCOCPrefix(commands.Cog):
         cmd = self._find_top_command("account")
         if cmd:
             try:
-                await ctx.invoke(cmd, *args)
+                joined = " ".join(args).strip()
+                if joined:
+                    await ctx.invoke(cmd, joined)
+                else:
+                    await ctx.invoke(cmd)
                 return
             except Exception:
                 log.exception("Failed to forward ///mcoc account to ///account")
@@ -164,7 +175,11 @@ class MCOCPrefix(commands.Cog):
         cmd = self._find_top_command("roster")
         if cmd:
             try:
-                await ctx.invoke(cmd, *args)
+                joined = " ".join(args).strip()
+                if joined:
+                    await ctx.invoke(cmd, joined)
+                else:
+                    await ctx.invoke(cmd)
                 return
             except Exception:
                 log.exception("Failed to forward ///mcoc roster to ///roster")
@@ -175,7 +190,11 @@ class MCOCPrefix(commands.Cog):
         cmd = self._find_top_command("alliance")
         if cmd:
             try:
-                await ctx.invoke(cmd, *args)
+                joined = " ".join(args).strip()
+                if joined:
+                    await ctx.invoke(cmd, joined)
+                else:
+                    await ctx.invoke(cmd)
                 return
             except Exception:
                 log.exception("Failed to forward ///mcoc alliance to ///alliance")
@@ -186,7 +205,11 @@ class MCOCPrefix(commands.Cog):
         cmd = self._find_top_command("champ")
         if cmd:
             try:
-                await ctx.invoke(cmd, *args)
+                joined = " ".join(args).strip()
+                if joined:
+                    await ctx.invoke(cmd, joined)
+                else:
+                    await ctx.invoke(cmd)
                 return
             except Exception:
                 log.exception("Failed to forward ///mcoc champ to ///champ")
@@ -197,7 +220,11 @@ class MCOCPrefix(commands.Cog):
         cmd = self._find_top_command("mcocadmin")
         if cmd:
             try:
-                await ctx.invoke(cmd, *args)
+                joined = " ".join(args).strip()
+                if joined:
+                    await ctx.invoke(cmd, joined)
+                else:
+                    await ctx.invoke(cmd)
                 return
             except Exception:
                 log.exception("Failed to forward ///mcoc admin to ///mcocadmin")

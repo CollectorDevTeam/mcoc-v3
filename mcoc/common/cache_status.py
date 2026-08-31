@@ -28,9 +28,9 @@ class CacheStatusPoster:
         emb = CDTEmbed.embed(self.ctx, title=self.title, description="Progress updates will appear below.", footer_text="Sync progress")
         # add section fields
         for name, value in self.sections.items():
-            CDTEmbed.add_field(emb, name=name, value=value or "pending", inline=False)
+            CDTEmbed.add_field(self.ctx, emb, name=name, value=value or "pending", inline=False)
         if self.prestige_lines:
-            CDTEmbed.add_field(emb, name="Prestige", value="\n".join(self.prestige_lines), inline=False)
+            CDTEmbed.add_field(self.ctx, emb, name="Prestige", value="\n".join(self.prestige_lines), inline=False)
         return emb
 
     async def post_initial(self):
@@ -42,7 +42,7 @@ class CacheStatusPoster:
             # try sanitized
             try:
                 try:
-                    CDTEmbed.set_image(emb, image_url=None)
+                    CDTEmbed.set_image(self.ctx, emb, image_url=None)
                 except Exception:
                     pass
                 self.message = await self.ctx.send(embed=emb)
@@ -61,7 +61,7 @@ class CacheStatusPoster:
                 log.exception("Failed to edit cache status embed; retrying sanitized")
                 try:
                     try:
-                        CDTEmbed.set_image(emb, image_url=None)
+                        CDTEmbed.set_image(self.ctx, emb, image_url=None)
                     except Exception:
                         pass
                     await self.message.edit(embed=emb)

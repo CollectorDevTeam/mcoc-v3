@@ -45,7 +45,7 @@ async def send_or_brand_help(ctx: commands.Context, target: str, title: Optional
                     # copy url if present
                     try:
                         if getattr(orig, "url", None):
-                            CDTEmbed.set_url(emb, orig.url)
+                            CDTEmbed.set_url(ctx, emb, orig.url)
                     except Exception:
                         pass
                     # set branded footer

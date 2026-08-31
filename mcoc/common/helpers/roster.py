@@ -718,7 +718,7 @@ async def build_roster_pages(core: Any, ctx_or_author: Any, parsed_filters: Opti
                 footer = f"Page {i+1} of {len(page_texts)}{ROSTER_FOOTER}"
                 emb = CDTEmbed.embed(author_for_embed, title=roster_title, description=ptext, footer_text=footer)
                 try:
-                    CDTEmbed.set_footer(emb, text=footer)
+                    CDTEmbed.set_footer(author_for_embed, emb, text=footer)
                 except Exception:
                     pass
                 embed_pages.append(emb)
@@ -850,10 +850,10 @@ def add_page_footers(pages: List[Any], author_for_embed: Any = None) -> List[Any
                 base = emb.footer.text if getattr(emb, "footer", None) and getattr(emb.footer, "text", None) else ""
                 footer_text = f"{base} • Page {i+1} of {total}" if base else f"Page {i+1} of {total}"
                 footer_text += f"{ROSTER_FOOTER}"
-                CDTEmbed.set_footer(emb, text=footer_text)
+                CDTEmbed.set_footer(author_for_embed, emb, text=footer_text)
             except Exception:
                 try:
-                    CDTEmbed.set_footer(emb, text=f"Page {i+1} of {total}{ROSTER_FOOTER}")
+                    CDTEmbed.set_footer(author_for_embed, emb, text=f"Page {i+1} of {total}{ROSTER_FOOTER}")
                 except Exception:
                     pass
             out.append(emb)

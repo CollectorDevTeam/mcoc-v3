@@ -88,7 +88,7 @@ class AccountPrefix(commands.Cog):
     # -----------------------------
     # Group and aliases
     # -----------------------------
-    @commands.group(name="account", aliases=["profile"])
+    @commands.group(name="account", aliases=["profile"], invoke_without_command=True)
     async def account(self, ctx, *tokens):
         """Top-level account command. If a member is provided, redirect to profile."""
         # Try to resolve first token as a member
@@ -245,18 +245,20 @@ class AccountPrefix(commands.Cog):
                 emb = None
 
             if emb is not None:
+                # Add each setting; convert None -> "Not set"
                 for key, val in settings.items():
                     try:
                         display = "Not set" if val is None else str(val)
+                        # Correct CDTEmbed.add_field signature: (ctx_or_author, emb, name, value, inline)
                         CDTEmbed.add_field(ctx.author, emb, name=key.replace("_", " ").title(), value=display, inline=True)
                     except Exception:
-                        # skip problematic fields but continue building the embed
+                        # Skip problematic fields but continue building the embed
                         continue
                 try:
                     await safe_send_ctx(ctx, None, embed=emb)
                     return
                 except Exception:
-                    # fall through to text fallback
+                    # fall through to text fallback if sending embed fails
                     pass
 
             # Text fallback (readable)
@@ -269,8 +271,6 @@ class AccountPrefix(commands.Cog):
         except Exception:
             log.exception("Failed to fetch settings")
             await safe_send_ctx(ctx, "Failed to fetch settings.")
-
-
 
     # -----------------------------
     # Set a profile field

@@ -238,7 +238,7 @@ async def build_champion_pages(core: Any, ctx_or_author: Any, filters: Optional[
                 footer = f"Page {i+1} of {len(page_texts)}{CHAMPIONS_FOOTER}"
                 emb = CDTEmbed.embed(author_for_embed, title=title, description=ptext, footer_text=footer)
                 try:
-                    CDTEmbed.set_footer(emb, text=footer)
+                    CDTEmbed.set_footer(author_for_embed, emb, text=footer)
                 except Exception:
                     pass
                 embed_pages.append(emb)
