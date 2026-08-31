@@ -407,7 +407,7 @@ def compute_top5_from_profile(profile: Union[User, Dict[str, Any]]) -> Tuple[Lis
     Accepts either a User dataclass or a raw profile dict.
 
     Returns:
-      - top5_lines: list of formatted lines (already pretty-printed via format_top5_prestige_line)
+      - top5_lines: list of simple lines "1. slug [prestige]" (NOT fully formatted)
       - total_prestige: sum of all prestige values (int) or None if no items
       - average_prestige: average prestige across items (float rounded to 2 decimals) or None
     """
@@ -415,6 +415,7 @@ def compute_top5_from_profile(profile: Union[User, Dict[str, Any]]) -> Tuple[Lis
         pm = _parse_prestige_map(profile)
         items = [(k, v) for k, v in pm.items() if isinstance(v, int)]
         if not items:
+            log.debug("compute_top5_from_profile: no prestige items found")
             return [], None, None
 
         items.sort(key=lambda x: -x[1])
@@ -425,34 +426,21 @@ def compute_top5_from_profile(profile: Union[User, Dict[str, Any]]) -> Tuple[Lis
 
         top5 = items[:5]
         top5_lines: List[str] = []
-        try:
-            from mcoc.common.formatters import format_top5_prestige_line
-            for i, (k, v) in enumerate(top5):
-                try:
-                    slug, stars = str(k).split("|", 1)
-                    rarity = int(stars)
-                except Exception:
-                    slug = str(k)
-                    rarity = 6
-                entry = {
-                    "champion": slug,
-                    "rarity": rarity,
-                    "rank": 1,
-                    "sig": 0,
-                    "ascended": 0,
-                    "prestige": int(v) if isinstance(v, (int, float)) else 0,
-                }
-                # format without champion object here; caller may reformat with cache
-                line = format_top5_prestige_line(None, entry)
-                top5_lines.append(f"{i+1}. {line}")
-        except Exception:
-            top5_lines = [f"{i+1}. {k.split('|')[0]} [{v}]" for i, (k, v) in enumerate(top5)]
+        for i, (k, v) in enumerate(top5):
+            try:
+                # k is expected to be "slug|stars" or similar
+                slug, stars = str(k).split("|", 1)
+            except Exception:
+                slug = str(k)
+            prestige_val = int(v) if isinstance(v, (int, float)) else 0
+            # Return a simple, unadorned line so build_profile_display can format it with cache
+            top5_lines.append(f"{i+1}. {slug} [{prestige_val}]")
 
+        log.debug("compute_top5_from_profile: computed top5_lines=%s total=%s avg=%s", top5_lines, total, average_rounded)
         return top5_lines, total, average_rounded
     except Exception:
         log.exception("compute_top5_from_profile failed")
         return [], None, None
-
 
 def compute_top5_from_roster(parent: Any, roster: List[Dict[str, Any]], profile: Union[User, Dict[str, Any]]) -> Tuple[List[str], Optional[int]]:
     """
