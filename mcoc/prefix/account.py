@@ -242,7 +242,6 @@ class AccountPrefix(commands.Cog):
             settings = Account.get_profile_settings(profile)
 
             # Do NOT prettify "started" here — build_profile_display already handles it.
-            # Show raw ISO or raw stored value.
 
             try:
                 emb = CDTEmbed.embed(
@@ -251,8 +250,11 @@ class AccountPrefix(commands.Cog):
                     description="Current saved preferences (raw values)"
                 )
 
-                for key, val in settings.items():
-                    display = str(val) if val is not None else "Not set"
+                # Iterate over canonical user-visible keys so all fields show up
+                for key in sorted(Account.FIELD_CANONICAL.keys()):
+                    val = settings.get(key)
+                    display = "Not set" if val is None or str(val).strip() == "" else str(val)
+
                     CDTEmbed.add_field(
                         ctx.author,
                         emb,
@@ -272,7 +274,6 @@ class AccountPrefix(commands.Cog):
         except Exception:
             log.exception("Failed to fetch settings")
             await safe_send_ctx(ctx, "Failed to fetch settings.")
-
     # -----------------------------
     # Set a profile field
     # -----------------------------
