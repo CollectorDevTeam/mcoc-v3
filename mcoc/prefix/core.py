@@ -51,7 +51,7 @@ class MCOCPrefix(commands.Cog):
     # -------------------------
     # Helper: find top-level command
     # -------------------------
-    def _find_top_command(self, name: str):
+    def _find_top_command(self, name: str) -> Optional[commands.Command]:
         """
         Return a top-level Command object for `name` if registered, else None.
         Example names: "account", "roster", "alliance", "champ", "mcocadmin"
@@ -76,26 +76,17 @@ class MCOCPrefix(commands.Cog):
         if subcommand:
             cmd = self._find_top_command(subcommand)
             if cmd:
-                # Try invoking with the raw args first; if signature mismatch occurs,
-                # retry with a single joined string. This avoids TypeError when the
-                # target command expects a single token or different signature.
                 try:
+                    # Attempt to invoke the top-level command with the provided args.
+                    # If this succeeds, return immediately and do not emit fallback help.
                     await ctx.invoke(cmd, *args)
                     return
-                except TypeError:
-                    # Signature mismatch: try joining args into a single string
-                    try:
-                        joined = " ".join(args) if args else ""
-                        # If there are no args, still attempt to invoke with no args
-                        if joined:
-                            await ctx.invoke(cmd, joined)
-                        else:
-                            await ctx.invoke(cmd)
-                        return
-                    except Exception:
-                        log.exception("Forwarding ///mcoc %s to top-level command failed (retry with joined args)", subcommand)
-                except Exception:
+                except commands.CommandError:
+                    # Command invocation failed at the command layer; log and fall through to help.
                     log.exception("Forwarding ///mcoc %s to top-level command failed", subcommand)
+                except Exception:
+                    # Unexpected error while forwarding; log and fall through to help.
+                    log.exception("Unexpected error forwarding ///mcoc %s", subcommand)
 
         # No forwarding possible or forwarding failed: show attractive embed help (use Embed)
         try:
@@ -108,6 +99,7 @@ class MCOCPrefix(commands.Cog):
         except Exception:
             # fallback to text only if embed fails
             await safe_send_ctx(ctx, "MCOC compatibility root. Use `///account`, `///roster`, `///alliance`, `///champ`, `///mcocadmin`.")
+
 
     @mcoc.command(name="status")
     async def mcoc_status(self, ctx):
@@ -164,39 +156,31 @@ class MCOCPrefix(commands.Cog):
         Forwarder for account: tries to invoke top-level ///account if present.
         """
         cmd = self._find_top_command("account")
-        if cmd:
-            try:
-                # Same robust invocation strategy as above
-                try:
-                    await ctx.invoke(cmd, *args)
-                    return
-                except TypeError:
-                    joined = " ".join(args) if args else ""
-                    if joined:
-                        await ctx.invoke(cmd, joined)
-                    else:
-                        await ctx.invoke(cmd)
-                    return
-            except Exception:
-                log.exception("Failed to forward ///mcoc account to ///account")
-        # fallback help
-        await safe_send_ctx(ctx, "Account commands: info, profile, set, link, unlink, delete, privacy. Use ///account for top-level access.")
+        if not cmd:
+            # No top-level account command registered; show a short fallback help.
+            await safe_send_ctx(ctx, "Account commands: info, profile, set, link, unlink, delete, privacy. Use ///account for top-level access.")
+            return
+
+        # If args are empty, prefer to invoke the top-level command with no args
+        # (this mirrors user typing ///account directly). If invocation fails, show fallback.
+        try:
+            await ctx.invoke(cmd, *args)
+            return
+        except commands.CommandError:
+            log.exception("Failed to forward ///mcoc account to ///account")
+            await safe_send_ctx(ctx, "Account commands: info, profile, set, link, unlink, delete, privacy. Use ///account for top-level access.")
+        except Exception:
+            log.exception("Unexpected error forwarding ///mcoc account to ///account")
+            await safe_send_ctx(ctx, "Account commands: info, profile, set, link, unlink, delete, privacy. Use ///account for top-level access.")
+
 
     @mcoc.group(name="roster", invoke_without_command=True)
     async def mcoc_roster(self, ctx, *args: str):
         cmd = self._find_top_command("roster")
         if cmd:
             try:
-                try:
-                    await ctx.invoke(cmd, *args)
-                    return
-                except TypeError:
-                    joined = " ".join(args) if args else ""
-                    if joined:
-                        await ctx.invoke(cmd, joined)
-                    else:
-                        await ctx.invoke(cmd)
-                    return
+                await ctx.invoke(cmd, *args)
+                return
             except Exception:
                 log.exception("Failed to forward ///mcoc roster to ///roster")
         await safe_send_ctx(ctx, "Roster commands: add, remove, update, list, import, export, clear. Use ///roster for top-level access.")
@@ -206,16 +190,8 @@ class MCOCPrefix(commands.Cog):
         cmd = self._find_top_command("alliance")
         if cmd:
             try:
-                try:
-                    await ctx.invoke(cmd, *args)
-                    return
-                except TypeError:
-                    joined = " ".join(args) if args else ""
-                    if joined:
-                        await ctx.invoke(cmd, joined)
-                    else:
-                        await ctx.invoke(cmd)
-                    return
+                await ctx.invoke(cmd, *args)
+                return
             except Exception:
                 log.exception("Failed to forward ///mcoc alliance to ///alliance")
         await safe_send_ctx(ctx, "Alliance commands: info, create, join, leave, settings, manage. Use ///alliance for top-level access.")
@@ -225,16 +201,8 @@ class MCOCPrefix(commands.Cog):
         cmd = self._find_top_command("champ")
         if cmd:
             try:
-                try:
-                    await ctx.invoke(cmd, *args)
-                    return
-                except TypeError:
-                    joined = " ".join(args) if args else ""
-                    if joined:
-                        await ctx.invoke(cmd, joined)
-                    else:
-                        await ctx.invoke(cmd)
-                    return
+                await ctx.invoke(cmd, *args)
+                return
             except Exception:
                 log.exception("Failed to forward ///mcoc champ to ///champ")
         await safe_send_ctx(ctx, "Champion commands: info, abilities, search, stats. Use ///champ for top-level access.")
@@ -244,16 +212,8 @@ class MCOCPrefix(commands.Cog):
         cmd = self._find_top_command("mcocadmin")
         if cmd:
             try:
-                try:
-                    await ctx.invoke(cmd, *args)
-                    return
-                except TypeError:
-                    joined = " ".join(args) if args else ""
-                    if joined:
-                        await ctx.invoke(cmd, joined)
-                    else:
-                        await ctx.invoke(cmd)
-                    return
+                await ctx.invoke(cmd, *args)
+                return
             except Exception:
                 log.exception("Failed to forward ///mcoc admin to ///mcocadmin")
         await safe_send_ctx(ctx, "Admin commands: status, sync, debug. Use ///mcocadmin for top-level access.")
@@ -274,7 +234,6 @@ class MCOCPrefix(commands.Cog):
         Entitlements.log_action(guild_cfg, 0, "apply_role_entitlement", f"role:{role_id} -> user:{user_id}")
 
     def render_group_help_embed(self, ctx, group: commands.Group, title: str, fallback: str = ""):
-        # Call the instance method correctly so help text is generated for the provided group
         text = ""
         try:
             text = self._group_help_text(group, title, fallback)
