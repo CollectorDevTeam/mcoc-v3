@@ -24,7 +24,7 @@ import uuid
 from mcoc.common.componentsV2 import CDTEmbed
 
 # types
-from mcoc.common.types import Champion, champion_from_dict, User
+from mcoc.common.types import Champion, champion_from_dict, UserAccount
 
 log = logging.getLogger("red.mcoc.account_helpers")
 
@@ -186,9 +186,9 @@ def _ensure_user_manager_from_parent(parent: Any):
         return None
 
 
-def get_user_from_parent(parent, user_id: int) -> Optional[User]:
+def get_user_from_parent(parent, user_id: int) -> Optional[UserAccount]:
     """
-    Return a User dataclass constructed from stored profile data, or None.
+    Return a UserAccount dataclass constructed from stored profile data, or None.
     """
     users = _ensure_user_manager_from_parent(parent)
     print(users.get_profile(user_id))
@@ -201,15 +201,15 @@ def get_user_from_parent(parent, user_id: int) -> Optional[User]:
     if not raw:
         return None
     try:
-        return User.from_dict(raw)
+        return UserAccount.from_dict(raw)
     except Exception:
         log.exception("get_user_from_parent: failed to construct User from profile for %s", user_id)
         return None
 
 
-def persist_user(parent, user: User) -> bool:
+def persist_user(parent, user: UserAccount) -> bool:
     """
-    Persist a User dataclass to storage. Tries to write the full profile in the
+    Persist a UserAccount dataclass to storage. Tries to write the full profile in the
     shape the UserDataManager expects (bulk set or 'profile' field), then falls
     back to per-field writes.
     """
@@ -278,7 +278,7 @@ def set_profile_field(parent: Any, user_id: int, field: str, value: Any) -> bool
         if field == "started" and value is not None:
             try:
                 # use User._normalize_started for conservative normalization
-                iso = User._normalize_started(value)
+                iso = UserAccount._normalize_started(value)
                 if iso:
                     value = iso
                 else:
@@ -379,14 +379,14 @@ def _normalize_prestige_value(raw: Any) -> int:
         return 0
 
 
-def _parse_prestige_map(profile: Union[User, Dict[str, Any]]) -> Dict[str, int]:
+def _parse_prestige_map(profile: Union[UserAccount, Dict[str, Any]]) -> Dict[str, int]:
     """
     Normalize a persisted prestige_map into a dict of { 'slug|stars': int }.
     Accepts either a User dataclass or a raw profile dict.
     """
     out: Dict[str, int] = {}
     try:
-        if isinstance(profile, User):
+        if isinstance(profile, UserAccount):
             pm = profile.prestige_map or {}
         else:
             pm = profile.get("prestige_map") or {}
@@ -401,7 +401,7 @@ def _parse_prestige_map(profile: Union[User, Dict[str, Any]]) -> Dict[str, int]:
     return out
 
 
-def compute_top5_from_profile(profile: Union[User, Dict[str, Any]]) -> Tuple[List[str], Optional[int], Optional[float]]:
+def compute_top5_from_profile(profile: Union[UserAccount, Dict[str, Any]]) -> Tuple[List[str], Optional[int], Optional[float]]:
     """
     Compute a Top 5 list and total prestige from a profile's persisted prestige_map.
 
@@ -443,7 +443,7 @@ def compute_top5_from_profile(profile: Union[User, Dict[str, Any]]) -> Tuple[Lis
         log.exception("compute_top5_from_profile failed")
         return [], None, None
 
-def compute_top5_from_roster(parent: Any, roster: List[Dict[str, Any]], profile: Union[User, Dict[str, Any]]) -> Tuple[List[str], Optional[int]]:
+def compute_top5_from_roster(parent: Any, roster: List[Dict[str, Any]], profile: Union[UserAccount, Dict[str, Any]]) -> Tuple[List[str], Optional[int]]:
     """
     Given a roster (list of entry dicts) and profile (for persisted prestige_map),
     compute a Top 5 by resolving prestige via cache/index where possible.
@@ -454,7 +454,7 @@ def compute_top5_from_roster(parent: Any, roster: List[Dict[str, Any]], profile:
     """
     try:
         cache = getattr(parent, "cache", None)
-        prestige_map = profile.prestige_map if isinstance(profile, User) else profile.get("prestige_map", {}) if isinstance(profile, dict) else {}
+        prestige_map = profile.prestige_map if isinstance(profile, UserAccount) else profile.get("prestige_map", {}) if isinstance(profile, dict) else {}
         entries: List[Dict[str, Any]] = []
         for e in roster:
             try:
@@ -543,9 +543,9 @@ def build_profile_display(parent: Any, ctx_or_author: Any, target_id: int, viewe
         total_prestige: Optional[int] = None
 
         # fetch profile as User when possible
-        user_obj: Optional[User] = None
+        user_obj: Optional[UserAccount] = None
         try:
-            user_obj = get_user_from_parent(parent, target_id)
+            user_obj = get_user_from_parent(parent, target_id)  # type: Optional[UserAccount]
         except Exception:
             user_obj = None
 

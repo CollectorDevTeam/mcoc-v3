@@ -81,9 +81,8 @@ def champion_from_dict(d: Optional[Mapping[str, Any]]) -> Optional[Champion]:
         log.exception("Failed to create Champion from dict: %s", d)
         return None
 
-
 @dataclass
-class User:
+class UserAccount:
     user_id: int
     mcoc_name: Optional[str] = None
     mcoc_id: Optional[str] = None
@@ -158,9 +157,9 @@ class User:
         return None
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "User":
+    def from_dict(cls, data: Dict[str, Any]) -> "UserAccount":
         """
-        Construct a User from a dict (storage). Defensive: ignore unknown keys.
+        Construct a UserAccount from a dict (storage). Defensive: ignore unknown keys.
         Normalizes a few common fields (booleans, started).
         """
         if not isinstance(data, dict):
