@@ -1,5 +1,6 @@
 # mcoc/common/types.py
-from dataclasses import dataclass
+from dataclasses import dataclass, field, asdict
+import datetime
 import logging
 
 log = logging.getLogger("red.mcoc.types")
@@ -79,3 +80,151 @@ def champion_from_dict(d: Optional[Mapping[str, Any]]) -> Optional[Champion]:
     except Exception:
         log.exception("Failed to create Champion from dict: %s", d)
         return None
+
+
+@dataclass
+class User:
+    user_id: int
+    mcoc_name: Optional[str] = None
+    mcoc_id: Optional[str] = None
+    display_name: Optional[str] = None
+    website: Optional[str] = None
+    invite: Optional[str] = None
+    timezone: Optional[str] = None
+    alliance: Optional[str] = None
+    job: Optional[str] = None
+    age: Optional[str] = None
+    gender: Optional[str] = None
+    about: Optional[str] = None
+    mastery: Optional[str] = None
+    started: Optional[str] = None        # normalized ISO date YYYY-MM-DD when available
+    roster_public: bool = False
+    privacy_mode: Optional[str] = None
+    linked: bool = False
+    prestige_map: Dict[str, int] = field(default_factory=dict)
+    top5: List[str] = field(default_factory=list)
+
+    # Consent metadata
+    consent: bool = False
+    consent_ts: Optional[str] = None     # ISO date YYYY-MM-DD
+    consent_version: Optional[str] = None
+    consent_source: Optional[str] = None
+
+    # Internal / audit
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        """
+        Convert to a plain dict suitable for JSON storage.
+        """
+        return asdict(self)
+
+    @classmethod
+    def _normalize_started(cls, value: Optional[str]) -> Optional[str]:
+        """
+        Lightweight normalization for 'started' values.
+        Attempts to return YYYY-MM-DD or None.
+        This is intentionally conservative; more advanced heuristics live in account helpers.
+        """
+        if not value:
+            return None
+        s = str(value).strip()
+        # try ISO date first
+        try:
+            if len(s) == 10 and s.count("-") == 2:
+                # date-only ISO
+                datetime.date.fromisoformat(s)
+                return s
+            # try full ISO parse
+            dt = datetime.datetime.fromisoformat(s)
+            return dt.date().isoformat()
+        except Exception:
+            pass
+        # try common US numeric formats MM/DD/YYYY or MM-DD-YYYY
+        try:
+            for sep in ("/", "-"):
+                parts = s.split(sep)
+                if len(parts) == 3:
+                    mm, dd, yy = parts
+                    mm_i = int(mm); dd_i = int(dd); yy_i = int(yy)
+                    if yy_i < 100:  # two-digit year heuristic
+                        yy_i = 2000 + yy_i if yy_i <= 29 else 1900 + yy_i
+                    dt = datetime.date(yy_i, mm_i, dd_i)
+                    return dt.isoformat()
+        except Exception:
+            pass
+        # fallback: return None (leave raw value in storage if caller prefers)
+        return None
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "User":
+        """
+        Construct a User from a dict (storage). Defensive: ignore unknown keys.
+        Normalizes a few common fields (booleans, started).
+        """
+        if not isinstance(data, dict):
+            raise TypeError("from_dict expects a dict")
+
+        # gather known fields with safe defaults
+        kwargs: Dict[str, Any] = {}
+        fields = {
+            "user_id", "mcoc_name", "mcoc_id", "display_name", "website", "invite",
+            "timezone", "alliance", "job", "age", "gender", "about", "mastery",
+            "started", "roster_public", "privacy_mode", "linked", "prestige_map",
+            "top5", "consent", "consent_ts", "consent_version", "consent_source",
+            "created_at", "updated_at"
+        }
+
+        for k in fields:
+            if k in data:
+                kwargs[k] = data.get(k)
+
+        # ensure user_id exists and is int
+        uid = kwargs.get("user_id") or data.get("user_id") or 0
+        try:
+            kwargs["user_id"] = int(uid)
+        except Exception:
+            kwargs["user_id"] = 0
+
+        # coerce booleans
+        kwargs["roster_public"] = bool(kwargs.get("roster_public", False))
+        kwargs["linked"] = bool(kwargs.get("linked", False))
+        kwargs["consent"] = bool(kwargs.get("consent", False))
+
+        # ensure prestige_map is a dict
+        pm = kwargs.get("prestige_map") or {}
+        if not isinstance(pm, dict):
+            try:
+                pm = dict(pm)
+            except Exception:
+                pm = {}
+        # coerce values to int where possible
+        clean_pm: Dict[str, int] = {}
+        for k, v in pm.items():
+            try:
+                clean_pm[k] = int(v) if v is not None else 0
+            except Exception:
+                clean_pm[k] = 0
+        kwargs["prestige_map"] = clean_pm
+
+        # ensure top5 is a list of strings
+        t5 = kwargs.get("top5") or []
+        if not isinstance(t5, list):
+            try:
+                t5 = list(t5)
+            except Exception:
+                t5 = []
+        kwargs["top5"] = [str(x) for x in t5]
+
+        # normalize started to ISO date when possible (conservative)
+        started_raw = kwargs.get("started")
+        normalized = cls._normalize_started(started_raw) if started_raw else None
+        if normalized:
+            kwargs["started"] = normalized
+        else:
+            # keep raw string if present but not normalized (so callers can decide)
+            kwargs["started"] = started_raw
+
+        # created_at / updated_at: keep as-is (caller may set)
+        return cls(**kwargs)

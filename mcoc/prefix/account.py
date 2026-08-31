@@ -106,8 +106,38 @@ class AccountPrefix(commands.Cog):
             await self.account_profile(ctx, member=member)
             return
 
-        # No member → show help
-        await self.account_help(ctx)
+        # No member → show help or enrollment if no profile/consent
+        if not await self._require_parent(ctx):
+            return
+
+        try:
+            # If user has a profile and consent, show profile; otherwise start enrollment
+            user_id = ctx.author.id
+            try:
+                user_obj = Account.get_user_from_parent(self.parent, user_id)
+            except Exception:
+                user_obj = None
+
+            if user_obj and user_obj.consent:
+                # show profile
+                await self.account_profile(ctx, member=ctx.author)
+                return
+
+            # start enrollment flow (will DM when possible)
+            ok, msg = await Account.enroll_command_handler(self.parent, ctx, user_id)
+            try:
+                # prefer DM
+                await ctx.author.send(msg)
+                try:
+                    await ctx.tick()
+                except Exception:
+                    pass
+            except Exception:
+                await safe_send_ctx(ctx, msg)
+        except Exception:
+            log.exception("account group invoke failed for %s", getattr(ctx.author, "id", "<unknown>"))
+            await safe_send_ctx(ctx, "Failed to process account command; please try again.")
+
 
     @account.command(name="help")
     async def account_help(self, ctx):
@@ -307,11 +337,6 @@ class AccountPrefix(commands.Cog):
             await safe_send_ctx(ctx, f"Invalid field. Allowed fields: {allowed}\nTip: common aliases: `mcoc-name` -> `mcoc_name`, `start-date` -> `started`")
             return
 
-        # if not validate_profile_field(canonical_field) and stored_key not in FIELD_CANONICAL.values():
-        #     allowed = ", ".join(sorted(ALLOWED_PROFILE_FIELDS.keys()))
-        #     await safe_send_ctx(ctx, f"Invalid field. Allowed fields: {allowed}\nTip: common aliases: `mcoc-name` -> `mcoc_name`, `start-date` -> `started`")
-        #     return
-
         # allow clearing with explicit empty string
         if value is None:
             await safe_send_ctx(ctx, f"No value provided. To clear a field use `{get_runtime_prefix(ctx, default='///')}mcoc account set {field} \"\"`.")
@@ -367,7 +392,7 @@ class AccountPrefix(commands.Cog):
             await safe_send_ctx(ctx, f"Usage: `{prefix}mcoc account link <mcoc_id>`")
             return
         try:
-            ok, msg = Account.helper_link_account(self.parent, ctx.author.id, str(mcoc_id).strip())
+            ok, msg = Account.link_account(self.parent, ctx.author.id, str(mcoc_id).strip())
             await safe_send_ctx(ctx, msg)
         except Exception:
             log.exception("Failed to link account")
@@ -379,7 +404,7 @@ class AccountPrefix(commands.Cog):
         if not await self._require_parent(ctx):
             return
         try:
-            ok, msg = Account.helper_unlink_account(self.parent, ctx.author.id)
+            ok, msg = Account.unlink_account(self.parent, ctx.author.id)
             await safe_send_ctx(ctx, msg)
         except Exception:
             log.exception("Failed to unlink account")
@@ -397,11 +422,96 @@ class AccountPrefix(commands.Cog):
             if not confirmed:
                 await safe_send_ctx(ctx, "Deletion cancelled.")
                 return
-            ok, msg = Account.helper_delete_user_profile(self.parent, ctx.author.id)
+            ok, msg = Account.delete_user_profile(self.parent, ctx.author.id)
             await safe_send_ctx(ctx, msg)
         except Exception:
             log.exception("Failed to delete user data")
             await safe_send_ctx(ctx, "Failed to delete profile.")
+
+    # -----------------------------
+    # Enrollment / consent text fallbacks
+    # -----------------------------
+    @account.command(name="agree")
+    async def account_agree(self, ctx):
+        """
+        Text fallback to agree to the privacy policy (///account agree).
+        """
+        if not await self._require_parent(ctx):
+            return
+        user_id = ctx.author.id
+        try:
+            ok, msg = await Account.account_agree_command(self.parent, ctx, user_id)
+            try:
+                await ctx.author.send(msg)
+                try:
+                    await ctx.tick()
+                except Exception:
+                    pass
+            except Exception:
+                await safe_send_ctx(ctx, msg)
+        except Exception:
+            log.exception("account agree failed for %s", user_id)
+            await safe_send_ctx(ctx, "Failed to record consent; please try again later.")
+
+    @account.command(name="decline")
+    async def account_decline(self, ctx):
+        """
+        Text fallback to decline the privacy policy (///account decline).
+        """
+        if not await self._require_parent(ctx):
+            return
+        user_id = ctx.author.id
+        try:
+            ok, msg = await Account.account_decline_command(self.parent, ctx, user_id)
+            try:
+                await ctx.author.send(msg)
+                try:
+                    await ctx.tick()
+                except Exception:
+                    pass
+            except Exception:
+                await safe_send_ctx(ctx, msg)
+        except Exception:
+            log.exception("account decline failed for %s", user_id)
+            await safe_send_ctx(ctx, "Failed to process decline; please try again later.")
+
+    # -----------------------------
+    # Revoke consent (self or admin)
+    # -----------------------------
+    @account.command(name="revoke-consent", aliases=["revoke", "delete-profile"])
+    async def account_revoke(self, ctx, member: Optional[Member] = None):
+        """
+        Revoke consent and delete a profile.
+        Usage:
+          ///account revoke-consent            -> revoke for yourself
+          ///account revoke-consent @user      -> revoke for a mentioned user (admin only)
+        By default this command allows users to revoke their own consent. Revoking another user's
+        profile requires Manage Guild permission.
+        """
+        if not await self._require_parent(ctx):
+            return
+
+        # Determine target user id: explicit mention or invoking user
+        try:
+            if member:
+                # require permission to revoke others
+                if not ctx.author.guild_permissions.manage_guild and not ctx.author.guild_permissions.administrator:
+                    await safe_send_ctx(ctx, "You do not have permission to revoke another user's consent.")
+                    return
+                user_id = member.id
+            else:
+                user_id = ctx.author.id
+
+            ok, msg = await Account.revoke_consent(self.parent, user_id)
+            await safe_send_ctx(ctx, msg)
+            if ok and member:
+                try:
+                    await member.send("Your CollectorVerse profile has been deleted by an administrator.")
+                except Exception:
+                    pass
+        except Exception:
+            log.exception("account revoke-consent failed")
+            await safe_send_ctx(ctx, "Failed to revoke consent; please try again later.")
 
     # -----------------------------
     # Additional account-related commands can be added here

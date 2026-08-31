@@ -18,12 +18,14 @@ Design goals:
   - Make the profile-building logic testable and reusable by both prefix and slash code.
 """
 
-from typing import Any, Dict, Optional, Tuple, List
+from typing import Any, Dict, Optional, Tuple, List, Union
 import logging
 import datetime
+import re
+import asyncio
 
 from mcoc.common.componentsV2 import CDTEmbed
-from mcoc.common.types import Champion, champion_from_dict
+from mcoc.common.types import Champion, champion_from_dict, User
 
 log = logging.getLogger("red.mcoc.account_helpers")
 
@@ -49,6 +51,11 @@ ALLOWED_PROFILE_FIELDS: Dict[str, Dict[str, str]] = {
     "linked": {"type": "bool", "desc": "Account linked flag"},
     "prestige_map": {"type": "dict", "desc": "Persisted prestige per champ"},
     "top5": {"type": "list", "desc": "Cached top 5 champion names"},
+    # consent fields (used by enrollment flow)
+    "consent": {"type": "bool", "desc": "User consented to privacy policy"},
+    "consent_ts": {"type": "str", "desc": "Consent timestamp (ISO date)"},
+    "consent_version": {"type": "str", "desc": "Policy version at consent"},
+    "consent_source": {"type": "str", "desc": "Policy source URL"},
 }
 
 # user-visible -> stored key
@@ -72,6 +79,10 @@ FIELD_CANONICAL: Dict[str, str] = {
     "linked": "linked",
     "prestige_map": "prestige_map",
     "top5": "top5",
+    "consent": "consent",
+    "consent_ts": "consent_ts",
+    "consent_version": "consent_version",
+    "consent_source": "consent_source",
 }
 
 # -----------------------------
@@ -118,6 +129,23 @@ def _format_playing_since(iso_date_str: Optional[str]) -> str:
         except Exception:
             continue
 
+    # try common US formats (MM/DD/YYYY, M/D/YYYY, MM-DD-YYYY)
+    if dt is None:
+        m = re.match(r"^\s*(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,6})\s*$", s)
+        if m:
+            mm, dd, yy = m.group(1), m.group(2), m.group(3)
+            if len(yy) > 4 and yy.startswith("20"):
+                yy = yy[:4]
+            try:
+                if len(yy) == 2:
+                    yint = int(yy)
+                    yyyy = 2000 + yint if yint <= 29 else 1900 + yint
+                else:
+                    yyyy = int(yy)
+                dt = datetime.datetime(yyyy, int(mm), int(dd))
+            except Exception:
+                dt = None
+
     # fallback to fromisoformat (handles offsets and some variants)
     if dt is None:
         try:
@@ -159,10 +187,60 @@ def _ensure_user_manager_from_parent(parent: Any):
         return None
 
 
+def get_user_from_parent(parent, user_id: int) -> Optional[User]:
+    """
+    Return a User dataclass constructed from stored profile data, or None.
+    """
+    users = _ensure_user_manager_from_parent(parent)
+    if not users:
+        return None
+    try:
+        raw = users.get_profile(user_id) or {}
+    except Exception:
+        raw = {}
+    if not raw:
+        return None
+    try:
+        return User.from_dict(raw)
+    except Exception:
+        log.exception("get_user_from_parent: failed to construct User from profile for %s", user_id)
+        return None
+
+
+def persist_user(parent, user: User) -> bool:
+    """
+    Persist a User dataclass to storage. This helper writes the full profile dict.
+    It attempts to use a single profile write if supported, otherwise falls back to setting fields.
+    """
+    users = _ensure_user_manager_from_parent(parent)
+    if not users:
+        return False
+    try:
+        data = user.to_dict()
+        # prefer a bulk set if available
+        if hasattr(users, "set_profile"):
+            try:
+                users.set_profile(user.user_id, data)
+                return True
+            except Exception:
+                pass
+        # otherwise set fields individually
+        for k, v in data.items():
+            try:
+                users.set_profile_field(user.user_id, k, v)
+            except Exception:
+                # ignore individual field failures but continue
+                log.debug("persist_user: failed to set field %s for user %s", k, user.user_id)
+        return True
+    except Exception:
+        log.exception("persist_user failed for %s", getattr(user, "user_id", "<unknown>"))
+        return False
+
+
 def get_profile(parent: Any, user_id: int) -> Dict[str, Any]:
     """
     Return the stored profile dict for user_id, or {} on failure.
-    parent is the core object (or None).
+    Kept for backwards compatibility with callers that expect a dict.
     """
     try:
         users = _ensure_user_manager_from_parent(parent)
@@ -185,6 +263,19 @@ def set_profile_field(parent: Any, user_id: int, field: str, value: Any) -> bool
         users = _ensure_user_manager_from_parent(parent)
         if not users:
             return False
+
+        # Normalize 'started' to ISO date when possible using the User helper
+        if field == "started" and value is not None:
+            try:
+                # use User._normalize_started for conservative normalization
+                iso = User._normalize_started(value)
+                if iso:
+                    value = iso
+                else:
+                    log.warning("set_profile_field: could not normalize 'started' value=%r for user=%s", value, user_id)
+            except Exception:
+                log.exception("set_profile_field: error normalizing 'started' value=%r for user=%s", value, user_id)
+
         if hasattr(users, "set_profile_field"):
             users.set_profile_field(user_id, field, value)
             return True
@@ -257,13 +348,17 @@ def unlink_account(parent: Any, user_id: int) -> Tuple[bool, str]:
 # -----------------------------
 # Prestige / Top5 computation
 # -----------------------------
-def _parse_prestige_map(profile: Dict[str, Any]) -> Dict[str, int]:
+def _parse_prestige_map(profile: Union[User, Dict[str, Any]]) -> Dict[str, int]:
     """
     Normalize a persisted prestige_map into a dict of { 'slug|stars': int }.
+    Accepts either a User dataclass or a raw profile dict.
     """
     out: Dict[str, int] = {}
     try:
-        pm = profile.get("prestige_map") or {}
+        if isinstance(profile, User):
+            pm = profile.prestige_map or {}
+        else:
+            pm = profile.get("prestige_map") or {}
         if isinstance(pm, dict):
             for k, v in pm.items():
                 try:
@@ -275,9 +370,11 @@ def _parse_prestige_map(profile: Dict[str, Any]) -> Dict[str, int]:
     return out
 
 
-def compute_top5_from_profile(profile: Dict[str, Any]) -> Tuple[List[str], Optional[int], Optional[float]]:
+def compute_top5_from_profile(profile: Union[User, Dict[str, Any]]) -> Tuple[List[str], Optional[int], Optional[float]]:
     """
     Compute a Top 5 list and total prestige from a profile's persisted prestige_map.
+
+    Accepts either a User dataclass or a raw profile dict.
 
     Returns:
       - top5_lines: list of formatted lines (already pretty-printed via format_top5_prestige_line)
@@ -315,6 +412,7 @@ def compute_top5_from_profile(profile: Dict[str, Any]) -> Tuple[List[str], Optio
                     "ascended": 0,
                     "prestige": int(v) if isinstance(v, (int, float)) else 0,
                 }
+                # attempt to resolve a Champion dataclass if profile is a User and parent cache not available here
                 line = format_top5_prestige_line(None, entry)
                 top5_lines.append(f"{i+1}. {line}")
         except Exception:
@@ -326,16 +424,18 @@ def compute_top5_from_profile(profile: Dict[str, Any]) -> Tuple[List[str], Optio
         return [], None, None
 
 
-def compute_top5_from_roster(parent: Any, roster: List[Dict[str, Any]], profile: Dict[str, Any]) -> Tuple[List[str], Optional[int]]:
+def compute_top5_from_roster(parent: Any, roster: List[Dict[str, Any]], profile: Union[User, Dict[str, Any]]) -> Tuple[List[str], Optional[int]]:
     """
     Given a roster (list of entry dicts) and profile (for persisted prestige_map),
     compute a Top 5 by resolving prestige via cache/index where possible.
+
+    Accepts profile as User or dict.
 
     Returns (top5_lines, total_prestige).
     """
     try:
         cache = getattr(parent, "cache", None)
-        prestige_map = profile.get("prestige_map", {}) if isinstance(profile, dict) else {}
+        prestige_map = profile.prestige_map if isinstance(profile, User) else profile.get("prestige_map", {}) if isinstance(profile, dict) else {}
         entries: List[Dict[str, Any]] = []
         for e in roster:
             try:
@@ -431,12 +531,21 @@ def build_profile_display(parent: Any, ctx_or_author: Any, target_id: int, viewe
         top5_lines: List[str] = []
         total_prestige: Optional[int] = None
 
-        # fetch profile
-        profile = {}
+        # fetch profile as User when possible
+        user_obj: Optional[User] = None
         try:
-            profile = users.get_profile(target_id) or {}
+            user_obj = get_user_from_parent(parent, target_id)
         except Exception:
-            profile = {}
+            user_obj = None
+
+        profile: Dict[str, Any] = {}
+        if user_obj:
+            profile = user_obj.to_dict()
+        else:
+            try:
+                profile = users.get_profile(target_id) or {}
+            except Exception:
+                profile = {}
 
         if not profile:
             return None, "No profile found for that user."
@@ -454,7 +563,7 @@ def build_profile_display(parent: Any, ctx_or_author: Any, target_id: int, viewe
             CDTEmbed.add_field(ctx_or_author, emb, name="MCOC Username", value=str(mcoc_id) if mcoc_id else "Not linked", inline=True)
 
             # Top5 / prestige: prefer cached top5 in profile, else compute from prestige_map
-            top5_lines, total_prestige, _avg = compute_top5_from_profile(profile)
+            top5_lines, total_prestige, _avg = compute_top5_from_profile(user_obj if user_obj else profile)
             if not top5_lines:
                 roster = []
                 try:
@@ -472,12 +581,11 @@ def build_profile_display(parent: Any, ctx_or_author: Any, target_id: int, viewe
                 except Exception:
                     roster = []
                 if roster:
-                    top5_lines, total_prestige = compute_top5_from_roster(parent, roster, profile)
+                    top5_lines, total_prestige = compute_top5_from_roster(parent, roster, user_obj if user_obj else profile)
 
             if total_prestige is not None:
                 CDTEmbed.add_field(ctx_or_author, emb, name="Prestige (sum)", value=str(total_prestige), inline=False)
 
-            # Format Top 5 using prestige formatter
             # Format Top 5 using prestige formatter
             formatted_top5: List[str] = []
             if top5_lines:
@@ -543,6 +651,17 @@ def build_profile_display(parent: Any, ctx_or_author: Any, target_id: int, viewe
             if started:
                 CDTEmbed.add_field(ctx_or_author, emb, name="Playing Since", value=_format_playing_since(started), inline=True)
 
+            # Consent metadata (if present)
+            try:
+                consent = profile.get("consent")
+                if consent is not None:
+                    CDTEmbed.add_field(ctx_or_author, emb, name="Consent Given", value=str(bool(consent)), inline=True)
+                consent_ts = profile.get("consent_ts")
+                if consent_ts:
+                    CDTEmbed.add_field(ctx_or_author, emb, name="Consent Date", value=_format_date_iso(consent_ts), inline=True)
+            except Exception:
+                pass
+
             CDTEmbed.set_footer(ctx_or_author, emb, text="Profile generated by MCOC")
             return emb, None
         except Exception:
@@ -576,6 +695,258 @@ def build_profile_display(parent: Any, ctx_or_author: Any, target_id: int, viewe
         log.exception("build_profile_display failed")
         return None, "Failed to build profile display."
 
+# ----------------------------
+# Add to the bottom of mcoc/common/account.py (append these functions)
+
+# ---------------------------------------------------------------------
+# Enrollment / Consent flow (CDTConfirm-based opt-in)
+# ---------------------------------------------------------------------
+
+# Policy links and default metadata (update as you publish new versions)
+POLICY_METADATA = {
+    "privacy_policy": {
+        "url": "https://raw.githubusercontent.com/CollectorDevTeam/mcoc-v3/main/mcoc/privacy_policy.md",
+        "version": "v1.0",
+    },
+    "terms_of_service": {
+        "url": "https://raw.githubusercontent.com/CollectorDevTeam/ mcoc-v3/main/mcoc/terms_of_service.md",
+        "version": "v1.0",
+    },
+}
+
+
+async def _record_consent(parent: Any, user_id: int, *, version: str, source: str) -> bool:
+    """
+    Persist consent metadata for the given user_id.
+    Uses persist_user when a User dataclass is available, otherwise falls back to set_profile_field.
+    """
+    try:
+        # prefer the typed User path
+        try:
+            user_obj = get_user_from_parent(parent, user_id)
+        except Exception:
+            user_obj = None
+
+        ts = datetime.datetime.utcnow().date().isoformat()
+
+        if user_obj:
+            user_obj.consent = True
+            user_obj.consent_ts = ts
+            user_obj.consent_version = version
+            user_obj.consent_source = source
+            # ensure created_at/updated_at if missing
+            if not user_obj.created_at:
+                user_obj.created_at = ts
+            user_obj.updated_at = ts
+            return persist_user(parent, user_obj)
+
+        # fallback: set fields individually
+        ok1 = set_profile_field(parent, user_id, "consent", True)
+        ok2 = set_profile_field(parent, user_id, "consent_ts", ts)
+        ok3 = set_profile_field(parent, user_id, "consent_version", version)
+        ok4 = set_profile_field(parent, user_id, "consent_source", source)
+        # ensure a minimal profile exists (some UserDataManagers create on set_profile_field)
+        return bool(ok1 and ok2 and ok3 and ok4)
+    except Exception:
+        log.exception("_record_consent failed for %s", user_id)
+        return False
+
+
+async def accept_consent(parent: Any, user_id: int, *, policy_key: str = "privacy_policy") -> Tuple[bool, str]:
+    """
+    High-level helper to accept consent for a user.
+    Returns (ok, message).
+    """
+    try:
+        meta = POLICY_METADATA.get(policy_key, {})
+        version = meta.get("version") or "v1.0"
+        source = meta.get("url") or ""
+        ok = await _maybe_async_record_consent(parent, user_id, version=version, source=source)
+        if ok:
+            return True, "Consent recorded. Your CollectorVerse profile is now enrolled."
+        return False, "Failed to record consent. Please try again later."
+    except Exception:
+        log.exception("accept_consent failed for %s", user_id)
+        return False, "Failed to record consent due to an internal error."
+
+
+async def _maybe_async_record_consent(parent: Any, user_id: int, *, version: str, source: str) -> bool:
+    """
+    Helper that calls _record_consent and supports both sync and async persistence paths.
+    """
+    try:
+        # _record_consent is synchronous in this module, but persist_user may call async internals.
+        # Keep this wrapper to allow future async implementations.
+        return await asyncio.to_thread(lambda: _record_consent(parent, user_id, version=version, source=source))
+    except Exception:
+        # fallback to direct call if to_thread fails
+        try:
+            return _record_consent(parent, user_id, version=version, source=source)
+        except Exception:
+            log.exception("_maybe_async_record_consent fallback failed for %s", user_id)
+            return False
+
+
+async def decline_consent(parent: Any, user_id: int) -> Tuple[bool, str]:
+    """
+    Called when a user declines consent. We do not create a profile or persist personal data.
+    Returns (ok, message).
+    """
+    try:
+        # Optionally record a minimal 'declined' flag (non-personal) if you want to avoid re-prompting.
+        # For privacy-first approach, do not persist any personal data on decline.
+        # We will set a lightweight flag 'consent' = False so the bot can avoid re-prompting in the same session.
+        ok = set_profile_field(parent, user_id, "consent", False)
+        if ok:
+            return True, "You have declined. No profile was created and no personal data was stored."
+        # If set_profile_field is not available, simply return success (no data stored).
+        return True, "You have declined. No profile was created and no personal data was stored."
+    except Exception:
+        log.exception("decline_consent failed for %s", user_id)
+        return False, "Failed to process your response. Please try again later."
+
+
+async def revoke_consent(parent: Any, user_id: int) -> Tuple[bool, str]:
+    """
+    Revoke consent and delete the user's profile. Returns (ok, message).
+    """
+    try:
+        ok, msg = delete_user_profile(parent, user_id)
+        if ok:
+            # Optionally persist an audit log (non-personal) via logging
+            log.info("User %s revoked consent and profile deleted", user_id)
+            return True, "Your consent has been revoked and your profile has been deleted."
+        return False, msg
+    except Exception:
+        log.exception("revoke_consent failed for %s", user_id)
+        return False, "Failed to revoke consent; please try again later."
+
+
+async def prompt_user_for_consent(parent: Any, ctx_or_author: Any, user_id: int, *, timeout: int = 120) -> Tuple[bool, str]:
+    """
+    Present a CDTConfirm-based consent prompt to the user and record their response.
+
+    Returns (ok, message) where ok indicates whether consent was recorded (True) or not (False).
+    Message is a user-facing confirmation string.
+
+    Behavior:
+      - Try to use CDTConfirm from mcoc.common.componentsV2 if available.
+      - If CDTConfirm is not available or the prompt fails, fall back to a text instruction
+        telling the user how to consent via a command (///account agree / ///account decline).
+    """
+    try:
+        # Build consent embed text
+        policy = POLICY_METADATA.get("privacy_policy", {})
+        terms = POLICY_METADATA.get("terms_of_service", {})
+        privacy_url = policy.get("url")
+        terms_url = terms.get("url")
+        version = policy.get("version") or "v1.0"
+
+        title = "CollectorVerse Account Consent"
+        description_lines = [
+            "CollectorVerse stores a small set of MCOC-related profile and roster data to provide roster, prestige and profile features.",
+            "Before we create or store your profile, please review our Privacy Policy and Terms of Service and explicitly agree.",
+            "",
+            f"Privacy Policy: {privacy_url}",
+            f"Terms of Service: {terms_url}",
+            "",
+            "We will only store the data you explicitly provide and your consent metadata. You can revoke consent at any time.",
+        ]
+        description = "\n".join(description_lines)
+
+        # Try to use CDTConfirm if available
+        try:
+            from mcoc.common.componentsV2 import CDTConfirm
+            # CDTConfirm.prompt is expected to be an async helper that returns True on accept, False on decline.
+            # We call it defensively and handle any API differences.
+            try:
+                accepted = await CDTConfirm.prompt(ctx_or_author, title=title, description=description, accept_label="Agree", decline_label="Decline", timeout=timeout)
+            except TypeError:
+                # older/newer signature fallback
+                accepted = await CDTConfirm.prompt(ctx_or_author, title, description, timeout=timeout)
+            if accepted:
+                ok, msg = await accept_consent(parent, user_id, policy_key="privacy_policy")
+                return ok, msg
+            else:
+                ok, msg = await decline_consent(parent, user_id)
+                return ok, msg
+        except Exception:
+            # CDTConfirm not available or prompt failed; fall back to text instructions
+            log.debug("CDTConfirm not available or failed; falling back to text consent flow")
+            fallback_msg = (
+                "To enroll, please review our policies:\n"
+                f"Privacy Policy: {policy.get('url')}\n"
+                f"Terms of Service: {terms.get('url')}\n\n"
+                "If you agree, type: `///account agree`\n"
+                "If you decline, type: `///account decline`\n"
+                "This prompt will time out after a short period."
+            )
+            # If the caller is an interaction context, attempt to send the fallback message
+            try:
+                # ctx_or_author may be a context or author-like object; attempt to send via common helpers if available
+                if hasattr(ctx_or_author, "send"):
+                    await ctx_or_author.send(fallback_msg)
+                elif hasattr(ctx_or_author, "author") and hasattr(ctx_or_author.author, "send"):
+                    await ctx_or_author.author.send(fallback_msg)
+            except Exception:
+                # ignore send failures; return the fallback message so caller can surface it
+                pass
+            return False, fallback_msg
+
+    except Exception:
+        log.exception("prompt_user_for_consent failed for %s", user_id)
+        return False, "Failed to present consent prompt; please try again later."
+
+
+# ---------------------------------------------------------------------
+# Command helpers (to be wired into your command layer)
+# ---------------------------------------------------------------------
+# Example thin wrappers that command handlers can call. These are not bound to any command
+# framework here; wire them into your prefix/slash command handlers as appropriate.
+
+async def enroll_command_handler(parent: Any, ctx_or_author: Any, user_id: int) -> Tuple[bool, str]:
+    """
+    Entry point for an enroll command or when ///account is invoked and no consent exists.
+    Returns (ok, message) to be sent to the user.
+    """
+    try:
+        # If user already consented, short-circuit
+        user_obj = get_user_from_parent(parent, user_id)
+        if user_obj and user_obj.consent:
+            return True, "You have already enrolled and given consent."
+
+        return await prompt_user_for_consent(parent, ctx_or_author, user_id)
+    except Exception:
+        log.exception("enroll_command_handler failed for %s", user_id)
+        return False, "Enrollment failed; please try again later."
+
+
+async def account_agree_command(parent: Any, ctx_or_author: Any, user_id: int) -> Tuple[bool, str]:
+    """
+    Handler for a text-based 'agree' command fallback (///account agree).
+    """
+    try:
+        ok, msg = await accept_consent(parent, user_id, policy_key="privacy_policy")
+        return ok, msg
+    except Exception:
+        log.exception("account_agree_command failed for %s", user_id)
+        return False, "Failed to record consent; please try again later."
+
+
+async def account_decline_command(parent: Any, ctx_or_author: Any, user_id: int) -> Tuple[bool, str]:
+    """
+    Handler for a text-based 'decline' command fallback (///account decline).
+    """
+    try:
+        ok, msg = await decline_consent(parent, user_id)
+        return ok, msg
+    except Exception:
+        log.exception("account_decline_command failed for %s", user_id)
+        return False, "Failed to process decline; please try again later."
+
+
+
+
 
 # -----------------------------
 # Backwards-compatible exports
@@ -593,4 +964,9 @@ __all__ = (
     "compute_top5_from_profile",
     "compute_top5_from_roster",
     "build_profile_display",
+    "get_user_from_parent",
+    "persist_user",
+    "enroll_command_handler",
+    "account_agree_command",
+    "account_decline_command",
 )

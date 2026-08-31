@@ -72,6 +72,10 @@ class UserDataManager:
             "profile": {
                 "mcoc_id": None,
                 "mcoc_name": None,
+                "consent": False,
+                "consent_ts": None,
+                "consent_version": None,
+                "consent_source": "https://github.com/CollectorDevTeam/mcoc-v3/blob/main/mcoc/privacy_policy.md",
                 "website": None,
                 "invite": None,
                 "timezone": None,
