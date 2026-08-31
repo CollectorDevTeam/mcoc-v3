@@ -7,8 +7,9 @@ import logging
 import tempfile
 import os
 import asyncio
-from typing import Optional, Callable, Awaitable, Any, Dict, Tuple
+from typing import Optional, Callable, Awaitable, Any, Dict, Tuple, List, Mapping
 from mcoc.common.api.cacheindex import CacheIndex
+from mcoc.common.types import Champion, champion_from_dict
 
 from pathlib import Path
 from redbot.core import data_manager
@@ -227,6 +228,7 @@ class CacheManager:
             log.exception("check_update_prestige failed")
             await _report("Prestige update failed (see logs).")
             return False
+
     def get_prestige_table(self, tier: int, rank: int, asc: int) -> Optional[dict]:
         data = self._load_file("prestige")
         if not data:
@@ -567,25 +569,78 @@ class CacheManager:
                 await _report(f"Sync failed: {e}")
                 return False
     # -----------------------------
-    # Lookup helpers (unchanged)
+    # Lookup helpers (updated)
     # -----------------------------
-    def get_champion(self, id_or_name: str) -> Optional[Dict[str, Any]]:
-        id_or_name = id_or_name.lower()
-        champs = self._load_file("champions").get("champions", {})
+    def get_champion(self, slug: str) -> Optional[Dict[str, Any]]:
+        """
+        Return the raw champion dict for `slug` (case-insensitive).
+        This preserves the existing dict-returning API for backward compatibility.
+        """
+        if not slug:
+            return None
+        slug_norm = str(slug).strip().lower()
+        data = self._load_file("champions")
+        if not data:
+            return None
 
-        # direct ID lookup
-        if id_or_name in champs:
-            return champs[id_or_name]
-
-        # name lookup
-        for champ in champs.values():
-            try:
-                if champ.get("name", "").lower() == id_or_name:
-                    return champ
-            except Exception:
-                continue
-
+        champs = data.get("champions", {})
+        # If champions stored as dict keyed by id/slug, try direct lookup
+        if isinstance(champs, dict):
+            # direct key match (case-insensitive)
+            for key, val in champs.items():
+                try:
+                    if str(key).strip().lower() == slug_norm:
+                        return val
+                except Exception:
+                    continue
+            # try matching common fields inside values
+            for val in champs.values():
+                try:
+                    if not isinstance(val, dict):
+                        continue
+                    vid = (val.get("id") or val.get("slug") or val.get("name") or "").strip().lower()
+                    if vid == slug_norm:
+                        return val
+                except Exception:
+                    continue
+        # If champions stored as list, scan list
+        if isinstance(champs, list):
+            for val in champs:
+                try:
+                    if not isinstance(val, dict):
+                        continue
+                    vid = (val.get("id") or val.get("slug") or val.get("name") or "").strip().lower()
+                    if vid == slug_norm:
+                        return val
+                except Exception:
+                    continue
         return None
+
+    # keep existing get_champion_obj(slug) returning Champion dataclass
+    def get_champion_obj(self, slug: str) -> Optional[Champion]:
+        d = self.get_champion(slug)  # existing dict-returning method
+        return champion_from_dict(d)
+
+    def get_all_champion_objs(self) -> List[Champion]:
+        """
+        Return a list of Champion dataclass instances for all cached champions.
+        Non-breaking: leaves get_all_champions() unchanged.
+        """
+        out: List[Champion] = []
+        try:
+            raw = self.get_all_champions()
+            for c in raw or []:
+                try:
+                    obj = champion_from_dict(c)
+                    if obj:
+                        out.append(obj)
+                except Exception:
+                    # skip malformed entries but continue
+                    continue
+        except Exception:
+            log.exception("get_all_champion_objs failed")
+        return out
+
 
     def get_all_tags(self) -> list:
         data = self._load_file("tags")

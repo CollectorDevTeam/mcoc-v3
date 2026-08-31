@@ -12,15 +12,15 @@ This module centralizes logic previously in prefix/champions.py and provides:
 Prefix handlers should be thin: call make_champion_pager or get_champion_pages and start the pager.
 """
 
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Mapping
 import logging
 import asyncio
 
 from mcoc.common.componentsV2 import CDTEmbed, CDTPagesMenu
+from mcoc.common.formatters import format_champion_line
+from mcoc.common.types import Champion, champion_from_dict
 
 CHAMPIONS_FOOTER = " | CollectorDevTeam"
-
-from mcoc.common.formatters import format_champion_line
 
 log = logging.getLogger("red.mcoc.champions")
 
@@ -37,12 +37,32 @@ def _get_all_champions_from_cache(core: Any) -> List[Dict[str, Any]]:
         cache = getattr(core, "cache", None)
         if not cache:
             return []
+        # prefer the raw list/dict getter for compatibility
         getter = getattr(cache, "get_all_champions", None) or getattr(cache, "all_champions", None)
         if callable(getter):
             return getter() or []
     except Exception:
         log.exception("Failed to retrieve champions from cache")
     return []
+
+
+# -----------------------------
+# Normalization helpers
+# -----------------------------
+def _normalize_champion_input(champ_obj: Optional[Mapping[str, Any]]) -> Optional[Champion]:
+    """
+    Convert a raw champion dict (or None) into a Champion dataclass.
+    If champ_obj is already a Champion instance, return it unchanged.
+    """
+    if champ_obj is None:
+        return None
+    if isinstance(champ_obj, Champion):
+        return champ_obj
+    try:
+        return champion_from_dict(champ_obj)
+    except Exception:
+        return None
+
 
 # -----------------------------
 # Filtering helpers
@@ -91,6 +111,7 @@ def _champion_matches_filters(champ: Dict[str, Any], filters: Dict[str, Any]) ->
     except Exception:
         return False
 
+
 # -----------------------------
 # Build champion lines and pages
 # -----------------------------
@@ -112,11 +133,16 @@ def _format_champion_entry(champ: Dict[str, Any], default_entry: Optional[Dict[s
         # include class metadata for formatter
         if champ.get("class"):
             entry["class"] = champ.get("class")
+
+        # Normalize champ to Champion dataclass when possible and pass to formatter
+        champ_obj = _normalize_champion_input(champ)
+
         # call formatter (defensive about signature)
         try:
-            return format_champion_line(champ, entry, include_prestige=None)
+            return format_champion_line(champ_obj, entry)
         except TypeError:
-            return format_champion_line(champ, entry)
+            # older signature fallback (if any)
+            return format_champion_line(champ, entry)  # type: ignore
     except Exception:
         log.exception("Failed to format champion entry for %s", champ.get("slug") if champ else "<unknown>")
         # fallback simple line
@@ -163,7 +189,6 @@ async def build_champion_pages(core: Any, ctx_or_author: Any, filters: Optional[
 
         # apply deck-first filtering
         filt = filters or {}
-        # If filters include explicit_entries (hargs tokens), prefer those champions (map slugs)
         explicit = filt.get("explicit_entries") if isinstance(filt, dict) else None
 
         matched: List[Tuple[Dict[str, Any], Optional[Dict[str, Any]]]] = []  # (champ_obj, default_entry)
@@ -276,16 +301,6 @@ async def get_champion_pages(core: Any, ctx_or_author: Any, filters: Optional[Di
 async def make_champion_pager(core: Any, ctx_or_author: Any, *, raw_input: Optional[str] = None, parsed_filters: Optional[Dict[str, Any]] = None, author_for_controls: Optional[Any] = None) -> Optional[CDTPagesMenu]:
     """
     Convenience wrapper that builds champion pages and returns a ready PagesMenu with brand buttons merged.
-
-    Parameters:
-      - core: bot/core object
-      - ctx_or_author: Context or author-like object (used for branding)
-      - raw_input: optional raw input string (if parsed_filters not provided)
-      - parsed_filters: optional filters dict (preferred)
-      - author_for_controls: who should control the pager (defaults to ctx_or_author.author or ctx_or_author)
-
-    Returns:
-      - PagesMenu instance ready to start, or None on failure.
     """
     try:
         parsed = parsed_filters or {}

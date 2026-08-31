@@ -23,6 +23,7 @@ import logging
 import datetime
 
 from mcoc.common.componentsV2 import CDTEmbed
+from mcoc.common.types import Champion, champion_from_dict
 
 log = logging.getLogger("red.mcoc.account_helpers")
 
@@ -92,7 +93,6 @@ def get_profile_settings(profile: Dict[str, Any]) -> Dict[str, Any]:
     """
     return {user_field: profile.get(stored_key) for user_field, stored_key in FIELD_CANONICAL.items()}
 
-    from datetime import datetime, timezone
 
 def _format_playing_since(iso_date_str: Optional[str]) -> str:
     """
@@ -104,7 +104,6 @@ def _format_playing_since(iso_date_str: Optional[str]) -> str:
         return "Not set"
 
     s = str(iso_date_str).strip()
-    # compute "today" once (use datetime module imported as `import datetime`)
     now = datetime.datetime.now().date()
 
     log.info("Parsing playing since date: %s", s)
@@ -122,8 +121,6 @@ def _format_playing_since(iso_date_str: Optional[str]) -> str:
     # fallback to fromisoformat (handles offsets and some variants)
     if dt is None:
         try:
-            # datetime.fromisoformat may raise for date-only strings in some Python versions,
-            # so try date.fromisoformat first for YYYY-MM-DD
             if len(s) == 10 and s.count("-") == 2:
                 try:
                     d = datetime.date.fromisoformat(s)
@@ -136,18 +133,14 @@ def _format_playing_since(iso_date_str: Optional[str]) -> str:
             dt = None
 
     if dt is None:
-        # parsing failed — return raw stored value
         log.warning("Failed to parse playing since date: %s", s)
         return s
 
-    # normalize to date and compute delta
     dt_date = dt.date()
     days = (now - dt_date).days
     log.info("Days since playing since date: %s", days)
     pretty = dt_date.strftime("%b %d, %Y")
     return f"{pretty} - {days:,} days"
-
-
 
 
 # -----------------------------
@@ -177,7 +170,6 @@ def get_profile(parent: Any, user_id: int) -> Dict[str, Any]:
             return {}
         if hasattr(users, "get_profile"):
             return users.get_profile(user_id) or {}
-        # fallback: try attribute access
         return {}
     except Exception:
         log.exception("get_profile failed for %s", user_id)
@@ -197,9 +189,7 @@ def set_profile_field(parent: Any, user_id: int, field: str, value: Any) -> bool
             users.set_profile_field(user_id, field, value)
             return True
         if hasattr(users, "set_profile_field_async") and callable(users.set_profile_field_async):
-            # not awaited here; prefer synchronous API in this helper
             try:
-                # attempt to call synchronously if possible
                 users.set_profile_field_async(user_id, field, value)
                 return True
             except Exception:
@@ -240,7 +230,6 @@ def link_account(parent: Any, user_id: int, mcoc_id: str) -> Tuple[bool, str]:
         users = _ensure_user_manager_from_parent(parent)
         if not users:
             return False, "User manager not available; cannot link now."
-        # map to stored keys
         users.set_profile_field(user_id, "mcoc_id", str(mcoc_id).strip())
         users.set_profile_field(user_id, "linked", True)
         return True, f"Linked your account to MCoc id `{mcoc_id}`."
@@ -297,26 +286,21 @@ def compute_top5_from_profile(profile: Dict[str, Any]) -> Tuple[List[str], Optio
     """
     try:
         pm = _parse_prestige_map(profile)
-        # normalize to list of (key, prestige) where prestige is int
         items = [(k, v) for k, v in pm.items() if isinstance(v, int)]
         if not items:
             return [], None, None
 
-        # sort descending by prestige
         items.sort(key=lambda x: -x[1])
 
-        # compute totals
         total = sum(v for _, v in items) if items else None
         average = (total / len(items)) if items else None
         average_rounded = round(average, 2) if average is not None else None
 
-        # build top5 entries and format using format_top5_prestige_line when available
         top5 = items[:5]
         top5_lines: List[str] = []
         try:
             from mcoc.common.formatters import format_top5_prestige_line
             for i, (k, v) in enumerate(top5):
-                # key format expected: "slug|stars"
                 try:
                     slug, stars = str(k).split("|", 1)
                     rarity = int(stars)
@@ -331,19 +315,15 @@ def compute_top5_from_profile(profile: Dict[str, Any]) -> Tuple[List[str], Optio
                     "ascended": 0,
                     "prestige": int(v) if isinstance(v, (int, float)) else 0,
                 }
-                # champ_obj not available here (no cache), pass None
                 line = format_top5_prestige_line(None, entry)
-                # prepend numeric position for clarity
                 top5_lines.append(f"{i+1}. {line}")
         except Exception:
-            # fallback to simple textual lines if formatter not available or fails
             top5_lines = [f"{i+1}. {k.split('|')[0]} [{v}]" for i, (k, v) in enumerate(top5)]
 
         return top5_lines, total, average_rounded
     except Exception:
         log.exception("compute_top5_from_profile failed")
         return [], None, None
-
 
 
 def compute_top5_from_roster(parent: Any, roster: List[Dict[str, Any]], profile: Dict[str, Any]) -> Tuple[List[str], Optional[int]]:
@@ -368,25 +348,34 @@ def compute_top5_from_roster(parent: Any, roster: List[Dict[str, Any]], profile:
                         p = int(prestige_map.get(key))
                     except Exception:
                         p = None
-                # fallback to cache.get_prestige_value if available
                 if p is None and cache and hasattr(cache, "get_prestige_value"):
                     try:
-                        # cache.get_prestige_value(slug, stars, rank, asc, sig)
-                        p = cache.get_prestige_value(slug, int(e.get("rarity") or e.get("stars") or stars), int(e.get("rank") or 1), int(e.get("ascended") or 0), int(e.get("sig") or 0))
+                        p = cache.get_prestige_value(
+                            slug,
+                            int(e.get("rarity") or e.get("stars") or stars),
+                            int(e.get("rank") or 1),
+                            int(e.get("ascended") or 0),
+                            int(e.get("sig") or 0),
+                        )
                     except Exception:
                         p = None
                 name = slug
                 if cache:
                     try:
-                        cobj = cache.get_champion(slug)
-                        if cobj:
-                            name = cobj.get("name") or cobj.get("slug") or slug
+                        # prefer dataclass object when available
+                        if hasattr(cache, "get_champion_obj"):
+                            cobj = cache.get_champion_obj(slug)
+                            if cobj:
+                                name = cobj.name or cobj.slug or slug
+                        else:
+                            cobj = cache.get_champion(slug)
+                            if cobj and isinstance(cobj, dict):
+                                name = cobj.get("name") or cobj.get("slug") or slug
                     except Exception:
                         pass
                 entries.append({"name": name, "prestige": int(p) if isinstance(p, (int, float)) else 0})
             except Exception:
                 continue
-        # sort and compute top5
         entries.sort(key=lambda x: (-int(x.get("prestige") or 0), x.get("name")))
         top5 = entries[:5]
         top5_lines = [f"{i+1}. {it['name']} [{it['prestige']}]" for i, it in enumerate(top5)]
@@ -423,11 +412,6 @@ def build_profile_display(parent: Any, ctx_or_author: Any, target_id: int, viewe
 
     Returns:
       - (embed_or_none, text_fallback_or_none)
-        * If an embed was built, embed_or_none is a Embed (or discord.Embed) and text_fallback_or_none is None.
-        * If embed could not be built, embed_or_none is None and text_fallback_or_none is a string summary.
-    Notes:
-      - This function does not send messages; callers should send the returned embed/text via safe_send_ctx or ctx.send.
-      - Permission checks (privacy) are attempted if the users manager exposes can_view_profile.
     """
     try:
         users = _ensure_user_manager_from_parent(parent)
@@ -441,12 +425,11 @@ def build_profile_display(parent: Any, ctx_or_author: Any, target_id: int, viewe
                 if not allowed:
                     return None, "You do not have permission to view that profile."
         except Exception:
-            # if privacy check fails and viewer != target, deny by default
             if viewer_id is not None and viewer_id != target_id:
                 return None, "You do not have permission to view that profile."
 
-        top5_lines = []
-        total_prestige = None
+        top5_lines: List[str] = []
+        total_prestige: Optional[int] = None
 
         # fetch profile
         profile = {}
@@ -460,32 +443,27 @@ def build_profile_display(parent: Any, ctx_or_author: Any, target_id: int, viewe
 
         # Manual embed construction (defensive)
         try:
-            # prefer to use Embed.embed if available
             try:
                 emb = CDTEmbed.embed(ctx_or_author, title="CollectorVerse Profile")
             except Exception:
-                # fallback to constructing a Embed instance directly
                 emb = CDTEmbed.embed(ctx_or_author, title=f"{profile.get('mcoc_name') or profile.get('display_name') or str(target_id)} — Profile")
-            # Linked / ID
+
             linked = profile.get("linked", False)
             mcoc_id = profile.get("mcoc_id") or profile.get("mcoc_name") or None
             CDTEmbed.add_field(ctx_or_author, emb, name="Linked", value=str(bool(linked)), inline=True)
             CDTEmbed.add_field(ctx_or_author, emb, name="MCOC Username", value=str(mcoc_id) if mcoc_id else "Not linked", inline=True)
 
             # Top5 / prestige: prefer cached top5 in profile, else compute from prestige_map
-            top5_lines, total_prestige = compute_top5_from_profile(profile)
+            top5_lines, total_prestige, _avg = compute_top5_from_profile(profile)
             if not top5_lines:
-                # try to load roster and compute from roster if users exposes list_roster
                 roster = []
                 try:
                     lr = getattr(users, "list_roster", None)
                     if lr:
                         if hasattr(lr, "__call__"):
-                            # try sync first, then async
                             try:
                                 roster = lr(target_id) or []
                             except TypeError:
-                                # maybe coroutine
                                 import asyncio as _asyncio
                                 if _asyncio.iscoroutinefunction(lr):
                                     roster = _asyncio.get_event_loop().run_until_complete(lr(target_id)) or []
@@ -498,37 +476,41 @@ def build_profile_display(parent: Any, ctx_or_author: Any, target_id: int, viewe
 
             if total_prestige is not None:
                 CDTEmbed.add_field(ctx_or_author, emb, name="Prestige (sum)", value=str(total_prestige), inline=False)
+
             # Format Top 5 using prestige formatter
-            formatted_top5 = []
+            formatted_top5: List[str] = []
             if top5_lines:
                 try:
-                    from mcoc.common.formatters import format_champion_prestige_line
+                    from mcoc.common.formatters import format_top5_prestige_line
                     cache = getattr(parent, "cache", None)
 
                     for line in top5_lines:
-                        # line looks like "1. slug [prestige]"
                         try:
                             slug = line.split(". ", 1)[1].split(" [", 1)[0]
                         except Exception:
                             slug = line
 
-                        champ_obj = None
+                        champ_obj: Optional[Champion] = None
                         if cache:
                             try:
-                                champ_obj = cache.get_champion(slug)
+                                if hasattr(cache, "get_champion_obj"):
+                                    champ_obj = cache.get_champion_obj(slug)
+                                else:
+                                    raw = cache.get_champion(slug)
+                                    champ_obj = champion_from_dict(raw) if raw else None
                             except Exception:
                                 champ_obj = None
 
                         entry = {
                             "champion": slug,
-                            "rarity": 6,        # best guess; prestige_map doesn't store rarity
+                            "rarity": 6,
                             "rank": 1,
                             "sig": 0,
                             "ascended": 0,
                             "prestige": int(line.split("[")[-1].rstrip("]")) if "[" in line else 0,
                         }
 
-                        formatted_top5.append(format_champion_prestige_line(champ_obj, entry))
+                        formatted_top5.append(format_top5_prestige_line(champ_obj, entry))
                 except Exception:
                     formatted_top5 = top5_lines
             else:
@@ -549,13 +531,12 @@ def build_profile_display(parent: Any, ctx_or_author: Any, target_id: int, viewe
 
             started = profile.get("started") or profile.get("created_at")
             if started:
-                CDTEmbed.add_field(ctx_or_author, emb,name="Playing Since", value=_format_playing_since(started), inline=True)
+                CDTEmbed.add_field(ctx_or_author, emb, name="Playing Since", value=_format_playing_since(started), inline=True)
 
             CDTEmbed.set_footer(ctx_or_author, emb, text="Profile generated by MCOC")
             return emb, None
         except Exception:
             log.exception("build_profile_display: embed construction failed")
-            # fall through to text fallback
 
         # Text fallback
         try:
@@ -589,8 +570,6 @@ def build_profile_display(parent: Any, ctx_or_author: Any, target_id: int, viewe
 # -----------------------------
 # Backwards-compatible exports
 # -----------------------------
-# Keep the same function names used by prefix code so migration is straightforward.
-# Prefix code can call these helpers and then send the returned embed/text via safe_send_ctx.
 __all__ = (
     "ALLOWED_PROFILE_FIELDS",
     "FIELD_CANONICAL",
