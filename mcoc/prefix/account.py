@@ -125,15 +125,24 @@ class AccountPrefix(commands.Cog):
 
             # start enrollment flow (will DM when possible)
             ok, msg = await Account.enroll_command_handler(self.parent, ctx, user_id)
+
+            # If msg is an embed or long text, prefer DM; otherwise send in channel
             try:
-                # prefer DM
-                await ctx.author.send(msg)
+                # If enroll_command_handler used prompt_user_for_consent, it already attempted to DM.
+                # We send a short in-channel acknowledgement instead of duplicating the full prompt.
                 try:
-                    await ctx.tick()
+                    await ctx.author.send(msg)
+                    try:
+                        await ctx.tick()
+                    except Exception:
+                        # fallback small ack
+                        await safe_send_ctx(ctx, "I've sent you a DM with enrollment instructions.")
                 except Exception:
-                    pass
+                    # DM failed — send the full message in channel
+                    await safe_send_ctx(ctx, msg)
             except Exception:
                 await safe_send_ctx(ctx, msg)
+
         except Exception:
             log.exception("account group invoke failed for %s", getattr(ctx.author, "id", "<unknown>"))
             await safe_send_ctx(ctx, "Failed to process account command; please try again.")
