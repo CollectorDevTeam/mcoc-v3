@@ -89,25 +89,25 @@ class AccountPrefix(commands.Cog):
     # Group and aliases
     # -----------------------------
     @commands.group(name="account", aliases=["profile"])
-    async def account(self, ctx, *args):
-        """
-        Top-level account command.
-        If a member is provided, redirect to profile display for that member.
-        """
+    async def account(self, ctx, *tokens):
+        """Top-level account command. If a member is provided, redirect to profile."""
+        # Try to resolve first token as a member
         member = None
-        if args:
-            if args[0] is Member or args[0] is User:
-                member = args[0]
+        if tokens:
+            try:
+                member = await commands.MemberConverter().convert(ctx, tokens[0])
+            except Exception:
+                try:
+                    member = await commands.UserConverter().convert(ctx, tokens[0])
+                except Exception:
+                    member = None
 
-        if member is not None:
-            # redirect to profile display
+        if member:
             await self.account_profile(ctx, member=member)
             return
-        # await send_or_brand_help(ctx, "account", title="Account commands", fallback_text="Account commands: info, profile, set, link, unlink, delete, privacy.")
-        else:
-            # show help for this group
-            # await send_or_brand_help(ctx, "account", title="Account commands", fallback_text="Account commands: info, profile, set, link, unlink, delete, privacy.")
-            return
+
+        # No member → show help
+        await self.account_help(ctx)
 
     @account.command(name="help")
     async def account_help(self, ctx):
@@ -232,35 +232,43 @@ class AccountPrefix(commands.Cog):
     # -----------------------------
     @account.command(name="settings")
     async def account_settings(self, ctx):
-        """Show your current saved profile settings (editable fields)."""
+        """Show your current saved profile settings (raw values; pretty formatting happens in profile display)."""
         if not await self._require_parent(ctx):
             return
+
         try:
             users = Roster.ensure_user_manager(self.parent)
             profile = users.get_profile(ctx.author.id) or {}
             settings = Account.get_profile_settings(profile)
-            # humanize started if present
-            if "started" in settings:
-                try:
-                    settings["started"] = self._format_playing_since(settings.get("started"))
-                except Exception:
-                    pass
 
-            # present attractively
+            # Do NOT prettify "started" here — build_profile_display already handles it.
+            # Show raw ISO or raw stored value.
+
             try:
-                emb = CDTEmbed.embed(ctx.author, title="Your Account Settings", description="Current saved preferences")
-                # add fields in two columns where possible
-                for k, v in settings.items():
-                    try:
-                        CDTEmbed.add_field(emb, name=k.replace("_", " ").title(), value=str(v) if v is not None else "Not set", inline=True)
-                    except Exception:
-                        pass
+                emb = CDTEmbed.embed(
+                    ctx.author,
+                    title="Your Account Settings",
+                    description="Current saved preferences (raw values)"
+                )
+
+                for key, val in settings.items():
+                    display = str(val) if val is not None else "Not set"
+                    CDTEmbed.add_field(
+                        ctx.author,
+                        emb,
+                        name=key.replace("_", " ").title(),
+                        value=display,
+                        inline=True
+                    )
+
                 await safe_send_ctx(ctx, None, embed=emb)
                 return
+
             except Exception:
-                pass
-            # fallback text
-            await safe_send_ctx(ctx, f"Your settings: ```json\n{settings}\n```")
+                # fallback text
+                await safe_send_ctx(ctx, f"Your settings: ```json\n{settings}\n```")
+                return
+
         except Exception:
             log.exception("Failed to fetch settings")
             await safe_send_ctx(ctx, "Failed to fetch settings.")
