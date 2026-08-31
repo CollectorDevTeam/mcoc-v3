@@ -226,10 +226,6 @@ class AccountPrefix(commands.Cog):
             await safe_send_ctx(ctx, "Failed to display profile.")
 
     # Shortcut: ///mcoc account (with member) already handled by group invoke_without_command
-
-    # -----------------------------
-    # Settings / show saved preferences
-    # -----------------------------
     @account.command(name="settings")
     async def account_settings(self, ctx):
         """Show your current saved profile settings (raw values; pretty formatting happens in profile display)."""
@@ -241,39 +237,41 @@ class AccountPrefix(commands.Cog):
             profile = users.get_profile(ctx.author.id) or {}
             settings = Account.get_profile_settings(profile)
 
-            # Do NOT prettify "started" here — build_profile_display already handles it.
-
+            # Build an embed with raw values (do not prettify 'started' here)
+            emb = None
             try:
-                emb = CDTEmbed.embed(
-                    ctx.author,
-                    title="Your Account Settings",
-                    description="Current saved preferences (raw values)"
-                )
-
-                # Iterate over canonical user-visible keys so all fields show up
-                for key in sorted(Account.FIELD_CANONICAL.keys()):
-                    val = settings.get(key)
-                    display = "Not set" if val is None or str(val).strip() == "" else str(val)
-
-                    CDTEmbed.add_field(
-                        ctx.author,
-                        emb,
-                        name=key.replace("_", " ").title(),
-                        value=display,
-                        inline=True
-                    )
-
-                await safe_send_ctx(ctx, None, embed=emb)
-                return
-
+                emb = CDTEmbed.embed(ctx.author, title="Your Account Settings", description="Current saved preferences (raw values)")
             except Exception:
-                # fallback text
-                await safe_send_ctx(ctx, f"Your settings: ```json\n{settings}\n```")
-                return
+                emb = None
+
+            if emb is not None:
+                for key, val in settings.items():
+                    try:
+                        display = "Not set" if val is None else str(val)
+                        CDTEmbed.add_field(ctx.author, emb, name=key.replace("_", " ").title(), value=display, inline=True)
+                    except Exception:
+                        # skip problematic fields but continue building the embed
+                        continue
+                try:
+                    await safe_send_ctx(ctx, None, embed=emb)
+                    return
+                except Exception:
+                    # fall through to text fallback
+                    pass
+
+            # Text fallback (readable)
+            lines = ["Your settings (raw values):"]
+            for k, v in settings.items():
+                lines.append(f"- **{k}**: {v if v is not None else 'Not set'}")
+            await safe_send_ctx(ctx, "\n".join(lines))
+            return
 
         except Exception:
             log.exception("Failed to fetch settings")
             await safe_send_ctx(ctx, "Failed to fetch settings.")
+
+
+
     # -----------------------------
     # Set a profile field
     # -----------------------------
