@@ -137,6 +137,7 @@ def _format_playing_since(iso_date_str: Optional[str]) -> str:
 
     if dt is None:
         # parsing failed — return raw stored value
+        log.warning("Failed to parse playing since date: %s", s)
         return s
 
     # normalize to date and compute delta
