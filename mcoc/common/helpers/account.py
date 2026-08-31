@@ -1,21 +1,17 @@
 # mcoc/common/account.py
 """
-Account helpers (consolidated).
+Account helpers (consolidated, sanitized).
 
-This module centralizes all account/profile logic previously scattered between
-prefix handlers and common helpers. It provides:
-
+Provides:
   - canonical metadata for profile fields (ALLOWED_PROFILE_FIELDS, FIELD_CANONICAL)
   - simple wrappers around the UserDataManager (get/set/delete profile fields)
   - linking/unlinking/deleting helpers that return (ok, message)
   - utilities to compute prestige/top5 from a user's roster and cache
-  - a single high-level function to build a Collector-style profile display
-    (returns a discord.Embed when possible, otherwise a text summary)
+  - enrollment / consent flow (CDTConfirm-based when available)
+  - thin command wrappers used by prefix/slash layers
 
-Design goals:
-  - Keep I/O (sending messages) in prefix/slash layers; return values here.
-  - Be defensive about missing core/cache/users implementations.
-  - Make the profile-building logic testable and reusable by both prefix and slash code.
+This file is intentionally defensive: it tolerates missing components and logs
+useful diagnostics for action tracing.
 """
 
 from typing import Any, Dict, Optional, Tuple, List, Union
@@ -25,6 +21,8 @@ import re
 import asyncio
 
 from mcoc.common.componentsV2 import CDTEmbed
+
+# types
 from mcoc.common.types import Champion, champion_from_dict, User
 
 log = logging.getLogger("red.mcoc.account_helpers")
@@ -348,6 +346,27 @@ def unlink_account(parent: Any, user_id: int) -> Tuple[bool, str]:
 # -----------------------------
 # Prestige / Top5 computation
 # -----------------------------
+def _normalize_prestige_value(raw: Any) -> int:
+    """
+    Convert various prestige representations into an int.
+    Accepts ints, floats, or strings like 'P12345', '12,345', ' 12345 '.
+    Returns 0 on failure.
+    """
+    try:
+        if raw is None:
+            return 0
+        if isinstance(raw, (int, float)):
+            return int(raw)
+        s = str(raw).strip()
+        m = re.search(r"(\d[\d,]*)", s)
+        if not m:
+            return 0
+        digits = m.group(1).replace(",", "")
+        return int(digits)
+    except Exception:
+        return 0
+
+
 def _parse_prestige_map(profile: Union[User, Dict[str, Any]]) -> Dict[str, int]:
     """
     Normalize a persisted prestige_map into a dict of { 'slug|stars': int }.
@@ -362,7 +381,7 @@ def _parse_prestige_map(profile: Union[User, Dict[str, Any]]) -> Dict[str, int]:
         if isinstance(pm, dict):
             for k, v in pm.items():
                 try:
-                    out[k] = int(v) if v is not None else 0
+                    out[k] = _normalize_prestige_value(v)
                 except Exception:
                     out[k] = 0
     except Exception:
@@ -412,7 +431,7 @@ def compute_top5_from_profile(profile: Union[User, Dict[str, Any]]) -> Tuple[Lis
                     "ascended": 0,
                     "prestige": int(v) if isinstance(v, (int, float)) else 0,
                 }
-                # attempt to resolve a Champion dataclass if profile is a User and parent cache not available here
+                # format without champion object here; caller may reformat with cache
                 line = format_top5_prestige_line(None, entry)
                 top5_lines.append(f"{i+1}. {line}")
         except Exception:
@@ -503,15 +522,7 @@ def build_profile_display(parent: Any, ctx_or_author: Any, target_id: int, viewe
     """
     Build a profile display for target_id.
 
-    Parameters:
-      - parent: core object (used to access cache/users)
-      - ctx_or_author: Context or author-like object used for branding (author/avatar) when building embeds
-      - target_id: user id to display
-      - viewer_id: id of the viewer (for permission checks); if None, permission checks are not enforced here
-      - prefer_embed: if True, attempt to return a Embed; otherwise return text
-
-    Returns:
-      - (embed_or_none, text_fallback_or_none)
+    Returns (embed_or_none, text_fallback_or_none).
     """
     try:
         users = _ensure_user_manager_from_parent(parent)
@@ -586,7 +597,7 @@ def build_profile_display(parent: Any, ctx_or_author: Any, target_id: int, viewe
             if total_prestige is not None:
                 CDTEmbed.add_field(ctx_or_author, emb, name="Prestige (sum)", value=str(total_prestige), inline=False)
 
-            # Format Top 5 using prestige formatter
+            # Format Top 5 using prestige formatter and cache when available
             formatted_top5: List[str] = []
             if top5_lines:
                 try:
@@ -594,7 +605,6 @@ def build_profile_display(parent: Any, ctx_or_author: Any, target_id: int, viewe
                     cache = getattr(parent, "cache", None)
 
                     for line in top5_lines:
-                        # If compute_top5_from_profile already returned a formatted line, detect and keep it
                         try:
                             # already formatted if contains star emoji or custom emoji
                             if "]" in line and any(e in line for e in ("★", "<:", "🧬", "🛡️")):
@@ -632,7 +642,6 @@ def build_profile_display(parent: Any, ctx_or_author: Any, target_id: int, viewe
                             "prestige": int(prestige_val) if isinstance(prestige_val, (int, float)) else 0,
                         }
 
-                        # Pass the Champion dataclass (or None) to the formatter so it can render name/icon correctly
                         formatted_top5.append(format_top5_prestige_line(champ_obj, entry))
                 except Exception:
                     formatted_top5 = top5_lines
@@ -700,15 +709,10 @@ def build_profile_display(parent: Any, ctx_or_author: Any, target_id: int, viewe
         log.exception("build_profile_display failed")
         return None, "Failed to build profile display."
 
+
 # ----------------------------
-# Add to the bottom of mcoc/common/account.py (append these functions)
-
-# ---------------------------------------------------------------------
 # Enrollment / Consent flow (CDTConfirm-based opt-in)
-# ---------------------------------------------------------------------
-# mcoc/common/account.py  (replace the consent helpers with this block)
-
-# Policy metadata (keep as-is or update)
+# ----------------------------
 POLICY_METADATA = {
     "privacy_policy": {
         "url": "https://raw.githubusercontent.com/CollectorDevTeam/mcoc-v3/main/mcoc/privacy_policy.md",
@@ -719,6 +723,7 @@ POLICY_METADATA = {
         "version": "v1.0",
     },
 }
+
 
 def _record_consent(parent: Any, user_id: int, *, version: str, source: str) -> bool:
     """
@@ -738,7 +743,7 @@ def _record_consent(parent: Any, user_id: int, *, version: str, source: str) -> 
             user_obj.consent_ts = ts
             user_obj.consent_version = version
             user_obj.consent_source = source
-            if not user_obj.created_at:
+            if not getattr(user_obj, "created_at", None):
                 user_obj.created_at = ts
             user_obj.updated_at = ts
             ok = persist_user(parent, user_obj)
@@ -759,6 +764,9 @@ def _record_consent(parent: Any, user_id: int, *, version: str, source: str) -> 
 
 
 async def _maybe_async_record_consent(parent: Any, user_id: int, *, version: str, source: str) -> bool:
+    """
+    Async wrapper that runs the synchronous _record_consent off the event loop.
+    """
     try:
         return await asyncio.to_thread(lambda: _record_consent(parent, user_id, version=version, source=source))
     except Exception:
@@ -770,6 +778,10 @@ async def _maybe_async_record_consent(parent: Any, user_id: int, *, version: str
 
 
 async def accept_consent(parent: Any, user_id: int, *, policy_key: str = "privacy_policy") -> Tuple[bool, str]:
+    """
+    High-level helper to accept consent for a user.
+    Returns (ok, message).
+    """
     try:
         meta = POLICY_METADATA.get(policy_key, {})
         version = meta.get("version") or "v1.0"
@@ -786,6 +798,10 @@ async def accept_consent(parent: Any, user_id: int, *, policy_key: str = "privac
 
 
 async def decline_consent(parent: Any, user_id: int) -> Tuple[bool, str]:
+    """
+    Called when a user declines consent. We do not create a profile or persist personal data.
+    Returns (ok, message).
+    """
     try:
         # privacy-first: do not persist personal data on decline.
         try:
@@ -800,6 +816,9 @@ async def decline_consent(parent: Any, user_id: int) -> Tuple[bool, str]:
 
 
 async def revoke_consent(parent: Any, user_id: int) -> Tuple[bool, str]:
+    """
+    Revoke consent and delete the user's profile. Returns (ok, message).
+    """
     try:
         ok, msg = delete_user_profile(parent, user_id)
         if ok:
@@ -814,14 +833,17 @@ async def revoke_consent(parent: Any, user_id: int) -> Tuple[bool, str]:
 
 async def prompt_user_for_consent(parent: Any, ctx_or_author: Any, user_id: int, *, timeout: int = 120) -> Tuple[bool, str]:
     """
-    Present a branded consent embed with a Confirm view when possible.
-    Returns (ok, message) where ok indicates whether consent was recorded.
+    Present a consent prompt to the user and record their response.
+
+    Behavior:
+      - Prefer mcoc.common.componentsV2.CDTConfirm view if available.
+      - Fall back to a text instruction if interactive view is not available.
     """
     try:
         # short-circuit if user already consented
         try:
             u = get_user_from_parent(parent, user_id)
-            if u and u.consent:
+            if u and getattr(u, "consent", False):
                 log.info("consent:prompt_skipped_already_consented user=%s", user_id)
                 return True, "You have already enrolled and given consent."
         except Exception:
@@ -849,11 +871,10 @@ async def prompt_user_for_consent(parent: Any, ctx_or_author: Any, user_id: int,
         except Exception:
             emb = None
 
-        # Try branded Confirm view
+        # Try branded Confirm view from componentsV2
         try:
-            from mcoc.common.componentsV2 import CDTConfirm as _CDTConfirm
+            from mcoc.common.componentsV2 import CDTConfirm as _CDTConfirm  # type: ignore
             view = _CDTConfirm(timeout=timeout, confirm_label="Agree", cancel_label="Decline")
-            # send DM preferred
             sent = False
             try:
                 if emb and hasattr(ctx_or_author, "send"):
@@ -909,8 +930,76 @@ async def prompt_user_for_consent(parent: Any, ctx_or_author: Any, user_id: int,
         log.exception("prompt_user_for_consent failed for %s", user_id)
         return False, "Failed to present consent prompt; please try again later."
 
+
+# ---------------------------------------------------------------------
+# Thin command wrappers for prefix/slash layers (exposed to prefix cog)
+# ---------------------------------------------------------------------
+async def enroll_command_handler(parent: Any, ctx_or_author: Any, user_id: int) -> Tuple[bool, str]:
+    """
+    Entry point for an enroll command or when ///account is invoked and no consent exists.
+    Returns (ok, message) to be sent to the user.
+    """
+    try:
+        try:
+            user_obj = get_user_from_parent(parent, user_id)
+        except Exception:
+            user_obj = None
+
+        if user_obj and getattr(user_obj, "consent", False):
+            return True, "You have already enrolled and given consent."
+
+        return await prompt_user_for_consent(parent, ctx_or_author, user_id)
+    except Exception:
+        log.exception("enroll_command_handler failed for %s", user_id)
+        return False, "Enrollment failed; please try again later."
+
+
+async def account_agree_command(parent: Any, ctx_or_author: Any, user_id: int) -> Tuple[bool, str]:
+    """
+    Handler for a text-based 'agree' command fallback (///account agree).
+    """
+    try:
+        ok, msg = await accept_consent(parent, user_id, policy_key="privacy_policy")
+        return ok, msg
+    except Exception:
+        log.exception("account_agree_command failed for %s", user_id)
+        return False, "Failed to record consent; please try again later."
+
+
+async def account_decline_command(parent: Any, ctx_or_author: Any, user_id: int) -> Tuple[bool, str]:
+    """
+    Handler for a text-based 'decline' command fallback (///account decline).
+    """
+    try:
+        ok, msg = await decline_consent(parent, user_id)
+        return ok, msg
+    except Exception:
+        log.exception("account_decline_command failed for %s", user_id)
+        return False, "Failed to process decline; please try again later."
+
+
+async def revoke_consent_command(parent: Any, ctx_or_author: Any, user_id: int) -> Tuple[bool, str]:
+    """
+    Public wrapper to revoke consent and delete a profile (used by prefix cog).
+    """
+    try:
+        ok, msg = await revoke_consent(parent, user_id)
+        return ok, msg
+    except Exception:
+        log.exception("revoke_consent_command failed for %s", user_id)
+        return False, "Failed to revoke consent; please try again later."
+
+
+# Backwards-compatible aliases expected by prefix code
+# (prefix cog calls Account.enroll_command_handler, Account.account_agree_command, etc.)
+enroll_command_handler = enroll_command_handler
+account_agree_command = account_agree_command
+account_decline_command = account_decline_command
+revoke_consent = revoke_consent_command  # keep name used by some callers
+
+
 # -----------------------------
-# Backwards-compatible exports
+# Public exports
 # -----------------------------
 __all__ = (
     "ALLOWED_PROFILE_FIELDS",
@@ -918,6 +1007,8 @@ __all__ = (
     "validate_profile_field",
     "get_profile_settings",
     "get_profile",
+    "get_user_from_parent",
+    "persist_user",
     "set_profile_field",
     "delete_user_profile",
     "link_account",
@@ -925,9 +1016,11 @@ __all__ = (
     "compute_top5_from_profile",
     "compute_top5_from_roster",
     "build_profile_display",
-    "get_user_from_parent",
-    "persist_user",
     "enroll_command_handler",
     "account_agree_command",
     "account_decline_command",
+    "revoke_consent",
+    "accept_consent",
+    "decline_consent",
+    "prompt_user_for_consent",
 )
