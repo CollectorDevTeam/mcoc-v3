@@ -23,7 +23,6 @@ import logging
 import datetime
 
 from mcoc.common.componentsV2 import CDTEmbed
-from mcoc.common.formatters import format_top5_prestige
 
 log = logging.getLogger("red.mcoc.account_helpers")
 
@@ -290,24 +289,61 @@ def _parse_prestige_map(profile: Dict[str, Any]) -> Dict[str, int]:
 def compute_top5_from_profile(profile: Dict[str, Any]) -> Tuple[List[str], Optional[int], Optional[float]]:
     """
     Compute a Top 5 list and total prestige from a profile's persisted prestige_map.
-    Returns (top5_lines, total_prestige) where top5_lines are strings like "1. slug [prestige]".
+
+    Returns:
+      - top5_lines: list of formatted lines (already pretty-printed via format_top5_prestige_line)
+      - total_prestige: sum of all prestige values (int) or None if no items
+      - average_prestige: average prestige across items (float rounded to 2 decimals) or None
     """
     try:
         pm = _parse_prestige_map(profile)
+        # normalize to list of (key, prestige) where prestige is int
         items = [(k, v) for k, v in pm.items() if isinstance(v, int)]
+        if not items:
+            return [], None, None
+
+        # sort descending by prestige
         items.sort(key=lambda x: -x[1])
-        top5 = items[:5]
-        top5_lines = []
-        for i, (k, v) in enumerate(top5):
-            top5_lines.append(format_top5_prestige(None, {"champion": k.split('|')[0], "rarity": int(k.split('|')[1]), "prestige": v}))
-        # top5_lines = [f"{i+1}. {k.split('|')[0]} [{v}]" for i, (k, v) in enumerate(top5)]
+
+        # compute totals
         total = sum(v for _, v in items) if items else None
-        average = total / len(items) if items else None
-        average_rounded = round(average, None) if average is not None else None
-        return top5_lines, average_rounded
+        average = (total / len(items)) if items else None
+        average_rounded = round(average, 2) if average is not None else None
+
+        # build top5 entries and format using format_top5_prestige_line when available
+        top5 = items[:5]
+        top5_lines: List[str] = []
+        try:
+            from mcoc.common.formatters import format_top5_prestige_line
+            for i, (k, v) in enumerate(top5):
+                # key format expected: "slug|stars"
+                try:
+                    slug, stars = str(k).split("|", 1)
+                    rarity = int(stars)
+                except Exception:
+                    slug = str(k)
+                    rarity = 6
+                entry = {
+                    "champion": slug,
+                    "rarity": rarity,
+                    "rank": 1,
+                    "sig": 0,
+                    "ascended": 0,
+                    "prestige": int(v) if isinstance(v, (int, float)) else 0,
+                }
+                # champ_obj not available here (no cache), pass None
+                line = format_top5_prestige_line(None, entry)
+                # prepend numeric position for clarity
+                top5_lines.append(f"{i+1}. {line}")
+        except Exception:
+            # fallback to simple textual lines if formatter not available or fails
+            top5_lines = [f"{i+1}. {k.split('|')[0]} [{v}]" for i, (k, v) in enumerate(top5)]
+
+        return top5_lines, total, average_rounded
     except Exception:
         log.exception("compute_top5_from_profile failed")
-        return [], None
+        return [], None, None
+
 
 
 def compute_top5_from_roster(parent: Any, roster: List[Dict[str, Any]], profile: Dict[str, Any]) -> Tuple[List[str], Optional[int]]:
@@ -466,7 +502,7 @@ def build_profile_display(parent: Any, ctx_or_author: Any, target_id: int, viewe
             formatted_top5 = []
             if top5_lines:
                 try:
-                    from mcoc.common.formatters import format_top5_prestige
+                    from mcoc.common.formatters import format_champion_prestige_line
                     cache = getattr(parent, "cache", None)
 
                     for line in top5_lines:
@@ -492,7 +528,7 @@ def build_profile_display(parent: Any, ctx_or_author: Any, target_id: int, viewe
                             "prestige": int(line.split("[")[-1].rstrip("]")) if "[" in line else 0,
                         }
 
-                        formatted_top5.append(format_top5_prestige(champ_obj, entry))
+                        formatted_top5.append(format_champion_prestige_line(champ_obj, entry))
                 except Exception:
                     formatted_top5 = top5_lines
             else:

@@ -53,7 +53,7 @@ def format_champion_line(champ_obj: Optional[Dict[str, Any]], entry: Dict[str, A
     # return f"{cls_emoji} {star_display} {name} r{rank} {sig_text} {asc_emoji}"
     return f"{cls_emoji} {star_display} {name} r{rank} {sig_text} {asc_emoji}"
 
-def format_top5_prestige(champ_obj: Optional[Dict[str, Any]], entry: Dict[str, Any]) -> str:
+def format_top5_prestige_line(champ_obj: Optional[Dict[str, Any]], entry: Dict[str, Any]) -> str:
     """
     champ_obj: champion metadata from cache (may be None)
     entry: canonical entry dict with keys: champion (slug), rarity, rank, sig, ascended, prestige
