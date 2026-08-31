@@ -478,6 +478,7 @@ def build_profile_display(parent: Any, ctx_or_author: Any, target_id: int, viewe
                 CDTEmbed.add_field(ctx_or_author, emb, name="Prestige (sum)", value=str(total_prestige), inline=False)
 
             # Format Top 5 using prestige formatter
+            # Format Top 5 using prestige formatter
             formatted_top5: List[str] = []
             if top5_lines:
                 try:
@@ -485,7 +486,15 @@ def build_profile_display(parent: Any, ctx_or_author: Any, target_id: int, viewe
                     cache = getattr(parent, "cache", None)
 
                     for line in top5_lines:
+                        # line looks like "1. slug [prestige]" or "1. <formatted line>"
                         try:
+                            # if the line is already formatted (contains emoji/star), keep it
+                            # otherwise extract slug and prestige
+                            if "]" in line and any(e in line for e in ("★", "<:")):
+                                # already formatted by compute_top5_from_profile; strip leading "1. "
+                                formatted_top5.append(line.split(". ", 1)[1])
+                                continue
+
                             slug = line.split(". ", 1)[1].split(" [", 1)[0]
                         except Exception:
                             slug = line
@@ -512,6 +521,7 @@ def build_profile_display(parent: Any, ctx_or_author: Any, target_id: int, viewe
 
                         formatted_top5.append(format_top5_prestige_line(champ_obj, entry))
                 except Exception:
+                    # fallback: use the raw lines if anything goes wrong
                     formatted_top5 = top5_lines
             else:
                 formatted_top5 = ["No roster or prestige data available."]

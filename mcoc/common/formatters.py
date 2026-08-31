@@ -63,24 +63,38 @@ def format_champion_line(champ_obj: ChampionLike, entry: Dict[str, Any]) -> str:
     return f"{cls_emoji} {star_display} {name} r{rank} {sig_text} {asc_emoji}".strip()
 
 
-def format_top5_prestige_line(champ_obj: ChampionLike, entry: Dict[str, Any]) -> str:
+def format_top5_prestige_line(champ_obj: Optional[Champion], entry: Dict[str, Any]) -> str:
     """
-    champ_obj: champion metadata from cache (may be None or dict)
+    champ_obj: champion metadata from cache (may be None or Champion dataclass)
     entry: canonical entry dict with keys: champion (slug), rarity, rank, sig, ascended, prestige
     Returns: formatted string like:
-      "<:skill:...> 7★ Colossus r1 s0 A1 [P123]"
+      "<:skill:...> 7★ Colossus r1 s0 [12,345]"
     """
-    champ = _normalize_champ_obj(champ_obj)
+    # normalize champ_obj (Champion dataclass or dict)
+    if champ_obj and not isinstance(champ_obj, Champion):
+        try:
+            champ_obj = champion_from_dict(champ_obj)
+        except Exception:
+            champ_obj = None
 
-    name = champ.name if champ and champ.name else entry.get("champion") or "Unknown"
-    cls = (champ.class_name or "").lower() if champ else ""
+    name = None
+    cls = ""
+    if champ_obj:
+        name = getattr(champ_obj, "name", None) or getattr(champ_obj, "slug", None)
+        # champion dataclass field for class may be 'class_name' or 'class'
+        cls = (getattr(champ_obj, "class_name", None) or getattr(champ_obj, "class", None) or "").lower()
+    name = name or entry.get("champion") or "Unknown"
 
-    rarity = _safe_int(entry.get("rarity") or entry.get("stars"), 6)
-    sig = _safe_int(entry.get("sig"), 0)
-    rank = _safe_int(entry.get("rank"), 1)
-    asc = _safe_int(entry.get("ascended") or entry.get("asc"), 0)
+    # stars / rarity
+    rarity = int(entry.get("rarity") or entry.get("stars") or 6)
+    sig = int(entry.get("sig") or 0)
+    rank = int(entry.get("rank") or 1)
+    asc = int(entry.get("ascended") or 0)
 
-    asc_emoji = f"A{asc}" if asc > 0 else ""
+    if asc > 0:
+        asc_emoji = f"A{asc}"
+    else:
+        asc_emoji = ""
 
     star_glyph = "★"
     star_display = f"{rarity}{star_glyph}"
@@ -88,8 +102,9 @@ def format_top5_prestige_line(champ_obj: ChampionLike, entry: Dict[str, Any]) ->
     sig_text = f"s{sig}" if sig else "s0"
 
     cls_emoji = CLASS_EMOJI.get(cls, CLASS_EMOJI["all"])
-    prestige = _safe_int(entry.get("prestige"), 0)
-    prestige_text = f"P{prestige}" if prestige > 0 else ""
+
+    prestige = int(entry.get("prestige") or 0)
+    prestige_text = f"{prestige:,}" if prestige > 0 else ""
 
     base_line = f"{cls_emoji} {star_display} {name} r{rank} {sig_text} {asc_emoji}".strip()
     if prestige_text:
