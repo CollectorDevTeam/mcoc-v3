@@ -100,10 +100,11 @@ def _format_playing_since(iso_date_str: Optional[str]) -> str:
     "Oct 15, 2015 - 3,970 days"
     If parsing fails, return the raw string or 'Not set'.
     """
-    now = datetime.now().date()
+    now = datetime.today().date()
     if not iso_date_str:
         return "Not set"
     s = str(iso_date_str).strip()
+    # started = datetime.strptime(s, "%Y-%m-%d").date()
     log.info("Parsing playing since date: %s", s)
     log.info("Today's date: %s", now)
     # try common ISO formats
