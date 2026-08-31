@@ -100,9 +100,12 @@ def _format_playing_since(iso_date_str: Optional[str]) -> str:
     "Oct 15, 2015 - 3,970 days"
     If parsing fails, return the raw string or 'Not set'.
     """
+    now = datetime.now().date()
     if not iso_date_str:
         return "Not set"
     s = str(iso_date_str).strip()
+    log.info("Parsing playing since date: %s", s)
+    log.info("Today's date: %s", now)
     # try common ISO formats
     dt = None
     for fmt in ("%Y-%m-%d", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%dT%H:%M:%S.%f"):
@@ -122,8 +125,8 @@ def _format_playing_since(iso_date_str: Optional[str]) -> str:
 
     # normalize to date (UTC not required for days delta)
     dt_date = dt.date()
-    today = datetime.now().date()
-    days = (today - dt_date).days
+    days = (now - dt_date).days
+    log.info("Days since playing since date: %s", days)
     pretty = dt_date.strftime("%b %d, %Y")
     return f"{pretty} - {days:,} days"
 
@@ -278,7 +281,7 @@ def compute_top5_from_profile(profile: Dict[str, Any]) -> Tuple[List[str], Optio
         top5_lines = [f"{i+1}. {k.split('|')[0]} [{v}]" for i, (k, v) in enumerate(top5)]
         total = sum(v for _, v in items) if items else None
         average = total / len(items) if items else None
-        average_rounded = round(average, 0) if average is not None else None
+        average_rounded = round(average, None) if average is not None else None
         return top5_lines, average_rounded
     except Exception:
         log.exception("compute_top5_from_profile failed")
