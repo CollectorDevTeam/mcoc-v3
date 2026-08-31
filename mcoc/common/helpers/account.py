@@ -100,36 +100,52 @@ def _format_playing_since(iso_date_str: Optional[str]) -> str:
     "Oct 15, 2015 - 3,970 days"
     If parsing fails, return the raw string or 'Not set'.
     """
-    now = datetime.today().date()
     if not iso_date_str:
         return "Not set"
+
     s = str(iso_date_str).strip()
-    # started = datetime.strptime(s, "%Y-%m-%d").date()
+    # compute "today" once (use datetime module imported as `import datetime`)
+    now = datetime.datetime.now().date()
+
     log.info("Parsing playing since date: %s", s)
     log.info("Today's date: %s", now)
-    # try common ISO formats
+
     dt = None
+    # try common ISO formats first
     for fmt in ("%Y-%m-%d", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%dT%H:%M:%S.%f"):
         try:
-            dt = datetime.strptime(s, fmt)
+            dt = datetime.datetime.strptime(s, fmt)
             break
         except Exception:
             continue
+
+    # fallback to fromisoformat (handles offsets and some variants)
     if dt is None:
-        # try fromisoformat as a last resort (handles offsets)
         try:
-            dt = datetime.fromisoformat(s)
+            # datetime.fromisoformat may raise for date-only strings in some Python versions,
+            # so try date.fromisoformat first for YYYY-MM-DD
+            if len(s) == 10 and s.count("-") == 2:
+                try:
+                    d = datetime.date.fromisoformat(s)
+                    dt = datetime.datetime.combine(d, datetime.time.min)
+                except Exception:
+                    dt = None
+            if dt is None:
+                dt = datetime.datetime.fromisoformat(s)
         except Exception:
             dt = None
-    if dt is None:
-        return s  # fallback: show raw stored value
 
-    # normalize to date (UTC not required for days delta)
+    if dt is None:
+        # parsing failed — return raw stored value
+        return s
+
+    # normalize to date and compute delta
     dt_date = dt.date()
     days = (now - dt_date).days
     log.info("Days since playing since date: %s", days)
     pretty = dt_date.strftime("%b %d, %Y")
     return f"{pretty} - {days:,} days"
+
 
 
 
