@@ -190,6 +190,7 @@ def get_user_from_parent(parent, user_id: int) -> Optional[User]:
     Return a User dataclass constructed from stored profile data, or None.
     """
     users = _ensure_user_manager_from_parent(parent)
+    print(users.get_profile(user_id))
     if not users:
         return None
     try:
@@ -207,28 +208,39 @@ def get_user_from_parent(parent, user_id: int) -> Optional[User]:
 
 def persist_user(parent, user: User) -> bool:
     """
-    Persist a User dataclass to storage. This helper writes the full profile dict.
-    It attempts to use a single profile write if supported, otherwise falls back to setting fields.
+    Persist a User dataclass to storage. Tries to write the full profile in the
+    shape the UserDataManager expects (bulk set or 'profile' field), then falls
+    back to per-field writes.
     """
     users = _ensure_user_manager_from_parent(parent)
     if not users:
         return False
     try:
         data = user.to_dict()
-        # prefer a bulk set if available
+
+        # 1) Prefer a bulk set API if available
         if hasattr(users, "set_profile"):
             try:
                 users.set_profile(user.user_id, data)
                 return True
             except Exception:
-                pass
-        # otherwise set fields individually
+                log.debug("persist_user: users.set_profile failed; falling back", exc_info=True)
+
+        # 2) Some UserDataManager implementations expect the entire profile under
+        #    a single 'profile' key. Try that next.
+        try:
+            if hasattr(users, "set_profile_field"):
+                users.set_profile_field(user.user_id, "profile", data)
+                return True
+        except Exception:
+            log.debug("persist_user: users.set_profile_field('profile', ...) failed; falling back", exc_info=True)
+
+        # 3) Last resort: set fields individually
         for k, v in data.items():
             try:
                 users.set_profile_field(user.user_id, k, v)
             except Exception:
-                # ignore individual field failures but continue
-                log.debug("persist_user: failed to set field %s for user %s", k, user.user_id)
+                log.debug("persist_user: failed to set field %s for user %s", k, user.user_id, exc_info=True)
         return True
     except Exception:
         log.exception("persist_user failed for %s", getattr(user, "user_id", "<unknown>"))
@@ -788,8 +800,16 @@ async def accept_consent(parent: Any, user_id: int, *, policy_key: str = "privac
         source = meta.get("url") or ""
         ok = await _maybe_async_record_consent(parent, user_id, version=version, source=source)
         if ok:
+            try:
+                users = _ensure_user_manager_from_parent(parent)
+                prof = users.get_profile(user_id) if users and hasattr(users, "get_profile") else None
+                log.debug("post-consent profile for %s: %s", user_id, prof)
+            except Exception:
+                pass
+        if ok:
             log.info("consent:accepted user=%s version=%s", user_id, version)
             return True, "Consent recorded. Your CollectorVerse profile is now enrolled."
+
         log.warning("consent:accept_failed user=%s version=%s", user_id, version)
         return False, "Failed to record consent. Please try again later."
     except Exception:
@@ -875,27 +895,36 @@ async def prompt_user_for_consent(parent: Any, ctx_or_author: Any, user_id: int,
         try:
             from mcoc.common.componentsV2 import CDTConfirm as _CDTConfirm  # type: ignore
             view = _CDTConfirm(timeout=timeout, confirm_label="Agree", cancel_label="Decline")
-            sent = False
+
+            # Prefer DM: try to DM once
+            sent_via = None
             try:
-                if emb and hasattr(ctx_or_author, "send"):
-                    await ctx_or_author.send(embed=emb, view=view)
-                    sent = True
-                elif emb and hasattr(ctx_or_author, "author") and hasattr(ctx_or_author.author, "send"):
-                    await ctx_or_author.author.send(embed=emb, view=view)
-                    sent = True
+                # ctx_or_author may be a Context or an author-like object
+                target = None
+                if hasattr(ctx_or_author, "author"):
+                    target = ctx_or_author.author
+                elif hasattr(ctx_or_author, "send"):
+                    # ctx is a Context; prefer DM to ctx.author
+                    target = getattr(ctx_or_author, "author", None)
+                else:
+                    target = getattr(ctx_or_author, "author", None)
+
+                if target and hasattr(target, "send"):
+                    await target.send(embed=emb, view=view)
+                    sent_via = "DM"
             except Exception:
-                sent = False
+                sent_via = None
 
-            # fallback to channel if DM failed
-            if not sent:
+            # If DM failed, send once in-channel (only one send total)
+            if not sent_via:
                 try:
-                    if emb and hasattr(ctx_or_author, "send"):
+                    if hasattr(ctx_or_author, "send"):
                         await ctx_or_author.send(embed=emb, view=view)
-                        sent = True
+                        sent_via = "channel"
                 except Exception:
-                    sent = False
+                    sent_via = None
 
-            log.info("consent:prompt_shown user=%s via=%s", user_id, "DM" if sent else "channel")
+            log.info("consent:prompt_shown user=%s via=%s", user_id, sent_via or "none")
             result = await view.wait_result()
             if result:
                 ok, msg = await accept_consent(parent, user_id, policy_key="privacy_policy")
