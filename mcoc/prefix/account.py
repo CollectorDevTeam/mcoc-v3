@@ -98,7 +98,10 @@ class AccountPrefix(commands.Cog):
             await self.account_profile(ctx, member=member)
             return
         # await send_or_brand_help(ctx, "account", title="Account commands", fallback_text="Account commands: info, profile, set, link, unlink, delete, privacy.")
-        return
+        else:
+            # show help for this group
+            # await send_or_brand_help(ctx, "account", title="Account commands", fallback_text="Account commands: info, profile, set, link, unlink, delete, privacy.")
+            return
 
     @account.command(name="help")
     async def account_help(self, ctx):

@@ -80,9 +80,17 @@ class RosterPrefix(commands.Cog):
             return None, tokens
 
     @commands.group(name="roster")
-    async def roster(self, ctx):
+    async def roster(self, ctx, member: Optional[Any] = None):
         """Top-level roster group help."""
         # await send_or_brand_help(ctx, "roster", title="Roster Help", fallback_text="Roster commands: add, remove, update, list, export, clear.")
+        if member is not None:
+            # redirect to list display for that member
+            await self.roster_list(ctx, str(member))
+            return
+        else:
+            # show help for this group
+            # await send_or_brand_help(ctx, "roster", title="Roster Help", fallback_text="Roster commands: add, remove, update, list, export, clear.")
+            return
 
     # -----------------------------
     # List (filters)
