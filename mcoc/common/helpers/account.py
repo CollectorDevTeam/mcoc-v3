@@ -265,7 +265,7 @@ def _parse_prestige_map(profile: Dict[str, Any]) -> Dict[str, int]:
     return out
 
 
-def compute_top5_from_profile(profile: Dict[str, Any]) -> Tuple[List[str], Optional[int]]:
+def compute_top5_from_profile(profile: Dict[str, Any]) -> Tuple[List[str], Optional[int], Optional[float]]:
     """
     Compute a Top 5 list and total prestige from a profile's persisted prestige_map.
     Returns (top5_lines, total_prestige) where top5_lines are strings like "1. slug [prestige]".
@@ -277,10 +277,12 @@ def compute_top5_from_profile(profile: Dict[str, Any]) -> Tuple[List[str], Optio
         top5 = items[:5]
         top5_lines = [f"{i+1}. {k.split('|')[0]} [{v}]" for i, (k, v) in enumerate(top5)]
         total = sum(v for _, v in items) if items else None
-        return top5_lines, total
+        average = total / len(items) if items else None
+        average_rounded = round(average, 0) if average is not None else None
+        return top5_lines, total, average_rounded
     except Exception:
         log.exception("compute_top5_from_profile failed")
-        return [], None
+        return [], None, None
 
 
 def compute_top5_from_roster(parent: Any, roster: List[Dict[str, Any]], profile: Dict[str, Any]) -> Tuple[List[str], Optional[int]]:
