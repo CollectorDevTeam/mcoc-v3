@@ -102,51 +102,72 @@ class AccountPrefix(commands.Cog):
                 except Exception:
                     member = None
 
+        # If a member was provided, show their profile (existing behavior)
         if member:
             await self.account_profile(ctx, member=member)
             return
 
-        # No member → show help or enrollment if no profile/consent
+        # No member -> decide between enrollment prompt or account help based on consent
         if not await self._require_parent(ctx):
             return
 
+        user_id = getattr(ctx.author, "id", None)
         try:
-            # If user has a profile and consent, show profile; otherwise start enrollment
-            user_id = ctx.author.id
+            # Try to fetch a User dataclass first (preferred)
+            user_obj = None
             try:
                 user_obj = Account.get_user_from_parent(self.parent, user_id)
             except Exception:
                 user_obj = None
 
-            if user_obj and user_obj.consent:
-                # show profile
-                await self.account_profile(ctx, member=ctx.author)
+            consented = False
+            if user_obj is not None:
+                consented = bool(getattr(user_obj, "consent", False))
+            else:
+                # fallback: read raw profile dict
+                try:
+                    prof = Account.get_profile(self.parent, user_id) or {}
+                    consented = bool(prof.get("consent"))
+                except Exception:
+                    consented = False
+
+            log.debug("account command invoked by %s consent=%s", user_id, consented)
+
+            if consented:
+                # User already consented -> show account help (no prompt)
+                await self.account_help(ctx)
                 return
 
-            # start enrollment flow (will DM when possible)
-            ok, msg = await Account.enroll_command_handler(self.parent, ctx, user_id)
-
-            # If msg is an embed or long text, prefer DM; otherwise send in channel
+            # Not consented -> start enrollment flow (prompt). Use enroll_command_handler which
+            # will attempt to DM the user; send a short in-channel ack instead of duplicating the prompt.
             try:
-                # If enroll_command_handler used prompt_user_for_consent, it already attempted to DM.
-                # We send a short in-channel acknowledgement instead of duplicating the full prompt.
-                try:
-                    await ctx.author.send(msg)
-                    try:
-                        await ctx.tick()
-                    except Exception:
-                        # fallback small ack
-                        await safe_send_ctx(ctx, "I've sent you a DM with enrollment instructions.")
-                except Exception:
-                    # DM failed — send the full message in channel
-                    await safe_send_ctx(ctx, msg)
+                ok, msg = await Account.enroll_command_handler(self.parent, ctx, user_id)
             except Exception:
-                await safe_send_ctx(ctx, msg)
+                log.exception("account: enroll_command_handler failed for %s", user_id)
+                await safe_send_ctx(ctx, "Failed to start enrollment; try again later.")
+                return
+
+            # enroll_command_handler already attempted to DM or send the prompt.
+            # Send a short in-channel acknowledgement to avoid duplicating the full prompt.
+            try:
+                # Prefer a small ephemeral-style ack if ctx supports it; otherwise send a short message.
+                try:
+                    await ctx.tick()
+                except Exception:
+                    await safe_send_ctx(ctx, "I've sent you enrollment instructions (DM or channel).")
+            except Exception:
+                # final fallback: send the message returned (may be text fallback)
+                try:
+                    await safe_send_ctx(ctx, msg)
+                except Exception:
+                    log.exception("account: failed to acknowledge enrollment prompt for %s", user_id)
+            return
 
         except Exception:
             log.exception("account group invoke failed for %s", getattr(ctx.author, "id", "<unknown>"))
-            await safe_send_ctx(ctx, "Failed to process account command; please try again.")
-
+            # fallback to showing help if something goes wrong
+            await self.account_help(ctx)
+            return
 
     @account.command(name="help")
     async def account_help(self, ctx):
