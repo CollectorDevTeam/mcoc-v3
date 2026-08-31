@@ -87,7 +87,7 @@ class AccountPrefix(commands.Cog):
     # -----------------------------
     # Group and aliases
     # -----------------------------
-    @commands.group(name="account", names=["profile"], send_or_brand_help=True)
+    @commands.group(name="account", aliases=["profile"], invoke_without_command=True)
     async def account(self, ctx, member: Optional[Any] = None):
         """
         Top-level account command.
@@ -97,7 +97,7 @@ class AccountPrefix(commands.Cog):
             # redirect to profile display
             await self.account_profile(ctx, member=member)
             return
-        await send_or_brand_help(ctx, self.account, "Account commands", "Account commands: info, profile, set, link, unlink, delete, privacy.")
+        await send_or_brand_help(ctx, "account", title="Account commands", fallback_text="Account commands: info, profile, set, link, unlink, delete, privacy.")
         return
 
     @account.command(name="help")
