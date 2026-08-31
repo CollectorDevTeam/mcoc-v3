@@ -701,7 +701,6 @@ def build_profile_display(parent: Any, ctx_or_author: Any, target_id: int, viewe
 # ---------------------------------------------------------------------
 # Enrollment / Consent flow (CDTConfirm-based opt-in)
 # ---------------------------------------------------------------------
-
 # Policy links and default metadata (update as you publish new versions)
 POLICY_METADATA = {
     "privacy_policy": {
@@ -709,16 +708,16 @@ POLICY_METADATA = {
         "version": "v1.0",
     },
     "terms_of_service": {
-        "url": "https://raw.githubusercontent.com/CollectorDevTeam/ mcoc-v3/main/mcoc/terms_of_service.md",
+        "url": "https://raw.githubusercontent.com/CollectorDevTeam/mcoc-v3/main/mcoc/terms_of_service.md",
         "version": "v1.0",
     },
 }
 
 
-async def _record_consent(parent: Any, user_id: int, *, version: str, source: str) -> bool:
+def _record_consent(parent: Any, user_id: int, *, version: str, source: str) -> bool:
     """
     Persist consent metadata for the given user_id.
-    Uses persist_user when a User dataclass is available, otherwise falls back to set_profile_field.
+    Synchronous helper used by the async wrapper.
     """
     try:
         # prefer the typed User path
@@ -727,14 +726,13 @@ async def _record_consent(parent: Any, user_id: int, *, version: str, source: st
         except Exception:
             user_obj = None
 
-        ts = datetime.datetime.utcnow().date().isoformat()
+        ts = datetime.datetime.utcnow().isoformat()
 
         if user_obj:
             user_obj.consent = True
             user_obj.consent_ts = ts
             user_obj.consent_version = version
             user_obj.consent_source = source
-            # ensure created_at/updated_at if missing
             if not user_obj.created_at:
                 user_obj.created_at = ts
             user_obj.updated_at = ts
@@ -745,11 +743,25 @@ async def _record_consent(parent: Any, user_id: int, *, version: str, source: st
         ok2 = set_profile_field(parent, user_id, "consent_ts", ts)
         ok3 = set_profile_field(parent, user_id, "consent_version", version)
         ok4 = set_profile_field(parent, user_id, "consent_source", source)
-        # ensure a minimal profile exists (some UserDataManagers create on set_profile_field)
         return bool(ok1 and ok2 and ok3 and ok4)
     except Exception:
         log.exception("_record_consent failed for %s", user_id)
         return False
+
+
+async def _maybe_async_record_consent(parent: Any, user_id: int, *, version: str, source: str) -> bool:
+    """
+    Async wrapper that runs the synchronous _record_consent off the event loop.
+    """
+    try:
+        return await asyncio.to_thread(lambda: _record_consent(parent, user_id, version=version, source=source))
+    except Exception:
+        try:
+            # fallback to direct call if to_thread fails
+            return _record_consent(parent, user_id, version=version, source=source)
+        except Exception:
+            log.exception("_maybe_async_record_consent fallback failed for %s", user_id)
+            return False
 
 
 async def accept_consent(parent: Any, user_id: int, *, policy_key: str = "privacy_policy") -> Tuple[bool, str]:
@@ -770,36 +782,18 @@ async def accept_consent(parent: Any, user_id: int, *, policy_key: str = "privac
         return False, "Failed to record consent due to an internal error."
 
 
-async def _maybe_async_record_consent(parent: Any, user_id: int, *, version: str, source: str) -> bool:
-    """
-    Helper that calls _record_consent and supports both sync and async persistence paths.
-    """
-    try:
-        # _record_consent is synchronous in this module, but persist_user may call async internals.
-        # Keep this wrapper to allow future async implementations.
-        return await asyncio.to_thread(lambda: _record_consent(parent, user_id, version=version, source=source))
-    except Exception:
-        # fallback to direct call if to_thread fails
-        try:
-            return _record_consent(parent, user_id, version=version, source=source)
-        except Exception:
-            log.exception("_maybe_async_record_consent fallback failed for %s", user_id)
-            return False
-
-
 async def decline_consent(parent: Any, user_id: int) -> Tuple[bool, str]:
     """
     Called when a user declines consent. We do not create a profile or persist personal data.
     Returns (ok, message).
     """
     try:
-        # Optionally record a minimal 'declined' flag (non-personal) if you want to avoid re-prompting.
-        # For privacy-first approach, do not persist any personal data on decline.
-        # We will set a lightweight flag 'consent' = False so the bot can avoid re-prompting in the same session.
-        ok = set_profile_field(parent, user_id, "consent", False)
-        if ok:
-            return True, "You have declined. No profile was created and no personal data was stored."
-        # If set_profile_field is not available, simply return success (no data stored).
+        # Privacy-first: do not persist personal data on decline.
+        # Optionally set a lightweight flag so we don't re-prompt in the same session.
+        try:
+            set_profile_field(parent, user_id, "consent", False)
+        except Exception:
+            pass
         return True, "You have declined. No profile was created and no personal data was stored."
     except Exception:
         log.exception("decline_consent failed for %s", user_id)
@@ -813,7 +807,6 @@ async def revoke_consent(parent: Any, user_id: int) -> Tuple[bool, str]:
     try:
         ok, msg = delete_user_profile(parent, user_id)
         if ok:
-            # Optionally persist an audit log (non-personal) via logging
             log.info("User %s revoked consent and profile deleted", user_id)
             return True, "Your consent has been revoked and your profile has been deleted."
         return False, msg
@@ -824,18 +817,14 @@ async def revoke_consent(parent: Any, user_id: int) -> Tuple[bool, str]:
 
 async def prompt_user_for_consent(parent: Any, ctx_or_author: Any, user_id: int, *, timeout: int = 120) -> Tuple[bool, str]:
     """
-    Present a CDTConfirm-based consent prompt to the user and record their response.
-
-    Returns (ok, message) where ok indicates whether consent was recorded (True) or not (False).
-    Message is a user-facing confirmation string.
+    Present a consent prompt to the user and record their response.
 
     Behavior:
-      - Try to use CDTConfirm from mcoc.common.componentsV2 if available.
-      - If CDTConfirm is not available or the prompt fails, fall back to a text instruction
-        telling the user how to consent via a command (///account agree / ///account decline).
+      - Prefer mcoc.common.componentsV2.CDTConfirm view if available.
+      - Fallback to Core.Confirm (prefix-level alias) if provided via ctx_or_author or parent.
+      - If no interactive confirm is available, send a text fallback instructing the user to run ///account agree/decline.
     """
     try:
-        # Build consent embed text
         policy = POLICY_METADATA.get("privacy_policy", {})
         terms = POLICY_METADATA.get("terms_of_service", {})
         privacy_url = policy.get("url")
@@ -854,49 +843,106 @@ async def prompt_user_for_consent(parent: Any, ctx_or_author: Any, user_id: int,
         ]
         description = "\n".join(description_lines)
 
-        # Try to use CDTConfirm if available
+        # Try mcoc.common.componentsV2.CDTConfirm first
         try:
-            from mcoc.common.componentsV2 import CDTConfirm
-            # CDTConfirm.prompt is expected to be an async helper that returns True on accept, False on decline.
-            # We call it defensively and handle any API differences.
+            from mcoc.common.componentsV2 import CDTConfirm as _CDTConfirm
+            view = _CDTConfirm(timeout=timeout, confirm_label="Agree", cancel_label="Decline")
+            # send the prompt (prefer DM)
+            sent = False
             try:
-                accepted = await CDTConfirm.prompt(ctx_or_author, title=title, description=description, accept_label="Agree", decline_label="Decline", timeout=timeout)
-            except TypeError:
-                # older/newer signature fallback
-                accepted = await CDTConfirm.prompt(ctx_or_author, title, description, timeout=timeout)
-            if accepted:
+                if hasattr(ctx_or_author, "send"):
+                    await ctx_or_author.send(f"{title}\n\n{description}", view=view)
+                    sent = True
+                elif hasattr(ctx_or_author, "author") and hasattr(ctx_or_author.author, "send"):
+                    await ctx_or_author.author.send(f"{title}\n\n{description}", view=view)
+                    sent = True
+            except Exception:
+                sent = False
+
+            # If we couldn't send via ctx_or_author, try to use parent/ctx if available
+            if not sent:
+                try:
+                    # if ctx_or_author is a Context, use ctx_or_author.send
+                    if hasattr(ctx_or_author, "send"):
+                        await ctx_or_author.send(f"{title}\n\n{description}", view=view)
+                        sent = True
+                except Exception:
+                    sent = False
+
+            # Wait for result
+            result = await view.wait_result()
+            if result:
                 ok, msg = await accept_consent(parent, user_id, policy_key="privacy_policy")
                 return ok, msg
             else:
                 ok, msg = await decline_consent(parent, user_id)
                 return ok, msg
+
         except Exception:
-            # CDTConfirm not available or prompt failed; fall back to text instructions
-            log.debug("CDTConfirm not available or failed; falling back to text consent flow")
-            fallback_msg = (
-                "To enroll, please review our policies:\n"
-                f"Privacy Policy: {policy.get('url')}\n"
-                f"Terms of Service: {terms.get('url')}\n\n"
-                "If you agree, type: `///account agree`\n"
-                "If you decline, type: `///account decline`\n"
-                "This prompt will time out after a short period."
-            )
-            # If the caller is an interaction context, attempt to send the fallback message
+            # If componentsV2.CDTConfirm not available, try to use Core-level Confirm (prefix alias)
             try:
-                # ctx_or_author may be a context or author-like object; attempt to send via common helpers if available
-                if hasattr(ctx_or_author, "send"):
-                    await ctx_or_author.send(fallback_msg)
-                elif hasattr(ctx_or_author, "author") and hasattr(ctx_or_author.author, "send"):
-                    await ctx_or_author.author.send(fallback_msg)
+                # Core.Confirm may be available via parent or ctx_or_author; attempt to resolve
+                Confirm = None
+                if hasattr(parent, "Confirm"):
+                    Confirm = getattr(parent, "Confirm")
+                elif hasattr(ctx_or_author, "Confirm"):
+                    Confirm = getattr(ctx_or_author, "Confirm")
+                elif hasattr(ctx_or_author, "author") and hasattr(ctx_or_author.author, "Confirm"):
+                    Confirm = getattr(ctx_or_author.author, "Confirm")
+
+                if Confirm:
+                    view = Confirm(timeout=timeout, confirm_label="Agree", cancel_label="Decline")
+                    sent = False
+                    try:
+                        if hasattr(ctx_or_author, "send"):
+                            await ctx_or_author.send(f"{title}\n\n{description}", view=view)
+                            sent = True
+                        elif hasattr(ctx_or_author, "author") and hasattr(ctx_or_author.author, "send"):
+                            await ctx_or_author.author.send(f"{title}\n\n{description}", view=view)
+                            sent = True
+                    except Exception:
+                        sent = False
+
+                    if not sent:
+                        try:
+                            if hasattr(ctx_or_author, "send"):
+                                await ctx_or_author.send(f"{title}\n\n{description}", view=view)
+                                sent = True
+                        except Exception:
+                            sent = False
+
+                    result = await view.wait_result()
+                    if result:
+                        ok, msg = await accept_consent(parent, user_id, policy_key="privacy_policy")
+                        return ok, msg
+                    else:
+                        ok, msg = await decline_consent(parent, user_id)
+                        return ok, msg
+
             except Exception:
-                # ignore send failures; return the fallback message so caller can surface it
-                pass
-            return False, fallback_msg
+                log.debug("Core-level Confirm not available or failed; falling back to text consent flow")
+
+        # Fallback: text instructions (non-interactive)
+        fallback_msg = (
+            "To enroll, please review our policies:\n"
+            f"Privacy Policy: {policy.get('url')}\n"
+            f"Terms of Service: {terms.get('url')}\n\n"
+            "If you agree, type: `///account agree`\n"
+            "If you decline, type: `///account decline`\n"
+            "This prompt will time out after a short period."
+        )
+        try:
+            if hasattr(ctx_or_author, "send"):
+                await ctx_or_author.send(fallback_msg)
+            elif hasattr(ctx_or_author, "author") and hasattr(ctx_or_author.author, "send"):
+                await ctx_or_author.author.send(fallback_msg)
+        except Exception:
+            pass
+        return False, fallback_msg
 
     except Exception:
         log.exception("prompt_user_for_consent failed for %s", user_id)
         return False, "Failed to present consent prompt; please try again later."
-
 
 # ---------------------------------------------------------------------
 # Command helpers (to be wired into your command layer)
@@ -943,9 +989,6 @@ async def account_decline_command(parent: Any, ctx_or_author: Any, user_id: int)
     except Exception:
         log.exception("account_decline_command failed for %s", user_id)
         return False, "Failed to process decline; please try again later."
-
-
-
 
 
 # -----------------------------
