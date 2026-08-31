@@ -18,7 +18,8 @@ embed construction, pagination) lives in `mcoc.common.roster`.
 
 from typing import Any, Optional, List, Tuple
 import logging
-
+from discord.member import Member
+from discord.user import User
 from redbot.core import commands
 from mcoc.common import Core
 Embed = Core.Embed
@@ -80,9 +81,14 @@ class RosterPrefix(commands.Cog):
             return None, tokens
 
     @commands.group(name="roster")
-    async def roster(self, ctx, member: Optional[Any] = None):
+    async def roster(self, ctx, *args):
         """Top-level roster group help."""
-        # await send_or_brand_help(ctx, "roster", title="Roster Help", fallback_text="Roster commands: add, remove, update, list, export, clear.")
+        if args:
+            if args[0] is Member or args[0] is User:
+                member = args[0]
+        else:
+            member = None
+
         if member is not None:
             # redirect to list display for that member
             await self.roster_list(ctx, str(member))

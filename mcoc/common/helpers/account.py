@@ -382,6 +382,9 @@ def build_profile_display(parent: Any, ctx_or_author: Any, target_id: int, viewe
             if viewer_id is not None and viewer_id != target_id:
                 return None, "You do not have permission to view that profile."
 
+        top5_lines = []
+        total_prestige = None
+
         # fetch profile
         profile = {}
         try:

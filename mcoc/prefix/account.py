@@ -23,7 +23,8 @@ Supported commands (examples):
 from typing import Any, Optional, Dict
 import logging
 import asyncio
-
+from discord.user import User
+from discord.member import Member
 from redbot.core import commands
 
 from mcoc.common import Core
@@ -88,11 +89,16 @@ class AccountPrefix(commands.Cog):
     # Group and aliases
     # -----------------------------
     @commands.group(name="account", aliases=["profile"])
-    async def account(self, ctx, member: Optional[Any] = None):
+    async def account(self, ctx, *args):
         """
         Top-level account command.
         If a member is provided, redirect to profile display for that member.
         """
+        member = None
+        if args:
+            if args[0] is Member or args[0] is User:
+                member = args[0]
+
         if member is not None:
             # redirect to profile display
             await self.account_profile(ctx, member=member)

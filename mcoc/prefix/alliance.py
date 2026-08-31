@@ -10,7 +10,8 @@ flows, and pagination where appropriate.
 from typing import Optional, Any, List
 import logging
 import asyncio
-
+from discord.user import User
+from discord.member import Member
 from redbot.core import commands
 
 from mcoc.common import Core
@@ -35,7 +36,7 @@ class AlliancePrefix(commands.Cog):
         self.parent = getattr(bot, "mcoc_core", None)
 
     @commands.group(name="alliance")
-    async def alliance(self, ctx):
+    async def alliance(self, ctx, *args):
         """Alliance commands: create, template, setrole, settype, join, leave, unregister, settings, manage, export, reconcile, promote, demote, profile"""
         prefix = getattr(ctx, "prefix", "///")
         help_text = (
@@ -47,6 +48,13 @@ class AlliancePrefix(commands.Cog):
             f"`{prefix}mcoc alliance manage` — management overview and quick actions\n"
             f"`{prefix}mcoc alliance profile [@member]` — show alliance or member profile\n"
         )
+        if args:
+            if args[0] is Member or args[0] is User:
+                member = args[0]
+            else:
+                member = None
+        else:
+            member = None
         # await send_or_brand_help(ctx, "alliance", title="Alliance Help", fallback_text=help_text)
 
     # -----------------------------

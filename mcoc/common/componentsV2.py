@@ -194,12 +194,12 @@ class CDTEmbed:
 
     @classmethod
     def add_field(cls, ctx_or_author, emb, *, name, value, inline=True):
-        CDTEmbed.add_field(name=name, value=value, inline=inline)
+        CDTEmbed.add_field(ctx_or_author, emb, name=name, value=value, inline=inline)
         return emb
 
     @classmethod
     def set_footer(cls, ctx_or_author, emb, *, text=None, icon_url=None):
-        emb.set_footer(text=text or CDT_FOOTER_TEXT, icon_url=icon_url or CDT_ICON)
+        emb.set_footer(ctx_or_author, text=text or CDT_FOOTER_TEXT, icon_url=icon_url or CDT_ICON)
         return emb
 
     # Author setter wrapper matching discord.Embed.set_author signature
