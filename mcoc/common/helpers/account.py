@@ -206,46 +206,62 @@ def get_user_from_parent(parent, user_id: int) -> Optional[User]:
         return None
 
 
-def persist_user(parent, user: User) -> bool:
+async def accept_consent(parent: Any, user_id: int, *, policy_key: str = "privacy_policy") -> Tuple[bool, str]:
     """
-    Persist a User dataclass to storage. Tries to write the full profile in the
-    shape the UserDataManager expects (bulk set or 'profile' field), then falls
-    back to per-field writes.
+    High-level helper to accept consent for a user.
+    Records consent, then verifies by reading the profile back. If verification
+    fails, attempt a targeted fallback write of consent fields.
     """
-    users = _ensure_user_manager_from_parent(parent)
-    if not users:
-        return False
     try:
-        data = user.to_dict()
+        meta = POLICY_METADATA.get(policy_key, {})
+        version = meta.get("version") or "v1.0"
+        source = meta.get("url") or ""
 
-        # 1) Prefer a bulk set API if available
-        if hasattr(users, "set_profile"):
-            try:
-                users.set_profile(user.user_id, data)
-                return True
-            except Exception:
-                log.debug("persist_user: users.set_profile failed; falling back", exc_info=True)
+        ok = await _maybe_async_record_consent(parent, user_id, version=version, source=source)
+        if not ok:
+            log.warning("consent:accept initial persist failed user=%s version=%s", user_id, version)
+            return False, "Failed to record consent. Please try again later."
 
-        # 2) Some UserDataManager implementations expect the entire profile under
-        #    a single 'profile' key. Try that next.
+        # Read back profile to verify
         try:
-            if hasattr(users, "set_profile_field"):
-                users.set_profile_field(user.user_id, "profile", data)
-                return True
+            users = _ensure_user_manager_from_parent(parent)
+            prof = {}
+            if users and hasattr(users, "get_profile"):
+                prof = users.get_profile(user_id) or {}
+            log.debug("post-consent profile for %s (verify): %s", user_id, prof)
         except Exception:
-            log.debug("persist_user: users.set_profile_field('profile', ...) failed; falling back", exc_info=True)
+            prof = {}
 
-        # 3) Last resort: set fields individually
-        for k, v in data.items():
+        # If consent not present or false, attempt targeted fallback writes
+        if not prof or not bool(prof.get("consent")):
+            log.warning("consent:verify_failed user=%s; attempting fallback writes", user_id)
             try:
-                users.set_profile_field(user.user_id, k, v)
+                # targeted writes (best-effort)
+                set_profile_field(parent, user_id, "consent", True)
+                set_profile_field(parent, user_id, "consent_ts", datetime.datetime.utcnow().isoformat())
+                set_profile_field(parent, user_id, "consent_version", version)
+                set_profile_field(parent, user_id, "consent_source", source)
             except Exception:
-                log.debug("persist_user: failed to set field %s for user %s", k, user.user_id, exc_info=True)
-        return True
-    except Exception:
-        log.exception("persist_user failed for %s", getattr(user, "user_id", "<unknown>"))
-        return False
+                log.exception("consent:fallback_write failed for %s", user_id)
 
+            # re-read to confirm
+            try:
+                users = _ensure_user_manager_from_parent(parent)
+                prof = users.get_profile(user_id) or {} if users and hasattr(users, "get_profile") else {}
+                log.debug("post-consent profile after fallback for %s: %s", user_id, prof)
+            except Exception:
+                prof = {}
+
+        # Final check
+        if prof and bool(prof.get("consent")):
+            log.info("consent:accepted user=%s version=%s", user_id, version)
+            return True, "Consent recorded. Your CollectorVerse profile is now enrolled."
+        else:
+            log.error("consent:final_verify_failed user=%s profile=%s", user_id, prof)
+            return False, "Consent write did not persist correctly; please try again or contact an admin."
+    except Exception:
+        log.exception("accept_consent failed for %s", user_id)
+        return False, "Failed to record consent due to an internal error."
 
 def get_profile(parent: Any, user_id: int) -> Dict[str, Any]:
     """
