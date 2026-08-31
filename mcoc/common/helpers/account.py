@@ -762,7 +762,6 @@ def _record_consent(parent: Any, user_id: int, *, version: str, source: str) -> 
         log.exception("_record_consent failed for %s", user_id)
         return False
 
-
 async def _maybe_async_record_consent(parent: Any, user_id: int, *, version: str, source: str) -> bool:
     """
     Async wrapper that runs the synchronous _record_consent off the event loop.
@@ -775,7 +774,6 @@ async def _maybe_async_record_consent(parent: Any, user_id: int, *, version: str
         except Exception:
             log.exception("_maybe_async_record_consent fallback failed for %s", user_id)
             return False
-
 
 async def accept_consent(parent: Any, user_id: int, *, policy_key: str = "privacy_policy") -> Tuple[bool, str]:
     """
@@ -866,8 +864,6 @@ async def decline_consent(parent: Any, user_id: int) -> Tuple[bool, str]:
     except Exception:
         log.exception("decline_consent failed for %s", user_id)
         return False, "Failed to process your response. Please try again later."
-
-
 
 async def revoke_consent(parent: Any, user_id: int) -> Tuple[bool, str]:
     """
@@ -995,6 +991,25 @@ async def prompt_user_for_consent(parent: Any, ctx_or_author: Any, user_id: int,
         log.exception("prompt_user_for_consent failed for %s", user_id)
         return False, "Failed to present consent prompt; please try again later."
 
+# mcoc/common/account.py  — add near other wrappers
+
+def user_has_consented(parent: Any, user_id: int) -> bool:
+    """
+    Return True if the user has an explicit consent flag recorded.
+    Prefer the User dataclass when available, otherwise read raw profile dict.
+    """
+    try:
+        try:
+            u = get_user_from_parent(parent, user_id)
+        except Exception:
+            u = None
+        if u is not None:
+            return bool(getattr(u, "consent", False))
+        prof = get_profile(parent, user_id) or {}
+        return bool(prof.get("consent"))
+    except Exception:
+        log.exception("user_has_consented check failed for %s", user_id)
+        return False
 
 # ---------------------------------------------------------------------
 # Thin command wrappers for prefix/slash layers (exposed to prefix cog)

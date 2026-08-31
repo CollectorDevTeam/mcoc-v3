@@ -2,18 +2,8 @@
 """
 Prefix command handler for roster operations.
 
-This module is intentionally thin: it resolves the command context and target member,
-delegates parsing, filtering, formatting and embed/page construction to
-`mcoc.common.roster` helpers, and then starts a branded pager (PagesMenu).
-
-Responsibilities kept here:
-- Resolve optional leading mention/id into a Member/User (prefer guild Member).
-- Perform context-specific privacy gating (viewer vs owner).
-- Call common helpers to build pages or a ready pager.
-- Start the pager and merge brand buttons into the pager view when possible.
-
-All heavy lifting (parsing, matching explicit hargs, prestige, formatting,
-embed construction, pagination) lives in `mcoc.common.roster`.
+Thin orchestration layer: resolves context and target member, delegates heavy
+lifting to mcoc.common.roster helpers, and starts a branded pager (PagesMenu).
 """
 
 from typing import Any, Optional, List, Tuple
@@ -26,11 +16,10 @@ Embed = Core.Embed
 PagesMenu = Core.PagesMenu
 Roster = Core.Helpers.roster
 
-# from ..common.helpers.roster import ensure_user_manager, get_roster_pages, make_roster_pager
 from mcoc.common.query_parser import parse_query
-# from ..common.componentsV2 import Embed, PagesMenu
 from mcoc.common.prefix_utils import safe_send_ctx
-from mcoc.common.help_utils import send_or_brand_help 
+from mcoc.common.help_utils import send_or_brand_help
+from mcoc.common import account as Account  # consent helper
 
 log = logging.getLogger("red.mcoc.prefix.roster")
 
@@ -62,10 +51,6 @@ class RosterPrefix(commands.Cog):
         """
         Resolve an optional leading mention/id token into a Member/User.
         Returns (resolved_member_or_none, remaining_tokens_list).
-
-        Behavior:
-          - If first token resolves to a Member (in guild) or User, return it and drop token.
-          - If resolution fails, return None and leave tokens unchanged.
         """
         if not tokens:
             return None, tokens
@@ -77,25 +62,84 @@ class RosterPrefix(commands.Cog):
                 member = await commands.UserConverter().convert(ctx, first)
             return member, tokens[1:]
         except Exception:
-            # Not a mention/id; caller will treat as filters for invoking user
             return None, tokens
 
+    # -----------------------------
+    # Top-level roster group
+    # -----------------------------
     @commands.group(name="roster")
     async def roster(self, ctx, *args):
-        """Top-level roster group help."""
-        if args:
-            if args[0] is Member or args[0] is User:
-                member = args[0]
-        else:
-            member = None
+        """
+        Top-level roster group.
 
+        Behavior:
+          - If a member/user token is provided, redirect to roster_list for that member.
+          - If no token and invoking user has not consented -> start enrollment prompt.
+          - If no token and invoking user has consented -> show roster help.
+        """
+        # Resolve optional leading member token if present in args
+        member = None
+        if args:
+            # If first arg is already a Member/User object (unlikely), accept it
+            if isinstance(args[0], (Member, User)):
+                member = args[0]
+            else:
+                # Try to resolve a mention/id string
+                try:
+                    member = await commands.MemberConverter().convert(ctx, args[0])
+                except Exception:
+                    try:
+                        member = await commands.UserConverter().convert(ctx, args[0])
+                    except Exception:
+                        member = None
+
+        # If a member was provided, redirect to list display for that member
         if member is not None:
-            # redirect to list display for that member
             await self.roster_list(ctx, str(member))
             return
-        else:
-            # show help for this group
-            # await send_or_brand_help(ctx, "roster", title="Roster Help", fallback_text="Roster commands: add, remove, update, list, export, clear.")
+
+        # No member provided: ensure parent/core available
+        if not await self._require_parent(ctx):
+            return
+
+        user_id = getattr(ctx.author, "id", None)
+        try:
+            consented = Account.user_has_consented(self.parent, user_id)
+        except Exception:
+            log.exception("roster: failed to check consent for %s", user_id)
+            consented = False
+
+        log.debug("roster command invoked by %s consent=%s", user_id, consented)
+
+        if not consented:
+            # Start enrollment flow; enroll_command_handler will attempt DM first.
+            try:
+                ok, msg = await Account.enroll_command_handler(self.parent, ctx, user_id)
+            except Exception:
+                log.exception("roster: enroll_command_handler failed for %s", user_id)
+                await safe_send_ctx(ctx, "Failed to start enrollment; try again later.")
+                return
+
+            # Acknowledge in-channel without duplicating the full prompt
+            try:
+                await ctx.tick()
+            except Exception:
+                try:
+                    await safe_send_ctx(ctx, "I've sent you enrollment instructions (DM or channel).")
+                except Exception:
+                    log.exception("roster: failed to acknowledge enrollment prompt for %s", user_id)
+            return
+
+        # consented -> show roster help
+        try:
+            # Prefer branded help if available
+            await send_or_brand_help(ctx, "roster", title="Roster Help", fallback_text="Roster commands: list, add, remove, update, export, clear.")
+        except Exception:
+            log.exception("roster: failed to show roster help for %s", user_id)
+            try:
+                await safe_send_ctx(ctx, "Roster commands: list, add, remove, update, export, clear.")
+            except Exception:
+                pass
             return
 
     # -----------------------------
@@ -163,26 +207,20 @@ class RosterPrefix(commands.Cog):
             entries, filters = [], {}
 
         # Build parsed_filters shape expected by common/roster helpers.
-        # If explicit entries exist, prefer passing them through as 'explicit_entries'.
         parsed_filters = {}
         if entries:
             parsed_filters["explicit_entries"] = entries
-        # merge other filters if present
         if isinstance(filters, dict):
             parsed_filters.update(filters)
 
         # Prefer the convenience wrapper that returns a ready pager if available.
-        # make_roster_pager should return a PagesMenu instance (or None on failure).
         try:
             pager = None
-            if hasattr(self.parent, "mcoc_core"):  # defensive check; not required
-                pass
 
             # Try to get a ready pager from common helper (preferred)
             try:
                 pager = await Roster.make_roster_pager(self.parent, ctx, raw_input=items_text, target_token=None, parsed_filters=parsed_filters)
             except TypeError:
-                # older helper signature may not accept these args; fall back to get_roster_pages
                 pager = None
             except Exception:
                 pager = None
@@ -221,7 +259,7 @@ class RosterPrefix(commands.Cog):
             # Ensure pages are embed objects; instantiate a pager defensively
             try:
                 pager = PagesMenu(pages, author=ctx.author)
-                                # Merge brand buttons into pager view if possible
+                # Merge brand buttons into pager view if possible
                 try:
                     brand_view = Embed.brand_view()
                     if hasattr(pager, "add_item"):
@@ -261,6 +299,7 @@ class RosterPrefix(commands.Cog):
             log.exception("Unexpected error in roster_list")
             await safe_send_ctx(ctx, "An unexpected error occurred while building roster pages.")
             return
+
 
 async def setup(bot):
     bot.add_cog(RosterPrefix(bot))
