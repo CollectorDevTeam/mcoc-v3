@@ -67,7 +67,7 @@ class RosterPrefix(commands.Cog):
     # -----------------------------
     # Top-level roster group
     # -----------------------------
-    @commands.group(name="roster")
+    @commands.group(name="roster", invoke_without_command=True)
     async def roster(self, ctx, *args):
         """
         Top-level roster group.
