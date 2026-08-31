@@ -34,7 +34,7 @@ class AlliancePrefix(commands.Cog):
         self.bot = bot
         self.parent = getattr(bot, "mcoc_core", None)
 
-    @commands.group(name="alliance", send_or_brand_help=True)
+    @commands.group(name="alliance")
     async def alliance(self, ctx):
         """Alliance commands: create, template, setrole, settype, join, leave, unregister, settings, manage, export, reconcile, promote, demote, profile"""
         prefix = getattr(ctx, "prefix", "///")
@@ -47,7 +47,7 @@ class AlliancePrefix(commands.Cog):
             f"`{prefix}mcoc alliance manage` — management overview and quick actions\n"
             f"`{prefix}mcoc alliance profile [@member]` — show alliance or member profile\n"
         )
-        await send_or_brand_help(ctx, "alliance", title="Alliance Help", fallback_text=help_text)
+        # await send_or_brand_help(ctx, "alliance", title="Alliance Help", fallback_text=help_text)
 
     # -----------------------------
     # Create / template

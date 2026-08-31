@@ -61,7 +61,7 @@ class ChampionsPrefix(commands.Cog):
     @commands.group(name="champ", aliases=["champions"])
     async def champ(self, ctx):
         """Champion commands: search, abilities, info."""
-        await send_or_brand_help(ctx, "champions", title="Champion Help", fallback_text="Champion commands: search, abilities, info.")
+        # await send_or_brand_help(ctx, "champions", title="Champion Help", fallback_text="Champion commands: search, abilities, info.")
 
     @champ.command(name="search")
     async def champ_search(self, ctx, *items: str):

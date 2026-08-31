@@ -79,10 +79,10 @@ class RosterPrefix(commands.Cog):
             # Not a mention/id; caller will treat as filters for invoking user
             return None, tokens
 
-    @commands.group(name="roster", send_or_brand_help=True)
+    @commands.group(name="roster")
     async def roster(self, ctx):
         """Top-level roster group help."""
-        await send_or_brand_help(ctx, "roster", title="Roster Help", fallback_text="Roster commands: add, remove, update, list, export, clear.")
+        # await send_or_brand_help(ctx, "roster", title="Roster Help", fallback_text="Roster commands: add, remove, update, list, export, clear.")
 
     # -----------------------------
     # List (filters)

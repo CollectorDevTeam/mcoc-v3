@@ -87,7 +87,7 @@ class AccountPrefix(commands.Cog):
     # -----------------------------
     # Group and aliases
     # -----------------------------
-    @commands.group(name="account", aliases=["profile"], invoke_without_command=True)
+    @commands.group(name="account", aliases=["profile"])
     async def account(self, ctx, member: Optional[Any] = None):
         """
         Top-level account command.
@@ -97,13 +97,13 @@ class AccountPrefix(commands.Cog):
             # redirect to profile display
             await self.account_profile(ctx, member=member)
             return
-        await send_or_brand_help(ctx, "account", title="Account commands", fallback_text="Account commands: info, profile, set, link, unlink, delete, privacy.")
+        # await send_or_brand_help(ctx, "account", title="Account commands", fallback_text="Account commands: info, profile, set, link, unlink, delete, privacy.")
         return
 
     @account.command(name="help")
     async def account_help(self, ctx):
         """Show account help and allowed fields (attractive embed)."""
-        await send_or_brand_help(ctx, "account", title="Account Help", fallback_text="Use ///account <subcommand> for account management.")
+        # await send_or_brand_help(ctx, "account", title="Account Help", fallback_text="Use ///account <subcommand> for account management.")
         if not await self._require_parent(ctx):
             return
         prefix = get_runtime_prefix(ctx, default="///")

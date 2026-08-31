@@ -51,12 +51,12 @@ class MCOCAdminPrefix(commands.Cog):
 
     # ADMIN COMMANDS GROUP
     @commands.is_owner()
-    @commands.group(name="mcocadmin", send_or_brand_help=True)
+    @commands.group(name="mcocadmin")
     async def mcocadmin(self, ctx, *args):
         """Admin commands for MCOC (development / fallback)."""
-        if not args:
-            # show help for this group
-            await send_or_brand_help(ctx, "mcocadmin", title="MCOC Admin Help", fallback_text="Admin commands for MCOC (development / fallback).")
+        # if not args:
+        #     # show help for this group
+        #     await send_or_brand_help(ctx, "mcocadmin", title="MCOC Admin Help", fallback_text="Admin commands for MCOC (development / fallback).")
 
     # -------------------------
     # Owner-only utilities
