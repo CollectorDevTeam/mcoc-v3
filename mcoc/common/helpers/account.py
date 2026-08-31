@@ -19,6 +19,7 @@ import logging
 import datetime
 import re
 import asyncio
+import uuid
 
 from mcoc.common.componentsV2 import CDTEmbed
 
@@ -835,20 +836,37 @@ async def accept_consent(parent: Any, user_id: int, *, policy_key: str = "privac
 
 async def decline_consent(parent: Any, user_id: int) -> Tuple[bool, str]:
     """
-    Called when a user declines consent. We do not create a profile or persist personal data.
+    Called when a user declines consent. Do not overwrite an existing consent True.
     Returns (ok, message).
     """
     try:
+        # Read current profile to avoid clobbering an existing consent
+        try:
+            users = _ensure_user_manager_from_parent(parent)
+            prof = users.get_profile(user_id) if users and hasattr(users, "get_profile") else {}
+        except Exception:
+            prof = {}
+
+        if prof and bool(prof.get("consent")):
+            log.info("consent:decline_ignored_existing_consent user=%s", user_id)
+            return True, "You previously gave consent; decline ignored to avoid accidental overwrite."
+
         # privacy-first: do not persist personal data on decline.
         try:
             set_profile_field(parent, user_id, "consent", False)
+            # Clear consent metadata to be explicit
+            set_profile_field(parent, user_id, "consent_ts", None)
+            set_profile_field(parent, user_id, "consent_version", None)
+            set_profile_field(parent, user_id, "consent_source", None)
         except Exception:
-            pass
+            log.exception("consent:decline_write_failed user=%s", user_id)
+
         log.info("consent:declined user=%s", user_id)
         return True, "You have declined. No profile was created and no personal data was stored."
     except Exception:
         log.exception("decline_consent failed for %s", user_id)
         return False, "Failed to process your response. Please try again later."
+
 
 
 async def revoke_consent(parent: Any, user_id: int) -> Tuple[bool, str]:
@@ -908,49 +926,51 @@ async def prompt_user_for_consent(parent: Any, ctx_or_author: Any, user_id: int,
             emb = None
 
         # Try branded Confirm view from componentsV2
+        # inside prompt_user_for_consent(...)
+        prompt_id = str(uuid.uuid4())[:8]
+        log.info("consent:prompt_start user=%s prompt_id=%s", user_id, prompt_id)
+
+        # create one view instance
         try:
             from mcoc.common.componentsV2 import CDTConfirm as _CDTConfirm  # type: ignore
             view = _CDTConfirm(timeout=timeout, confirm_label="Agree", cancel_label="Decline")
-
-            # Prefer DM: try to DM once
             sent_via = None
-            try:
-                # ctx_or_author may be a Context or an author-like object
-                target = None
-                if hasattr(ctx_or_author, "author"):
-                    target = ctx_or_author.author
-                elif hasattr(ctx_or_author, "send"):
-                    # ctx is a Context; prefer DM to ctx.author
-                    target = getattr(ctx_or_author, "author", None)
-                else:
-                    target = getattr(ctx_or_author, "author", None)
 
+            # Prefer DM once
+            try:
+                target = getattr(ctx_or_author, "author", None) or getattr(ctx_or_author, "author", None)
                 if target and hasattr(target, "send"):
                     await target.send(embed=emb, view=view)
                     sent_via = "DM"
             except Exception:
                 sent_via = None
 
-            # If DM failed, send once in-channel (only one send total)
-            if not sent_via:
+            # If DM failed, send once in-channel
+            if not sent_via and hasattr(ctx_or_author, "send"):
                 try:
-                    if hasattr(ctx_or_author, "send"):
-                        await ctx_or_author.send(embed=emb, view=view)
-                        sent_via = "channel"
+                    await ctx_or_author.send(embed=emb, view=view)
+                    sent_via = "channel"
                 except Exception:
                     sent_via = None
 
-            log.info("consent:prompt_shown user=%s via=%s", user_id, sent_via or "none")
+            log.info("consent:prompt_shown user=%s prompt_id=%s via=%s", user_id, prompt_id, sent_via or "none")
+
+            # wait for result
             result = await view.wait_result()
-            if result:
+            log.info("consent:prompt_result user=%s prompt_id=%s result=%s", user_id, prompt_id, result)
+
+            if result is True:
                 ok, msg = await accept_consent(parent, user_id, policy_key="privacy_policy")
                 return ok, msg
-            else:
+            elif result is False:
                 ok, msg = await decline_consent(parent, user_id)
                 return ok, msg
-
+            else:
+                log.info("consent:prompt_timeout user=%s prompt_id=%s", user_id, prompt_id)
+                return False, "Consent prompt timed out."
         except Exception:
-            log.debug("CDTConfirm not available; falling back to text consent flow for user=%s", user_id)
+            log.exception("CDTConfirm not available or failed for user=%s prompt_id=%s", user_id, prompt_id)
+            # fallback to text flow...
 
         # Text fallback
         fallback_msg = (
