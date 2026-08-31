@@ -279,10 +279,10 @@ def compute_top5_from_profile(profile: Dict[str, Any]) -> Tuple[List[str], Optio
         total = sum(v for _, v in items) if items else None
         average = total / len(items) if items else None
         average_rounded = round(average, 0) if average is not None else None
-        return top5_lines, total, average_rounded
+        return top5_lines, average_rounded
     except Exception:
         log.exception("compute_top5_from_profile failed")
-        return [], None, None
+        return [], None
 
 
 def compute_top5_from_roster(parent: Any, roster: List[Dict[str, Any]], profile: Dict[str, Any]) -> Tuple[List[str], Optional[int]]:
