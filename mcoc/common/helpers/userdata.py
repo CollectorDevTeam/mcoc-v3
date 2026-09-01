@@ -261,6 +261,7 @@ class UserDataManager:
         if not profile.get("created_at"):
             profile["created_at"] = profile["updated_at"]
         self._save(user_id, data)
+        log.info("userdata.set_profile_field: user=%s field=%s value=%r", user_id, field, value)
 
     def delete_profile(self, user_id: int) -> bool:
         # alias for delete_user

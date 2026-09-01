@@ -184,16 +184,20 @@ def _ensure_user_manager_from_parent(parent: Any):
 
 
 def get_profile(parent: Any, user_id: int) -> Dict[str, Any]:
+    raw = {}
     try:
         users = _ensure_user_manager_from_parent(parent)
         if not users:
             return {}
-        if hasattr(users, "get_profile"):
-            return users.get_profile(user_id) or {}
-        return {}
+        raw = users.get_profile(user_id) or {}
     except Exception:
         log.exception("get_profile failed for %s", user_id)
         return {}
+    # If userdata manager returned full userdata, extract profile
+    if isinstance(raw, dict) and "profile" in raw and isinstance(raw.get("profile"), dict):
+        return raw.get("profile", {})
+    return raw
+
 
 
 def set_profile_field(parent: Any, user_id: int, field: str, value: Any) -> bool:
@@ -616,6 +620,117 @@ def _record_consent(parent: Any, user_id: int, *, version: str, source: str) -> 
     except Exception:
         log.exception("_record_consent failed for %s", user_id)
         return False
+# --- add near the bottom of mcoc/common/account.py ---
+
+def user_has_consented(parent: Any, user_id: int) -> bool:
+    """
+    Return True if the stored profile indicates consent.
+    Defensive: handles both module-level userdata shape and plain profile dict.
+    """
+    try:
+        profile = get_profile(parent, user_id) or {}
+        # If get_profile returned a full userdata dict, extract 'profile'
+        if isinstance(profile, dict) and "profile" in profile and isinstance(profile.get("profile"), dict):
+            profile = profile.get("profile", {})
+        consent = profile.get("consent")
+        log.info("user_has_consented: user=%s consent=%s", user_id, bool(consent))
+        return bool(consent)
+    except Exception:
+        log.exception("user_has_consented check failed for %s", user_id)
+        return False
+
+
+async def enroll_command_handler(parent: Any, ctx: Any, user_id: int) -> Tuple[bool, str]:
+    """
+    Start an enrollment/consent prompt. Returns (ok, message).
+    Uses CDTConfirm when available; falls back to DM text prompt.
+    """
+    try:
+        version = POLICY_METADATA["privacy_policy"]["version"]
+        source = POLICY_METADATA["privacy_policy"]["url"]
+        prompt_text = (
+            "To enroll, please review our policies:\n"
+            f"Privacy Policy: {source}\n"
+            f"Terms of Service: {POLICY_METADATA['terms_of_service']['url']}\n\n"
+            "If you agree, type: ///account agree\n"
+            "If you decline, type: ///account decline\n"
+        )
+
+        # Try CDTConfirm if available
+        try:
+            view = CDTConfirm(timeout=60.0, confirm_label="Agree", cancel_label="Decline")
+            dm = None
+            try:
+                dm = await ctx.author.create_dm()
+            except Exception:
+                dm = None
+            send_target = dm or ctx
+            await send_target.send(prompt_text, view=view)
+            log.info("consent:prompt_shown user=%s via=%s (CDTConfirm)", user_id, "DM" if dm else "channel")
+
+            async def _wait_and_record():
+                try:
+                    res = await view.wait_result()
+                    if res is True:
+                        ok = _record_consent(parent, user_id, version=version, source=source)
+                        log.info("consent:accepted user=%s ok=%s", user_id, ok)
+                    elif res is False:
+                        set_profile_field(parent, user_id, "consent", False)
+                        set_profile_field(parent, user_id, "consent_ts", datetime.datetime.utcnow().isoformat())
+                        log.info("consent:declined user=%s", user_id)
+                except Exception:
+                    log.exception("enroll_command_handler: error waiting for CDTConfirm result for user=%s", user_id)
+
+            try:
+                loop = asyncio.get_running_loop()
+                loop.create_task(_wait_and_record())
+            except RuntimeError:
+                asyncio.ensure_future(_wait_and_record())
+
+            return True, "Enrollment prompt sent."
+        except Exception:
+            log.debug("CDTConfirm not available; falling back to text prompt", exc_info=True)
+
+        # Fallback: plain text DM or channel
+        try:
+            dm = None
+            try:
+                dm = await ctx.author.create_dm()
+            except Exception:
+                dm = None
+            send_target = dm or ctx
+            await send_target.send(prompt_text)
+            log.info("consent:prompt_shown user=%s via=%s (text)", user_id, "DM" if dm else "channel")
+            return True, "Enrollment prompt sent."
+        except Exception:
+            log.exception("enroll_command_handler: failed to send prompt to user=%s", user_id)
+            return False, "Failed to send enrollment prompt."
+    except Exception:
+        log.exception("enroll_command_handler unexpected error for user=%s", user_id)
+        return False, "Failed to start enrollment."
+
+
+async def handle_consent_response(parent: Any, ctx: Any, user_id: int, agree: bool) -> Tuple[bool, str]:
+    """
+    Record a typed consent response (///account agree or ///account decline).
+    """
+    try:
+        version = POLICY_METADATA["privacy_policy"]["version"]
+        source = POLICY_METADATA["privacy_policy"]["url"]
+        if agree:
+            ok = _record_consent(parent, user_id, version=version, source=source)
+            if ok:
+                return True, "Consent recorded. Thank you."
+            return False, "Failed to record consent."
+        else:
+            # record explicit decline
+            set_profile_field(parent, user_id, "consent", False)
+            set_profile_field(parent, user_id, "consent_ts", datetime.datetime.utcnow().isoformat())
+            log.info("consent:declined user=%s", user_id)
+            return True, "Decline recorded."
+    except Exception:
+        log.exception("handle_consent_response failed for %s", user_id)
+        return False, "Failed to record consent response."
 
 
 async def enroll_command_handler(parent: Any, ctx: Any, user_id: int) -> Tuple[bool, str]:
