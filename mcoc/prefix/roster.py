@@ -101,6 +101,31 @@ class RosterPrefix(commands.Cog):
         # No member provided: ensure parent/core available
         if not await self._require_parent(ctx):
             return
+        try:
+            if hasattr(Account, "user_has_consented"):
+                consented = Account.user_has_consented(self.parent, user_id)
+            else:
+                log.error("mcoc.common.account missing user_has_consented; defaulting to False")
+                consented = False
+        except Exception:
+            log.exception("roster: failed to check consent for %s", user_id)
+            consented = False
+
+        # when starting enrollment
+        if not consented:
+            try:
+                if hasattr(Account, "enroll_command_handler"):
+                    ok, msg = await Account.enroll_command_handler(self.parent, ctx, user_id)
+                    if not ok:
+                        log.warning("roster: enroll_command_handler reported failure for %s: %s", user_id, msg)
+                else:
+                    log.error("mcoc.common.account missing enroll_command_handler")
+                    await safe_send_ctx(ctx, "Enrollment handler unavailable; try again later.")
+                    return
+            except Exception:
+                log.exception("roster: enroll_command_handler failed for %s", user_id)
+                await safe_send_ctx(ctx, "Failed to start enrollment; try again later.")
+                return
 
         user_id = getattr(ctx.author, "id", None)
         try:
