@@ -2,9 +2,10 @@
 from dataclasses import dataclass, field, asdict
 import datetime
 import logging
+from typing import Any, Dict, List, Optional, Mapping, TypedDict, Union
 
 log = logging.getLogger("red.mcoc.types")
-from typing import Any, Dict, List, Optional, Mapping
+
 
 @dataclass
 class Champion:
@@ -81,8 +82,14 @@ def champion_from_dict(d: Optional[Mapping[str, Any]]) -> Optional[Champion]:
         log.exception("Failed to create Champion from dict: %s", d)
         return None
 
+
 @dataclass
 class UserAccount:
+    """
+    Dataclass representing the user's account/profile metadata.
+
+    This is the shape used by account helpers and persisted profile fields.
+    """
     user_id: int
     mcoc_name: Optional[str] = None
     mcoc_id: Optional[str] = None
@@ -105,7 +112,7 @@ class UserAccount:
 
     # Consent metadata
     consent: bool = False
-    consent_ts: Optional[str] = None     # ISO date YYYY-MM-DD
+    consent_ts: Optional[str] = None     # ISO date YYYY-MM-DD or full ISO
     consent_version: Optional[str] = None
     consent_source: Optional[str] = None
 
@@ -227,3 +234,62 @@ class UserAccount:
 
         # created_at / updated_at: keep as-is (caller may set)
         return cls(**kwargs)
+
+
+# -----------------------------
+# Types describing on-disk user data (UserDataManager shape)
+# -----------------------------
+class UserDataProfile(TypedDict, total=False):
+    mcoc_id: Optional[str]
+    mcoc_name: Optional[str]
+    consent: Optional[bool]
+    consent_ts: Optional[str]
+    consent_version: Optional[str]
+    consent_source: Optional[str]
+    created_at: Optional[str]
+    updated_at: Optional[str]
+    prestige_map: Dict[str, Any]
+
+
+class UserData(TypedDict):
+    user_id: str
+    roster: List[Dict[str, Any]]
+    profile: UserDataProfile
+    privacy: Dict[str, Any]
+    alliances: Dict[str, str]
+
+
+# Convenience helpers for interop between UserData (storage) and UserAccount (dataclass)
+def useraccount_from_userdata(data: Union[UserData, Dict[str, Any]]) -> UserAccount:
+    """
+    Convert a raw UserData/profile dict into a UserAccount dataclass.
+    """
+    if not isinstance(data, dict):
+        raise TypeError("useraccount_from_userdata expects a dict-like UserData")
+    profile = data.get("profile") if "profile" in data else data
+    if not isinstance(profile, dict):
+        profile = {}
+    # ensure user_id is present at top-level or in profile
+    uid = data.get("user_id") or profile.get("user_id") or profile.get("user_id")
+    if uid is None:
+        uid = 0
+    # merge top-level profile keys into a single dict for from_dict
+    merged = dict(profile)
+    merged["user_id"] = uid
+    return UserAccount.from_dict(merged)
+
+
+def userdata_from_useraccount(account: UserAccount) -> UserData:
+    """
+    Convert a UserAccount dataclass into the on-disk UserData shape (minimal).
+    Note: this produces a minimal UserData dict suitable for saving under the
+    'profile' key of the UserDataManager file.
+    """
+    profile = account.to_dict()
+    return {
+        "user_id": str(account.user_id),
+        "roster": [],
+        "profile": profile,
+        "privacy": {"mode": "private"},
+        "alliances": {},
+    }

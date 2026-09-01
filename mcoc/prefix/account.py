@@ -1,60 +1,45 @@
-# mcoc/prefix/account.py
+# mcoc/prefix/roster.py
 """
-Prefix command handlers for account/profile management.
+Prefix command handler for roster operations.
 
-This module is intentionally thin: it resolves the command context and target member (when applicable),
-delegates profile logic to mcoc.common.account helpers, and sends results using safe_send_ctx.
+Provides:
+  - roster (group)
+  - roster list
+  - roster add
+  - roster remove
+  - roster update
+  - roster export
+  - roster clear
+  - roster link
+  - roster unlink
 
-Supported commands (examples):
-  ///mcoc account set mcoc-name jjw
-  ///mcoc account set start-date Oct. 15, 2015
-  ///mcoc account set region US
-  ///mcoc account set timezone America/Chicago
-
-  ///mcoc account profile @member
-  ///mcoc account @member            -> redirects to profile
-  ///mcoc profile @member           -> alias for account profile
-
-  ///mcoc account settings         -> show saved preferences
-  ///mcoc account set              -> show attractive list of settable properties
-  ///mcoc account set mcoc-name "" -> clear the setting
+This file is defensive: it tolerates missing helpers, logs decisions, and uses
+mcoc.common.roster and mcoc.common.account where available.
 """
 
-from typing import Any, Optional, Dict
+from typing import Any, Optional, List, Tuple, Dict
 import logging
-import asyncio
-from discord.user import User
 from discord.member import Member
+from discord.user import User
 from redbot.core import commands
-
 from mcoc.common import Core
-
-from mcoc.common.prefix_utils import get_runtime_prefix, safe_send_ctx
-from mcoc.common.help_utils import send_or_brand_help
-
-CDTEmbed = Core.Embed
-CDTPagesMenu = Core.PagesMenu
-CDTConfirm = Core.Confirm
-CDTEntitlements = Core.Entitlements
-CDTHelpers = Core.Helpers
+Embed = Core.Embed
+PagesMenu = Core.PagesMenu
 Roster = Core.Helpers.roster
-Account = Core.Helpers.account
 
-log = logging.getLogger("red.mcoc.prefix.account")
+from mcoc.common.query_parser import parse_query
+from mcoc.common.prefix_utils import safe_send_ctx
+from mcoc.common.help_utils import send_or_brand_help
+from mcoc.common import account as Account  # consent helper
 
-
-# Try to import a flexible date parser from prefix_utils if available.
-# If not present, we'll store the raw string as-is.
-try:
-    from mcoc.common.prefix_utils import parse_flexible_date  # type: ignore
-except Exception:
-    parse_flexible_date = None  # type: ignore
+log = logging.getLogger("red.mcoc.prefix.roster")
 
 
-class AccountPrefix(commands.Cog):
-    """Prefix commands for user account/profile management."""
+class RosterPrefix(commands.Cog):
+    """Prefix commands for roster management (thin orchestration layer)."""
 
     def __init__(self, bot_or_parent: Any):
+        # bot_or_parent may be the core or the bot depending on how this cog is loaded
         if hasattr(bot_or_parent, "bot") and hasattr(bot_or_parent, "cache"):
             self.parent = bot_or_parent
             self.bot = bot_or_parent.bot
@@ -62,531 +47,472 @@ class AccountPrefix(commands.Cog):
             self.parent = None
             self.bot = bot_or_parent
 
-        # ensure prestige hook registered if parent available
-        try:
-            Roster._ensure_hook_registered(self.parent)
-        except Exception:
-            pass
-
     async def _require_parent(self, ctx) -> bool:
         """Ensure the core/parent is attached; send a helpful message if not."""
         if not getattr(self, "parent", None):
             core = getattr(self.bot, "mcoc_core", None) or self.bot.get_cog("MCOC")
             if core:
                 self.parent = core
-                try:
-                    Roster._ensure_hook_registered(self.parent)
-                except Exception:
-                    pass
                 return True
-            await safe_send_ctx(ctx, "MCOC core not attached; account commands unavailable.")
+            await safe_send_ctx(ctx, "MCOC core not attached; roster commands unavailable.")
             return False
         return True
 
-
+    async def _resolve_target_member(self, ctx, tokens: List[str]) -> Tuple[Optional[Any], List[str]]:
+        """
+        Resolve an optional leading mention/id token into a Member/User.
+        Returns (resolved_member_or_none, remaining_tokens_list).
+        """
+        if not tokens:
+            return None, tokens
+        first = tokens[0]
+        try:
+            if ctx.guild:
+                member = await commands.MemberConverter().convert(ctx, first)
+            else:
+                member = await commands.UserConverter().convert(ctx, first)
+            return member, tokens[1:]
+        except Exception:
+            return None, tokens
 
     # -----------------------------
-    # Group and aliases
+    # Top-level roster group
     # -----------------------------
-    @commands.group(name="account", aliases=["profile"], invoke_without_command=True)
-    async def account(self, ctx, *tokens):
-        """Top-level account command. If a member is provided, redirect to profile."""
-        # Try to resolve first token as a member
+    @commands.group(name="roster", invoke_without_command=True)
+    async def roster(self, ctx, *args):
+        """
+        Top-level roster group.
+
+        Behavior:
+          - If a member/user token is provided, redirect to roster list for that member.
+          - If no token and invoking user has not consented -> start enrollment prompt.
+          - If no token and invoking user has consented -> show roster help.
+        """
+        # Try to resolve a leading member token if present
         member = None
-        if tokens:
-            try:
-                member = await commands.MemberConverter().convert(ctx, tokens[0])
-            except Exception:
+        if args:
+            if isinstance(args[0], (Member, User)):
+                member = args[0]
+            else:
                 try:
-                    member = await commands.UserConverter().convert(ctx, tokens[0])
+                    if ctx.guild:
+                        member = await commands.MemberConverter().convert(ctx, args[0])
+                    else:
+                        member = await commands.UserConverter().convert(ctx, args[0])
                 except Exception:
                     member = None
 
-        # If a member was provided, show their profile (existing behavior)
-        if member:
-            await self.account_profile(ctx, member=member)
+        if member is not None:
+            # redirect to list display for that member
+            await self.roster_list(ctx, str(member))
             return
 
-        # No member -> decide between enrollment prompt or account help based on consent
         if not await self._require_parent(ctx):
             return
 
         user_id = getattr(ctx.author, "id", None)
+
+        # Defensive consent check
         try:
-            # Try to fetch a User dataclass first (preferred)
-            user_obj = None
-            try:
-                user_obj = Account.get_user_from_parent(self.parent, user_id)
-            except Exception:
-                user_obj = None
-
-            consented = False
-            if user_obj is not None:
-                consented = bool(getattr(user_obj, "consent", False))
+            if hasattr(Account, "user_has_consented"):
+                consented = Account.user_has_consented(self.parent, user_id)
             else:
-                # fallback: read raw profile dict
-                try:
-                    prof = Account.get_profile(self.parent, user_id) or {}
-                    consented = bool(prof.get("consent"))
-                except Exception:
-                    consented = False
+                users = Roster.ensure_user_manager(self.parent)
+                profile = users.get_profile(user_id) if users and hasattr(users, "get_profile") else {}
+                if isinstance(profile, dict) and "profile" in profile and isinstance(profile.get("profile"), dict):
+                    p = profile.get("profile", {})
+                else:
+                    p = profile if isinstance(profile, dict) else {}
+                consented = bool(p.get("consent", False))
+        except Exception:
+            log.exception("roster: consent check failed for %s", user_id)
+            consented = False
 
-            log.debug("account command invoked by %s consent=%s", user_id, consented)
+        log.debug("roster command invoked by %s consent=%s", user_id, consented)
 
-            if consented:
-                # User already consented -> show account help (no prompt)
-                await self.account_help(ctx)
-                return
-
-            # Not consented -> start enrollment flow (prompt). Use enroll_command_handler which
-            # will attempt to DM the user; send a short in-channel ack instead of duplicating the prompt.
+        if not consented:
+            # Start enrollment flow; prefer Account.enroll_command_handler if available
             try:
-                ok, msg = await Account.enroll_command_handler(self.parent, ctx, user_id)
+                if hasattr(Account, "enroll_command_handler"):
+                    ok, msg = await Account.enroll_command_handler(self.parent, ctx, user_id)
+                    if not ok:
+                        log.warning("roster: enroll_command_handler reported failure for %s: %s", user_id, msg)
+                else:
+                    # fallback minimal prompt
+                    policy_url = getattr(Account, "POLICY_METADATA", {}).get("privacy_policy", {}).get("url", "https://raw.githubusercontent.com/CollectorDevTeam/mcoc-v3/main/mcoc/privacy_policy.md")
+                    dm_text = (
+                        "To use roster features you must consent to the CollectorDevTeam privacy policy.\n\n"
+                        f"Please review the policy here: {policy_url}\n\n"
+                        "If you agree, run: ///account agree\nIf you decline, run: ///account decline"
+                    )
+                    try:
+                        await ctx.author.send(dm_text)
+                        log.info("roster: sent fallback enrollment DM to %s", user_id)
+                    except Exception:
+                        await safe_send_ctx(ctx, f"I couldn't DM you. Please review the privacy policy: {policy_url}")
+                        log.info("roster: fallback enrollment message sent in-channel for %s", user_id)
             except Exception:
-                log.exception("account: enroll_command_handler failed for %s", user_id)
+                log.exception("roster: enroll_command_handler failed for %s", user_id)
                 await safe_send_ctx(ctx, "Failed to start enrollment; try again later.")
                 return
 
-            # enroll_command_handler already attempted to DM or send the prompt.
-            # Send a short in-channel acknowledgement to avoid duplicating the full prompt.
             try:
-                # Prefer a small ephemeral-style ack if ctx supports it; otherwise send a short message.
+                await ctx.tick()
+            except Exception:
                 try:
-                    await ctx.tick()
-                except Exception:
                     await safe_send_ctx(ctx, "I've sent you enrollment instructions (DM or channel).")
-            except Exception:
-                # final fallback: send the message returned (may be text fallback)
-                try:
-                    await safe_send_ctx(ctx, msg)
                 except Exception:
-                    log.exception("account: failed to acknowledge enrollment prompt for %s", user_id)
+                    log.exception("roster: failed to acknowledge enrollment prompt for %s", user_id)
             return
 
-        except Exception:
-            log.exception("account group invoke failed for %s", getattr(ctx.author, "id", "<unknown>"))
-            # fallback to showing help if something goes wrong
-            await self.account_help(ctx)
-            return
-
-    @account.command(name="help")
-    async def account_help(self, ctx):
-        """Show account help and allowed fields (attractive embed)."""
-        # await send_or_brand_help(ctx, "account", title="Account Help", fallback_text="Use ///account <subcommand> for account management.")
-        if not await self._require_parent(ctx):
-            return
-        prefix = get_runtime_prefix(ctx, default="///")
-
-        # Build an attractive embed listing settable fields with short descriptions and examples
+        # consented -> show roster help
         try:
-            emb = CDTEmbed.embed(ctx.author, title="Account Settings — What you can set", description="Set your public profile fields. Use `///mcoc account set <field> <value>` to update. Use an empty string `\"\"` to clear a value.", footer_text=f"Examples: {prefix}mcoc account set mcoc-name jjw • {prefix}mcoc account set start-date \"Oct. 15, 2015\"")
+            await send_or_brand_help(ctx, "roster", title="Roster Help", fallback_text="Roster commands: list, add, remove, update, export, clear, link, unlink.")
         except Exception:
-            # fallback simple embed construction
+            log.exception("roster: failed to show roster help for %s", user_id)
             try:
-                emb = CDTEmbed.embed(ctx.author, title="Account Settings — What you can set")
-            except Exception:
-                emb = None
-
-        # If we have an embed object, add fields in a compact, attractive layout
-        if emb is not None:
-            # group fields into categories for readability
-            def add_field_list(name, keys):
-                lines = []
-                for k in keys:
-                    meta = Account.ALLOWED_PROFILE_FIELDS.get(k) or {}
-                    desc = meta.get("desc", "") if isinstance(meta, dict) else str(meta)
-                    # show canonical key exactly as users must type it
-                    lines.append(f"**{k}** — {desc}")
-                try:
-                    CDTEmbed.add_field(ctx.author, emb, name=name, value="\n".join(lines), inline=False)
-                except Exception:
-                    pass
-
-            # Choose groups using canonical keys present in ALLOWED_PROFILE_FIELDS
-            personal = [k for k in ("display_name", "mcoc_name", "mcoc_id", "about", "website", "invite") if k in Account.ALLOWED_PROFILE_FIELDS]
-            meta = [k for k in ("alliance", "job", "timezone", "region", "age", "gender", "started") if k in Account.ALLOWED_PROFILE_FIELDS]
-            privacy = [k for k in ("roster_public", "privacy_mode", "linked") if k in Account.ALLOWED_PROFILE_FIELDS]
-
-            add_field_list("Personal", personal)
-            add_field_list("Meta / Play", meta)
-            add_field_list("Privacy / Flags", privacy)
-
-            # Examples: use canonical keys (map user-visible aliases to canonical via FIELD_CANONICAL if needed)
-            examples = [
-                f"`{prefix}account set mcoc_name \"jjw\"`",
-                f"`{prefix}account set started \"2015-10-15\"`",
-                f"`{prefix}account set timezone \"America/Chicago\"`",
-                f"`{prefix}account set region \"US\"`",
-            ]
-            try:
-                CDTEmbed.add_field(ctx.author, emb, name="Quick examples", value="\n".join(examples), inline=False)
+                await safe_send_ctx(ctx, "Roster commands: list, add, remove, update, export, clear, link, unlink.")
             except Exception:
                 pass
-
-
-            try:
-                await safe_send_ctx(ctx, None, embed=emb)
-                return
-            except Exception:
-                # fall through to text fallback
-                pass
-
-        # Text fallback (readable)
-        lines = ["Account fields you can set:"]
-        for field, meta in Account.ALLOWED_PROFILE_FIELDS.items():
-            desc = meta.get("desc") if isinstance(meta, dict) else str(meta)
-            lines.append(f"- **{field}**: {desc}")
-        lines.append("")
-        lines.append("Examples:")
-        lines.append(f"- `{prefix}mcoc account set mcoc-name jjw`")
-        lines.append(f"- `{prefix}mcoc account set start-date \"Oct. 15, 2015\"`")
-        lines.append(f"- `{prefix}mcoc account set timezone \"America/Chicago\"`")
-        await safe_send_ctx(ctx, "\n".join(lines))
+            return
 
     # -----------------------------
-    # Profile display
+    # List (filters)
     # -----------------------------
-    @account.command(name="profile")
-    async def account_profile(self, ctx, member: Optional[Any] = None):
+    @roster.command(name="list")
+    async def roster_list(self, ctx, *items: str):
         """
-        Show a branded profile embed for a member (or yourself if omitted).
+        List roster entries for a user (or yourself) with optional filters.
         """
         if not await self._require_parent(ctx):
             return
 
-        # resolve target id
+        tokens = list(items or [])
+        target_member, tokens = await self._resolve_target_member(ctx, tokens)
+        if target_member is None:
+            target_member = ctx.author
+
+        items_text = " ".join(tokens).strip()
+
+        users = Roster.ensure_user_manager(self.parent)
         try:
-            if member is None:
-                target_id = ctx.author.id
-            else:
-                target_id = getattr(member, "id", None)
-                if target_id is None:
-                    s = str(member).strip()
-                    s = s.strip("<@!>")
-                    target_id = int(s)
-            target_id = int(target_id)
+            profile = users.get_profile(target_member.id) if users and hasattr(users, "get_profile") else {}
         except Exception:
-            await safe_send_ctx(ctx, "Invalid user specified.")
-            return
+            profile = {}
 
-        # build display via common.account helper
-        try:
-            # viewer id for privacy checks
-            viewer_id = getattr(ctx.author, "id", None)
-            emb, text = Account.build_profile_display(self.parent, ctx, target_id, viewer_id=viewer_id, prefer_embed=True)
-            if emb is not None:
-                await safe_send_ctx(ctx, None, embed=emb)
-                return
-            if text:
-                await safe_send_ctx(ctx, text)
-                return
-            await safe_send_ctx(ctx, "No profile available.")
-        except Exception:
-            log.exception("Failed to build profile display for %s", target_id)
-            await safe_send_ctx(ctx, "Failed to display profile.")
-
-    # Shortcut: ///mcoc account (with member) already handled by group invoke_without_command
-    @account.command(name="settings")
-    async def account_settings(self, ctx):
-        """Show your current saved profile settings (raw values; pretty formatting happens in profile display)."""
-        if not await self._require_parent(ctx):
-            return
-
-        try:
-            users = Roster.ensure_user_manager(self.parent)
-            profile = users.get_profile(ctx.author.id) or {}
-            settings = Account.get_profile_settings(profile)
-
-            # Build an embed with raw values (do not prettify 'started' here)
-            emb = None
+        # privacy enforcement
+        if target_member.id != ctx.author.id:
             try:
-                emb = CDTEmbed.embed(ctx.author, title="Your Account Settings", description="Current saved preferences (raw values)")
+                if users and hasattr(users, "can_view_profile"):
+                    allowed = users.can_view_profile(ctx.author.id, target_member.id, guild_id=getattr(ctx.guild, "id", None))
+                    if not allowed:
+                        await safe_send_ctx(ctx, "You do not have permission to view that roster.")
+                        return
+                else:
+                    if profile.get("public_roster") is False:
+                        await safe_send_ctx(ctx, "That user's roster is private.")
+                        return
             except Exception:
-                emb = None
+                await safe_send_ctx(ctx, "You do not have permission to view that roster.")
+                return
 
-            if emb is not None:
-                # Add each setting; convert None -> "Not set"
-                for key, val in settings.items():
+        cache = getattr(self.parent, "cache", None)
+        try:
+            entries, filters = parse_query(items_text, cache=cache)
+        except Exception:
+            entries, filters = [], {}
+
+        parsed_filters = {}
+        if entries:
+            parsed_filters["explicit_entries"] = entries
+        if isinstance(filters, dict):
+            parsed_filters.update(filters)
+
+        # Try to get a ready pager first
+        try:
+            pager = None
+            try:
+                pager = await Roster.make_roster_pager(self.parent, ctx, raw_input=items_text, target_token=None, parsed_filters=parsed_filters)
+            except TypeError:
+                pager = None
+            except Exception:
+                pager = None
+
+            if pager is not None:
+                try:
                     try:
-                        display = "Not set" if val is None else str(val)
-                        # Correct CDTEmbed.add_field signature: (ctx_or_author, emb, name, value, inline)
-                        CDTEmbed.add_field(ctx.author, emb, name=key.replace("_", " ").title(), value=display, inline=True)
+                        brand_view = Embed.brand_view()
+                        if hasattr(pager, "add_item"):
+                            for item in getattr(brand_view, "children", []):
+                                try:
+                                    pager.add_item(item)
+                                except Exception:
+                                    continue
                     except Exception:
-                        # Skip problematic fields but continue building the embed
-                        continue
-                try:
-                    await safe_send_ctx(ctx, None, embed=emb)
+                        pass
+                    await pager.start(ctx)
                     return
                 except Exception:
-                    # fall through to text fallback if sending embed fails
-                    pass
+                    log.exception("Failed to start pager returned by make_roster_pager; falling back to pages")
 
-            # Text fallback (readable)
-            lines = ["Your settings (raw values):"]
-            for k, v in settings.items():
-                lines.append(f"- **{k}**: {v if v is not None else 'Not set'}")
-            await safe_send_ctx(ctx, "\n".join(lines))
-            return
+            pages = await Roster.get_roster_pages(self.parent, target_member, parsed_filters=parsed_filters)
+
+            if not pages:
+                try:
+                    await ctx.send(embed=Embed.Embed.embed(target_member, title="Roster", description="No roster entries match your filters."))
+                except Exception:
+                    await safe_send_ctx(ctx, "No roster entries match your filters.")
+                return
+
+            try:
+                pager = PagesMenu(pages, author=ctx.author)
+                try:
+                    brand_view = Embed.brand_view()
+                    if hasattr(pager, "add_item"):
+                        for item in getattr(brand_view, "children", []):
+                            try:
+                                pager.add_item(item)
+                            except Exception:
+                                continue
+                except Exception:
+                    pass
+                await pager.start(ctx)
+                return
+            except Exception:
+                log.exception("Failed to instantiate/start PagesMenu; falling back to sending first embed")
+                try:
+                    first = pages[0]
+                    await ctx.send(embed=first)
+                    return
+                except Exception:
+                    try:
+                        titles = []
+                        for p in pages[:50]:
+                            t = getattr(p, "title", None) if not isinstance(p, dict) else p.get("title")
+                            titles.append(t or "Entry")
+                        await ctx.send(f"Matches ({len(pages)}): {', '.join(titles)}")
+                        return
+                    except Exception:
+                        await safe_send_ctx(ctx, "Failed to display roster pages.")
+                        return
 
         except Exception:
-            log.exception("Failed to fetch settings")
-            await safe_send_ctx(ctx, "Failed to fetch settings.")
+            log.exception("Unexpected error in roster_list")
+            await safe_send_ctx(ctx, "An unexpected error occurred while building roster pages.")
+            return
 
     # -----------------------------
-    # Set a profile field
+    # Add
     # -----------------------------
-    @account.command(name="set")
-    async def account_set(self, ctx, field: Optional[str] = None, *, value: Optional[str] = None):
+    @roster.command(name="add")
+    async def roster_add(self, ctx, *, text: str):
         """
-        Set a profile field. Use an empty string "" to clear a setting.
-
-        Examples:
-          ///mcoc account set mcoc-name jjw
-          ///mcoc account set start-date "Oct 15, 2015"
-          ///mcoc account set timezone "America/Chicago"
-          ///mcoc account set mcoc-name ""
+        Add one or more champions to your roster.
+        Example: ///roster add 7* ironman r1 s0, 6* colossus r1 s0
         """
         if not await self._require_parent(ctx):
             return
+        user_id = getattr(ctx.author, "id", None)
+        users = Roster.ensure_user_manager(self.parent)
+        cache = getattr(self.parent, "cache", None)
 
-        # If no args, show the attractive settable fields help
-        if not field:
-            await self.account_help(ctx)
+        try:
+            entries = Roster.parse_roster_entries_from_input(text, cache)
+        except Exception as exc:
+            log.debug("roster_add: parse failed: %s", exc)
+            await safe_send_ctx(ctx, f"Failed to parse entries: {exc}")
             return
 
-        field = (field or "").strip()
-        # normalize common aliases (allow hyphens and underscores)
-        field_raw = (field or "").strip()
-        canonical_field = field_raw.replace("-", "_").lower()
-        # map user-visible names to stored keys if present
-        stored_key = Account.FIELD_CANONICAL.get(canonical_field, canonical_field)
+        added = 0
+        for e in entries:
+            try:
+                users.add_champion(user_id, e["champion"], int(e["rarity"]), int(e["rank"]), int(e.get("sig", 0)), int(e.get("ascended", 0)), tags=e.get("tags", []))
+                added += 1
+            except Exception:
+                log.exception("roster_add: failed to add %s for %s", e, user_id)
+                continue
 
-        # validate against allowed fields (use canonical stored_key)
-        if stored_key not in Account.ALLOWED_PROFILE_FIELDS and not Account.validate_profile_field(canonical_field):
-            allowed = ", ".join(sorted(Account.ALLOWED_PROFILE_FIELDS.keys()))
-            await safe_send_ctx(ctx, f"Invalid field. Allowed fields: {allowed}\nTip: common aliases: `mcoc-name` -> `mcoc_name`, `start-date` -> `started`")
+        # schedule prestige persistence if helper available
+        try:
+            Roster.schedule_persist_user_prestige(self.parent, user_id)
+        except Exception:
+            log.debug("roster_add: schedule_persist_user_prestige not available or failed", exc_info=True)
+
+        await safe_send_ctx(ctx, f"Added {added} champion(s) to your roster.")
+
+    # -----------------------------
+    # Remove
+    # -----------------------------
+    @roster.command(name="remove")
+    async def roster_remove(self, ctx, *, text: str):
+        """
+        Remove champions from your roster. Accepts same parsing as add.
+        Example: ///roster remove ironman7, colossus6
+        """
+        if not await self._require_parent(ctx):
+            return
+        user_id = getattr(ctx.author, "id", None)
+        users = Roster.ensure_user_manager(self.parent)
+        cache = getattr(self.parent, "cache", None)
+
+        try:
+            entries = Roster.parse_roster_entries_from_input(text, cache)
+        except Exception as exc:
+            log.debug("roster_remove: parse failed: %s", exc)
+            await safe_send_ctx(ctx, f"Failed to parse entries: {exc}")
             return
 
-        # allow clearing with explicit empty string
-        if value is None:
-            await safe_send_ctx(ctx, f"No value provided. To clear a field use `{get_runtime_prefix(ctx, default='///')}mcoc account set {field} \"\"`.")
-            return
+        removed = 0
+        for e in entries:
+            try:
+                count = users.remove_champion(user_id, e["champion"], int(e["rarity"]))
+                removed += int(count or 0)
+            except Exception:
+                log.exception("roster_remove: failed to remove %s for %s", e, user_id)
+                continue
 
-        # interpret empty string as clear
-        if value == "" or value.strip() == '""':
-            new_val = None
-        else:
-            new_val = value.strip()
-
-        # special handling for some fields
-        if canonical_field in ("start_date", "started", "start-date", "startdate"):
-            # try flexible date parsing if available
-            if new_val is None:
-                parsed_date = None
-            elif parse_flexible_date:
-                try:
-                    parsed_date = parse_flexible_date(new_val)
-                    # store ISO date string if parse succeeded
-                    new_val = parsed_date.isoformat() if parsed_date else new_val
-                except Exception:
-                    # fallback to raw string
-                    pass
-        if canonical_field == "timezone":
-            # no validation here; store raw string (caller may validate later)
+        try:
+            Roster.schedule_persist_user_prestige(self.parent, user_id)
+        except Exception:
             pass
 
-        # persist via common.account helper
+        await safe_send_ctx(ctx, f"Removed {removed} champion(s) from your roster.")
+
+    # -----------------------------
+    # Update
+    # -----------------------------
+    @roster.command(name="update")
+    async def roster_update(self, ctx, *, text: str):
+        """
+        Update a champion entry. Use harg token with rank/sig/ascended.
+        Example: ///roster update ironman7 r2 s1
+        """
+        if not await self._require_parent(ctx):
+            return
+        user_id = getattr(ctx.author, "id", None)
+        users = Roster.ensure_user_manager(self.parent)
+        cache = getattr(self.parent, "cache", None)
+
         try:
-            ok = Account.set_profile_field(self.parent, ctx.author.id, stored_key, new_val)
+            entries = Roster.parse_roster_entries_from_input(text, cache)
+        except Exception as exc:
+            log.debug("roster_update: parse failed: %s", exc)
+            await safe_send_ctx(ctx, f"Failed to parse update token: {exc}")
+            return
+
+        updated = 0
+        for e in entries:
+            try:
+                ok = users.update_champion(user_id, e["champion"], int(e["rarity"]), rank=int(e.get("rank", 1)), sig=int(e.get("sig", 0)), ascended=int(e.get("ascended", 0)), tags=e.get("tags", []))
+                if ok:
+                    updated += 1
+            except Exception:
+                log.exception("roster_update: failed to update %s for %s", e, user_id)
+                continue
+
+        try:
+            Roster.schedule_persist_user_prestige(self.parent, user_id)
+        except Exception:
+            pass
+
+        await safe_send_ctx(ctx, f"Updated {updated} champion(s) in your roster.")
+
+    # -----------------------------
+    # Export
+    # -----------------------------
+    @roster.command(name="export")
+    async def roster_export(self, ctx):
+        """
+        Export your full user data (profile + roster) as JSON text in DM.
+        """
+        if not await self._require_parent(ctx):
+            return
+        user_id = getattr(ctx.author, "id", None)
+        users = Roster.ensure_user_manager(self.parent)
+        try:
+            data = users.export(user_id)
+            # send as DM (avoid large attachments); present compact summary in-channel
+            try:
+                await ctx.author.send("Your exported profile and roster (JSON):")
+                await ctx.author.send(str(data))
+                await safe_send_ctx(ctx, "I've DM'd your exported profile and roster.")
+            except Exception:
+                await safe_send_ctx(ctx, "Failed to DM you the export. If you have DMs disabled, enable them and try again.")
+        except Exception:
+            log.exception("roster_export failed for %s", user_id)
+            await safe_send_ctx(ctx, "Failed to export your data.")
+
+    # -----------------------------
+    # Clear
+    # -----------------------------
+    @roster.command(name="clear")
+    async def roster_clear(self, ctx, confirm: Optional[str] = None):
+        """
+        Clear your roster entirely. Requires explicit 'confirm' token to proceed.
+        Example: ///roster clear CONFIRM
+        """
+        if not await self._require_parent(ctx):
+            return
+        user_id = getattr(ctx.author, "id", None)
+        if not confirm or confirm.lower() not in ("confirm", "yes", "i confirm", "confirm-clear"):
+            await safe_send_ctx(ctx, "This will delete your roster. To proceed, run: ///roster clear confirm")
+            return
+        users = Roster.ensure_user_manager(self.parent)
+        try:
+            # replace with empty roster and persist
+            data = users._load(user_id) if hasattr(users, "_load") else users.export(user_id)
+            if isinstance(data, dict):
+                data["roster"] = []
+                users._save(user_id, data) if hasattr(users, "_save") else users.import_data(user_id, data)
+            await safe_send_ctx(ctx, "Your roster has been cleared.")
+            try:
+                Roster.schedule_persist_user_prestige(self.parent, user_id)
+            except Exception:
+                pass
+        except Exception:
+            log.exception("roster_clear failed for %s", user_id)
+            await safe_send_ctx(ctx, "Failed to clear your roster.")
+
+    # -----------------------------
+    # Link / Unlink
+    # -----------------------------
+    @roster.command(name="link")
+    async def roster_link(self, ctx, mcoc_id: str):
+        """
+        Link your Discord account to an in-game id.
+        Example: ///roster link my_mcoc_id
+        """
+        if not await self._require_parent(ctx):
+            return
+        user_id = getattr(ctx.author, "id", None)
+        try:
+            ok, msg = Account.link_account(self.parent, user_id, mcoc_id)
             if ok:
-                if new_val is None:
-                    await safe_send_ctx(ctx, f"Cleared **{field}**.")
-                else:
-                    await safe_send_ctx(ctx, f"Set **{field}** to `{new_val}`.")
-            else:
-                await safe_send_ctx(ctx, "Failed to update profile. Try again later.")
-        except Exception:
-            log.exception("Failed to set profile field %s for %s", stored_key, ctx.author.id)
-            await safe_send_ctx(ctx, "Failed to update profile. Try again later.")
-
-    # -----------------------------
-    # Link / unlink / delete
-    # -----------------------------
-    @account.command(name="link")
-    async def account_link(self, ctx, mcoc_id: Optional[str] = None):
-        """Link your Discord account to an in-game account. Example: ///mcoc account link 123456789"""
-        if not await self._require_parent(ctx):
-            return
-        if mcoc_id is None:
-            prefix = get_runtime_prefix(ctx, default="///")
-            await safe_send_ctx(ctx, f"Usage: `{prefix}mcoc account link <mcoc_id>`")
-            return
-        try:
-            ok, msg = Account.link_account(self.parent, ctx.author.id, str(mcoc_id).strip())
-            await safe_send_ctx(ctx, msg)
-        except Exception:
-            log.exception("Failed to link account")
-            await safe_send_ctx(ctx, "Failed to link account. Try again later.")
-
-    @account.command(name="unlink")
-    async def account_unlink(self, ctx):
-        """Unlink your in-game account from your Discord profile."""
-        if not await self._require_parent(ctx):
-            return
-        try:
-            ok, msg = Account.unlink_account(self.parent, ctx.author.id)
-            await safe_send_ctx(ctx, msg)
-        except Exception:
-            log.exception("Failed to unlink account")
-            await safe_send_ctx(ctx, "Failed to unlink account. Try again later.")
-
-    @account.command(name="delete")
-    async def account_delete(self, ctx):
-        """Delete your user data file. This is irreversible."""
-        if not await self._require_parent(ctx):
-            return
-        try:
-            view = CDTConfirm(timeout=20.0, confirm_label="Yes", cancel_label="No")
-            await ctx.send("Are you sure you want to delete your profile and roster? Click Yes to confirm.", view=view)
-            confirmed = await view.wait_result()
-            if not confirmed:
-                await safe_send_ctx(ctx, "Deletion cancelled.")
-                return
-            ok, msg = Account.delete_user_profile(self.parent, ctx.author.id)
-            await safe_send_ctx(ctx, msg)
-        except Exception:
-            log.exception("Failed to delete user data")
-            await safe_send_ctx(ctx, "Failed to delete profile.")
-
-    # -----------------------------
-    # Enrollment / consent text fallbacks
-    # -----------------------------
-    @account.command(name="agree")
-    async def account_agree(self, ctx):
-        """
-        Text fallback to agree to the privacy policy (///account agree).
-        """
-        if not await self._require_parent(ctx):
-            return
-        user_id = ctx.author.id
-        try:
-            ok, msg = await Account.account_agree_command(self.parent, ctx, user_id)
-            try:
-                await ctx.author.send(msg)
-                try:
-                    await ctx.tick()
-                except Exception:
-                    pass
-            except Exception:
                 await safe_send_ctx(ctx, msg)
-        except Exception:
-            log.exception("account agree failed for %s", user_id)
-            await safe_send_ctx(ctx, "Failed to record consent; please try again later.")
-
-    @account.command(name="decline")
-    async def account_decline(self, ctx):
-        """
-        Text fallback to decline the privacy policy (///account decline).
-        """
-        if not await self._require_parent(ctx):
-            return
-        user_id = ctx.author.id
-        try:
-            ok, msg = await Account.account_decline_command(self.parent, ctx, user_id)
-            try:
-                await ctx.author.send(msg)
-                try:
-                    await ctx.tick()
-                except Exception:
-                    pass
-            except Exception:
-                await safe_send_ctx(ctx, msg)
-        except Exception:
-            log.exception("account decline failed for %s", user_id)
-            await safe_send_ctx(ctx, "Failed to process decline; please try again later.")
-
-    # -----------------------------
-    # Revoke consent (self or admin)
-    # -----------------------------
-    @account.command(name="revoke-consent", aliases=["revoke", "delete-profile"])
-    async def account_revoke(self, ctx, member: Optional[Member] = None):
-        """
-        Revoke consent and delete a profile.
-        Usage:
-          ///account revoke-consent            -> revoke for yourself
-          ///account revoke-consent @user      -> revoke for a mentioned user (admin only)
-        By default this command allows users to revoke their own consent. Revoking another user's
-        profile requires Manage Guild permission.
-        """
-        if not await self._require_parent(ctx):
-            return
-
-        # Determine target user id: explicit mention or invoking user
-        try:
-            if member:
-                # require permission to revoke others
-                if not ctx.author.guild_permissions.manage_guild and not ctx.author.guild_permissions.administrator:
-                    await safe_send_ctx(ctx, "You do not have permission to revoke another user's consent.")
-                    return
-                user_id = member.id
             else:
-                user_id = ctx.author.id
-
-            ok, msg = await Account.revoke_consent(self.parent, user_id)
-            await safe_send_ctx(ctx, msg)
-            if ok and member:
-                try:
-                    await member.send("Your CollectorVerse profile has been deleted by an administrator.")
-                except Exception:
-                    pass
+                await safe_send_ctx(ctx, f"Failed to link account: {msg}")
         except Exception:
-            log.exception("account revoke-consent failed")
-            await safe_send_ctx(ctx, "Failed to revoke consent; please try again later.")
+            log.exception("roster_link failed for %s", user_id)
+            await safe_send_ctx(ctx, "Failed to link your account.")
 
-    # -----------------------------
-    # Additional account-related commands can be added here
-    # -----------------------------
-
-    # -----------------------------
-    # Registrar helper for legacy registration (optional)
-    # -----------------------------
-    @staticmethod
-    def register_with_group(group: commands.Group, parent_getter):
+    @roster.command(name="unlink")
+    async def roster_unlink(self, ctx):
         """
-        Attach account prefix commands to an existing group (legacy registrar).
-        parent_getter is a callable returning the core/parent object.
+        Unlink your Discord account from any in-game id.
         """
-        # This function mirrors the registrar pattern used elsewhere.
-        # It is provided for compatibility with older code that registers commands dynamically.
-        def _safe_add(cmd_name: str):
-            def _decorator(func):
-                try:
-                    if group.get_command(cmd_name):
-                        log.debug("Command %s already exists; skipping", cmd_name)
-                        return func
-                except Exception:
-                    pass
-                group.command(name=cmd_name)(func)
-                return func
-            return _decorator
+        if not await self._require_parent(ctx):
+            return
+        user_id = getattr(ctx.author, "id", None)
+        try:
+            ok, msg = Account.unlink_account(self.parent, user_id)
+            if ok:
+                await safe_send_ctx(ctx, msg)
+            else:
+                await safe_send_ctx(ctx, f"Failed to unlink account: {msg}")
+        except Exception:
+            log.exception("roster_unlink failed for %s", user_id)
+            await safe_send_ctx(ctx, "Failed to unlink your account.")
 
-        # Example: attach a simple 'info' alias
-        @_safe_add("info")
-        async def _info(ctx, member: Optional[Any] = None):
-            parent = parent_getter()
-            if not parent:
-                await safe_send_ctx(ctx, "MCOC core not attached; account unavailable.")
-                return
-            users = Roster.ensure_user_manager(parent)
-            try:
-                target = ctx.author.id if member is None else getattr(member, "id", member)
-                profile = users.get_profile(int(target)) or {}
-                await safe_send_ctx(ctx, f"Profile: ```json\n{profile}\n```")
-            except Exception:
-                await safe_send_ctx(ctx, "Failed to fetch profile.")
 
-        log.debug("Account registrar attached to group (legacy)")
-
-# Cog setup for Red (if used as a cog)
 async def setup(bot):
-    bot.add_cog(AccountPrefix(bot))
+    bot.add_cog(RosterPrefix(bot))

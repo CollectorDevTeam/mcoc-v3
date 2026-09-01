@@ -77,21 +77,21 @@ class RosterPrefix(commands.Cog):
           - If no token and invoking user has not consented -> start enrollment prompt.
           - If no token and invoking user has consented -> show roster help.
         """
-        # Resolve optional leading member token if present in args
+        # Try to resolve a leading member token if present
         member = None
         if args:
             # If first arg is already a Member/User object (unlikely), accept it
             if isinstance(args[0], (Member, User)):
                 member = args[0]
             else:
-                # Try to resolve a mention/id string
+                # Try to resolve a mention/id string (prefer Member in guild)
                 try:
-                    member = await commands.MemberConverter().convert(ctx, args[0])
-                except Exception:
-                    try:
+                    if ctx.guild:
+                        member = await commands.MemberConverter().convert(ctx, args[0])
+                    else:
                         member = await commands.UserConverter().convert(ctx, args[0])
-                    except Exception:
-                        member = None
+                except Exception:
+                    member = None
 
         # If a member was provided, redirect to list display for that member
         if member is not None:
@@ -115,6 +115,8 @@ class RosterPrefix(commands.Cog):
             # Start enrollment flow; enroll_command_handler will attempt DM first.
             try:
                 ok, msg = await Account.enroll_command_handler(self.parent, ctx, user_id)
+                if not ok:
+                    log.warning("roster: enroll_command_handler reported failure for %s: %s", user_id, msg)
             except Exception:
                 log.exception("roster: enroll_command_handler failed for %s", user_id)
                 await safe_send_ctx(ctx, "Failed to start enrollment; try again later.")
@@ -132,7 +134,6 @@ class RosterPrefix(commands.Cog):
 
         # consented -> show roster help
         try:
-            # Prefer branded help if available
             await send_or_brand_help(ctx, "roster", title="Roster Help", fallback_text="Roster commands: list, add, remove, update, export, clear.")
         except Exception:
             log.exception("roster: failed to show roster help for %s", user_id)

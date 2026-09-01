@@ -26,6 +26,10 @@ ROSTER_FOOTER = " | CollectorDevTeam"
 from mcoc.common.hargs import parse_harg_list, parse_harg_token
 from mcoc.common.formatters import format_champion_line
 
+# new imports for userdata/types interop
+from mcoc.common import userdata as userdata_module
+from mcoc.common.types import Champion, champion_from_dict, UserAccount, useraccount_from_userdata
+
 log = logging.getLogger("red.mcoc.roster")
 
 # module-level debounce map
@@ -38,23 +42,21 @@ def ensure_user_manager(core_or_bot) -> Any:
     """
     Return a UserDataManager instance.
     Prefer an existing manager on the core (core.users or core.user_manager),
-    otherwise create a fresh UserDataManager.
+    otherwise create/return the shared module-level UserDataManager.
     """
     try:
         if core_or_bot is None:
-            from .userdata import UserDataManager
-            return UserDataManager()
+            return userdata_module.get_user_manager()
         um = getattr(core_or_bot, "users", None) or getattr(core_or_bot, "user_manager", None)
         if um:
             return um
     except Exception:
-        log.exception("Error resolving existing user manager")
+        log.debug("ensure_user_manager: parent lookup failed", exc_info=True)
 
     try:
-        from .userdata import UserDataManager
-        return UserDataManager()
+        return userdata_module.get_user_manager()
     except Exception:
-        log.exception("Failed to create UserDataManager")
+        log.exception("Failed to create/get UserDataManager")
         return None
 
 
@@ -589,7 +591,21 @@ async def build_roster_pages(core: Any, ctx_or_author: Any, parsed_filters: Opti
 
         cache = getattr(core, "cache", None)
         parsed = parsed_filters or {}
-        profile = users.get_profile(user_id) if users and hasattr(users, "get_profile") else {}
+
+        # load profile (may be dict or module-level UserData shape)
+        profile_raw = {}
+        try:
+            if users and hasattr(users, "get_profile"):
+                profile_raw = users.get_profile(user_id) or {}
+        except Exception:
+            profile_raw = {}
+
+        # If profile_raw looks like a full userdata dict, extract profile subkey
+        if isinstance(profile_raw, dict) and "profile" in profile_raw and isinstance(profile_raw.get("profile"), dict):
+            profile = profile_raw.get("profile", {})
+        else:
+            profile = profile_raw if isinstance(profile_raw, dict) else {}
+
         prestige_map = profile.get("prestige_map", {}) if isinstance(profile, dict) else {}
 
         # Normalize roster entries into canonical shape
@@ -666,13 +682,30 @@ async def build_roster_pages(core: Any, ctx_or_author: Any, parsed_filters: Opti
                 champ_obj = None
                 if cache:
                     try:
-                        champ_obj = cache.get_champion(entry.get("champion"))
+                        raw_champ = cache.get_champion(entry.get("champion"))
+                        # cache.get_champion may return dict or dataclass; normalize to Champion dataclass
+                        if isinstance(raw_champ, dict):
+                            champ_obj = champion_from_dict(raw_champ)
+                        elif isinstance(raw_champ, Champion):
+                            champ_obj = raw_champ
+                        else:
+                            # if cache exposes get_champion_obj, prefer that
+                            try:
+                                cobj = cache.get_champion_obj(entry.get("champion"))
+                                if cobj:
+                                    # cobj may be dataclass-like or dict-like
+                                    if isinstance(cobj, dict):
+                                        champ_obj = champion_from_dict(cobj)
+                                    else:
+                                        champ_obj = cobj
+                            except Exception:
+                                champ_obj = None
                     except Exception:
                         champ_obj = None
                 # attach class if available from champ_obj for filtering/formatting
                 if champ_obj and not entry.get("class"):
                     try:
-                        entry["class"] = champ_obj.get("class")
+                        entry["class"] = getattr(champ_obj, "class_name", None) or getattr(champ_obj, "class", None) or entry.get("class")
                     except Exception:
                         pass
                 try:
@@ -750,113 +783,5 @@ async def get_roster_pages(core: Any, ctx_or_author: Any, parsed_filters: Option
             except Exception:
                 out.append(p)
         else:
-            out.append(p)
-    return out
-
-
-# -----------------------------
-# Pager convenience
-# -----------------------------
-async def make_roster_pager(core: Any, ctx_or_author: Any, *, raw_input: Optional[str] = None, target_member: Optional[Any] = None, parsed_filters: Optional[Dict[str, Any]] = None, author_for_controls: Optional[Any] = None) -> Optional[CDTPagesMenu]:
-    """
-    Convenience wrapper that builds pages and returns a ready PagesMenu with brand buttons merged.
-
-    Parameters:
-      - core: bot/core object
-      - ctx_or_author: Context or author-like object (used for branding)
-      - raw_input: optional raw input string (not used if parsed_filters provided)
-      - target_member: optional explicit target member (if different from ctx_or_author)
-      - parsed_filters: optional parsed filters (preferred)
-      - author_for_controls: who should control the pager (defaults to ctx_or_author.author or ctx_or_author)
-
-    Returns:
-      - PagesMenu instance ready to start, or None on failure.
-    """
-    try:
-        # If parsed_filters not provided, attempt to parse raw_input using query parser if available
-        parsed = parsed_filters or {}
-        if not parsed and raw_input:
-            try:
-                from ..query_parser import parse_query
-                cache = getattr(core, "cache", None)
-                entries, filters = parse_query(raw_input, cache=cache)
-                parsed = {}
-                if entries:
-                    parsed["explicit_entries"] = entries
-                if isinstance(filters, dict):
-                    parsed.update(filters)
-            except Exception:
-                parsed = {}
-
-        # Determine the target for pages: prefer explicit target_member, else ctx_or_author
-        target = target_member or ctx_or_author
-
-        pages = await get_roster_pages(core, target, parsed_filters=parsed)
-        if not pages:
-            return None
-
-        # Instantiate pager with canonical constructor
-        try:
-            pager = CDTPagesMenu(pages, author=(author_for_controls or (ctx_or_author.author if hasattr(ctx_or_author, "author") else ctx_or_author)))
-        except TypeError:
-            try:
-                pager = CDTPagesMenu(pages, ctx_or_author)
-            except TypeError:
-                try:
-                    pager = CDTPagesMenu(pages)
-                    if hasattr(pager, "author"):
-                        try:
-                            pager.author = (author_for_controls or (ctx_or_author.author if hasattr(ctx_or_author, "author") else ctx_or_author))
-                        except Exception:
-                            pass
-                except Exception:
-                    return None
-
-        # Merge brand buttons into pager view if possible
-        try:
-            brand_view = CDTEmbed.brand_view()
-            if hasattr(pager, "add_item"):
-                for item in getattr(brand_view, "children", []):
-                    try:
-                        pager.add_item(item)
-                    except Exception:
-                        continue
-        except Exception:
-            pass
-
-        return pager
-    except Exception:
-        log.exception("make_roster_pager failed")
-        return None
-
-
-# -----------------------------
-# Footer helper
-# -----------------------------
-def add_page_footers(pages: List[Any], author_for_embed: Any = None) -> List[Any]:
-    """
-    Ensure each embed page has a footer with page numbering.
-    Accepts embed objects or dict fallbacks.
-    """
-    out: List[Any] = []
-    total = len(pages)
-    for i, p in enumerate(pages):
-        try:
-            if isinstance(p, dict):
-                emb = CDTEmbed.embed(author_for_embed, title=p.get("title", "Roster"), description=p.get("description", ""))
-            else:
-                emb = p
-            try:
-                base = emb.footer.text if getattr(emb, "footer", None) and getattr(emb.footer, "text", None) else ""
-                footer_text = f"{base} • Page {i+1} of {total}" if base else f"Page {i+1} of {total}"
-                footer_text += f"{ROSTER_FOOTER}"
-                CDTEmbed.set_footer(author_for_embed, emb, text=footer_text)
-            except Exception:
-                try:
-                    CDTEmbed.set_footer(author_for_embed, emb, text=f"Page {i+1} of {total}{ROSTER_FOOTER}")
-                except Exception:
-                    pass
-            out.append(emb)
-        except Exception:
             out.append(p)
     return out
