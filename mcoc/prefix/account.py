@@ -17,7 +17,7 @@ import logging
 from redbot.core import commands
 
 from mcoc.common import Core
-from mcoc.common import account as Account
+from mcoc.common.helpers import account as Account
 from mcoc.common.components.prefix_utils import safe_send_ctx
 
 log = logging.getLogger("red.mcoc.prefix.account")

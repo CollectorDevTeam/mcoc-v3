@@ -19,7 +19,7 @@ from discord.user import User
 from redbot.core import commands
 
 from mcoc.common import Core
-from mcoc.common import account as Account
+from mcoc.common.helpers import account as Account
 from mcoc.common.components.prefix_utils import safe_send_ctx
 from mcoc.common.components.help_utils import send_or_brand_help
 from mcoc.common.utilities.query_parser import parse_query
