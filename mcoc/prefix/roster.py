@@ -41,6 +41,7 @@ class RosterPrefix(commands.Cog):
         else:
             self.parent = None
             self.bot = bot_or_parent
+        self.prefix = getattr(bot_or_parent, "prefix", None)
 
     async def _require_parent(self, ctx) -> bool:
         if not getattr(self, "parent", None):
@@ -68,6 +69,13 @@ class RosterPrefix(commands.Cog):
     @commands.group(name="roster", invoke_without_command=True)
     async def roster(self, ctx, *args):
         """List or inspect roster entries for yourself or another member."""
+        """Example:
+        ${self.prefix}roster list @user
+        ${self.prefix}roster add 5* Champion Name
+        ${self.prefix}roster remove 4* Champion Name
+        ${self.prefix}roster update 3* Champion Name
+        ${self.prefix}roster export
+        ${self.prefix}roster clear"""
         if args:
             member = None
             if isinstance(args[0], (Member, User)):
@@ -105,6 +113,7 @@ class RosterPrefix(commands.Cog):
 
     @roster.command(name="list")
     async def roster_list(self, ctx, *items: str):
+        """List the roster entries for a user, optionally filtered by query parameters."""
         if not await self._require_parent(ctx):
             return
 
@@ -157,6 +166,7 @@ class RosterPrefix(commands.Cog):
 
     @roster.command(name="add")
     async def roster_add(self, ctx, *, text: str):
+        """Add champions to the user's roster based on the provided text input."""
         if not await self._require_parent(ctx):
             return
         user_id = getattr(ctx.author, "id", None)
@@ -182,6 +192,7 @@ class RosterPrefix(commands.Cog):
 
     @roster.command(name="remove")
     async def roster_remove(self, ctx, *, text: str):
+        """Remove champions from the user's roster based on the provided text input."""
         if not await self._require_parent(ctx):
             return
         user_id = getattr(ctx.author, "id", None)
@@ -206,6 +217,7 @@ class RosterPrefix(commands.Cog):
 
     @roster.command(name="update")
     async def roster_update(self, ctx, *, text: str):
+        """Update champions in the user's roster based on the provided text input."""
         if not await self._require_parent(ctx):
             return
         user_id = getattr(ctx.author, "id", None)
@@ -231,6 +243,7 @@ class RosterPrefix(commands.Cog):
 
     @roster.command(name="export")
     async def roster_export(self, ctx):
+        """Export the user's roster and profile data."""
         if not await self._require_parent(ctx):
             return
         user_id = getattr(ctx.author, "id", None)
@@ -245,6 +258,7 @@ class RosterPrefix(commands.Cog):
 
     @roster.command(name="clear")
     async def roster_clear(self, ctx, confirm: Optional[str] = None):
+        """Clear the user's roster after confirmation."""
         if not await self._require_parent(ctx):
             return
         if not confirm or confirm.lower() not in {"confirm", "yes", "i confirm"}:
@@ -267,6 +281,7 @@ class RosterPrefix(commands.Cog):
 
     @roster.command(name="link")
     async def roster_link(self, ctx, mcoc_id: str):
+        """Link the user's account with the provided MCOC ID."""
         if not await self._require_parent(ctx):
             return
         ok, msg = Account.link_account(self.parent, getattr(ctx.author, "id", None), mcoc_id)
@@ -274,6 +289,7 @@ class RosterPrefix(commands.Cog):
 
     @roster.command(name="unlink")
     async def roster_unlink(self, ctx):
+        """Unlink the user's account from their MCOC ID."""
         if not await self._require_parent(ctx):
             return
         ok, msg = Account.unlink_account(self.parent, getattr(ctx.author, "id", None))
