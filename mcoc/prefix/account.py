@@ -14,6 +14,8 @@ The heavier logic remains in mcoc.common.helpers.account.
 from typing import Any, Optional
 import logging
 
+from discord.member import Member
+from discord.user import User
 from redbot.core import commands
 
 from mcoc.common import Core
@@ -44,6 +46,27 @@ class AccountPrefix(commands.Cog):
             return False
         return True
 
+    async def _resolve_target_user(self, ctx, token: str) -> Optional[Any]:
+        try:
+            if ctx.guild:
+                return await commands.MemberConverter().convert(ctx, token)
+            return await commands.UserConverter().convert(ctx, token)
+        except Exception:
+            return None
+
+    async def _send_profile_display(self, ctx, target_user: Any) -> None:
+        emb, text = Account.build_profile_display(
+            self.parent,
+            ctx,
+            getattr(target_user, "id", None),
+            viewer_id=getattr(ctx.author, "id", None),
+            prefer_embed=True,
+        )
+        if emb is not None:
+            await safe_send_ctx(ctx, None, embed=emb)
+            return
+        await safe_send_ctx(ctx, text or "No profile found for that user.")
+
     @commands.group(name="account", invoke_without_command=True)
     async def account(self, ctx, *args: str):
         """View account/profile assistance and consent actions."""
@@ -58,6 +81,23 @@ class AccountPrefix(commands.Cog):
             _, msg = await Account.handle_consent_response(self.parent, ctx, user_id, False)
             await safe_send_ctx(ctx, msg)
             return
+
+        if args and args[0].lower() in {"profile", "settings"}:
+            target = ctx.author
+            if len(args) > 1:
+                resolved = await self._resolve_target_user(ctx, args[1])
+                if resolved is None:
+                    await safe_send_ctx(ctx, "Could not resolve that user.")
+                    return
+                target = resolved
+            await self._send_profile_display(ctx, target)
+            return
+
+        if args:
+            resolved = await self._resolve_target_user(ctx, args[0])
+            if resolved is not None:
+                await self._send_profile_display(ctx, resolved)
+                return
 
         status = "consented" if Account.user_has_consented(self.parent, user_id) else "not consented"
         await safe_send_ctx(ctx, f"Account status: {status}. Use `///account agree` or `///account decline` to manage consent.")
@@ -77,19 +117,18 @@ class AccountPrefix(commands.Cog):
         await safe_send_ctx(ctx, msg)
 
     @account.command(name="profile")
-    async def account_profile(self, ctx):
+    async def account_profile(self, ctx, member: Optional[Any] = None):
         if not await self._require_parent(ctx):
             return
-        user_id = getattr(ctx.author, "id", None)
-        profile = Account.get_profile(self.parent, user_id) or {}
-        lines = [
-            f"display_name: {profile.get('display_name') or 'n/a'}",
-            f"mcoc_name: {profile.get('mcoc_name') or 'n/a'}",
-            f"mcoc_id: {profile.get('mcoc_id') or 'n/a'}",
-            f"privacy_mode: {profile.get('privacy_mode') or 'private'}",
-            f"roster_public: {profile.get('roster_public')}",
-        ]
-        await safe_send_ctx(ctx, "\n".join(lines))
+        target = member if isinstance(member, (Member, User)) else ctx.author
+        await self._send_profile_display(ctx, target)
+
+    @account.command(name="settings")
+    async def account_settings(self, ctx, member: Optional[Any] = None):
+        if not await self._require_parent(ctx):
+            return
+        target = member if isinstance(member, (Member, User)) else ctx.author
+        await self._send_profile_display(ctx, target)
 
     @account.command(name="privacy")
     async def account_privacy(self, ctx, mode: Optional[str] = None):
