@@ -286,17 +286,17 @@ class AccountPrefix(commands.Cog):
         ok = Account.set_profile_field(self.parent, user_id, "privacy_mode", mode.lower())
         await safe_send_ctx(ctx, "Privacy mode updated." if ok else "Failed to update privacy mode.")
 
-    @account.command(name="link")
+    @account.command(name="connect", aliases=["connect", "link"])
     async def account_link(self, ctx, mcoc_id: str):
-        """Link the user's account with the specified MCOC ID."""
+        """Set your MCOC username ID for association with your account."""
         if not await self._require_parent(ctx):
             return
         ok, msg = Account.link_account(self.parent, getattr(ctx.author, "id", None), mcoc_id)
         await safe_send_ctx(ctx, msg if ok else f"Failed to link account: {msg}")
 
-    @account.command(name="unlink")
+    @account.command(name="disconnect", aliases=["unlink"])
     async def account_unlink(self, ctx):
-        """Unlink the user's account from their MCOC ID."""
+        """Disconnect the user's account from their MCOC ID."""
         if not await self._require_parent(ctx):
             return
         ok, msg = Account.unlink_account(self.parent, getattr(ctx.author, "id", None))
