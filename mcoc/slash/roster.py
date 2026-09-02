@@ -1,4 +1,13 @@
-# mcoc/slash/roster_slash.py
+# Path: mcoc/slash/roster.py
+# File-Version: 1.0
+# File-Id: 4dcbf22d-1995-4760-aa55-406751721366
+# Purpose: Provide slash command handler for MCOC roster management commands.
+# Public-API: _RosterGroup
+# Last-Modified: 2026-09-01
+# Changelog:
+#   1.0 2026-09-01  Initial stabilized API header
+
+
 import logging
 from typing import Optional, Any, List
 from discord import app_commands
@@ -6,14 +15,14 @@ from redbot.core import commands
 
 log = logging.getLogger("red.mcoc.slash.roster")
 
-from ..common.hargs import parse_hargs
+from ..common.utilities.hargs import parse_hargs
 from ..common.helpers.roster import (
     ensure_user_manager,
     extract_entry_from_parsed,
     build_roster_pages,
     validate_entry_for_add,
 )
-from ..common.componentsV2 import CDTEmbed, CDTPagesMenu, CDTConfirm
+from ..common.components.componentsV2 import CDTEmbed, CDTPagesMenu, CDTConfirm
 
 
 class _RosterGroup(app_commands.Group):

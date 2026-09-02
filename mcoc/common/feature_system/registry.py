@@ -1,4 +1,12 @@
-# mcoc/common/feature_system/registry.py
+# Path: mcoc/common/feature_system/registry.py
+# File-Version: 1.0
+# File-Id: dd9cbd79-b0c6-4169-8a8a-f78b5b7d658d
+# Purpose: Short one-line purpose describing responsibilities and public API
+# Public-API: FEATURES
+# Last-Modified: 2026-09-01
+# Changelog:
+#   1.0 2026-09-01  Initial stabilized API header
+
 
 FEATURES = {
     "basic_roster": {

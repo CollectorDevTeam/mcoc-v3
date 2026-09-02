@@ -1,4 +1,12 @@
-# mcoc/common/prestige.py
+# Path: mcoc/common/api/prestige.py
+# File-Version: 1.0
+# File-Id: f58228e6-83c8-46f2-86b0-768d23c5c3a6
+# Purpose: Short one-line purpose describing responsibilities and public API
+# Public-API: PrestigeManager
+# Last-Modified: 2026-09-01
+# Changelog:
+#   1.0 2026-09-01  Initial stabilized API header
+
 import aiohttp
 import asyncio
 import json

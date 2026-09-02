@@ -1,4 +1,42 @@
-# mcoc/common/userdata.py
+# Path: mcoc/common/helpers/userdata.py
+# File-Version: 1.0
+# File-Id: 825a7571-4e86-4f52-ae3d-8e41e1cfa5c8      # unique file id (generate with `python -c "import uuid; print(uuid.uuid4())"`)
+# Purpose: Provide a manager for per-user JSON storage, handling rosters, profiles, and privacy settings.
+# Public-API: UserDataManager
+# Internal: 
+# Last-Modified: 2026-09-01
+# Changelog:
+#   1.0 2026-09-01  Initial stabilized API header
+
+# Public API (documented)
+# - get_user_manager(user_dir: Optional[pathlib.Path] = None) -> UserDataManager
+# - UserDataManager.add_champion(...)
+# - UserDataManager.remove_champion(...)
+# - UserDataManager.update_champion(...)
+# - UserDataManager.list_roster(...)
+# - UserDataManager.get_profile(...)
+# - UserDataManager.set_profile_field(...)
+# - UserDataManager.delete_user(...)
+# - UserDataManager.set_privacy_mode(...)
+# - UserDataManager.allow_guild(...)
+# - UserDataManager.revoke_guild(...)
+# - UserDataManager.can_view_profile(...)
+# - UserDataManager.join_alliance(...)
+# - UserDataManager.leave_alliance(...)
+# - UserDataManager.get_alliance_for_guild(...)
+# - UserDataManager.compute_user_prestige_from_roster(...)
+# - UserDataManager.sort_roster_entries(...)
+
+# Internal API (not documented)
+# - UserDataManager._load(...)
+# - UserDataManager._save(...)
+# - UserDataManager._default_user_data(...)
+# - UserDataManager._path(...)
+# - UserDataManager._read_json_blocking(...)
+# - UserDataManager._atomic_write_json_blocking(...)
+# - UserDataManager._read_json_async(...)
+# - UserDataManager._atomic_write_json_async(...)
+
 import json
 import pathlib
 import logging
@@ -241,7 +279,6 @@ class UserDataManager:
                 return True
         return False
 
-
     def list_roster(self, user_id: int) -> List[Dict[str, Any]]:
         data = self._load(user_id)
         return data.get("roster", [])
@@ -478,3 +515,30 @@ def user_exists(user_id: int) -> bool:
     """
     mgr = get_user_manager()
     return mgr._path(user_id).exists()
+
+# DECLARE PUBLIC API
+__all__ = [
+    "UserDataManager",
+    "get_user_manager",
+    "set_post_mutation_hook",
+    "set_global_bot_loop",
+    "user_exists",
+    "export", 
+    "import_data",
+    "add_champion",
+    "remove_champion",
+    "update_champion",
+    "list_roster",
+    "get_profile",
+    "set_profile_field",
+    "delete_profile",
+    "set_privacy_mode",
+    "allow_guild",
+    "revoke_guild",
+    "can_view_profile",
+    "join_alliance",
+    "leave_alliance",
+    "get_alliance_for_guild",
+    "compute_user_prestige_from_roster",
+    "sort_roster_entries"
+]

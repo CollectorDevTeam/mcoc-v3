@@ -1,4 +1,11 @@
-# mcoc/api.py
+# Path: mcoc/common/api/api.py
+# File-Version: 1.0
+# File-Id: c36f0729-deb1-4b9f-95ec-f4e94fc3b2e4
+# Purpose: Short one-line purpose describing responsibilities and public API
+# Public-API: MCOCHubAPI, UnauthenticatedError, RateLimitedError
+# Last-Modified: 2026-09-01
+# Changelog:
+#   1.0 2026-09-01  Initial stabilized API header
 import aiohttp
 import asyncio
 import logging
@@ -7,7 +14,6 @@ from typing import Optional, Callable, Awaitable, Any
 from yarl import URL
 
 log = logging.getLogger("red.mcoc.api")
-
 
 class UnauthenticatedError(Exception):
     """Raised when API returns unauthenticated / invalid key (401 or body message)."""
@@ -55,27 +61,37 @@ class MCOCHubAPI:
         return self._session
 
     async def _resolve_key(self) -> Optional[str]:
+        # static key wins
         if self._static_key:
-            api_key = str(self._static_key)
-            log.debug(f"[MCOCHubAPI] Resolved static API key starts with: {api_key[:5]}")
-            return api_key
+            return str(self._static_key)
 
+        # call key_getter (support sync or async)
         if self._key_getter:
-            tokens = await self._key_getter()
-            if not tokens:
-                log.warning("[MCOCHubAPI] No shared tokens for 'mcochub'.")
+            try:
+                maybe = self._key_getter()
+                if asyncio.iscoroutine(maybe):
+                    tokens = await maybe
+                else:
+                    tokens = maybe
+            except Exception:
+                log.exception("key_getter raised")
                 return None
 
-            api_key = tokens.get("apikey")
-            if not api_key:
-                log.warning("[MCOCHubAPI] 'mcochub' has no 'apikey' set.")
-                return None
+            # tokens may be a dict or a raw string
+            if isinstance(tokens, str):
+                return tokens
 
-            log.debug(f"[MCOCHubAPI] Resolved shared API key starts with: {api_key[:5]}")
-            return api_key
+            if isinstance(tokens, dict):
+                # accept multiple common names
+                for k in ("apikey", "api_key", "key"):
+                    if k in tokens and tokens[k]:
+                        return str(tokens[k])
+            log.warning("MCOCHubAPI: key_getter returned no usable key")
+            return None
 
-        log.warning("[MCOCHubAPI] No API key available. Use: ///set api mcochub apikey,<yourkey>")
+        log.warning("MCOCHubAPI: no static key or key_getter provided")
         return None
+
 
     # -----------------------------
     # Generic fetch helper

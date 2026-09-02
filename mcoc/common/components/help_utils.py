@@ -1,9 +1,16 @@
-# mcoc/common/help_utils.py
+# Path: mcoc/common/help_utils.py
+# File-Version: 1.0
+# File-Id: b1462bee-80e0-430f-baf0-efda265b0263
+# Purpose: Provide utility functions for sending branded help messages in MCOC bot context.
+# Public-API: send_or_brand_help
+# Last-Modified: 2026-09-01
+# Changelog:
+#   1.0 2026-09-01  Initial stabilized API header
 from typing import Optional
 import logging
 from redbot.core import commands
-from ..common.componentsV2 import CDTEmbed
-from ..common.prefix_utils import safe_send_ctx
+from .componentsV2 import CDTEmbed
+from .prefix_utils import safe_send_ctx
 
 log = logging.getLogger("red.mcoc.help")
 

@@ -1,4 +1,11 @@
-# mcoc/slash/admin_slash.py
+# Path: mcoc/slash/admin.py
+# File-Version: 1.0
+# File-Id: 1c3c96fe-3dc6-4e19-9f5a-612f84770c1f
+# Purpose: Provide slash command handler for MCOC admin commands.
+# Public-API: _AdminGroup
+# Last-Modified: 2026-09-01
+# Changelog:
+#   1.0 2026-09-01  Initial stabilized API header
 import logging
 import discord
 from discord import app_commands

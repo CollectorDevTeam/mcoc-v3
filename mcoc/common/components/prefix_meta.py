@@ -1,4 +1,11 @@
-# mcoc/common/account_meta.py
+# Path: mcoc/common/prefix_meta.py
+# File-Version: 1.0
+# File-Id: 2800ece9-a703-42f7-9689-7e1d2c5135df
+# Purpose: Define allowed profile and roster fields along with help text for MCOC bot commands.
+# Public-API: ALLOWED_PROFILE_FIELDS, ACCOUNT_GROUP_HELP, ALLOWED_ROSTER_FIELDS, ROSTER_GROUP_HELP, ALLIANCE_HELP, ALLIANCE_PROFILE_FIELDS
+# Last-Modified: 2026-09-01
+# Changelog:
+#   1.0 2026-09-01  Initial stabilized API header
 ALLOWED_PROFILE_FIELDS = {
     "mcoc_name": "In-game player name",
     "mcoc_id": "In-game numeric id",

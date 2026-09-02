@@ -1,4 +1,12 @@
-# mcoc/common/core.py
+# Path: mcoc/common/core.py
+# File-Version: 1.0
+# File-Id: 8ba5afa0-27a4-4971-b118-23fdb47c47aa
+# Purpose: Provide a centralized container for shared MCOC systems and manage their lifecycle.
+# Public-API: MCOCCommonCore
+# Last-Modified: 2026-09-01
+# Changelog:
+#   1.0 2026-09-01  Initial stabilized API header
+
 """
 Lightweight shared systems container for MCOC.
 

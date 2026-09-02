@@ -1,4 +1,11 @@
-# mcoc/core.py
+# Path: mcoc/core.py
+# File-Version: 1.0
+# File-Id: f8e367b2-24bd-436b-834c-b26b77bc6af9
+# Purpose: Provide the main setup function for the MCOC package, initializing shared systems and registering feature cogs.
+# Public-API: setup
+# Last-Modified: 2026-09-01
+# Changelog:
+#   1.0 2026-09-01  Initial stabilized API header
 """
 Unified package loader for MCOC.
 

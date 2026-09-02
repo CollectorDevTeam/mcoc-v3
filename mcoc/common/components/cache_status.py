@@ -1,7 +1,14 @@
-# mcoc/common/cache_status.py
+# Path: mcoc/common/components/cache_status.py
+# File-Version: 1.0
+# File-Id: 7f32e890-444f-4516-b38c-c0ab9f4dd9bf
+# Purpose: Short one-line purpose describing responsibilities and public API
+# Public-API: CacheStatusPoster
+# Last-Modified: 2026-09-01
+# Changelog:
+#   1.0 2026-09-01  Initial stabilized API header
 from typing import Any, Dict, Optional
 import logging
-from .componentsV2 import CDTEmbed, _is_valid_http_url
+from mcoc.common.components.componentsV2 import CDTEmbed
 
 log = logging.getLogger("red.mcoc.cache_status")
 

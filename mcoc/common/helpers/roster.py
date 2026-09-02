@@ -1,4 +1,11 @@
-# mcoc/common/roster.py
+# Path: mcoc/common/helpers/roster.py
+# File-Version: 1.0
+# File-Id: 8d5385a6-91c5-42a1-ad2f-fb87099afdc5
+# Purpose: Provide helpers for managing and displaying user rosters, including parsing, matching, prestige resolution, and page construction.
+# Public-API: ensure_user_manager, _ensure_hook_registered, persist_user_prestige
+# Last-Modified: 2026-09-01
+# Changelog:
+#   1.0 2026-09-01  Initial stabilized API header
 """
 Roster helpers: parsing, matching, prestige resolution, formatting and page construction.
 
@@ -19,16 +26,16 @@ import re
 import logging
 import asyncio
 
-from mcoc.common.componentsV2 import CDTEmbed, CDTPagesMenu
+from mcoc.common.components.componentsV2 import CDTEmbed, CDTPagesMenu
 
 ROSTER_FOOTER = " | CollectorDevTeam"
 
-from mcoc.common.hargs import parse_harg_list, parse_harg_token
-from mcoc.common.formatters import format_champion_line
+from mcoc.common.utilities.hargs import parse_harg_list, parse_harg_token
+from mcoc.common.utilities.formatters import format_champion_line
 
 # new imports for userdata/types interop
-from mcoc.common import userdata as userdata_module
-from mcoc.common.types import Champion, champion_from_dict, UserAccount, useraccount_from_userdata
+from mcoc.common.helpers import userdata as userdata_module
+from mcoc.common.helpers.types import Champion, champion_from_dict, UserAccount, useraccount_from_userdata
 
 log = logging.getLogger("red.mcoc.roster")
 

@@ -1,4 +1,11 @@
-# mcoc/slash/core.py
+# Path: mcoc/slash/core.py
+# File-Version: 1.0
+# File-Id: 3b1f5d2a-8c4e-4f7a-9b2a-1d2f3e4c5b6d
+# Purpose: Provide unified slash command root for MCOC, loading champion, roster, and admin slash cogs.
+# Public-API: MCOCSlash
+# Last-Modified: 2026-09-01
+# Changelog:
+#   1.0 2026-09-01  Initial stabilized API header
 import logging
 from typing import Any
 from redbot.core import commands

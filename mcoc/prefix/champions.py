@@ -1,4 +1,10 @@
-# mcoc/prefix/champions.py
+# Path: mcoc/prefix/champions.py
+# File-Version: 1.0
+# File-Id: b4824819-88a3-4c9e-ba36-2a60c3112013
+# Purpose: Provide prefix command handler for champion-related commands.
+# Public-API: ChampionsPrefix
+# Internal: _require_parent
+# Last-Modified: 2026-09-01
 """
 Prefix command handlers for champion-related commands.
 
@@ -24,10 +30,10 @@ PagesMenu = Core.PagesMenu
 Champions = Core.Helpers.champions
 
 # from mcoc.common.helpers.champions import make_champion_pager, get_champion_pages
-from mcoc.common.query_parser import parse_query
+from mcoc.common.utilities.query_parser import parse_query
 # from mcoc.common.componentsV2 import Embed, PagesMenu
-from mcoc.common.prefix_utils import safe_send_ctx
-from mcoc.common.help_utils import send_or_brand_help
+from mcoc.common.components.prefix_utils import safe_send_ctx
+from mcoc.common.components.help_utils import send_or_brand_help
 
 log = logging.getLogger("red.mcoc.prefix.champions")
 

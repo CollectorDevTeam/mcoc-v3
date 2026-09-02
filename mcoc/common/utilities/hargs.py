@@ -1,4 +1,12 @@
-# mcoc/hargs.py
+# Path: mcoc/common/hargs.py
+# File-Version: 1.0
+# File-Id: b08cd10c-4996-44c6-96cc-8cff56b8e583
+# Purpose: Provide utility functions and regex patterns for parsing champion hargs in MCOC bot context.
+# Public-API: _expand_range_token, _tokenize_preserving_quotes, _strip_nonname_edges, _extract_name_by_removing_components
+# Last-Modified: 2026-09-01
+# Changelog:
+#   1.0 2026-09-01  Initial stabilized API header
+
 import re
 from typing import Dict, Any, List, Optional, Tuple
 

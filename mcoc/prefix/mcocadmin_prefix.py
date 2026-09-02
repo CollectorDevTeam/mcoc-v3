@@ -1,4 +1,10 @@
-# mcoc/prefix/mcocadmin_prefix.py
+# Path: mcoc/prefix/mcocadmin_prefix.py
+# File-Version: 1.0
+# File-Id: e9125f87-dc2e-4f32-8d4d-e6de376c6555
+# Purpose: Provide prefix command handler for MCOC admin (development / fallback).
+# Public-API: MCOCAdminPrefix
+# Internal: _require_parent
+# Last-Modified: 2026-09-01
 """
 Prefix commands for MCOC admin (development / fallback).
 
@@ -23,9 +29,9 @@ PagesMenu = Core.PagesMenu
 Confirm = Core.Confirm
 Entitlements = Core.Entitlements
 
-from mcoc.common.api.cache_status import CacheStatusPoster
-from mcoc.common.help_utils import send_or_brand_help
-from mcoc.common.prefix_utils import safe_send_ctx
+from mcoc.common.components.cache_status import CacheStatusPoster
+from mcoc.common.components.help_utils import send_or_brand_help
+from mcoc.common.components.prefix_utils import safe_send_ctx
 
 
 

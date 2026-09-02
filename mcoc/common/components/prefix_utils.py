@@ -1,4 +1,11 @@
-# mcoc/common/prefix_utils.py
+# Path: mcoc/common/prefix_utils.py
+# File-Version: 1.0
+# File-Id: e95c98c8-ec36-4628-802f-74d5c4131c7b
+# Purpose: Provide utility functions for handling command prefixes and safe message sending in MCOC bot context.
+# Public-API: get_runtime_prefix, safe_send_ctx
+# Last-Modified: 2026-09-01
+# Changelog:
+#   1.0 2026-09-01  Initial stabilized API header
 from typing import Any, Optional
 import logging
 import asyncio

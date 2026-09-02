@@ -1,4 +1,11 @@
-# mcoc/slash/champions_slash.py
+# Path: mcoc/slash/champions.py
+# File-Version: 1.0
+# File-Id: 6a3a5e88-2388-4157-8016-4f4394aceefc
+# Purpose: Provide slash command handler for MCOC champion information commands.
+# Public-API: _ChampionGroup
+# Last-Modified: 2026-09-01
+# Changelog:
+#   1.0 2026-09-01  Initial stabilized API header
 import logging
 from typing import Optional, Any, List
 from discord import app_commands

@@ -1,4 +1,12 @@
-# mcoc/common/api/cache.py
+# Path: mcoc/common/api/cache.py
+# File-Version: 1.0
+# File-Id: 323a0d98-8434-4e30-8ee6-d07b7eef8f73
+# Purpose: Short one-line purpose describing responsibilities and public API
+# Public-API: CacheManager
+# Last-Modified: 2026-09-01
+# Changelog:
+#   1.0 2026-09-01  Initial stabilized API header
+
 import json
 import hashlib
 import pathlib

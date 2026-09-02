@@ -1,6 +1,14 @@
-# mcoc/common/formatters.py
+# Path: mcoc/common/formatters.py
+# File-Version: 1.0
+# File-Id: 56127cd0-45de-48d5-9a9f-3d8ab2754f64
+# Purpose: Provide utility functions for formatting champion and prestige lines in MCOC bot context.
+# Public-API: format_champion_line, format_top5_prestige_line
+# Last-Modified: 2026-09-01
+# Changelog:
+#   1.0 2026-09-01  Initial stabilized API header
+
 from typing import Dict, Any, Optional, Mapping, Union
-from mcoc.common.types import Champion, champion_from_dict
+from mcoc.common.helpers.types import Champion, champion_from_dict
 import re
 
 ChampionLike = Union[Champion, Mapping[str, Any], None]

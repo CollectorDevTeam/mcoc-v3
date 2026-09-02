@@ -1,4 +1,12 @@
-# mcoc/common/feature_system/resolver.py
+# Path: mcoc/common/feature_system/resolver.py
+# File-Version: 1.0
+# File-Id: 420ef9fa-2a92-4114-bf27-b4451d922e9c
+# Purpose: Short one-line purpose describing responsibilities and public API
+# Public-API: has_feature
+# Last-Modified: 2026-09-01
+# Changelog:
+#   1.0 2026-09-01  Initial stabilized API header
+
 
 from .registry import FEATURES
 from .model import GuildFeatureConfig

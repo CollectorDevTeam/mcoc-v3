@@ -1,4 +1,13 @@
-# mcoc/common/account.py
+# Path: mcoc/common/helpers/account.py
+# File-Version: 1.0
+# File-Id: 42a6311c-1671-4c6c-b699-bbc0e9f4243d      # unique file id (generate with `python -c "import uuid; print(uuid.uuid4())"`)
+# Purpose: Provide a manager for per-user JSON storage, handling rosters, profiles, and privacy settings.
+# Public-API: UserDataManager
+# Internal: 
+#   - relies on mcoc.common.userdata for persistent storage
+# Last-Modified: 2026-09-01
+# Changelog:
+#   1.0 2026-09-01  Initial stabilized API header
 """
 Sanitized account helpers.
 
@@ -20,17 +29,17 @@ import datetime
 import re
 import asyncio
 
-from mcoc.common.componentsV2 import CDTEmbed, CDTConfirm
+from mcoc.common.components.componentsV2 import CDTEmbed, CDTConfirm
 
 # prefer the module-level userdata manager; fallback to parent-provided manager
-from mcoc.common import userdata as userdata_module
+from mcoc.common.helpers import userdata as userdata_module
 
 # formatter helpers (used to render top5 lines)
-from mcoc.common import formatters as formatters_module
+from mcoc.common.utilities import formatters as formatters_module
 
 # champion helpers (best-effort import)
 try:
-    from mcoc.common.types import Champion, champion_from_dict
+    from mcoc.common.helpers.types import Champion, champion_from_dict
 except Exception:
     Champion = Any  # type: ignore
     def champion_from_dict(d: Any) -> Any:  # type: ignore
@@ -829,3 +838,5 @@ async def handle_consent_response(parent: Any, ctx: Any, user_id: int, agree: bo
     except Exception:
         log.exception("handle_consent_response failed for %s", user_id)
         return False, "Failed to record your response."
+
+__all__ = ["handle_consent_response", "enroll_command_handler"]

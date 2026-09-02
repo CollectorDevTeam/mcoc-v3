@@ -1,3 +1,17 @@
+# Path: mcoc/common/query.py
+# File-Version: 1.0
+# File-Id: f7971b51-2a3f-4a85-8d2d-a69a0e5a5599
+# Purpose: Provide utility functions for querying and matching MCOC champions.
+# Public-API: match_champion
+# Last-Modified: 2026-09-01
+# Changelog:
+#   1.0 2026-09-01  Initial stabilized API header
+import logging
+
+log = logging.getLogger("red.mcoc.query")
+
+__all__ = ["match_champion"]
+
 def match_champion(champ: dict, h: dict) -> bool:
     """
     Robust champion matcher.

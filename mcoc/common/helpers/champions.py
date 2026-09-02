@@ -1,4 +1,12 @@
-# mcoc/common/champions.py
+# Path: mcoc/common/helpers/champions.py
+# File-Version: 1.0
+# File-Id: 69c6d576-1378-4c30-8030-7e8f3b0d24aa
+# Purpose: Short one-line purpose describing responsibilities and public API
+# Public-API: _get_all_champions_from_cache, _normalize_champion_input, _champion_matches_filters
+# Last-Modified: 2026-09-01
+# Changelog:
+#   1.0 2026-09-01  Initial stabilized API header
+
 """
 Champion helpers: deck-first champion search, filtering, formatting and page construction.
 
@@ -16,9 +24,9 @@ from typing import Any, Dict, List, Optional, Tuple, Mapping
 import logging
 import asyncio
 
-from mcoc.common.componentsV2 import CDTEmbed, CDTPagesMenu
-from mcoc.common.formatters import format_champion_line
-from mcoc.common.types import Champion, champion_from_dict
+from mcoc.common.components.componentsV2 import CDTEmbed, CDTPagesMenu
+from mcoc.common.utilities.formatters import format_champion_line
+from mcoc.common.helpers.types import Champion, champion_from_dict
 
 CHAMPIONS_FOOTER = " | CollectorDevTeam"
 
@@ -307,7 +315,7 @@ async def make_champion_pager(core: Any, ctx_or_author: Any, *, raw_input: Optio
         if not parsed and raw_input:
             try:
                 # lazy import to avoid circulars
-                from ..query_parser import parse_query
+                from ..utilities.query_parser import parse_query
                 cache = getattr(core, "cache", None)
                 entries, filters = parse_query(raw_input, cache=cache)
                 parsed = {}

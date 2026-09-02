@@ -1,4 +1,12 @@
-# mcoc/common/feature_system/model.py
+# Path: mcoc/common/feature_system/model.py
+# File-Version: 1.0
+# File-Id: fd56ed3f-224a-4e46-8ac0-9df1c8141122
+# Purpose: Short one-line purpose describing responsibilities and public API
+# Public-API: UserEntitlement, GuildFeatureConfig
+# Last-Modified: 2026-09-01
+# Changelog:
+#   1.0 2026-09-01  Initial stabilized API header
+
 
 from dataclasses import dataclass, field
 from typing import Dict, Optional

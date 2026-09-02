@@ -1,4 +1,12 @@
-# mcoc/common/query_parser.py
+# Path: mcoc/common/query_parser.py
+# File-Version: 1.0
+# File-Id: ab6646d6-125a-49e8-adb5-142eb490bd64
+# Purpose: Parse user queries into structured entries and filters for MCOC champions.
+# Public-API: parse_query
+# Last-Modified: 2026-09-01
+# Changelog:
+#   1.0 2026-09-01  Initial stabilized API header
+
 from typing import Any, Dict, List, Tuple, Optional
 
 def parse_query(
@@ -20,7 +28,7 @@ def parse_query(
     """
 
 from .hargs import parse_harg_list
-from .helpers.roster import parse_roster_entries_from_input
+from ..helpers.roster import parse_roster_entries_from_input
 from .hargs import parse_hargs
 from typing import Any, Dict, List, Tuple, Optional
 

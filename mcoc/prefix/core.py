@@ -1,4 +1,10 @@
-# mcoc/prefix/core.py
+# Path: mcoc/prefix/core.py
+# File-Version: 1.0
+# File-Id: fb288227-2b70-46c7-810b-76cef11c8358
+# Purpose: Provide prefix command handler for the MCOC root and forwarding.
+# Public-API: MCOCPrefix
+# Internal: _find_top_command
+# Last-Modified: 2026-09-01
 """
 Prefix command root for MCOC (hybrid mode).
 
@@ -24,7 +30,7 @@ import logging
 
 from redbot.core import commands
 
-from mcoc.common.prefix_utils import safe_send_ctx
+from mcoc.common.components.prefix_utils import safe_send_ctx
 
 log = logging.getLogger("red.mcoc.prefix.core")
 

@@ -1,4 +1,12 @@
-# mcoc/cacheindex.py
+# Path: mcoc/common/api/cacheindex.py
+# File-Version: 1.0
+# File-Id: 0b0f96a2-0941-4dcc-b6cc-1c2ed0c32f4b
+# Purpose: Provide an in-memory index for fast lookups of cache data, including champions, tags, abilities, and immunities.
+# Public-API: CacheIndex
+# Last-Modified: 2026-09-01
+# Changelog:
+#   1.0 2026-09-01  Initial stabilized API header
+
 import logging
 import threading
 import asyncio
@@ -389,11 +397,8 @@ class CacheIndex:
             self._tags_lower = []
             self.prestige_index = {}
         finally:
-            try:
-                self._rebuild_lock.release()
-            except Exception:
-                pass
-
+            self._rebuild_lock.release()
+            
     async def rebuild_async(self) -> None:
         """
         Async wrapper that runs rebuild in a thread. Call this from async code.

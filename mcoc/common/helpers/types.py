@@ -1,4 +1,11 @@
-# mcoc/common/types.py
+# Path: mcoc/common/helpers/types.py
+# File-Version: 1.0
+# File-Id: 0166f08d-8249-4c90-a6de-7e4116ed52d9
+# Purpose: Define core types and dataclasses for MCOC entities (Champion, UserAccount).
+# Public-API: Champion, champion_from_dict, UserAccount
+# Last-Modified: 2026-09-01
+# Changelog:
+#   1.0 2026-09-01  Initial stabilized API header
 from dataclasses import dataclass, field, asdict
 import datetime
 import logging
