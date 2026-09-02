@@ -69,13 +69,6 @@ class RosterPrefix(commands.Cog):
     @commands.group(name="roster", invoke_without_command=True)
     async def roster(self, ctx, *args):
         """List or inspect roster entries for yourself or another member."""
-        """Example:
-        ${self.prefix}roster list @user
-        ${self.prefix}roster add 5* Champion Name
-        ${self.prefix}roster remove 4* Champion Name
-        ${self.prefix}roster update 3* Champion Name
-        ${self.prefix}roster export
-        ${self.prefix}roster clear"""
         if args:
             member = None
             if isinstance(args[0], (Member, User)):
@@ -166,7 +159,10 @@ class RosterPrefix(commands.Cog):
 
     @roster.command(name="add")
     async def roster_add(self, ctx, *, text: str):
-        """Add champions to the user's roster based on the provided text input."""
+        """Add champions to the user's roster based on the provided text input.
+        Example:
+        {self.prefix}roster add 7*
+        """
         if not await self._require_parent(ctx):
             return
         user_id = getattr(ctx.author, "id", None)
@@ -190,7 +186,7 @@ class RosterPrefix(commands.Cog):
             pass
         await safe_send_ctx(ctx, f"Added {added} champion(s) to your roster.")
 
-    @roster.command(name="remove")
+    @roster.command(name="remove", aliases=["rm", "del"])
     async def roster_remove(self, ctx, *, text: str):
         """Remove champions from the user's roster based on the provided text input."""
         if not await self._require_parent(ctx):

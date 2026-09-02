@@ -121,7 +121,7 @@ class AccountPrefix(commands.Cog):
                 val = field_value
                 if len(val) > 900:
                     val = val[:897] + "..."
-                Embed.add_field(ctx, emb, name=field_name, value=val, inline=False)
+                Embed.add_field(ctx, emb, name=field_name, value=val, inline=True)
             pages.append(emb)
 
         if not pages:
@@ -238,6 +238,7 @@ class AccountPrefix(commands.Cog):
 
     @account.command(name="agree")
     async def account_agree(self, ctx):
+        """Agree to CollectorBot terms and conditions."""
         if not await self._require_parent(ctx):
             return
         _, msg = await Account.handle_consent_response(self.parent, ctx, getattr(ctx.author, "id", None), True)
@@ -245,6 +246,7 @@ class AccountPrefix(commands.Cog):
 
     @account.command(name="decline")
     async def account_decline(self, ctx):
+        """Decline the CollectorBot terms and conditions."""
         if not await self._require_parent(ctx):
             return
         _, msg = await Account.handle_consent_response(self.parent, ctx, getattr(ctx.author, "id", None), False)
@@ -252,6 +254,7 @@ class AccountPrefix(commands.Cog):
 
     @account.command(name="profile")
     async def account_profile(self, ctx, member: Optional[Any] = None):
+        """Display the profile of the specified user or the command invoker if no user is specified."""
         if not await self._require_parent(ctx):
             return
         target = member if isinstance(member, (Member, User)) else ctx.author
@@ -259,6 +262,7 @@ class AccountPrefix(commands.Cog):
 
     @account.command(name="settings")
     async def account_settings(self, ctx, member: Optional[Any] = None):
+        """Display the settings of the specified user or the command invoker if no user is specified."""
         if not await self._require_parent(ctx):
             return
         target = member if isinstance(member, (Member, User)) else ctx.author
@@ -266,6 +270,7 @@ class AccountPrefix(commands.Cog):
 
     @account.command(name="privacy")
     async def account_privacy(self, ctx, mode: Optional[str] = None):
+        """View or set the privacy mode for the user's account."""
         if not await self._require_parent(ctx):
             return
         user_id = getattr(ctx.author, "id", None)
@@ -283,6 +288,7 @@ class AccountPrefix(commands.Cog):
 
     @account.command(name="link")
     async def account_link(self, ctx, mcoc_id: str):
+        """Link the user's account with the specified MCOC ID."""
         if not await self._require_parent(ctx):
             return
         ok, msg = Account.link_account(self.parent, getattr(ctx.author, "id", None), mcoc_id)
@@ -290,6 +296,7 @@ class AccountPrefix(commands.Cog):
 
     @account.command(name="unlink")
     async def account_unlink(self, ctx):
+        """Unlink the user's account from their MCOC ID."""
         if not await self._require_parent(ctx):
             return
         ok, msg = Account.unlink_account(self.parent, getattr(ctx.author, "id", None))
