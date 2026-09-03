@@ -75,6 +75,11 @@ def _normalize_champion_input(champ_obj: Optional[Mapping[str, Any]]) -> Optiona
 # -----------------------------
 # Filtering helpers
 # -----------------------------
+def _normalize_champion_token(value: Any) -> str:
+    """Collapse separators so tag and immunity names compare consistently."""
+    return "".join(ch for ch in str(value or "").lower() if ch.isalnum())
+
+
 def _champion_matches_filters(champ: Dict[str, Any], filters: Dict[str, Any]) -> bool:
     """
     Return True if champion object matches the provided filters.
@@ -88,7 +93,7 @@ def _champion_matches_filters(champ: Dict[str, Any], filters: Dict[str, Any]) ->
             return True
 
         name_filter = (filters.get("name") or "").strip().lower() if filters.get("name") else None
-        tag_filters = [t.lower() for t in (filters.get("tags") or [])]
+        tag_filters = [str(t).lower() for t in (filters.get("tags") or [])]
         class_filters = [c.lower() for c in (filters.get("classes") or [])]
 
         # name/slug match
@@ -103,13 +108,27 @@ def _champion_matches_filters(champ: Dict[str, Any], filters: Dict[str, Any]) ->
             if champ_class not in class_filters:
                 return False
 
-        # tags: require all tag_filters to be present as substrings in at least one champ tag
+        # tags/immunities: every requested token must be present somewhere on the champion
         if tag_filters:
-            champ_tags = [str(t).lower() for t in (champ.get("tags") or [])]
+            champion_tokens: List[str] = []
+            for tag in (champ.get("tags") or []):
+                champion_tokens.append(_normalize_champion_token(tag))
+            for immunity in (champ.get("immunities") or []):
+                if isinstance(immunity, dict):
+                    for key in ("name", "id", "slug"):
+                        val = immunity.get(key)
+                        if val:
+                            champion_tokens.append(_normalize_champion_token(val))
+                else:
+                    champion_tokens.append(_normalize_champion_token(immunity))
+            champion_tokens = [t for t in champion_tokens if t]
             for tf in tag_filters:
+                tf_norm = _normalize_champion_token(tf)
+                if not tf_norm:
+                    continue
                 ok = False
-                for ct in champ_tags:
-                    if tf in ct:
+                for ct in champion_tokens:
+                    if tf_norm == ct or tf_norm in ct or ct in tf_norm:
                         ok = True
                         break
                 if not ok:
@@ -363,7 +382,6 @@ async def make_champion_pager(core: Any, ctx_or_author: Any, *, raw_input: Optio
     except Exception:
         log.exception("make_champion_pager failed")
         return None
-
 
 # -----------------------------
 # Footer helper (reusable)

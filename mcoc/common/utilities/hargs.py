@@ -15,8 +15,8 @@ RARITY_RE = re.compile(r"(?P<rarity>\d(?:-\d)?)\s*(?:\*|★)")
 RANK_RE = re.compile(r"r(?P<rank>\d(?:-\d)?)\b", re.IGNORECASE)
 SIG_RE = re.compile(r"s(?P<sig>\d{1,4})\b", re.IGNORECASE)
 ASC_RE = re.compile(r"a(?P<asc>\d)\b", re.IGNORECASE)
-TAG_RE = re.compile(r"#(?P<tag>[a-zA-Z0-9_]+)")
-NOT_TAG_RE = re.compile(r"!(?P<tag>[a-zA-Z0-9_]+)")
+TAG_RE = re.compile(r"#(?P<tag>[a-zA-Z0-9_]+(?:-[a-zA-Z0-9_]+)*)")
+NOT_TAG_RE = re.compile(r"!(?P<tag>[a-zA-Z0-9_]+(?:-[a-zA-Z0-9_]+)*)")
 
 CLASSES = {"skill", "mutant", "tech", "cosmic", "mystic", "science", "all"}
 

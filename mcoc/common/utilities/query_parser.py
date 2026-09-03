@@ -42,6 +42,10 @@ def parse_query(text: Optional[str], cache: Any = None, **opts) -> Tuple[List[Di
         parsed_filters = parse_hargs(text) if text else {}
         filters["tags"] = parsed_filters.get("tags", [])
         filters["classes"] = parsed_filters.get("classes", [])
+        filters["rarities"] = parsed_filters.get("rarities", [])
+        filters["ranks"] = parsed_filters.get("ranks", [])
+        filters["sigs"] = parsed_filters.get("sigs", [])
+        filters["ascended"] = parsed_filters.get("ascended", [])
         if parsed_filters.get("champion"):
             filters["name"] = parsed_filters.get("champion")
     except Exception:

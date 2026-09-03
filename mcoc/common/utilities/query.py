@@ -66,18 +66,37 @@ def match_champion(champ: dict, h: dict) -> bool:
             if not cls or cls not in classes:
                 return False
 
-    # Tag intersection: every requested tag must be present on champ
+    # Tag and immunity intersection: every requested tag must be present on champ
+    # Accept both hyphenated and compact versions (e.g. bleed-immunity vs bleedimmunity)
+    def _norm(value):
+        return "".join(ch for ch in str(value or "").lower() if ch.isalnum())
+
+    immunity_names = []
+    for item in (champ.get("immunities") or []):
+        if isinstance(item, dict):
+            for key in ("name", "id", "slug"):
+                val = item.get(key)
+                if val:
+                    immunity_names.append(str(val))
+        else:
+            immunity_names.append(str(item))
+
+    all_tokens = tags + [str(t).lower() for t in immunity_names if isinstance(t, str)]
     for tag in (h.get("tags") or []):
         if not isinstance(tag, str):
             continue
-        if tag.lower() not in tags:
+        tf = _norm(tag)
+        if not tf:
+            continue
+        if not any(tf == _norm(candidate) or tf in _norm(candidate) or _norm(candidate) in tf for candidate in all_tokens):
             return False
 
     # Negation: none of the not_tags may be present
     for tag in (h.get("not_tags") or []):
         if not isinstance(tag, str):
             continue
-        if tag.lower() in tags:
+        tf = _norm(tag)
+        if any(tf == _norm(candidate) or tf in _norm(candidate) or _norm(candidate) in tf for candidate in all_tokens):
             return False
 
     # Champion name/slug matching: accept slug or name (case-insensitive)

@@ -274,6 +274,174 @@ class ChampionsPrefix(commands.Cog):
             log.exception("Failed to render champion info for %s", name)
             await safe_send_ctx(ctx, "Champion info unavailable.")
 
+
+    # STUB FUNCTIONS
+    @champ.command(name="bio")
+    async def champ_bio(self, ctx, *, name: str):
+        """
+        Show the biography of the specified champion.
+        """
+        if not await self._require_parent(ctx):
+            return
+
+        cache = getattr(self.parent, "cache", None)
+        champ_obj = None
+        try:
+            if cache:
+                try:
+                    champ_obj = cache.get_champion(name)
+                except Exception:
+                    for c in (cache.get_all_champions() or []):
+                        if (c.get("name") or "").lower() == name.lower() or (c.get("slug") or "").lower() == name.lower():
+                            champ_obj = c
+                            break
+        except Exception:
+            champ_obj = None
+
+        if not champ_obj:
+            await safe_send_ctx(ctx, "Champion not found.")
+            return
+
+        try:
+            bio = champ_obj.get("bio") or "Biography unavailable."
+            await ctx.send(embed=Embed.Embed.embed(ctx.author, title=f"{champ_obj.get('name') or champ_obj.get('slug')}'s Biography", description=bio))
+        except Exception:
+            log.exception("Failed to render champion biography for %s", name)
+            await safe_send_ctx(ctx, "Champion biography unavailable."
+            )
+
+    @champ.command(name="synergies")
+    async def champ_synergies(self, ctx, *, name: str):
+        """
+        Show the synergies of the specified champion.
+        """
+        if not await self._require_parent(ctx):
+            return
+
+        cache = getattr(self.parent, "cache", None)
+        champ_obj = None
+        try:
+            if cache:
+                try:
+                    champ_obj = cache.get_champion(name)
+                except Exception:
+                    for c in (cache.get_all_champions() or []):
+                        if (c.get("name") or "").lower() == name.lower() or (c.get("slug") or "").lower() == name.lower():
+                            champ_obj = c
+                            break
+        except Exception:
+            champ_obj = None
+
+        if not champ_obj:
+            await safe_send_ctx(ctx, "Champion not found.")
+            return
+
+        try:
+            synergies = champ_obj.get("synergies") or "Synergies unavailable."
+            await ctx.send(embed=Embed.Embed.embed(ctx.author, title=f"{champ_obj.get('name') or champ_obj.get('slug')}'s Synergies", description=synergies))
+        except Exception:
+            log.exception("Failed to render champion synergies for %s", name)
+            await safe_send_ctx(ctx, "Champion synergies unavailable.")
+
+    @champ.command(name="counters")
+    async def champ_counters(self, ctx, *, name: str):
+        """
+        Show the counters of the specified champion.
+        """
+        if not await self._require_parent(ctx):
+            return
+
+        cache = getattr(self.parent, "cache", None)
+        champ_obj = None
+        try:
+            if cache:
+                try:
+                    champ_obj = cache.get_champion(name)
+                except Exception:
+                    for c in (cache.get_all_champions() or []):
+                        if (c.get("name") or "").lower() == name.lower() or (c.get("slug") or "").lower() == name.lower():
+                            champ_obj = c
+                            break
+        except Exception:
+            champ_obj = None
+
+        if not champ_obj:
+            await safe_send_ctx(ctx, "Champion not found.")
+            return
+
+        try:
+            counters = champ_obj.get("counters") or "Counters unavailable."
+            await ctx.send(embed=Embed.Embed.embed(ctx.author, title=f"{champ_obj.get('name') or champ_obj.get('slug')}'s Counters", description=counters))
+        except Exception:
+            log.exception("Failed to render champion counters for %s", name)
+            await safe_send_ctx(ctx, "Champion counters unavailable.")
+
+    @champ.command(name="signature", aliases=["sig"])
+    async def champ_signature(self, ctx, *, name: str):
+        """
+        Show the signature ability of the specified champion.
+        """
+        if not await self._require_parent(ctx):
+            return
+
+        cache = getattr(self.parent, "cache", None)
+        champ_obj = None
+        try:
+            if cache:
+                try:
+                    champ_obj = cache.get_champion(name)
+                except Exception:
+                    for c in (cache.get_all_champions() or []):
+                        if (c.get("name") or "").lower() == name.lower() or (c.get("slug") or "").lower() == name.lower():
+                            champ_obj = c
+                            break
+        except Exception:
+            champ_obj = None
+
+        if not champ_obj:
+            await safe_send_ctx(ctx, "Champion not found.")
+            return
+
+        try:
+            signature = champ_obj.get("signature") or "Signature ability unavailable."
+            await ctx.send(embed=Embed.Embed.embed(ctx.author, title=f"{champ_obj.get('name') or champ_obj.get('slug')}'s Signature Ability", description=signature))
+        except Exception:
+            log.exception("Failed to render champion signature ability for %s", name)
+            await safe_send_ctx(ctx, "Champion signature ability unavailable.")
+
+    @champ.command(name="stats")
+    async def champ_stats(self, ctx, *, name: str):
+        """
+        Show the stats of the specified champion.
+        """
+        if not await self._require_parent(ctx):
+            return
+
+        cache = getattr(self.parent, "cache", None)
+        champ_obj = None
+        try:
+            if cache:
+                try:
+                    champ_obj = cache.get_champion(name)
+                except Exception:
+                    for c in (cache.get_all_champions() or []):
+                        if (c.get("name") or "").lower() == name.lower() or (c.get("slug") or "").lower() == name.lower():
+                            champ_obj = c
+                            break
+        except Exception:
+            champ_obj = None
+
+        if not champ_obj:
+            await safe_send_ctx(ctx, "Champion not found.")
+            return
+
+        try:
+            stats = champ_obj.get("stats") or "Stats unavailable."
+            await ctx.send(embed=Embed.Embed.embed(ctx.author, title=f"{champ_obj.get('name') or champ_obj.get('slug')}'s Stats", description=stats))
+        except Exception:
+            log.exception("Failed to render champion stats for %s", name)
+            await safe_send_ctx(ctx, "Champion stats unavailable.")
+            
 # Cog setup for Red (if used as a cog)
 async def setup(bot):
     bot.add_cog(ChampionsPrefix(bot))

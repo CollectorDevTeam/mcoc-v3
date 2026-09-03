@@ -20,6 +20,7 @@ class Champion:
     slug: str
     name: Optional[str] = None
     class_name: Optional[str] = None
+    tier: Optional[int] = None
     images: Optional[Dict[str, Any]] = None
     image_url: Optional[str] = None
     tags: Optional[List[str]] = None
@@ -61,6 +62,8 @@ def champion_from_dict(d: Optional[Mapping[str, Any]]) -> Optional[Champion]:
         name = d.get("name") or d.get("title") or str(slug)
         # class may be 'class' key in MCOCHub
         class_name = d.get("class") or d.get("class_name") or d.get("class_")
+        # tier/rarity alias is commonly exposed as stars or rarity in cached data
+        tier = d.get("tier") or d.get("stars") or d.get("rarity")
         # images: MCOCHub uses image_url; other sources may provide images dict
         images = None
         if isinstance(d.get("images"), dict):
@@ -77,6 +80,7 @@ def champion_from_dict(d: Optional[Mapping[str, Any]]) -> Optional[Champion]:
             slug=str(slug),
             name=name,
             class_name=class_name,
+            tier=int(tier) if isinstance(tier, (int, str)) and str(tier).strip().isdigit() else None,
             images=images,
             image_url=image_url,
             tags=tags,

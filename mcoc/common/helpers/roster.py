@@ -431,12 +431,15 @@ def filter_roster_entries(entries: List[Dict[str, Any]], filters: Dict[str, Any]
     if not filters:
         return entries
 
+    def _normalize_token(value: Any) -> str:
+        return "".join(ch for ch in str(value or "").lower() if ch.isalnum())
+
     out: List[Dict[str, Any]] = []
     rarities = set(filters.get("rarities") or [])
     ranks = set(filters.get("ranks") or [])
     sigs = set(filters.get("sigs") or [])
     ascended = set(filters.get("ascended") or [])
-    tags = [t.lower() for t in (filters.get("tags") or [])]
+    tags = [str(t).lower() for t in (filters.get("tags") or [])]
     classes = [c.lower() for c in (filters.get("classes") or [])]
     name_filter = (filters.get("name") or "").lower() if filters.get("name") else None
 
@@ -458,15 +461,30 @@ def filter_roster_entries(entries: List[Dict[str, Any]], filters: Dict[str, Any]
             asc = int(e.get("ascended") or 0)
             if ascended and asc not in ascended:
                 continue
-            # tags
+            # tags / immunities: every requested token must be present in roster metadata
             if tags:
-                entry_tags = [t.lower() for t in (e.get("tags") or [])]
-                ok = True
+                entry_tokens = []
+                for tag in (e.get("tags") or []):
+                    entry_tokens.append(_normalize_token(tag))
+                for imm in (e.get("immunities") or []):
+                    if isinstance(imm, dict):
+                        for key in ("name", "id", "slug"):
+                            val = imm.get(key)
+                            if val:
+                                entry_tokens.append(_normalize_token(val))
+                    else:
+                        entry_tokens.append(_normalize_token(imm))
+                entry_tokens = [t for t in entry_tokens if t]
                 for tf in tags:
-                    if not any(tf in et for et in entry_tags):
-                        ok = False
+                    tf_norm = _normalize_token(tf)
+                    if not tf_norm:
+                        continue
+                    ok = any(tf_norm == et or tf_norm in et or et in tf_norm for et in entry_tokens)
+                    if not ok:
                         break
-                if not ok:
+                else:
+                    pass
+                if not all(any(_normalize_token(tf) == et or _normalize_token(tf) in et or et in _normalize_token(tf) for et in entry_tokens) for tf in tags):
                     continue
             # classes: if provided, entry should include class in its champion metadata (caller may attach)
             if classes:
