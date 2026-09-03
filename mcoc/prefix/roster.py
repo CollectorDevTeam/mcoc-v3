@@ -212,11 +212,12 @@ class RosterPrefix(commands.Cog):
             await safe_send_ctx(ctx, "An unexpected error occurred while building roster pages.")
 
     @roster.command(name="add")
-    async def roster_add(self, ctx, *, text: Optional[str] = None):
-        """Add champions to the user's roster based on the provided text input.
+    async def roster_add(self, ctx, *, text: str = ""):
+        """Add champions to the user's roster or launch the guided add workflow.
         Examples:
         {self.prefix}roster add 7*blackbolt --> 7-Star BlackBolt rank 1 sig 0
         {self.prefix}roster add 6*A1r3ironman --> 6-Star IronMan rank 3 sig 0 ascended 1
+        {self.prefix}roster add --> guided tier/class/select flow
 
         """
         if not await self._require_parent(ctx):
@@ -276,8 +277,8 @@ class RosterPrefix(commands.Cog):
         await safe_send_ctx(ctx, f"Removed {removed} champion(s) from your roster.")
 
     @roster.command(name="update")
-    async def roster_update(self, ctx, *, text: Optional[str] = None):
-        """Update champions in the user's roster based on the provided text input."""
+    async def roster_update(self, ctx, *, text: str = ""):
+        """Update champions in the user's roster or launch the guided update workflow."""
         if not await self._require_parent(ctx):
             return
         user_id = getattr(ctx.author, "id", None)
@@ -310,21 +311,21 @@ class RosterPrefix(commands.Cog):
         await safe_send_ctx(ctx, f"Updated {updated} champion(s) in your roster.")
 
     @roster.command(name="rankup")
-    async def roster_rankup(self, ctx, *, text: Optional[str] = None):
+    async def roster_rankup(self, ctx, *, text: str = ""):
         """Review roster entries eligible for a rank up using the shared tier limits."""
         if not await self._require_parent(ctx):
             return
         await self._show_roster_operation_pages(ctx, "rankup", text)
 
     @roster.command(name="dupe", aliases=["sigup"])
-    async def roster_dupe(self, ctx, *, text: Optional[str] = None):
+    async def roster_dupe(self, ctx, *, text: str = ""):
         """Review roster entries eligible for a sig increase using the shared tier limits."""
         if not await self._require_parent(ctx):
             return
         await self._show_roster_operation_pages(ctx, "dupe", text)
 
     @roster.command(name="ascend")
-    async def roster_ascend(self, ctx, *, text: Optional[str] = None):
+    async def roster_ascend(self, ctx, *, text: str = ""):
         """Review roster entries eligible for ascension using the shared tier limits."""
         if not await self._require_parent(ctx):
             return
