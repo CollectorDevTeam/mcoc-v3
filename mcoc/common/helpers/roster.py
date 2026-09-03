@@ -346,8 +346,9 @@ def _resolve_champion_slug(name: str, cache) -> str:
     if cache:
         for c in candidates:
             try:
-                if cache.get_champion(c):
-                    return c
+                champion = cache.get_champion(c)
+                if isinstance(champion, dict):
+                    return str(champion.get("id") or champion.get("slug") or c).strip().lower()
             except Exception:
                 pass
 
@@ -358,7 +359,7 @@ def _resolve_champion_slug(name: str, cache) -> str:
                 for champ in all_champs() or []:
                     cname = (champ.get("name") or "").lower()
                     if cname == lname:
-                        return champ.get("slug")
+                        return str(champ.get("id") or champ.get("slug") or lname).strip().lower()
         except Exception:
             pass
 
@@ -367,7 +368,7 @@ def _resolve_champion_slug(name: str, cache) -> str:
             for champ in (all_champs() or []):
                 cname = (champ.get("name") or "").lower()
                 if lname in cname or cname.startswith(lname):
-                    return champ.get("slug")
+                    return str(champ.get("id") or champ.get("slug") or lname).strip().lower()
         except Exception:
             pass
 
@@ -666,11 +667,11 @@ def _format_operation_line(cache: Any, entry: Dict[str, Any], operation: str) ->
     except TypeError:
         base = format_champion_line(champ_obj, entry)
 
-    limits = get_roster_entry_limits(entry)
     if operation == "add":
-        return f"{base} | caps r{limits.max_rank} s{limits.max_sig} a{limits.max_ascended}"
+        return base
     if operation == "update":
-        return f"{base} | limits r{limits.max_rank} s{limits.max_sig} a{limits.max_ascended}"
+        return base
+    limits = get_roster_entry_limits(entry)
     if operation == "rankup":
         return f"{base} | next rank {min(int(entry.get('rank') or 1) + 1, limits.max_rank)}/{limits.max_rank}"
     if operation == "dupe":
@@ -781,8 +782,8 @@ def _build_operation_apply_summary(ctx_or_author: Any, cache: Any, operation: st
     lines = [_format_operation_line(cache, dict(entry), operation) for entry in preview_entries]
     if len(entries) > len(preview_entries):
         lines.append(f"... and {len(entries) - len(preview_entries)} more")
-    description = f"Applied {applied} roster change(s).\n\n" + "\n".join(lines)
-    return CDTEmbed.embed(ctx_or_author, title=f"{ROSTER_OPERATION_SPECS[operation].title} Applied", description=description, footer_text=f"Done {ROSTER_FOOTER}")
+    description = f"Saved {applied} roster change(s).\n\n" + "\n".join(lines)
+    return CDTEmbed.embed(ctx_or_author, title=f"{ROSTER_OPERATION_SPECS[operation].title} Saved", description=description, footer_text=f"Saved {ROSTER_FOOTER}")
 
 
 def _build_operation_confirm_embed(ctx_or_author: Any, cache: Any, operation: str, entries: List[Dict[str, Any]]) -> Any:
@@ -1496,6 +1497,8 @@ if discord is not None:
             embed = _build_operation_apply_summary(view.author, getattr(view.core, "cache", None), view.operation, view.entries, applied)
             for item in view.children:
                 item.disabled = True
+                if isinstance(item, _RosterConfirmApplyButton):
+                    item.label = "Saved"
             await interaction.response.edit_message(embed=embed, view=view)
 else:
     RosterTierSelectionView = None

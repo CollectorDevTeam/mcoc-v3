@@ -15,13 +15,13 @@ log = logging.getLogger("red.mcoc.types")
 
 
 CLASS_EMOJI: Dict[str, str] = {
-    "all": "<:allclasses:748808348996075540>",
-    "tech": "<:tech:748808546283683870>",
-    "skill": "<:skill:748809095456227389>",
-    "mutant": "<:mutant:748808841465954304>",
-    "mystic": "<:mystic:748808953701335080>",
-    "cosmic": "<:cosmic:748808707328180265>",
-    "science": "<:science:748809185398882404>",
+    "all": "<:all2:339511715920084993>",
+    "tech": "<:tech2:339511716197171200>",
+    "skill": "<:skill2:339511716549230592>",
+    "mutant": "<:mutant2:339511716201365514>",
+    "mystic": "<:mystic2:339511716150771712> ",
+    "cosmic": "<:cosmic2:339511716104896512>",
+    "science": "<:science2:339511716029267969>",
     "ascended": "<:ascend:1137124043506585691>",
 }
 
@@ -43,7 +43,7 @@ CHAMPION_TIER_LIMITS: Dict[int, ChampionTierLimits] = {
     4: ChampionTierLimits(tier=4, max_rank=5, max_sig=99, max_ascended=1),
     5: ChampionTierLimits(tier=5, max_rank=5, max_sig=200, max_ascended=1),
     6: ChampionTierLimits(tier=6, max_rank=5, max_sig=200, max_ascended=1),
-    7: ChampionTierLimits(tier=7, max_rank=5, max_sig=200, max_ascended=2),
+    7: ChampionTierLimits(tier=7, max_rank=6, max_sig=200, max_ascended=2),
 }
 
 

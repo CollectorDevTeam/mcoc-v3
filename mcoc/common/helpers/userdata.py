@@ -43,6 +43,7 @@ import logging
 import tempfile
 import os
 import asyncio
+import re
 from typing import Any, Dict, List, Optional, Tuple, Callable
 
 log = logging.getLogger("red.mcoc.userdata")
@@ -76,6 +77,39 @@ class UserDataManager:
     # -----------------------------
     def _path(self, user_id: int) -> pathlib.Path:
         return self.user_dir / f"{user_id}.json"
+
+    @staticmethod
+    def _normalize_roster_champion_key(value: Any) -> str:
+        return re.sub(r"[^a-z0-9]", "", str(value or "").lower())
+
+    def _coalesce_roster_entries(self, roster: List[Dict[str, Any]]) -> Tuple[List[Dict[str, Any]], bool]:
+        deduped: List[Dict[str, Any]] = []
+        by_key: Dict[Tuple[str, int], int] = {}
+        changed = False
+        for entry in roster or []:
+            try:
+                champ_key = self._normalize_roster_champion_key(entry.get("champion"))
+                rarity = int(entry.get("rarity") or entry.get("stars") or 0)
+            except Exception:
+                deduped.append(entry)
+                continue
+            if not champ_key or not rarity:
+                deduped.append(entry)
+                continue
+            lookup_key = (champ_key, rarity)
+            normalized_entry = dict(entry)
+            normalized_entry["champion"] = str(entry.get("champion") or "").strip().lower()
+            normalized_entry["rarity"] = rarity
+            normalized_entry["stars"] = rarity
+            if lookup_key in by_key:
+                deduped[by_key[lookup_key]].update(normalized_entry)
+                changed = True
+            else:
+                by_key[lookup_key] = len(deduped)
+                deduped.append(normalized_entry)
+            if normalized_entry != entry:
+                changed = True
+        return deduped, changed
 
     def _read_json_blocking(self, path: pathlib.Path) -> Any:
         with open(path, "r", encoding="utf-8") as f:
@@ -217,9 +251,11 @@ class UserDataManager:
     def add_champion(self, user_id: int, champ_slug: str, rarity: int, rank: int, sig: int, ascended: int = 0, tags: Optional[List[str]] = None) -> None:
         data = self._load(user_id)
         tags = tags or []
+        roster, changed = self._coalesce_roster_entries(data.get("roster", []))
+        data["roster"] = roster
 
         entry = {
-            "champion": str(champ_slug),
+            "champion": str(champ_slug).strip().lower(),
             "rarity": int(rarity),
             "rank": int(rank),
             "sig": int(sig),
@@ -232,7 +268,7 @@ class UserDataManager:
 
         # prevent duplicates (same champion + rarity)
         for c in data.get("roster", []):
-            if c.get("champion") == entry["champion"] and c.get("rarity") == entry["rarity"]:
+            if self._normalize_roster_champion_key(c.get("champion")) == self._normalize_roster_champion_key(entry["champion"]) and int(c.get("rarity") or c.get("stars") or 0) == entry["rarity"]:
                 log.info("Champion %s already exists for user %s. Updating instead.", champ_slug, user_id)
                 c.update(entry)
                 self._save(user_id, data)
@@ -248,10 +284,13 @@ class UserDataManager:
 
     def remove_champion(self, user_id: int, champ_slug: str, rarity: Optional[int] = None) -> int:
         data = self._load(user_id)
+        roster, changed = self._coalesce_roster_entries(data.get("roster", []))
+        data["roster"] = roster
+        target_key = self._normalize_roster_champion_key(champ_slug)
         before = len(data.get("roster", []))
         data["roster"] = [
             c for c in data.get("roster", [])
-            if not (c.get("champion") == str(champ_slug) and (rarity is None or c.get("rarity") == rarity))
+            if not (self._normalize_roster_champion_key(c.get("champion")) == target_key and (rarity is None or int(c.get("rarity") or c.get("stars") or 0) == rarity))
         ]
         self._save(user_id, data)
 
@@ -262,8 +301,11 @@ class UserDataManager:
 
     def update_champion(self, user_id: int, champ_slug: str, rarity: int, rank: Optional[int] = None, sig: Optional[int] = None, tags: Optional[List[str]] = None, ascended: Optional[int] = None) -> bool:
         data = self._load(user_id)
+        roster, changed = self._coalesce_roster_entries(data.get("roster", []))
+        data["roster"] = roster
+        target_key = self._normalize_roster_champion_key(champ_slug)
         for c in data.get("roster", []):
-            if c.get("champion") == str(champ_slug) and c.get("rarity") == int(rarity):
+            if self._normalize_roster_champion_key(c.get("champion")) == target_key and int(c.get("rarity") or c.get("stars") or 0) == int(rarity):
                 if rank is not None:
                     c["rank"] = int(rank)
                 if sig is not None:
@@ -281,7 +323,11 @@ class UserDataManager:
 
     def list_roster(self, user_id: int) -> List[Dict[str, Any]]:
         data = self._load(user_id)
-        return data.get("roster", [])
+        roster, changed = self._coalesce_roster_entries(data.get("roster", []))
+        if changed:
+            data["roster"] = roster
+            self._save(user_id, data)
+        return roster
 
     # -----------------------------
     # Profile operations (sync)

@@ -10,8 +10,8 @@
 import re
 from typing import Dict, Any, List, Optional, Tuple
 
-# Patterns accept both '*' and '★' for rarity and allow ranges like 1-3
-RARITY_RE = re.compile(r"(?P<rarity>\d(?:-\d)?)\s*(?:\*|★)")
+# Patterns accept '*', '★', and '-star'/'-stars' rarity forms and allow ranges like 1-3.
+RARITY_RE = re.compile(r"(?P<rarity>\d(?:-\d)?)(?:\s*(?:\*|★)|[-\s]*stars?)(?=(?:\s|[rRaAsS#]|$))", re.IGNORECASE)
 RANK_RE = re.compile(r"r(?P<rank>\d(?:-\d)?)\b", re.IGNORECASE)
 SIG_RE = re.compile(r"s(?P<sig>\d{1,4})\b", re.IGNORECASE)
 ASC_RE = re.compile(r"a(?P<asc>\d)\b", re.IGNORECASE)
@@ -144,7 +144,7 @@ def parse_harg_token(token: str) -> Dict[str, Any]:
         "raw": original_token
       }
 
-    Defaults: rarity=6, rank=1, ascended=1, sig=0
+    Defaults: rarity=7, rank=1, ascended=0, sig=0
     """
     t = token.strip()
     if not t:
@@ -193,8 +193,8 @@ def parse_harg_token(token: str) -> Dict[str, Any]:
 
     # 4) Rarity digit 1-7 (take first occurrence not part of a name)
     rarity = None
-    # Prefer explicit markers first: digit followed by '*' or '★'
-    m = re.search(r"(?P<rarity>[1-7])(?:\*|★)", working)
+    # Prefer explicit markers first: digit followed by '*', '★', or star/stars.
+    m = RARITY_RE.search(working)
     if m:
         try:
             rarity = int(m.group("rarity"))
