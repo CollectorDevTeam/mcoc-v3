@@ -86,6 +86,7 @@ def format_champion_line(champ_obj: ChampionLike, entry: Dict[str, Any]) -> str:
     sig = _safe_int(entry.get("sig"), 0)
     rank = _safe_int(entry.get("rank"), 1)
     asc = _safe_int(entry.get("ascended") or entry.get("asc"), 0)
+    prestige = _normalize_prestige(entry.get("prestige"))
 
     asc_emoji = f"A{asc}" if asc > 0 else ""
 
@@ -96,7 +97,7 @@ def format_champion_line(champ_obj: ChampionLike, entry: Dict[str, Any]) -> str:
 
     cls_emoji = CLASS_EMOJI.get(cls, CLASS_EMOJI["all"])
 
-    return f"{cls_emoji} {star_display} {name} r{rank} {sig_text} {asc_emoji}".strip()
+    return f"{cls_emoji} {star_display} {name} r{rank} {sig_text} {asc_emoji} [{prestige}]".strip()
 
 
 def format_top5_prestige_line(champ_obj: Optional[Champion], entry: Dict[str, Any]) -> str:
