@@ -16,6 +16,7 @@ main ///mcoc group via the registrar pattern.
 from typing import Any
 import io
 import json
+import re
 import datetime
 import asyncio
 import logging
@@ -36,6 +37,17 @@ from mcoc.common.components.prefix_utils import safe_send_ctx
 
 
 log = logging.getLogger("red.mcoc.prefix")
+
+
+def _normalize_lookup_key(value: Any) -> str:
+    """Normalize names/ids for fuzzy lookup across spaces, hyphens, and punctuation."""
+    if value is None:
+        return ""
+    text = str(value).lower().strip()
+    text = text.replace("_", "-")
+    text = text.replace("&", " and ")
+    text = re.sub(r"[^a-z0-9]+", "", text)
+    return text
 
 
 class MCOCAdminPrefix(commands.Cog):
@@ -355,60 +367,78 @@ class MCOCAdminPrefix(commands.Cog):
                 pass
             await safe_send_ctx(ctx, f"Prestige update failed: {e}")
 
+    def _lookup_cache_object(self, cache: Any, kind: str, key: str):
+        """Resolve a champion/ability/immunity/tag by exact or normalized lookup."""
+        if not cache or not key:
+            return None
+        normalized = _normalize_lookup_key(key)
+
+        if kind in ("champion", "champ", "ch"):
+            items = cache.get_all_champions() or []
+            for item in items:
+                candidates = [
+                    item.get("id"), item.get("slug"), item.get("name"), item.get("title"),
+                    item.get("champion_id"), item.get("key"), item.get("slug_name")
+                ]
+                if any(_normalize_lookup_key(candidate) == normalized for candidate in candidates if candidate is not None):
+                    return item
+                for candidate in candidates:
+                    if candidate is None:
+                        continue
+                    cand_norm = _normalize_lookup_key(candidate)
+                    if cand_norm and normalized and (cand_norm in normalized or normalized in cand_norm):
+                        return item
+            try:
+                return cache.get_champion(key)
+            except Exception:
+                return None
+
+        if kind in ("ability", "abilities", "abilitys"):
+            items = cache.get_all_abilities() or []
+            for item in items:
+                candidates = [item.get("id"), item.get("slug"), item.get("name"), item.get("title")]
+                if any(_normalize_lookup_key(candidate) == normalized for candidate in candidates if candidate is not None):
+                    return item
+            try:
+                return cache.get_ability(key)
+            except Exception:
+                return None
+
+        if kind in ("immunity", "immunities"):
+            items = cache.get_all_immunities() or []
+            for item in items:
+                candidates = [item.get("id"), item.get("slug"), item.get("name"), item.get("title")]
+                if any(_normalize_lookup_key(candidate) == normalized for candidate in candidates if candidate is not None):
+                    return item
+            try:
+                return cache.get_immunity(key)
+            except Exception:
+                return None
+
+        if kind in ("tag", "tags"):
+            items = cache.get_all_tags() or []
+            for item in items:
+                candidates = [item.get("id"), item.get("slug"), item.get("name"), item.get("title")]
+                if any(_normalize_lookup_key(candidate) == normalized for candidate in candidates if candidate is not None):
+                    return item
+            try:
+                return cache.get_tag(key)
+            except Exception:
+                return None
+
+        return None
+
     @commands.is_owner()
     @mcocadmin.command(name="dump")
     async def dump(self, ctx, kind: str, *, key: str):
-        """Dump a cache object (champion, ability, immunity, tag)."""
+        """Dump a cache object (champion, ability, immunity, tag) with flexible resolved lookup."""
         kind = kind.lower()
         core = getattr(ctx.bot, "mcoc_core", None)
         if not core or not getattr(core, "cache", None):
             await safe_send_ctx(ctx, "MCOC cache not initialized.")
             return
         cache = core.cache
-        obj = None
-        if kind in ("champion", "champ", "ch"):
-            try:
-                obj = cache.get_champion(key)
-            except Exception:
-                obj = None
-            if obj is None:
-                for c in cache.get_all_champions() or []:
-                    if str(c.get("id") or c.get("slug") or "").lower() == key.lower() or str(c.get("name") or "").lower() == key.lower():
-                        obj = c
-                        break
-        elif kind in ("ability", "abilities", "abilitys"):
-            try:
-                obj = cache.get_ability(key)
-            except Exception:
-                obj = None
-            if obj is None:
-                for a in cache.get_all_abilities() or []:
-                    if str(a.get("id") or a.get("slug") or "").lower() == key.lower() or str(a.get("name") or "").lower() == key.lower():
-                        obj = a
-                        break
-        elif kind in ("immunity", "immunities"):
-            try:
-                obj = cache.get_immunity(key)
-            except Exception:
-                obj = None
-            if obj is None:
-                for i in cache.get_all_immunities() or []:
-                    if str(i.get("id") or i.get("slug") or "").lower() == key.lower() or str(i.get("name") or "").lower() == key.lower():
-                        obj = i
-                        break
-        elif kind in ("tag", "tags"):
-            try:
-                obj = cache.get_tag(key)
-            except Exception:
-                obj = None
-            if obj is None:
-                for t in cache.get_all_tags() or []:
-                    if str(t.get("id") or t.get("slug") or "").lower() == key.lower() or str(t.get("name") or "").lower() == key.lower():
-                        obj = t
-                        break
-        else:
-            await safe_send_ctx(ctx, "Unknown kind. Use one of: champion, ability, immunity, tag.")
-            return
+        obj = self._lookup_cache_object(cache, kind, key)
 
         if not obj:
             await safe_send_ctx(ctx, f"No {kind} found for `{key}`.")
@@ -429,13 +459,18 @@ class MCOCAdminPrefix(commands.Cog):
             try:
                 await ctx.send(file=discord.File(bio, filename=filename))
             except Exception:
-                # fallback: send truncated inline then file
                 await ctx.send(f"Large payload; sending first {MAX_INLINE} chars:\n```json\n{payload[:MAX_INLINE]}\n```")
                 bio.seek(0)
                 try:
                     await ctx.send(file=discord.File(bio, filename=filename))
                 except Exception:
                     log.exception("Failed to send dump file")
+
+    @commands.is_owner()
+    @mcocadmin.command(name="inspect")
+    async def inspect(self, ctx, kind: str, *, key: str):
+        """Alias for the dump command, kept for quick raw object inspection."""
+        await self.dump(ctx, kind, key=key)
 
 # Cog setup for Red (async setup)
 async def setup(bot):

@@ -1,48 +1,37 @@
 # Path: mcoc/prefix/champions.py
 # File-Version: 1.0
-# File-Id: b4824819-88a3-4c9e-ba36-2a60c3112013
-# Purpose: Provide prefix command handler for champion-related commands.
+# Purpose: Champion prefix command surface.
 # Public-API: ChampionsPrefix
-# Internal: _require_parent
-# Last-Modified: 2026-09-01
-"""
-Prefix command handlers for champion-related commands.
 
-This module is intentionally thin: it resolves the command context and target member (when applicable),
-delegates parsing and page construction to mcoc.common.champions helpers, and starts the pager.
-
-Responsibilities:
-  - Resolve optional leading mention/id (when commands accept a target)
-  - Delegate parsing to common.query_parser.parse_query
-  - Call common.champions.make_champion_pager or get_champion_pages
-  - Instantiate and start PagesMenu when needed
-  - Merge brand buttons into pager view when possible
-  - Provide robust fallbacks and helpful user-facing messages
-"""
-
-from typing import Any, List, Optional, Tuple
+from typing import Any, Optional
 import logging
 
 from redbot.core import commands
+
 from mcoc.common import Core
+from mcoc.common.utilities.query_parser import parse_query
+from mcoc.common.components.prefix_utils import safe_send_ctx
+
 Embed = Core.Embed
 PagesMenu = Core.PagesMenu
 Champions = Core.Helpers.champions
-
-# from mcoc.common.helpers.champions import make_champion_pager, get_champion_pages
-from mcoc.common.utilities.query_parser import parse_query
-# from mcoc.common.componentsV2 import Embed, PagesMenu
-from mcoc.common.components.prefix_utils import safe_send_ctx
-from mcoc.common.components.help_utils import send_or_brand_help
+Entitlements = Core.Entitlements
 
 log = logging.getLogger("red.mcoc.prefix.champions")
 
 
+def _normalize_lookup_token(value: Any) -> str:
+    if value is None:
+        return ""
+    text = str(value).lower().strip().replace("_", "-")
+    text = text.replace("&", " and ")
+    return "".join(ch for ch in text if ch.isalnum())
+
+
 class ChampionsPrefix(commands.Cog):
-    """Prefix commands for champion search and utilities (thin orchestration)."""
+    """Prefix commands for champion search and utilities."""
 
     def __init__(self, bot_or_parent: Any):
-        # bot_or_parent may be the core or the bot depending on how this cog is loaded
         if hasattr(bot_or_parent, "bot") and hasattr(bot_or_parent, "cache"):
             self.parent = bot_or_parent
             self.bot = bot_or_parent.bot
@@ -51,7 +40,6 @@ class ChampionsPrefix(commands.Cog):
             self.bot = bot_or_parent
 
     async def _require_parent(self, ctx) -> bool:
-        """Ensure the core/parent is attached; send a helpful message if not."""
         if not getattr(self, "parent", None):
             core = getattr(self.bot, "mcoc_core", None) or self.bot.get_cog("MCOC")
             if core:
@@ -61,31 +49,247 @@ class ChampionsPrefix(commands.Cog):
             return False
         return True
 
-    # -----------------------------
-    # Champion search
-    # -----------------------------
+    def _champion_admin_guard(self, ctx) -> bool:
+        """Allow only CollectorDevTeam role members or champion-admin entitlements."""
+        if not getattr(ctx, "guild", None):
+            return False
+        roles = getattr(ctx.author, "roles", [])
+        if any(getattr(role, "name", "").lower() == "collectordevteam" for role in roles):
+            return True
+        if getattr(ctx.author, "id", None) == getattr(ctx.guild, "owner_id", None):
+            return True
+        try:
+            guild_cfg = getattr(getattr(self.parent, "feature_cfg", None), "guild_cfg", None)
+            if guild_cfg is not None:
+                return bool(Entitlements.has_feature(ctx, guild_cfg, "champion_admin"))
+        except Exception:
+            pass
+        return False
+
+    def _resolve_champion_record(self, cache: Any, name_or_alias: str) -> Optional[dict]:
+        if not cache or not name_or_alias:
+            return None
+        try:
+            champ = cache.get_champion(name_or_alias)
+            if champ:
+                return champ
+        except Exception:
+            pass
+
+        needle = _normalize_lookup_token(name_or_alias)
+        for champ in (cache.get_all_champions() or []):
+            if not isinstance(champ, dict):
+                continue
+            choices = [
+                champ.get("id"),
+                champ.get("slug"),
+                champ.get("name"),
+                champ.get("title"),
+                champ.get("shortname"),
+                *(champ.get("aliases") or []),
+            ]
+            for choice in choices:
+                if choice is None:
+                    continue
+                if _normalize_lookup_token(choice) == needle:
+                    return champ
+        return None
+
+    def _save_champion_metadata(self, target: dict, field: str, value: Any):
+        if not self.parent or not getattr(self.parent, "cache", None):
+            return False
+        cache = self.parent.cache
+        overrides = cache._get_champion_overrides() if hasattr(cache, "_get_champion_overrides") else {}
+        key = str(target.get("id") or target.get("slug") or target.get("name") or "").strip().lower()
+        if not key:
+            return False
+        current = overrides.get(key) or {}
+        if field == "aliases":
+            alias_values = [str(v).strip() for v in (current.get("aliases") or []) if str(v).strip()]
+            new_value = str(value).strip()
+            if new_value and new_value not in alias_values:
+                alias_values.append(new_value)
+            if alias_values:
+                current["aliases"] = alias_values
+            else:
+                current.pop("aliases", None)
+        elif field == "shortname":
+            new_value = str(value).strip()
+            if new_value:
+                current["shortname"] = new_value
+            else:
+                current.pop("shortname", None)
+        if current:
+            overrides[key] = current
+        else:
+            overrides.pop(key, None)
+        if hasattr(cache, "_save_champion_overrides"):
+            cache._save_champion_overrides(overrides)
+        return True
+
+    def _remove_champion_metadata(self, target: dict, field: str, value: Any):
+        if not self.parent or not getattr(self.parent, "cache", None):
+            return False
+        cache = self.parent.cache
+        overrides = cache._get_champion_overrides() if hasattr(cache, "_get_champion_overrides") else {}
+        key = str(target.get("id") or target.get("slug") or target.get("name") or "").strip().lower()
+        if not key:
+            return False
+        current = overrides.get(key) or {}
+        if field == "aliases":
+            alias_values = [str(v).strip() for v in (current.get("aliases") or []) if str(v).strip()]
+            filtered = [v for v in alias_values if v != str(value).strip()]
+            if filtered:
+                current["aliases"] = filtered
+            else:
+                current.pop("aliases", None)
+        elif field == "shortname":
+            current.pop("shortname", None)
+        if current:
+            overrides[key] = current
+        else:
+            overrides.pop(key, None)
+        if hasattr(cache, "_save_champion_overrides"):
+            cache._save_champion_overrides(overrides)
+        return True
+
     @commands.group(name="champ", aliases=["champions"])
     async def champ(self, ctx):
         """Champion commands: search, abilities, info."""
-        # await send_or_brand_help(ctx, "champions", title="Champion Help", fallback_text="Champion commands: search, abilities, info.")
+
+    @champ.group(name="set")
+    async def champ_set(self, ctx, property_name: str, champion_ref: str, value: str):
+        """Set metadata on a champion (admin only): alias or shortname."""
+        if not self._champion_admin_guard(ctx):
+            await safe_send_ctx(ctx, "Champion metadata management is restricted to the CollectorDevTeam role or configured champion-admin entitlements.")
+            return
+
+        if property_name.lower() not in {"alias", "shortname"}:
+            await safe_send_ctx(ctx, "Use `///champ set alias <Champion> <alias>` or `///champ set shortname <Champion> <shortname>`.")
+            return
+
+        cache = getattr(self.parent, "cache", None) if getattr(self, "parent", None) else None
+        if not cache:
+            await safe_send_ctx(ctx, "Champion cache unavailable.")
+            return
+
+        champion = self._resolve_champion_record(cache, champion_ref)
+        if not champion:
+            await safe_send_ctx(ctx, f"Champion `{champion_ref}` not found.")
+            return
+
+        normalized = str(value).strip()
+        if not normalized:
+            await safe_send_ctx(ctx, "Value cannot be empty.")
+            return
+
+        kind = property_name.lower()
+        for candidate in (cache.get_all_champions() or []):
+            if not isinstance(candidate, dict) or candidate is champion:
+                continue
+            if kind == "alias":
+                aliases = candidate.get("aliases") or []
+                if any(str(a).strip().lower() == normalized.lower() for a in aliases):
+                    await safe_send_ctx(ctx, f"Alias `{normalized}` is already assigned to another champion.")
+                    return
+                override_map = cache._get_champion_overrides() if hasattr(cache, "_get_champion_overrides") else {}
+                for meta in override_map.values():
+                    if isinstance(meta, dict):
+                        for alias in (meta.get("aliases") or []):
+                            if str(alias).strip().lower() == normalized.lower():
+                                await safe_send_ctx(ctx, f"Alias `{normalized}` is already assigned to another champion.")
+                                return
+            else:
+                short = candidate.get("shortname")
+                if short and str(short).strip().lower() == normalized.lower():
+                    await safe_send_ctx(ctx, f"Shortname `{normalized}` is already assigned to another champion.")
+                    return
+                override_map = cache._get_champion_overrides() if hasattr(cache, "_get_champion_overrides") else {}
+                for meta in override_map.values():
+                    if isinstance(meta, dict) and str(meta.get("shortname") or "").strip().lower() == normalized.lower():
+                        await safe_send_ctx(ctx, f"Shortname `{normalized}` is already assigned to another champion.")
+                        return
+
+        if kind == "alias":
+            aliases = list(champion.get("aliases") or [])
+            if normalized.lower() in {str(a).strip().lower() for a in aliases}:
+                await safe_send_ctx(ctx, f"Alias `{normalized}` is already set on `{champion.get('name') or champion.get('slug')}`.")
+                return
+            aliases.append(normalized)
+            champion["aliases"] = aliases
+            self._save_champion_metadata(champion, "aliases", normalized)
+            await safe_send_ctx(ctx, f"Added alias `{normalized}` to `{champion.get('name') or champion.get('slug')}`.")
+        else:
+            champion["shortname"] = normalized
+            self._save_champion_metadata(champion, "shortname", normalized)
+            await safe_send_ctx(ctx, f"Added shortname `{normalized}` to `{champion.get('name') or champion.get('slug')}`.")
+
+    @champ.group(name="remove")
+    async def champ_remove(self, ctx, property_name: str, value: str):
+        """Remove a champion alias or shortname (admin only)."""
+        if not self._champion_admin_guard(ctx):
+            await safe_send_ctx(ctx, "Champion metadata management is restricted to the CollectorDevTeam role or configured champion-admin entitlements.")
+            return
+
+        if property_name.lower() not in {"alias", "shortname"}:
+            await safe_send_ctx(ctx, "Use `///champ remove alias <alias>` or `///champ remove shortname <shortname>`.")
+            return
+
+        cache = getattr(self.parent, "cache", None) if getattr(self, "parent", None) else None
+        if not cache:
+            await safe_send_ctx(ctx, "Champion cache unavailable.")
+            return
+
+        value_norm = str(value).strip()
+        kind = property_name.lower()
+        for champion in (cache.get_all_champions() or []):
+            if not isinstance(champion, dict):
+                continue
+            if kind == "alias":
+                aliases = champion.get("aliases") or []
+                if any(str(a).strip().lower() == value_norm.lower() for a in aliases):
+                    champion["aliases"] = [a for a in aliases if str(a).strip().lower() != value_norm.lower()]
+                    self._remove_champion_metadata(champion, "aliases", value_norm)
+                    await safe_send_ctx(ctx, f"Removed alias `{value_norm}` from `{champion.get('name') or champion.get('slug')}`.")
+                    return
+            else:
+                if str(champion.get("shortname") or "").strip().lower() == value_norm.lower():
+                    champion["shortname"] = None
+                    self._remove_champion_metadata(champion, "shortname", value_norm)
+                    await safe_send_ctx(ctx, f"Removed shortname `{value_norm}` from `{champion.get('name') or champion.get('slug')}`.")
+                    return
+
+        override_map = cache._get_champion_overrides() if hasattr(cache, "_get_champion_overrides") else {}
+        for meta in override_map.values():
+            if not isinstance(meta, dict):
+                continue
+            if kind == "alias":
+                aliases = meta.get("aliases") or []
+                if any(str(a).strip().lower() == value_norm.lower() for a in aliases):
+                    meta["aliases"] = [a for a in aliases if str(a).strip().lower() != value_norm.lower()]
+                    if not meta["aliases"]:
+                        meta.pop("aliases", None)
+                    cache._save_champion_overrides(override_map)
+                    await safe_send_ctx(ctx, f"Removed alias `{value_norm}` from override metadata.")
+                    return
+            else:
+                short = str(meta.get("shortname") or "").strip()
+                if short.lower() == value_norm.lower():
+                    meta.pop("shortname", None)
+                    cache._save_champion_overrides(override_map)
+                    await safe_send_ctx(ctx, f"Removed shortname `{value_norm}` from override metadata.")
+                    return
+
+        await safe_send_ctx(ctx, f"No champion `{property_name}` matched `{value_norm}`.")
 
     @champ.command(name="search")
     async def champ_search(self, ctx, *items: str):
-        """
-        Search champions (deck-first) with optional filters or explicit hargs tokens.
-
-        Examples:
-          ///mcoc champ search #bleed
-          ///mcoc champ search "black bolt"
-          ///mcoc champ search 7r1s40 blackbolt
-        """
+        """Search champions with optional filters or explicit tokens."""
         if not await self._require_parent(ctx):
             return
 
         raw = " ".join(items or "").strip()
         cache = getattr(self.parent, "cache", None)
-
-        # Parse query into explicit entries and filters (keeps behavior consistent)
         try:
             entries, filters = parse_query(raw, cache=cache)
         except Exception:
@@ -97,14 +301,12 @@ class ChampionsPrefix(commands.Cog):
         if isinstance(filters, dict):
             parsed_filters.update(filters)
 
-        # Preferred: get a ready pager from common helper
         try:
             pager = await Champions.make_champion_pager(self.parent, ctx, raw_input=raw, parsed_filters=parsed_filters, author_for_controls=ctx.author)
         except Exception:
             pager = None
 
         if pager:
-            # Merge brand buttons if possible
             try:
                 brand_view = Embed.brand_view()
                 if hasattr(pager, "add_item"):
@@ -115,14 +317,12 @@ class ChampionsPrefix(commands.Cog):
                             continue
             except Exception:
                 pass
-
             try:
                 await pager.start(ctx)
                 return
             except Exception:
-                log.exception("Failed to start pager returned by make_champion_pager; falling back to pages")
+                log.exception("Failed to start pager from make_champion_pager")
 
-        # Fallback: request pages and instantiate pager here
         try:
             pages = await Champions.get_champion_pages(self.parent, ctx.author, filters=parsed_filters)
         except Exception:
@@ -135,11 +335,8 @@ class ChampionsPrefix(commands.Cog):
                 await safe_send_ctx(ctx, "No champions match your search.")
             return
 
-        # Instantiate pager defensively (support multiple constructor shapes)
         try:
             pager = PagesMenu(pages, author=ctx.author)
-
-            # Merge brand buttons if possible
             try:
                 brand_view = Embed.brand_view()
                 if hasattr(pager, "add_item"):
@@ -150,12 +347,10 @@ class ChampionsPrefix(commands.Cog):
                             continue
             except Exception:
                 pass
-
             await pager.start(ctx)
             return
         except Exception:
             log.exception("Failed to instantiate/start PagesMenu for champion search")
-            # Last resort: send first embed or compact summary
             try:
                 first = pages[0]
                 await ctx.send(embed=first)
@@ -172,14 +367,9 @@ class ChampionsPrefix(commands.Cog):
                     await safe_send_ctx(ctx, "Failed to display champion search results.")
                     return
 
-    # -----------------------------
-    # Abilities (simple wrapper)
-    # -----------------------------
     @champ.command(name="abilities")
     async def champ_abilities(self, ctx, *, name: str):
-        """
-        Show champion abilities. Uses Embed.abilities_embed if available.
-        """
+        """Show champion abilities."""
         if not await self._require_parent(ctx):
             return
 
@@ -187,11 +377,8 @@ class ChampionsPrefix(commands.Cog):
         champ_obj = None
         try:
             if cache:
-                # try slug or name resolution
-                try:
-                    champ_obj = cache.get_champion(name)
-                except Exception:
-                    # fallback: search by name
+                champ_obj = cache.get_champion(name)
+                if not champ_obj:
                     for c in (cache.get_all_champions() or []):
                         if (c.get("name") or "").lower() == name.lower() or (c.get("slug") or "").lower() == name.lower():
                             champ_obj = c
@@ -203,45 +390,28 @@ class ChampionsPrefix(commands.Cog):
             await safe_send_ctx(ctx, "Champion not found.")
             return
 
-        # Try to use Embed.abilities_embed if present
         try:
-            if hasattr(Embed, "abilities_embed"):
-                emb = Embed.abilities_Embed.embed(ctx, champ_obj)
-                if emb:
-                    await ctx.send(embed=emb)
-                    return
-            # Fallback: simple abilities message if embed helper missing
             abilities = champ_obj.get("abilities") or champ_obj.get("ability_list") or []
             if not abilities:
                 await safe_send_ctx(ctx, "Abilities unavailable.")
                 return
             desc_lines = []
-            for a in abilities:
+            for ability in abilities:
                 try:
-                    title = a.get("name") or a.get("title") or "Ability"
-                    text = a.get("description") or a.get("desc") or ""
+                    title = ability.get("name") or ability.get("title") or "Ability"
+                    text = ability.get("description") or ability.get("desc") or ""
                     desc_lines.append(f"**{title}** — {text}")
                 except Exception:
                     continue
             desc = "\n\n".join(desc_lines) or "Abilities unavailable."
-            try:
-                await ctx.send(embed=Embed.Embed.embed(ctx.author, title=f"{champ_obj.get('name') or champ_obj.get('slug')}'s Abilities", description=desc))
-            except Exception:
-                await safe_send_ctx(ctx, desc)
-            return
+            await ctx.send(embed=Embed.Embed.embed(ctx.author, title=f"{champ_obj.get('name') or champ_obj.get('slug')}'s Abilities", description=desc))
         except Exception:
             log.exception("Failed to render abilities for %s", name)
             await safe_send_ctx(ctx, "Abilities unavailable.")
-            return
 
-    # -----------------------------
-    # Info (simple champion info)
-    # -----------------------------
     @champ.command(name="info")
     async def champ_info(self, ctx, *, name: str):
-        """
-        Show basic champion info (class, tags, role).
-        """
+        """Show basic champion info."""
         if not await self._require_parent(ctx):
             return
 
@@ -249,9 +419,8 @@ class ChampionsPrefix(commands.Cog):
         champ_obj = None
         try:
             if cache:
-                try:
-                    champ_obj = cache.get_champion(name)
-                except Exception:
+                champ_obj = cache.get_champion(name)
+                if not champ_obj:
                     for c in (cache.get_all_champions() or []):
                         if (c.get("name") or "").lower() == name.lower() or (c.get("slug") or "").lower() == name.lower():
                             champ_obj = c
@@ -265,22 +434,18 @@ class ChampionsPrefix(commands.Cog):
 
         try:
             name_text = champ_obj.get("name") or champ_obj.get("slug") or "Unknown"
-            cls = champ_obj.get("class") or "Unknown"
+            class_name = champ_obj.get("class") or "Unknown"
             tags = ", ".join(champ_obj.get("tags") or []) or "None"
             role = champ_obj.get("role") or champ_obj.get("archetype") or "Unknown"
-            desc = f"**Class:** {cls}\n**Role:** {role}\n**Tags:** {tags}"
+            desc = f"**Class:** {class_name}\n**Role:** {role}\n**Tags:** {tags}"
             await ctx.send(embed=Embed.Embed.embed(ctx.author, title=f"{name_text} — Info", description=desc))
         except Exception:
             log.exception("Failed to render champion info for %s", name)
             await safe_send_ctx(ctx, "Champion info unavailable.")
 
-
-    # STUB FUNCTIONS
     @champ.command(name="bio")
     async def champ_bio(self, ctx, *, name: str):
-        """
-        Show the biography of the specified champion.
-        """
+        """Show the biography of the specified champion."""
         if not await self._require_parent(ctx):
             return
 
@@ -288,9 +453,8 @@ class ChampionsPrefix(commands.Cog):
         champ_obj = None
         try:
             if cache:
-                try:
-                    champ_obj = cache.get_champion(name)
-                except Exception:
+                champ_obj = cache.get_champion(name)
+                if not champ_obj:
                     for c in (cache.get_all_champions() or []):
                         if (c.get("name") or "").lower() == name.lower() or (c.get("slug") or "").lower() == name.lower():
                             champ_obj = c
@@ -307,14 +471,11 @@ class ChampionsPrefix(commands.Cog):
             await ctx.send(embed=Embed.Embed.embed(ctx.author, title=f"{champ_obj.get('name') or champ_obj.get('slug')}'s Biography", description=bio))
         except Exception:
             log.exception("Failed to render champion biography for %s", name)
-            await safe_send_ctx(ctx, "Champion biography unavailable."
-            )
+            await safe_send_ctx(ctx, "Champion biography unavailable.")
 
     @champ.command(name="synergies")
     async def champ_synergies(self, ctx, *, name: str):
-        """
-        Show the synergies of the specified champion.
-        """
+        """Show the synergies of the specified champion."""
         if not await self._require_parent(ctx):
             return
 
@@ -322,9 +483,8 @@ class ChampionsPrefix(commands.Cog):
         champ_obj = None
         try:
             if cache:
-                try:
-                    champ_obj = cache.get_champion(name)
-                except Exception:
+                champ_obj = cache.get_champion(name)
+                if not champ_obj:
                     for c in (cache.get_all_champions() or []):
                         if (c.get("name") or "").lower() == name.lower() or (c.get("slug") or "").lower() == name.lower():
                             champ_obj = c
@@ -345,9 +505,7 @@ class ChampionsPrefix(commands.Cog):
 
     @champ.command(name="counters")
     async def champ_counters(self, ctx, *, name: str):
-        """
-        Show the counters of the specified champion.
-        """
+        """Show the counters of the specified champion."""
         if not await self._require_parent(ctx):
             return
 
@@ -355,9 +513,8 @@ class ChampionsPrefix(commands.Cog):
         champ_obj = None
         try:
             if cache:
-                try:
-                    champ_obj = cache.get_champion(name)
-                except Exception:
+                champ_obj = cache.get_champion(name)
+                if not champ_obj:
                     for c in (cache.get_all_champions() or []):
                         if (c.get("name") or "").lower() == name.lower() or (c.get("slug") or "").lower() == name.lower():
                             champ_obj = c
@@ -378,9 +535,7 @@ class ChampionsPrefix(commands.Cog):
 
     @champ.command(name="signature", aliases=["sig"])
     async def champ_signature(self, ctx, *, name: str):
-        """
-        Show the signature ability of the specified champion.
-        """
+        """Show the signature ability of the specified champion."""
         if not await self._require_parent(ctx):
             return
 
@@ -388,9 +543,8 @@ class ChampionsPrefix(commands.Cog):
         champ_obj = None
         try:
             if cache:
-                try:
-                    champ_obj = cache.get_champion(name)
-                except Exception:
+                champ_obj = cache.get_champion(name)
+                if not champ_obj:
                     for c in (cache.get_all_champions() or []):
                         if (c.get("name") or "").lower() == name.lower() or (c.get("slug") or "").lower() == name.lower():
                             champ_obj = c
@@ -411,9 +565,7 @@ class ChampionsPrefix(commands.Cog):
 
     @champ.command(name="stats")
     async def champ_stats(self, ctx, *, name: str):
-        """
-        Show the stats of the specified champion.
-        """
+        """Show the stats of the specified champion."""
         if not await self._require_parent(ctx):
             return
 
@@ -421,9 +573,8 @@ class ChampionsPrefix(commands.Cog):
         champ_obj = None
         try:
             if cache:
-                try:
-                    champ_obj = cache.get_champion(name)
-                except Exception:
+                champ_obj = cache.get_champion(name)
+                if not champ_obj:
                     for c in (cache.get_all_champions() or []):
                         if (c.get("name") or "").lower() == name.lower() or (c.get("slug") or "").lower() == name.lower():
                             champ_obj = c
@@ -441,7 +592,7 @@ class ChampionsPrefix(commands.Cog):
         except Exception:
             log.exception("Failed to render champion stats for %s", name)
             await safe_send_ctx(ctx, "Champion stats unavailable.")
-            
-# Cog setup for Red (if used as a cog)
+
+
 async def setup(bot):
     bot.add_cog(ChampionsPrefix(bot))

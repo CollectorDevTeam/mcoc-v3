@@ -29,6 +29,10 @@ FEATURES = {
         "tier": "subscriber",
         "description": "Faster cache sync windows and on-demand sync."
     },
+    "champion_admin": {
+        "tier": "guild_owner_plus",
+        "description": "Manage champion aliases, shortnames, and metadata overrides."
+    },
     "analytics": {
         "tier": "subscriber",
         "description": "Prestige trends, roster analytics, alliance dashboards."

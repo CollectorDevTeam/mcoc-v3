@@ -647,23 +647,133 @@ class CacheManager:
                 await _report(f"Sync failed: {e}")
                 return False
     # -----------------------------
+    # Supplemental champion metadata
+    # -----------------------------
+    @staticmethod
+    def _normalize_lookup_token(value: Any) -> str:
+        if value is None:
+            return ""
+        text = str(value).lower().strip().replace("_", "-")
+        text = text.replace("&", " and ")
+        text = ''.join(ch for ch in text if ch.isalnum())
+        return text
+
+    def _get_champion_overrides(self) -> Dict[str, Any]:
+        path = self.cache_dir / "champion_overrides.json"
+        if not path.exists():
+            return {}
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            if isinstance(data, dict):
+                return data
+        except Exception:
+            log.exception("Failed to read champion override file %s", path)
+        return {}
+
+    def _save_champion_overrides(self, data: Dict[str, Any]) -> None:
+        path = self.cache_dir / "champion_overrides.json"
+        try:
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=2, sort_keys=True)
+        except Exception:
+            log.exception("Failed to write champion override file %s", path)
+
+    def _champion_key_candidates(self, champ: Any) -> List[str]:
+        if not isinstance(champ, dict):
+            return []
+        raw_candidates = [
+            champ.get("id"), champ.get("slug"), champ.get("name"), champ.get("title"),
+            champ.get("shortname"), *(champ.get("aliases") or [])
+        ]
+        seen = set()
+        out = []
+        for value in raw_candidates:
+            if value is None:
+                continue
+            token = str(value).strip().lower()
+            if token and token not in seen:
+                seen.add(token)
+                out.append(token)
+        return out
+
+    def _merge_champion_overrides(self, champ: Dict[str, Any]) -> Dict[str, Any]:
+        if not isinstance(champ, dict):
+            return champ
+        merged = dict(champ)
+        override_map = self._get_champion_overrides()
+        if not override_map:
+            return merged
+
+        keys = self._champion_key_candidates(champ)
+        for key in keys:
+            note = override_map.get(key) or override_map.get(self._normalize_lookup_token(key))
+            if not isinstance(note, dict):
+                continue
+            for field in ("aliases", "shortname"):
+                if field in note and note[field] is not None:
+                    merged[field] = note[field]
+            break
+        return merged
+
+    # -----------------------------
     # Lookup helpers (unchanged)
     # -----------------------------
     def get_champion(self, id_or_name: str) -> Optional[Dict[str, Any]]:
-        id_or_name = id_or_name.lower()
+        if id_or_name is None:
+            return None
+
+        raw = str(id_or_name).strip()
+        if not raw:
+            return None
+
+        lookup = raw.lower()
+        normalized_lookup = self._normalize_lookup_token(raw)
+        override_map = self._get_champion_overrides()
         champs = self._load_file("champions").get("champions", {})
 
-        # direct ID lookup
-        if id_or_name in champs:
-            return champs[id_or_name]
+        if isinstance(champs, dict):
+            def find_key_for_lookup() -> Optional[str]:
+                for key, champ in champs.items():
+                    if not isinstance(champ, dict):
+                        continue
+                    if str(key).lower() == lookup:
+                        return key
+                    if self._normalize_lookup_token(key) == normalized_lookup:
+                        return key
+                    for candidate in self._champion_key_candidates(champ):
+                        if candidate == lookup or self._normalize_lookup_token(candidate) == normalized_lookup:
+                            return key
+                    note = override_map.get(str(key).lower()) or override_map.get(self._normalize_lookup_token(key))
+                    if isinstance(note, dict):
+                        for alias in (note.get("aliases") or []):
+                            if str(alias).lower() == lookup or self._normalize_lookup_token(alias) == normalized_lookup:
+                                return key
+                        short = note.get("shortname")
+                        if short and (str(short).lower() == lookup or self._normalize_lookup_token(short) == normalized_lookup):
+                            return key
+                return None
 
-        # name lookup
-        for champ in champs.values():
-            try:
-                if champ.get("name", "").lower() == id_or_name:
-                    return champ
-            except Exception:
-                continue
+            direct = find_key_for_lookup()
+            if direct is not None:
+                return self._merge_champion_overrides(champs[direct])
+
+        # fallback to list-based data shape
+        if isinstance(champs, list):
+            for champ in champs:
+                if not isinstance(champ, dict):
+                    continue
+                candidates = [
+                    champ.get("id"), champ.get("slug"), champ.get("name"), champ.get("title"),
+                    *(champ.get("aliases") or []),
+                    champ.get("shortname"),
+                ]
+                for candidate in candidates:
+                    if candidate is None:
+                        continue
+                    cand_text = str(candidate)
+                    if cand_text.lower() == lookup or self._normalize_lookup_token(cand_text) == normalized_lookup:
+                        return self._merge_champion_overrides(champ)
 
         return None
 

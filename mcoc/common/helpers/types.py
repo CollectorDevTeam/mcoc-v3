@@ -24,6 +24,8 @@ class Champion:
     images: Optional[Dict[str, Any]] = None
     image_url: Optional[str] = None
     tags: Optional[List[str]] = None
+    aliases: Optional[List[str]] = None
+    shortname: Optional[str] = None
     abilities: Optional[List[Dict[str, Any]]] = None
     immunities: Optional[List[Dict[str, Any]]] = None
     release_year: Optional[int] = None
@@ -72,6 +74,8 @@ def champion_from_dict(d: Optional[Mapping[str, Any]]) -> Optional[Champion]:
             images = {"portrait": d.get("image_url")}
         image_url = d.get("image_url") or (images.get("portrait") if images else None)
         tags = d.get("tags") or d.get("keywords") or None
+        aliases = d.get("aliases") or []
+        shortname = d.get("shortname") or d.get("alias") or None
         abilities = d.get("abilities") or None
         immunities = d.get("immunities") or None
         release_year = d.get("release_year") or None
@@ -84,6 +88,8 @@ def champion_from_dict(d: Optional[Mapping[str, Any]]) -> Optional[Champion]:
             images=images,
             image_url=image_url,
             tags=tags,
+            aliases=list(aliases) if isinstance(aliases, list) else ([aliases] if aliases else []),
+            shortname=str(shortname) if shortname else None,
             abilities=abilities,
             immunities=immunities,
             release_year=release_year,

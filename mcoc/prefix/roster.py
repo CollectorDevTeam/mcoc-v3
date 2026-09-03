@@ -68,7 +68,11 @@ class RosterPrefix(commands.Cog):
 
     @commands.group(name="roster", invoke_without_command=True)
     async def roster(self, ctx, *args):
-        """List or inspect roster entries for yourself or another member."""
+        """List or inspect roster entries for yourself or another member.
+        Examples:
+            {self.prefix}roster
+            {self.prefix}roster @user
+        """
         if args:
             member = None
             if isinstance(args[0], (Member, User)):
@@ -104,9 +108,16 @@ class RosterPrefix(commands.Cog):
         except Exception:
             await safe_send_ctx(ctx, "Roster commands: list, add, remove, update, export, clear.")
 
-    @roster.command(name="list")
+    @roster.command(name="search", aliases=["list", "find", "grep", "get"])
     async def roster_list(self, ctx, *items: str):
-        """List the roster entries for a user, optionally filtered by query parameters."""
+        """Search a user's roster, optionally filtered by query parameters.
+        Examples:
+            {self.prefix}roster search hero:Iron Man
+            {self.prefix}roster list 5-star
+            {self.prefix}roster find level:60
+            {self.prefix}roster grep 4-star
+            {self.prefix}roster get hero:Spider-Man
+        """
         if not await self._require_parent(ctx):
             return
 
@@ -160,8 +171,10 @@ class RosterPrefix(commands.Cog):
     @roster.command(name="add")
     async def roster_add(self, ctx, *, text: str):
         """Add champions to the user's roster based on the provided text input.
-        Example:
-        {self.prefix}roster add 7*
+        Examples:
+        {self.prefix}roster add 7*blackbolt --> 7-Star BlackBolt rank 1 sig 0
+        {self.prefix}roster add 6*A1r3ironman --> 6-Star IronMan rank 3 sig 0 ascended 1
+
         """
         if not await self._require_parent(ctx):
             return
