@@ -42,6 +42,7 @@ from mcoc.common.utilities.formatters import format_champion_line
 # new imports for userdata/types interop
 from mcoc.common.helpers import userdata as userdata_module
 from mcoc.common.helpers.types import (
+    CLASS_EMOJI,
     Champion,
     champion_from_dict,
     get_champion_tier_limits,
@@ -933,9 +934,13 @@ def _build_operation_selection_embed(
     spec = ROSTER_OPERATION_SPECS[operation]
     description_lines = [spec.summary, ""]
     if stage == "tier":
-        description_lines.append("Step 1 of 2: choose a tier.")
+        description_lines.append("Step 1 of 4: choose a star tier.")
+    elif stage == "class":
+        description_lines.append(f"Step 2 of 4: choose a class for {tier}★.")
+    elif stage == "select":
+        description_lines.append(f"Step 3 of 4: choose one or more champions for {tier}★ {class_filter.title() if class_filter else 'All Classes'}.")
     else:
-        description_lines.append(f"Step 2 of 2: choose a class for {tier}★.")
+        description_lines.append("Step 4 of 4: configure the selected champions.")
     if tier is not None:
         description_lines.append(f"Selected tier: {tier}★")
     if class_filter:
@@ -957,6 +962,28 @@ def _build_selection_option_label(entry: Dict[str, Any]) -> str:
         suffix += f" a{asc}"
     label = f"{name} ({suffix})"
     return label[:100]
+
+
+def _champion_page_window(entries: List[Dict[str, Any]], page_index: int, page_size: int) -> Tuple[int, int]:
+    if not entries:
+        return 0, 0
+    start = max(0, page_index * page_size)
+    end = min(len(entries), start + page_size)
+    return start, end
+
+
+def _champion_page_label(entries: List[Dict[str, Any]], page_index: int, page_size: int) -> str:
+    start, end = _champion_page_window(entries, page_index, page_size)
+    if end <= start:
+        return "Champions"
+    return f"Champs {start + 1}-{end}"
+
+
+def _config_button_specs(field: str) -> List[Tuple[str, int]]:
+    if field == "sig":
+        return [("SIG -20", -20), ("SIG -1", -1), ("SIG +1", 1), ("SIG +20", 20)]
+    label = field.upper()
+    return [(f"{label} -", -1), (f"{label} +", 1)]
 
 
 if discord is not None:
@@ -1018,9 +1045,9 @@ if discord is not None:
                 tier=tier,
                 class_filter=class_filter,
             )
-            embed = _build_operation_selection_embed(self.author, self.operation, tier=tier, class_filter=class_filter, stage="class")
+            embed = _build_operation_selection_embed(self.author, self.operation, tier=tier, class_filter=class_filter, stage="select")
             try:
-                embed.description = f"{embed.description}\n\nSelect one or more champions, then open the filtered pager."
+                embed.description = f"{embed.description}\n\nSelect one or more champions to continue into per-champion configuration."
             except Exception:
                 pass
             await interaction.response.edit_message(embed=embed, view=view)
@@ -1053,7 +1080,13 @@ if discord is not None:
 
         async def _open_config(self, interaction: discord.Interaction, entries: List[Dict[str, Any]]) -> None:
             view = RosterConfigView(self.core, self.author, self.operation, entries, parsed_filters=self.parsed_filters, tier=self.tier)
-            embed = _build_operation_config_embed(self.author, getattr(self.core, "cache", None), self.operation, view.entries, view.index)
+            embed = _build_operation_selection_embed(self.author, self.operation, tier=self.tier, stage="config")
+            config_embed = _build_operation_config_embed(self.author, getattr(self.core, "cache", None), self.operation, view.entries, view.index)
+            try:
+                embed.description = config_embed.description
+                embed.title = config_embed.title
+            except Exception:
+                embed = config_embed
             await interaction.response.edit_message(embed=embed, view=view)
             await view._attach_message(interaction)
 
@@ -1100,7 +1133,12 @@ if discord is not None:
 
     class _RosterClassButton(discord.ui.Button):
         def __init__(self, class_name: str, *, row: int):
-            super().__init__(label=class_name.title(), style=discord.ButtonStyle.primary, row=row)
+            super().__init__(
+                label=class_name.title(),
+                emoji=CLASS_EMOJI.get(class_name),
+                style=discord.ButtonStyle.primary,
+                row=row,
+            )
             self.class_name = class_name
 
         async def callback(self, interaction: discord.Interaction):
@@ -1112,7 +1150,7 @@ if discord is not None:
 
     class _RosterClassResultsButton(discord.ui.Button):
         def __init__(self, *, label: str, class_filter: Optional[str], row: int):
-            super().__init__(label=label, style=discord.ButtonStyle.secondary, row=row)
+            super().__init__(label=label, emoji=CLASS_EMOJI.get("all"), style=discord.ButtonStyle.secondary, row=row)
             self.class_filter = class_filter
 
         async def callback(self, interaction: discord.Interaction):
@@ -1124,7 +1162,7 @@ if discord is not None:
 
     class _RosterBackToTierButton(discord.ui.Button):
         def __init__(self):
-            super().__init__(label="Back", style=discord.ButtonStyle.secondary, row=2)
+            super().__init__(label="Back To Star", style=discord.ButtonStyle.secondary, row=2)
 
         async def callback(self, interaction: discord.Interaction):
             view = self.view
@@ -1160,9 +1198,9 @@ if discord is not None:
             if current_entries:
                 self.add_item(_RosterChampionSelect(current_entries))
             if self.page_index > 0:
-                self.add_item(_RosterSelectPageButton(label="Prev", delta=-1, row=3))
+                self.add_item(_RosterSelectPageButton(label=_champion_page_label(self.entries, self.page_index - 1, self.page_size), delta=-1, row=3))
             if end < len(self.entries):
-                self.add_item(_RosterSelectPageButton(label="Next", delta=1, row=3))
+                self.add_item(_RosterSelectPageButton(label=_champion_page_label(self.entries, self.page_index + 1, self.page_size), delta=1, row=3))
             self.add_item(_RosterShowAllSelectedButton(row=3))
             self.add_item(_RosterSelectBackButton(row=3))
 
@@ -1218,7 +1256,7 @@ if discord is not None:
                 class_filter=view.class_filter,
                 page_index=new_index,
             )
-            embed = _build_operation_selection_embed(view.author, view.operation, tier=view.tier, class_filter=view.class_filter, stage="class")
+            embed = _build_operation_selection_embed(view.author, view.operation, tier=view.tier, class_filter=view.class_filter, stage="select")
             await interaction.response.edit_message(embed=embed, view=new_view)
             await new_view._attach_message(interaction)
 
@@ -1236,7 +1274,7 @@ if discord is not None:
 
     class _RosterSelectBackButton(discord.ui.Button):
         def __init__(self, *, row: int):
-            super().__init__(label="Back", style=discord.ButtonStyle.secondary, row=row)
+            super().__init__(label="Back To Class", style=discord.ButtonStyle.secondary, row=row)
 
         async def callback(self, interaction: discord.Interaction):
             view = self.view
@@ -1262,8 +1300,8 @@ if discord is not None:
             self.add_item(_RosterConfigNavButton(label="Prev", delta=-1, row=0))
             self.add_item(_RosterConfigNavButton(label="Next", delta=1, row=0))
             for row_index, field in enumerate(_operation_adjustable_fields(operation), start=1):
-                self.add_item(_RosterConfigAdjustButton(field=field, delta=-1, row=row_index, label=f"{field} -"))
-                self.add_item(_RosterConfigAdjustButton(field=field, delta=1, row=row_index, label=f"{field} +"))
+                for label, delta in _config_button_specs(field):
+                    self.add_item(_RosterConfigAdjustButton(field=field, delta=delta, row=row_index, label=label))
             self.add_item(_RosterConfigPreviewButton(row=4))
             self.add_item(_RosterConfigApplyButton(row=4))
 

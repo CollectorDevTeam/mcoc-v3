@@ -14,6 +14,18 @@ from typing import Any, Dict, List, Optional, Mapping, Tuple, TypedDict, Union
 log = logging.getLogger("red.mcoc.types")
 
 
+CLASS_EMOJI: Dict[str, str] = {
+    "all": "<:allclasses:748808348996075540>",
+    "tech": "<:tech:748808546283683870>",
+    "skill": "<:skill:748809095456227389>",
+    "mutant": "<:mutant:748808841465954304>",
+    "mystic": "<:mystic:748808953701335080>",
+    "cosmic": "<:cosmic:748808707328180265>",
+    "science": "<:science:748809185398882404>",
+    "ascended": "<:ascend:1137124043506585691>",
+}
+
+
 @dataclass(frozen=True)
 class ChampionTierLimits:
     """Canonical progression limits for a champion tier."""

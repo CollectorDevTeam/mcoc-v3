@@ -8,7 +8,7 @@
 #   1.0 2026-09-01  Initial stabilized API header
 
 from typing import Dict, Any, Optional, Mapping, Union
-from mcoc.common.helpers.types import Champion, champion_from_dict
+from mcoc.common.helpers.types import CLASS_EMOJI, Champion, champion_from_dict
 import re
 
 ChampionLike = Union[Champion, Mapping[str, Any], None]
@@ -21,18 +21,6 @@ def _normalize_champ_obj(champ_obj: ChampionLike) -> Optional[Champion]:
         return champion_from_dict(champ_obj or {})
     except Exception:
         return None
-
-
-CLASS_EMOJI = {
-    "all": "<:allclasses:748808348996075540>",
-    "tech": "<:tech:748808546283683870>",
-    "skill": "<:skill:748809095456227389>",
-    "mutant": "<:mutant:748808841465954304>",
-    "mystic": "<:mystic:748808953701335080>",
-    "cosmic": "<:cosmic:748808707328180265>",
-    "science": "<:science:748809185398882404>",
-    "ascended": "<:ascend:1137124043506585691>"
-}
 
 
 def _safe_int(value: Any, default: int = 0) -> int:
