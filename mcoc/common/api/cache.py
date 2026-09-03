@@ -15,10 +15,11 @@ import logging
 import tempfile
 import os
 import asyncio
-from typing import Optional, Callable, Awaitable, Any, Dict, Tuple
+from typing import Optional, Callable, Awaitable, Any, Dict, List, Tuple
 from .cacheindex import CacheIndex
 from pathlib import Path
 from redbot.core import data_manager
+from mcoc.common.helpers.types import normalize_champion_progression
 
 log = logging.getLogger("red.mcoc.cache")
 # near other constants/imports
@@ -403,35 +404,9 @@ class CacheManager:
         }
 
 
-    def normalize_hargs_by_tier(self, stars: int, rank: int, sig: int, asc: int) -> Tuple[int,int,int,int]:
-        """
-        Enforce valid ranges:
-        1★: ranks 1-2, no signature (sig forced 0)
-        2★: ranks 1-3, sig 0-99
-        3★: ranks 1-4, sig 0-99
-        4★: ranks 1-5, sig 0-99
-        5-7★: ranks 1-5, sig 0-200
-        Ascension allowed 0-2.
-        Returns (stars, rank, sig, asc) clamped/validated.
-        """
-        stars = max(1, min(7, int(stars)))
-        if stars == 1:
-            rank = max(1, min(2, int(rank)))
-            sig = 0
-        elif stars == 2:
-            rank = max(1, min(3, int(rank)))
-            sig = max(0, min(99, int(sig)))
-        elif stars == 3:
-            rank = max(1, min(4, int(rank)))
-            sig = max(0, min(99, int(sig)))
-        elif stars == 4:
-            rank = max(1, min(5, int(rank)))
-            sig = max(0, min(99, int(sig)))
-        else:  # 5,6,7
-            rank = max(1, min(5, int(rank)))
-            sig = max(0, min(200, int(sig)))
-        asc = max(0, min(2, int(asc)))
-        return stars, rank, sig, asc
+    def normalize_hargs_by_tier(self, stars: int, rank: int, sig: int, asc: int) -> Tuple[int, int, int, int]:
+        """Clamp progression values using the shared champion tier limits."""
+        return normalize_champion_progression(stars, rank, sig, asc)
 
 
     def normalize_immunities_payload(self, payload: Any) -> Optional[Dict[str, Any]]:

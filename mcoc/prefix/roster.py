@@ -66,6 +66,49 @@ class RosterPrefix(commands.Cog):
         except Exception:
             return None, tokens
 
+    async def _start_pages(self, ctx, pages: List[Any], empty_message: str) -> None:
+        if not pages:
+            await safe_send_ctx(ctx, empty_message)
+            return
+        try:
+            pager = PagesMenu(pages, author=ctx.author)
+            await pager.start(ctx)
+            return
+        except Exception:
+            pass
+        first = pages[0]
+        await ctx.send(embed=first)
+
+    async def _show_roster_operation_pages(self, ctx, operation: str, text: Optional[str] = None) -> None:
+        raw = (text or "").strip()
+        try:
+            entries, filters = parse_query(raw, cache=getattr(self.parent, "cache", None)) if raw else ([], {})
+        except Exception:
+            entries, filters = [], {}
+
+        parsed_filters = {}
+        if entries:
+            parsed_filters["explicit_entries"] = entries
+        if isinstance(filters, dict):
+            parsed_filters.update(filters)
+
+        if not raw:
+            try:
+                if await Roster.start_roster_operation_flow(self.parent, ctx, operation, parsed_filters=parsed_filters):
+                    return
+            except Exception:
+                log.exception("failed to start guided roster %s flow", operation)
+
+        loader_map = {
+            "add": Roster.get_roster_add_pages,
+            "update": Roster.get_roster_update_pages,
+            "rankup": Roster.get_roster_rankup_pages,
+            "dupe": Roster.get_roster_dupe_pages,
+            "ascend": Roster.get_roster_ascend_pages,
+        }
+        pages = await loader_map[operation](self.parent, ctx.author, parsed_filters=parsed_filters)
+        await self._start_pages(ctx, pages, f"No roster entries are available for `{operation}`.")
+
     @commands.group(name="roster", invoke_without_command=True)
     async def roster(self, ctx, *args):
         """List or inspect roster entries for yourself or another member.
@@ -104,9 +147,9 @@ class RosterPrefix(commands.Cog):
             return
 
         try:
-            await send_or_brand_help(ctx, "roster", title="Roster Help", fallback_text="Roster commands: list, add, remove, update, export, clear.")
+            await send_or_brand_help(ctx, "roster", title="Roster Help", fallback_text="Roster commands: list, add, remove, update, rankup, dupe, ascend, export, clear.")
         except Exception:
-            await safe_send_ctx(ctx, "Roster commands: list, add, remove, update, export, clear.")
+            await safe_send_ctx(ctx, "Roster commands: list, add, remove, update, rankup, dupe, ascend, export, clear.")
 
     @roster.command(name="search", aliases=["list", "find", "grep", "get"])
     async def roster_list(self, ctx, *items: str):
@@ -169,7 +212,7 @@ class RosterPrefix(commands.Cog):
             await safe_send_ctx(ctx, "An unexpected error occurred while building roster pages.")
 
     @roster.command(name="add")
-    async def roster_add(self, ctx, *, text: str):
+    async def roster_add(self, ctx, *, text: Optional[str] = None):
         """Add champions to the user's roster based on the provided text input.
         Examples:
         {self.prefix}roster add 7*blackbolt --> 7-Star BlackBolt rank 1 sig 0
@@ -180,10 +223,18 @@ class RosterPrefix(commands.Cog):
             return
         user_id = getattr(ctx.author, "id", None)
         users = Roster.ensure_user_manager(self.parent)
+        raw = (text or "").strip()
+        if not raw:
+            await self._show_roster_operation_pages(ctx, "add")
+            return
         try:
-            entries = Roster.parse_roster_entries_from_input(text, getattr(self.parent, "cache", None))
+            entries = Roster.parse_roster_entries_from_input(raw, getattr(self.parent, "cache", None))
         except Exception as exc:
-            await safe_send_ctx(ctx, f"Failed to parse entries: {exc}")
+            try:
+                await self._show_roster_operation_pages(ctx, "add", raw)
+                return
+            except Exception:
+                await safe_send_ctx(ctx, f"Failed to parse entries: {exc}")
             return
 
         added = 0
@@ -225,16 +276,24 @@ class RosterPrefix(commands.Cog):
         await safe_send_ctx(ctx, f"Removed {removed} champion(s) from your roster.")
 
     @roster.command(name="update")
-    async def roster_update(self, ctx, *, text: str):
+    async def roster_update(self, ctx, *, text: Optional[str] = None):
         """Update champions in the user's roster based on the provided text input."""
         if not await self._require_parent(ctx):
             return
         user_id = getattr(ctx.author, "id", None)
         users = Roster.ensure_user_manager(self.parent)
+        raw = (text or "").strip()
+        if not raw:
+            await self._show_roster_operation_pages(ctx, "update")
+            return
         try:
-            entries = Roster.parse_roster_entries_from_input(text, getattr(self.parent, "cache", None))
+            entries = Roster.parse_roster_entries_from_input(raw, getattr(self.parent, "cache", None))
         except Exception as exc:
-            await safe_send_ctx(ctx, f"Failed to parse update token: {exc}")
+            try:
+                await self._show_roster_operation_pages(ctx, "update", raw)
+                return
+            except Exception:
+                await safe_send_ctx(ctx, f"Failed to parse update token: {exc}")
             return
 
         updated = 0
@@ -249,6 +308,27 @@ class RosterPrefix(commands.Cog):
         except Exception:
             pass
         await safe_send_ctx(ctx, f"Updated {updated} champion(s) in your roster.")
+
+    @roster.command(name="rankup")
+    async def roster_rankup(self, ctx, *, text: Optional[str] = None):
+        """Review roster entries eligible for a rank up using the shared tier limits."""
+        if not await self._require_parent(ctx):
+            return
+        await self._show_roster_operation_pages(ctx, "rankup", text)
+
+    @roster.command(name="dupe", aliases=["sigup"])
+    async def roster_dupe(self, ctx, *, text: Optional[str] = None):
+        """Review roster entries eligible for a sig increase using the shared tier limits."""
+        if not await self._require_parent(ctx):
+            return
+        await self._show_roster_operation_pages(ctx, "dupe", text)
+
+    @roster.command(name="ascend")
+    async def roster_ascend(self, ctx, *, text: Optional[str] = None):
+        """Review roster entries eligible for ascension using the shared tier limits."""
+        if not await self._require_parent(ctx):
+            return
+        await self._show_roster_operation_pages(ctx, "ascend", text)
 
     @roster.command(name="export")
     async def roster_export(self, ctx):

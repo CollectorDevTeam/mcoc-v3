@@ -22,11 +22,17 @@ Prefix handlers should be thin: resolve mention -> call make_roster_pager or get
 """
 
 from typing import Any, Dict, List, Optional, Tuple
+from dataclasses import dataclass
 import re
 import logging
 import asyncio
 
 from mcoc.common.components.componentsV2 import CDTEmbed, CDTPagesMenu
+
+try:
+    import discord
+except ModuleNotFoundError:  # pragma: no cover - optional runtime dependency
+    discord = None
 
 ROSTER_FOOTER = " | CollectorDevTeam"
 
@@ -35,9 +41,66 @@ from mcoc.common.utilities.formatters import format_champion_line
 
 # new imports for userdata/types interop
 from mcoc.common.helpers import userdata as userdata_module
-from mcoc.common.helpers.types import Champion, champion_from_dict, UserAccount, useraccount_from_userdata
+from mcoc.common.helpers.types import (
+    Champion,
+    champion_from_dict,
+    get_champion_tier_limits,
+    normalize_champion_progression,
+    UserAccount,
+    useraccount_from_userdata,
+)
 
 log = logging.getLogger("red.mcoc.roster")
+
+
+@dataclass(frozen=True)
+class RosterOperationSpec:
+    name: str
+    title: str
+    empty_message: str
+    summary: str
+    fields: Tuple[str, ...]
+
+
+ROSTER_OPERATION_SPECS: Dict[str, RosterOperationSpec] = {
+    "add": RosterOperationSpec(
+        name="add",
+        title="Roster Add",
+        empty_message="All available champions for that slice are already in your roster.",
+        summary="Eligible champions you do not currently own at the selected tier.",
+        fields=("rank", "sig", "ascended"),
+    ),
+    "update": RosterOperationSpec(
+        name="update",
+        title="Roster Update",
+        empty_message="No roster entries are available to update.",
+        summary="Owned roster entries that can be adjusted with the shared tier limits.",
+        fields=("rank", "sig", "ascended"),
+    ),
+    "rankup": RosterOperationSpec(
+        name="rankup",
+        title="Roster Rank Up",
+        empty_message="No roster entries are eligible for a rank up.",
+        summary="Owned roster entries that are below the maximum rank for their tier.",
+        fields=("rank",),
+    ),
+    "dupe": RosterOperationSpec(
+        name="dupe",
+        title="Roster Dupe",
+        empty_message="No roster entries are eligible for a sig increase.",
+        summary="Owned roster entries that are below the maximum signature level for their tier.",
+        fields=("sig",),
+    ),
+    "ascend": RosterOperationSpec(
+        name="ascend",
+        title="Roster Ascend",
+        empty_message="No roster entries are eligible for ascension.",
+        summary="Owned roster entries that are below the maximum ascension level for their tier.",
+        fields=("ascended",),
+    ),
+}
+
+ROSTER_OPERATION_CLASSES = ["cosmic", "tech", "mutant", "skill", "science", "mystic"]
 
 # module-level debounce map
 _persist_pending: Dict[int, asyncio.Task] = {}
@@ -343,7 +406,7 @@ def parse_roster_entries_from_input(text: str, cache) -> List[Dict[str, Any]]:
             if entry.get("rank") is None:
                 entry["rank"] = 1
             if entry.get("ascended") is None:
-                entry["ascended"] = 1
+                entry["ascended"] = 0
             if entry.get("sig") is None:
                 entry["sig"] = 0
 
@@ -363,12 +426,19 @@ def parse_roster_entries_from_input(text: str, cache) -> List[Dict[str, Any]]:
                 errors.append(str(exc))
                 continue
 
+            rarity, rank, sig, ascended = normalize_champion_progression(
+                entry.get("rarity") or 6,
+                entry.get("rank") or 1,
+                entry.get("sig") or 0,
+                entry.get("ascended") if entry.get("ascended") is not None else 0,
+            )
+
             out.append({
                 "champion": slug,
-                "rarity": int(entry.get("rarity") or 6),
-                "rank": int(entry.get("rank") or 1),
-                "sig": int(entry.get("sig") or 0),
-                "ascended": int(entry.get("ascended") or 1),
+                "rarity": rarity,
+                "rank": rank,
+                "sig": sig,
+                "ascended": ascended,
                 "tags": entry.get("tags") or [],
                 "raw": parsed.get("raw") or str(champ_name),
             })
@@ -502,6 +572,844 @@ def filter_roster_entries(entries: List[Dict[str, Any]], filters: Dict[str, Any]
             continue
 
     return out
+
+
+def get_roster_entry_limits(entry: Dict[str, Any]) -> Any:
+    """Return tier limits for a roster entry using its rarity/stars field."""
+    return get_champion_tier_limits(entry.get("rarity") or entry.get("stars") or 7)
+
+
+def _resolve_author_and_user_id(ctx_or_author: Any) -> Tuple[Any, Optional[int]]:
+    author_for_embed = None
+    user_id = None
+    try:
+        if ctx_or_author is None:
+            return None, None
+        if hasattr(ctx_or_author, "author"):
+            author_for_embed = ctx_or_author.author
+            user_id = getattr(ctx_or_author.author, "id", None)
+        else:
+            author_for_embed = ctx_or_author
+            user_id = getattr(ctx_or_author, "id", None)
+    except Exception:
+        return None, None
+    return author_for_embed, user_id
+
+
+def _canonicalize_roster_entry(entry: Dict[str, Any]) -> Dict[str, Any]:
+    rarity, rank, sig, ascended = normalize_champion_progression(
+        entry.get("rarity") or entry.get("stars") or 7,
+        entry.get("rank") or 1,
+        entry.get("sig") or 0,
+        entry.get("ascended") or 0,
+    )
+    canonical = dict(entry)
+    canonical["rarity"] = rarity
+    canonical["stars"] = rarity
+    canonical["rank"] = rank
+    canonical["sig"] = sig
+    canonical["ascended"] = ascended
+    canonical.setdefault("tags", canonical.get("tags") or [])
+    return canonical
+
+
+def _matches_class_filter(entry: Dict[str, Any], classes: List[str]) -> bool:
+    if not classes:
+        return True
+    champ_class = str(entry.get("class") or "").lower()
+    return champ_class in classes if champ_class else False
+
+
+def _matches_roster_filters(entry: Dict[str, Any], filters: Optional[Dict[str, Any]]) -> bool:
+    if not filters:
+        return True
+    return bool(filter_roster_entries([entry], filters))
+
+
+def _operation_entry_is_eligible(entry: Dict[str, Any], operation: str) -> bool:
+    limits = get_roster_entry_limits(entry)
+    if operation == "update":
+        return True
+    if operation == "rankup":
+        return int(entry.get("rank") or 0) < limits.max_rank
+    if operation == "dupe":
+        return int(entry.get("sig") or 0) < limits.max_sig
+    if operation == "ascend":
+        return int(entry.get("ascended") or 0) < limits.max_ascended
+    return False
+
+
+def _format_operation_line(cache: Any, entry: Dict[str, Any], operation: str) -> str:
+    champ_obj = None
+    slug = entry.get("champion")
+    if cache and slug:
+        try:
+            raw_champ = cache.get_champion(slug)
+            if isinstance(raw_champ, dict):
+                champ_obj = champion_from_dict(raw_champ)
+            elif isinstance(raw_champ, Champion):
+                champ_obj = raw_champ
+        except Exception:
+            champ_obj = None
+
+    if champ_obj and not entry.get("class"):
+        try:
+            entry["class"] = champ_obj.class_name
+        except Exception:
+            pass
+
+    try:
+        base = format_champion_line(champ_obj, entry, include_prestige=entry.get("prestige"))
+    except TypeError:
+        base = format_champion_line(champ_obj, entry)
+
+    limits = get_roster_entry_limits(entry)
+    if operation == "add":
+        return f"{base} | caps r{limits.max_rank} s{limits.max_sig} a{limits.max_ascended}"
+    if operation == "update":
+        return f"{base} | limits r{limits.max_rank} s{limits.max_sig} a{limits.max_ascended}"
+    if operation == "rankup":
+        return f"{base} | next rank {min(int(entry.get('rank') or 1) + 1, limits.max_rank)}/{limits.max_rank}"
+    if operation == "dupe":
+        return f"{base} | sig {int(entry.get('sig') or 0)}/{limits.max_sig}"
+    if operation == "ascend":
+        return f"{base} | asc {int(entry.get('ascended') or 0)}/{limits.max_ascended}"
+    return base
+
+
+def _build_operation_overview_pages(ctx_or_author: Any, operation: str, tier_counts: Dict[int, int]) -> List[Any]:
+    spec = ROSTER_OPERATION_SPECS[operation]
+    lines = [spec.summary, "", "Eligible counts by tier:"]
+    for tier in sorted(tier_counts):
+        lines.append(f"{tier}★: {tier_counts[tier]}")
+    desc = "\n".join(lines)
+    try:
+        return [CDTEmbed.embed(ctx_or_author, title=spec.title, description=desc, footer_text=f"Page 1 of 1{ROSTER_FOOTER}")]
+    except Exception:
+        return [{"title": spec.title, "description": desc, "footer": {"text": f"Page 1 of 1{ROSTER_FOOTER}"}}]
+
+
+def _build_operation_pages(ctx_or_author: Any, operation: str, lines: List[str], count: int) -> List[Any]:
+    spec = ROSTER_OPERATION_SPECS[operation]
+    if not lines:
+        try:
+            return [CDTEmbed.embed(ctx_or_author, title=spec.title, description=spec.empty_message, footer_text=f"Page 1 of 1{ROSTER_FOOTER}")]
+        except Exception:
+            return [{"title": spec.title, "description": spec.empty_message, "footer": {"text": f"Page 1 of 1{ROSTER_FOOTER}"}}]
+
+    page_texts: List[str] = []
+    current: List[str] = []
+    current_len = 0
+    for line in lines:
+        if len(current) >= 15 or (current_len + len(line) + 1) > 1800:
+            page_texts.append("\n".join(current))
+            current = []
+            current_len = 0
+        current.append(line)
+        current_len += len(line) + 1
+    if current:
+        page_texts.append("\n".join(current))
+
+    title = f"{spec.title} ({count} eligible)"
+    pages: List[Any] = []
+    for index, text in enumerate(page_texts, start=1):
+        footer = f"Page {index} of {len(page_texts)}{ROSTER_FOOTER}"
+        try:
+            pages.append(CDTEmbed.embed(ctx_or_author, title=title, description=text, footer_text=footer))
+        except Exception:
+            pages.append({"title": title, "description": text, "footer": {"text": footer}})
+    return pages
+
+
+def _build_operation_pages_from_entries(ctx_or_author: Any, cache: Any, operation: str, entries: List[Dict[str, Any]]) -> List[Any]:
+    lines = [_format_operation_line(cache, dict(entry), operation) for entry in entries]
+    return _build_operation_pages(ctx_or_author, operation, lines, len(entries))
+
+
+def _operation_adjustable_fields(operation: str) -> Tuple[str, ...]:
+    spec = ROSTER_OPERATION_SPECS.get(operation)
+    return spec.fields if spec else ()
+
+
+def _normalize_operation_entry(entry: Dict[str, Any], operation: str) -> Dict[str, Any]:
+    normalized = _canonicalize_roster_entry(entry)
+    if operation == "rankup":
+        normalized["sig"] = int(entry.get("sig") or normalized.get("sig") or 0)
+        normalized["ascended"] = int(entry.get("ascended") or normalized.get("ascended") or 0)
+    elif operation == "dupe":
+        normalized["rank"] = int(entry.get("rank") or normalized.get("rank") or 1)
+        normalized["ascended"] = int(entry.get("ascended") or normalized.get("ascended") or 0)
+    elif operation == "ascend":
+        normalized["rank"] = int(entry.get("rank") or normalized.get("rank") or 1)
+        normalized["sig"] = int(entry.get("sig") or normalized.get("sig") or 0)
+    return normalized
+
+
+def _set_operation_field(entry: Dict[str, Any], operation: str, field: str, delta: int) -> Dict[str, Any]:
+    updated = dict(entry)
+    if field not in _operation_adjustable_fields(operation):
+        return updated
+    updated[field] = int(updated.get(field) or 0) + int(delta)
+    return _normalize_operation_entry(updated, operation)
+
+
+def _build_operation_config_embed(ctx_or_author: Any, cache: Any, operation: str, entries: List[Dict[str, Any]], index: int) -> Any:
+    spec = ROSTER_OPERATION_SPECS[operation]
+    entry = dict(entries[index])
+    lines = [_format_operation_line(cache, entry, operation), ""]
+    limits = get_roster_entry_limits(entry)
+    lines.append(f"Rank: {int(entry.get('rank') or 1)}/{limits.max_rank}")
+    lines.append(f"Sig: {int(entry.get('sig') or 0)}/{limits.max_sig}")
+    lines.append(f"Ascension: {int(entry.get('ascended') or 0)}/{limits.max_ascended}")
+    fields = ", ".join(_operation_adjustable_fields(operation)) or "none"
+    lines.append("")
+    lines.append(f"Adjustable fields: {fields}")
+    lines.append("Use the buttons below to move between selected champions and adjust allowed values.")
+    return CDTEmbed.embed(
+        ctx_or_author,
+        title=f"{spec.title} Config ({index + 1}/{len(entries)})",
+        description="\n".join(lines),
+        footer_text=f"Workflow {ROSTER_FOOTER}",
+    )
+
+
+def _build_operation_apply_summary(ctx_or_author: Any, cache: Any, operation: str, entries: List[Dict[str, Any]], applied: int) -> Any:
+    preview_entries = entries[:10]
+    lines = [_format_operation_line(cache, dict(entry), operation) for entry in preview_entries]
+    if len(entries) > len(preview_entries):
+        lines.append(f"... and {len(entries) - len(preview_entries)} more")
+    description = f"Applied {applied} roster change(s).\n\n" + "\n".join(lines)
+    return CDTEmbed.embed(ctx_or_author, title=f"{ROSTER_OPERATION_SPECS[operation].title} Applied", description=description, footer_text=f"Done {ROSTER_FOOTER}")
+
+
+def apply_roster_operation_entries(core: Any, user_id: int, operation: str, entries: List[Dict[str, Any]]) -> int:
+    users = ensure_user_manager(core)
+    if not users:
+        return 0
+    applied = 0
+    for entry in entries:
+        try:
+            normalized = _normalize_operation_entry(entry, operation)
+            champ_slug = str(normalized.get("champion") or "")
+            rarity = int(normalized.get("rarity") or normalized.get("stars") or 0)
+            if not champ_slug or not rarity:
+                continue
+            if operation == "add":
+                users.add_champion(
+                    user_id,
+                    champ_slug,
+                    rarity,
+                    int(normalized.get("rank") or 1),
+                    int(normalized.get("sig") or 0),
+                    int(normalized.get("ascended") or 0),
+                    tags=normalized.get("tags") or [],
+                )
+                applied += 1
+            elif operation == "update":
+                if users.update_champion(
+                    user_id,
+                    champ_slug,
+                    rarity,
+                    rank=int(normalized.get("rank") or 1),
+                    sig=int(normalized.get("sig") or 0),
+                    ascended=int(normalized.get("ascended") or 0),
+                    tags=normalized.get("tags") or [],
+                ):
+                    applied += 1
+            elif operation == "rankup":
+                if users.update_champion(user_id, champ_slug, rarity, rank=int(normalized.get("rank") or 1)):
+                    applied += 1
+            elif operation == "dupe":
+                if users.update_champion(user_id, champ_slug, rarity, sig=int(normalized.get("sig") or 0)):
+                    applied += 1
+            elif operation == "ascend":
+                if users.update_champion(user_id, champ_slug, rarity, ascended=int(normalized.get("ascended") or 0)):
+                    applied += 1
+        except Exception:
+            log.exception("Failed applying roster %s entry %s", operation, entry)
+    if applied:
+        try:
+            schedule_persist_user_prestige(core, user_id)
+        except Exception:
+            pass
+    return applied
+
+
+async def collect_roster_operation_entries(
+    core: Any,
+    ctx_or_author: Any,
+    operation: str,
+    *,
+    parsed_filters: Optional[Dict[str, Any]] = None,
+    tier: Optional[int] = None,
+    class_filter: Optional[str] = None,
+) -> Tuple[List[Dict[str, Any]], Dict[int, int]]:
+    spec = ROSTER_OPERATION_SPECS.get(operation)
+    if spec is None:
+        raise ValueError(f"Unsupported roster operation: {operation}")
+
+    _, user_id = _resolve_author_and_user_id(ctx_or_author)
+    if user_id is None:
+        raise ValueError("collect_roster_operation_entries requires a user-like object or context")
+
+    cache = getattr(core, "cache", None)
+    filters = dict(parsed_filters or {})
+    class_filters = [class_filter.lower()] if class_filter else [c.lower() for c in (filters.get("classes") or [])]
+    requested_tiers = [int(t) for t in (filters.get("rarities") or []) if str(t).isdigit()]
+    selected_tier = int(tier) if tier is not None else (requested_tiers[0] if len(requested_tiers) == 1 else None)
+
+    roster_entries = await _load_canonical_roster_entries(core, user_id)
+    owned_lookup = {(str(e.get("champion") or "").lower(), int(e.get("rarity") or e.get("stars") or 0)) for e in roster_entries}
+    tier_counts: Dict[int, int] = {}
+
+    if operation == "add":
+        champions = cache.get_all_champions() if cache and hasattr(cache, "get_all_champions") else []
+        candidates: List[Dict[str, Any]] = []
+        tiers_to_scan = [selected_tier] if selected_tier is not None else [1, 2, 3, 4, 5, 6, 7]
+        for raw_champ in champions or []:
+            if not isinstance(raw_champ, dict):
+                continue
+            slug = str(raw_champ.get("id") or raw_champ.get("slug") or "").strip().lower()
+            if not slug:
+                continue
+            champ_class = str(raw_champ.get("class") or raw_champ.get("class_name") or "").lower()
+            for rarity_value in tiers_to_scan:
+                if (slug, rarity_value) in owned_lookup:
+                    continue
+                rarity_norm, rank, sig, ascended = normalize_champion_progression(rarity_value, 1, 0, 0)
+                candidate = {
+                    "champion": slug,
+                    "rarity": rarity_norm,
+                    "stars": rarity_norm,
+                    "rank": rank,
+                    "sig": sig,
+                    "ascended": ascended,
+                    "raw": raw_champ.get("name") or slug,
+                    "class": champ_class,
+                    "tags": raw_champ.get("tags") or [],
+                }
+                if not _matches_class_filter(candidate, class_filters):
+                    continue
+                if not _matches_roster_filters(candidate, {k: v for k, v in filters.items() if k != "explicit_entries"}):
+                    continue
+                tier_counts[rarity_norm] = tier_counts.get(rarity_norm, 0) + 1
+                candidates.append(candidate)
+        candidates.sort(key=lambda e: (-int(e.get("rarity") or 0), str(e.get("raw") or e.get("champion") or "").lower()))
+        return candidates, tier_counts
+
+    eligible_entries: List[Dict[str, Any]] = []
+    for entry in roster_entries:
+        try:
+            if selected_tier is not None and int(entry.get("rarity") or 0) != selected_tier:
+                continue
+            if class_filters and not entry.get("class") and cache:
+                raw_champ = cache.get_champion(entry.get("champion"))
+                if isinstance(raw_champ, dict):
+                    entry["class"] = raw_champ.get("class") or raw_champ.get("class_name")
+                    entry["tags"] = entry.get("tags") or raw_champ.get("tags") or []
+            if not _matches_class_filter(entry, class_filters):
+                continue
+            if not _matches_roster_filters(entry, {k: v for k, v in filters.items() if k != "explicit_entries"}):
+                continue
+            if not _operation_entry_is_eligible(entry, operation):
+                continue
+            tier_counts[int(entry.get("rarity") or entry.get("stars") or 0)] = tier_counts.get(int(entry.get("rarity") or entry.get("stars") or 0), 0) + 1
+            eligible_entries.append(entry)
+        except Exception:
+            continue
+
+    eligible_entries.sort(key=lambda e: (-int(e.get("rarity") or 0), str(e.get("raw") or e.get("champion") or "").lower()))
+    return eligible_entries, tier_counts
+
+
+def _build_operation_selection_embed(
+    ctx_or_author: Any,
+    operation: str,
+    *,
+    tier: Optional[int] = None,
+    class_filter: Optional[str] = None,
+    stage: str = "tier",
+) -> Any:
+    spec = ROSTER_OPERATION_SPECS[operation]
+    description_lines = [spec.summary, ""]
+    if stage == "tier":
+        description_lines.append("Step 1 of 2: choose a tier.")
+    else:
+        description_lines.append(f"Step 2 of 2: choose a class for {tier}★.")
+    if tier is not None:
+        description_lines.append(f"Selected tier: {tier}★")
+    if class_filter:
+        description_lines.append(f"Selected class: {class_filter.title()}")
+    description_lines.append("")
+    description_lines.append("This guided flow currently narrows the result set, then opens the eligible pager for the chosen operation.")
+    description = "\n".join(description_lines)
+    return CDTEmbed.embed(ctx_or_author, title=spec.title, description=description, footer_text=f"Workflow {ROSTER_FOOTER}")
+
+
+def _build_selection_option_label(entry: Dict[str, Any]) -> str:
+    name = str(entry.get("raw") or entry.get("champion") or "Unknown")
+    rarity = int(entry.get("rarity") or entry.get("stars") or 0)
+    rank = int(entry.get("rank") or 1)
+    sig = int(entry.get("sig") or 0)
+    asc = int(entry.get("ascended") or 0)
+    suffix = f"{rarity}★ r{rank} s{sig}"
+    if asc:
+        suffix += f" a{asc}"
+    label = f"{name} ({suffix})"
+    return label[:100]
+
+
+if discord is not None:
+    class _RosterFlowView(discord.ui.View):
+        def __init__(self, core: Any, author: Any, operation: str, *, parsed_filters: Optional[Dict[str, Any]] = None, tier: Optional[int] = None):
+            super().__init__(timeout=120.0)
+            self.core = core
+            self.author = author
+            self.operation = operation
+            self.parsed_filters = dict(parsed_filters or {})
+            self.tier = tier
+            self.message = None
+
+        async def interaction_check(self, interaction: discord.Interaction) -> bool:
+            if getattr(interaction.user, "id", None) == getattr(self.author, "id", None):
+                return True
+            try:
+                await interaction.response.send_message("This roster workflow belongs to the invoking user.", ephemeral=True)
+            except Exception:
+                pass
+            return False
+
+        async def on_timeout(self):
+            try:
+                for item in self.children:
+                    item.disabled = True
+                if self.message:
+                    await self.message.edit(view=self)
+            except Exception:
+                pass
+
+        async def _attach_message(self, interaction: discord.Interaction) -> None:
+            try:
+                self.message = await interaction.original_response()
+            except Exception:
+                self.message = None
+
+        async def _open_class_selection(self, interaction: discord.Interaction, tier: int) -> None:
+            view = RosterClassSelectionView(self.core, self.author, self.operation, parsed_filters=self.parsed_filters, tier=tier)
+            embed = _build_operation_selection_embed(self.author, self.operation, tier=tier, stage="class")
+            await interaction.response.edit_message(embed=embed, view=view)
+            await view._attach_message(interaction)
+
+        async def _open_multi_select(self, interaction: discord.Interaction, *, tier: Optional[int], class_filter: Optional[str]) -> None:
+            entries, _ = await collect_roster_operation_entries(
+                self.core,
+                self.author,
+                self.operation,
+                parsed_filters=self.parsed_filters,
+                tier=tier,
+                class_filter=class_filter,
+            )
+            view = RosterChampionSelectView(
+                self.core,
+                self.author,
+                self.operation,
+                entries,
+                parsed_filters=self.parsed_filters,
+                tier=tier,
+                class_filter=class_filter,
+            )
+            embed = _build_operation_selection_embed(self.author, self.operation, tier=tier, class_filter=class_filter, stage="class")
+            try:
+                embed.description = f"{embed.description}\n\nSelect one or more champions, then open the filtered pager."
+            except Exception:
+                pass
+            await interaction.response.edit_message(embed=embed, view=view)
+            await view._attach_message(interaction)
+
+        async def _open_results(self, interaction: discord.Interaction, *, tier: Optional[int], class_filter: Optional[str]) -> None:
+            pages = await build_roster_operation_pages(
+                self.core,
+                self.author,
+                self.operation,
+                parsed_filters=self.parsed_filters,
+                tier=tier,
+                class_filter=class_filter,
+            )
+            pager = CDTPagesMenu(pages, author=self.author)
+            await interaction.response.edit_message(embed=await pager._render_page(), view=pager)
+            try:
+                pager.message = await interaction.original_response()
+            except Exception:
+                pager.message = None
+
+        async def _open_selected_results(self, interaction: discord.Interaction, entries: List[Dict[str, Any]]) -> None:
+            pages = _build_operation_pages_from_entries(self.author, getattr(self.core, "cache", None), self.operation, entries)
+            pager = CDTPagesMenu(pages, author=self.author)
+            await interaction.response.edit_message(embed=await pager._render_page(), view=pager)
+            try:
+                pager.message = await interaction.original_response()
+            except Exception:
+                pager.message = None
+
+        async def _open_config(self, interaction: discord.Interaction, entries: List[Dict[str, Any]]) -> None:
+            view = RosterConfigView(self.core, self.author, self.operation, entries, parsed_filters=self.parsed_filters, tier=self.tier)
+            embed = _build_operation_config_embed(self.author, getattr(self.core, "cache", None), self.operation, view.entries, view.index)
+            await interaction.response.edit_message(embed=embed, view=view)
+            await view._attach_message(interaction)
+
+
+    class RosterTierSelectionView(_RosterFlowView):
+        def __init__(self, core: Any, author: Any, operation: str, *, parsed_filters: Optional[Dict[str, Any]] = None):
+            super().__init__(core, author, operation, parsed_filters=parsed_filters)
+            for tier in range(7, 0, -1):
+                self.add_item(_RosterTierButton(tier))
+            self.add_item(_RosterTierResultsButton())
+
+
+    class _RosterTierButton(discord.ui.Button):
+        def __init__(self, tier: int):
+            super().__init__(label=f"{tier}★", style=discord.ButtonStyle.primary, row=0 if tier >= 4 else 1)
+            self.tier = tier
+
+        async def callback(self, interaction: discord.Interaction):
+            view = self.view
+            if not isinstance(view, _RosterFlowView):
+                return
+            await view._open_class_selection(interaction, self.tier)
+
+
+    class _RosterTierResultsButton(discord.ui.Button):
+        def __init__(self):
+            super().__init__(label="Show Overview", style=discord.ButtonStyle.secondary, row=2)
+
+        async def callback(self, interaction: discord.Interaction):
+            view = self.view
+            if not isinstance(view, _RosterFlowView):
+                return
+            await view._open_results(interaction, tier=None, class_filter=None)
+
+
+    class RosterClassSelectionView(_RosterFlowView):
+        def __init__(self, core: Any, author: Any, operation: str, *, parsed_filters: Optional[Dict[str, Any]] = None, tier: Optional[int] = None):
+            super().__init__(core, author, operation, parsed_filters=parsed_filters, tier=tier)
+            for index, class_name in enumerate(ROSTER_OPERATION_CLASSES):
+                self.add_item(_RosterClassButton(class_name, row=0 if index < 3 else 1))
+            self.add_item(_RosterClassResultsButton(label="All Classes", class_filter=None, row=2))
+            self.add_item(_RosterBackToTierButton())
+
+
+    class _RosterClassButton(discord.ui.Button):
+        def __init__(self, class_name: str, *, row: int):
+            super().__init__(label=class_name.title(), style=discord.ButtonStyle.primary, row=row)
+            self.class_name = class_name
+
+        async def callback(self, interaction: discord.Interaction):
+            view = self.view
+            if not isinstance(view, _RosterFlowView):
+                return
+            await view._open_multi_select(interaction, tier=view.tier, class_filter=self.class_name)
+
+
+    class _RosterClassResultsButton(discord.ui.Button):
+        def __init__(self, *, label: str, class_filter: Optional[str], row: int):
+            super().__init__(label=label, style=discord.ButtonStyle.secondary, row=row)
+            self.class_filter = class_filter
+
+        async def callback(self, interaction: discord.Interaction):
+            view = self.view
+            if not isinstance(view, _RosterFlowView):
+                return
+            await view._open_multi_select(interaction, tier=view.tier, class_filter=self.class_filter)
+
+
+    class _RosterBackToTierButton(discord.ui.Button):
+        def __init__(self):
+            super().__init__(label="Back", style=discord.ButtonStyle.secondary, row=2)
+
+        async def callback(self, interaction: discord.Interaction):
+            view = self.view
+            if not isinstance(view, _RosterFlowView):
+                return
+            new_view = RosterTierSelectionView(view.core, view.author, view.operation, parsed_filters=view.parsed_filters)
+            embed = _build_operation_selection_embed(view.author, view.operation, stage="tier")
+            await interaction.response.edit_message(embed=embed, view=new_view)
+            await new_view._attach_message(interaction)
+
+
+    class RosterChampionSelectView(_RosterFlowView):
+        def __init__(
+            self,
+            core: Any,
+            author: Any,
+            operation: str,
+            entries: List[Dict[str, Any]],
+            *,
+            parsed_filters: Optional[Dict[str, Any]] = None,
+            tier: Optional[int] = None,
+            class_filter: Optional[str] = None,
+            page_index: int = 0,
+        ):
+            super().__init__(core, author, operation, parsed_filters=parsed_filters, tier=tier)
+            self.entries = list(entries)
+            self.class_filter = class_filter
+            self.page_index = page_index
+            self.page_size = 25
+            start = self.page_index * self.page_size
+            end = start + self.page_size
+            current_entries = self.entries[start:end]
+            if current_entries:
+                self.add_item(_RosterChampionSelect(current_entries))
+            if self.page_index > 0:
+                self.add_item(_RosterSelectPageButton(label="Prev", delta=-1, row=3))
+            if end < len(self.entries):
+                self.add_item(_RosterSelectPageButton(label="Next", delta=1, row=3))
+            self.add_item(_RosterShowAllSelectedButton(row=3))
+            self.add_item(_RosterSelectBackButton(row=3))
+
+
+    class _RosterChampionSelect(discord.ui.Select):
+        def __init__(self, entries: List[Dict[str, Any]]):
+            options = []
+            for entry in entries:
+                options.append(
+                    discord.SelectOption(
+                        label=_build_selection_option_label(entry),
+                        value=f"{entry.get('champion')}|{int(entry.get('rarity') or entry.get('stars') or 0)}",
+                    )
+                )
+            super().__init__(placeholder="Choose champions", min_values=1, max_values=len(options), options=options, row=0)
+
+        async def callback(self, interaction: discord.Interaction):
+            view = self.view
+            if not isinstance(view, RosterChampionSelectView):
+                return
+            chosen = set(self.values)
+            selected = []
+            for entry in view.entries:
+                key = f"{entry.get('champion')}|{int(entry.get('rarity') or entry.get('stars') or 0)}"
+                if key in chosen:
+                    selected.append(entry)
+            if not selected:
+                try:
+                    await interaction.response.send_message("No champions were selected.", ephemeral=True)
+                except Exception:
+                    pass
+                return
+            await view._open_config(interaction, selected)
+
+
+    class _RosterSelectPageButton(discord.ui.Button):
+        def __init__(self, *, label: str, delta: int, row: int):
+            super().__init__(label=label, style=discord.ButtonStyle.secondary, row=row)
+            self.delta = delta
+
+        async def callback(self, interaction: discord.Interaction):
+            view = self.view
+            if not isinstance(view, RosterChampionSelectView):
+                return
+            new_index = max(0, view.page_index + self.delta)
+            new_view = RosterChampionSelectView(
+                view.core,
+                view.author,
+                view.operation,
+                view.entries,
+                parsed_filters=view.parsed_filters,
+                tier=view.tier,
+                class_filter=view.class_filter,
+                page_index=new_index,
+            )
+            embed = _build_operation_selection_embed(view.author, view.operation, tier=view.tier, class_filter=view.class_filter, stage="class")
+            await interaction.response.edit_message(embed=embed, view=new_view)
+            await new_view._attach_message(interaction)
+
+
+    class _RosterShowAllSelectedButton(discord.ui.Button):
+        def __init__(self, *, row: int):
+            super().__init__(label="Show All", style=discord.ButtonStyle.secondary, row=row)
+
+        async def callback(self, interaction: discord.Interaction):
+            view = self.view
+            if not isinstance(view, RosterChampionSelectView):
+                return
+            await view._open_results(interaction, tier=view.tier, class_filter=view.class_filter)
+
+
+    class _RosterSelectBackButton(discord.ui.Button):
+        def __init__(self, *, row: int):
+            super().__init__(label="Back", style=discord.ButtonStyle.secondary, row=row)
+
+        async def callback(self, interaction: discord.Interaction):
+            view = self.view
+            if not isinstance(view, RosterChampionSelectView):
+                return
+            new_view = RosterClassSelectionView(
+                view.core,
+                view.author,
+                view.operation,
+                parsed_filters=view.parsed_filters,
+                tier=view.tier,
+            )
+            embed = _build_operation_selection_embed(view.author, view.operation, tier=view.tier, stage="class")
+            await interaction.response.edit_message(embed=embed, view=new_view)
+            await new_view._attach_message(interaction)
+
+
+    class RosterConfigView(_RosterFlowView):
+        def __init__(self, core: Any, author: Any, operation: str, entries: List[Dict[str, Any]], *, parsed_filters: Optional[Dict[str, Any]] = None, tier: Optional[int] = None):
+            super().__init__(core, author, operation, parsed_filters=parsed_filters, tier=tier)
+            self.entries = [_normalize_operation_entry(entry, operation) for entry in entries]
+            self.index = 0
+            self.add_item(_RosterConfigNavButton(label="Prev", delta=-1, row=0))
+            self.add_item(_RosterConfigNavButton(label="Next", delta=1, row=0))
+            for row_index, field in enumerate(_operation_adjustable_fields(operation), start=1):
+                self.add_item(_RosterConfigAdjustButton(field=field, delta=-1, row=row_index, label=f"{field} -"))
+                self.add_item(_RosterConfigAdjustButton(field=field, delta=1, row=row_index, label=f"{field} +"))
+            self.add_item(_RosterConfigPreviewButton(row=4))
+            self.add_item(_RosterConfigApplyButton(row=4))
+
+
+    class _RosterConfigNavButton(discord.ui.Button):
+        def __init__(self, *, label: str, delta: int, row: int):
+            super().__init__(label=label, style=discord.ButtonStyle.secondary, row=row)
+            self.delta = delta
+
+        async def callback(self, interaction: discord.Interaction):
+            view = self.view
+            if not isinstance(view, RosterConfigView):
+                return
+            view.index = max(0, min(len(view.entries) - 1, view.index + self.delta))
+            embed = _build_operation_config_embed(view.author, getattr(view.core, "cache", None), view.operation, view.entries, view.index)
+            await interaction.response.edit_message(embed=embed, view=view)
+
+
+    class _RosterConfigAdjustButton(discord.ui.Button):
+        def __init__(self, *, field: str, delta: int, row: int, label: str):
+            super().__init__(label=label, style=discord.ButtonStyle.primary, row=row)
+            self.field = field
+            self.delta = delta
+
+        async def callback(self, interaction: discord.Interaction):
+            view = self.view
+            if not isinstance(view, RosterConfigView):
+                return
+            current = dict(view.entries[view.index])
+            view.entries[view.index] = _set_operation_field(current, view.operation, self.field, self.delta)
+            embed = _build_operation_config_embed(view.author, getattr(view.core, "cache", None), view.operation, view.entries, view.index)
+            await interaction.response.edit_message(embed=embed, view=view)
+
+
+    class _RosterConfigPreviewButton(discord.ui.Button):
+        def __init__(self, *, row: int):
+            super().__init__(label="Preview", style=discord.ButtonStyle.secondary, row=row)
+
+        async def callback(self, interaction: discord.Interaction):
+            view = self.view
+            if not isinstance(view, RosterConfigView):
+                return
+            await view._open_selected_results(interaction, view.entries)
+
+
+    class _RosterConfigApplyButton(discord.ui.Button):
+        def __init__(self, *, row: int):
+            super().__init__(label="Apply", style=discord.ButtonStyle.success, row=row)
+
+        async def callback(self, interaction: discord.Interaction):
+            view = self.view
+            if not isinstance(view, RosterConfigView):
+                return
+            applied = apply_roster_operation_entries(view.core, getattr(view.author, "id", None), view.operation, view.entries)
+            embed = _build_operation_apply_summary(view.author, getattr(view.core, "cache", None), view.operation, view.entries, applied)
+            for item in view.children:
+                item.disabled = True
+            await interaction.response.edit_message(embed=embed, view=view)
+else:
+    RosterTierSelectionView = None
+
+
+async def _load_canonical_roster_entries(core: Any, user_id: int) -> List[Dict[str, Any]]:
+    users = ensure_user_manager(core)
+    if not users:
+        return []
+    try:
+        if asyncio.iscoroutinefunction(getattr(users, "list_roster", None)):
+            roster = await users.list_roster(user_id)
+        else:
+            roster = users.list_roster(user_id)
+    except Exception:
+        roster = []
+    out: List[Dict[str, Any]] = []
+    for entry in roster or []:
+        try:
+            out.append(_canonicalize_roster_entry(entry))
+        except Exception:
+            continue
+    return out
+
+
+async def build_roster_operation_pages(
+    core: Any,
+    ctx_or_author: Any,
+    operation: str,
+    *,
+    parsed_filters: Optional[Dict[str, Any]] = None,
+    tier: Optional[int] = None,
+    class_filter: Optional[str] = None,
+) -> List[Any]:
+    author_for_embed, user_id = _resolve_author_and_user_id(ctx_or_author)
+    if user_id is None:
+        raise ValueError("build_roster_operation_pages requires a user-like object or context")
+
+    cache = getattr(core, "cache", None)
+    filters = dict(parsed_filters or {})
+    class_filters = [class_filter.lower()] if class_filter else [c.lower() for c in (filters.get("classes") or [])]
+    requested_tiers = [int(t) for t in (filters.get("rarities") or []) if str(t).isdigit()]
+    selected_tier = int(tier) if tier is not None else (requested_tiers[0] if len(requested_tiers) == 1 else None)
+    entries, tier_counts = await collect_roster_operation_entries(
+        core,
+        ctx_or_author,
+        operation,
+        parsed_filters=parsed_filters,
+        tier=tier,
+        class_filter=class_filter,
+    )
+
+    if operation == "add" and selected_tier is None and not class_filters and not filters.get("name") and not filters.get("tags"):
+        return _build_operation_overview_pages(author_for_embed, operation, tier_counts)
+
+    return _build_operation_pages_from_entries(author_for_embed, cache, operation, entries)
+
+
+async def get_roster_add_pages(core: Any, ctx_or_author: Any, *, parsed_filters: Optional[Dict[str, Any]] = None, tier: Optional[int] = None, class_filter: Optional[str] = None) -> List[Any]:
+    return await build_roster_operation_pages(core, ctx_or_author, "add", parsed_filters=parsed_filters, tier=tier, class_filter=class_filter)
+
+
+async def get_roster_update_pages(core: Any, ctx_or_author: Any, *, parsed_filters: Optional[Dict[str, Any]] = None, tier: Optional[int] = None, class_filter: Optional[str] = None) -> List[Any]:
+    return await build_roster_operation_pages(core, ctx_or_author, "update", parsed_filters=parsed_filters, tier=tier, class_filter=class_filter)
+
+
+async def get_roster_rankup_pages(core: Any, ctx_or_author: Any, *, parsed_filters: Optional[Dict[str, Any]] = None, tier: Optional[int] = None, class_filter: Optional[str] = None) -> List[Any]:
+    return await build_roster_operation_pages(core, ctx_or_author, "rankup", parsed_filters=parsed_filters, tier=tier, class_filter=class_filter)
+
+
+async def get_roster_dupe_pages(core: Any, ctx_or_author: Any, *, parsed_filters: Optional[Dict[str, Any]] = None, tier: Optional[int] = None, class_filter: Optional[str] = None) -> List[Any]:
+    return await build_roster_operation_pages(core, ctx_or_author, "dupe", parsed_filters=parsed_filters, tier=tier, class_filter=class_filter)
+
+
+async def get_roster_ascend_pages(core: Any, ctx_or_author: Any, *, parsed_filters: Optional[Dict[str, Any]] = None, tier: Optional[int] = None, class_filter: Optional[str] = None) -> List[Any]:
+    return await build_roster_operation_pages(core, ctx_or_author, "ascend", parsed_filters=parsed_filters, tier=tier, class_filter=class_filter)
+
+
+async def start_roster_operation_flow(core: Any, ctx: Any, operation: str, *, parsed_filters: Optional[Dict[str, Any]] = None) -> bool:
+    """Start the guided roster workflow when Discord UI views are available."""
+    if discord is None or RosterTierSelectionView is None:
+        return False
+    author = getattr(ctx, "author", None)
+    if author is None:
+        return False
+    view = RosterTierSelectionView(core, author, operation, parsed_filters=parsed_filters)
+    embed = _build_operation_selection_embed(author, operation, stage="tier")
+    await ctx.send(embed=embed, view=view)
+    return True
 
 
 # -----------------------------

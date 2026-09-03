@@ -9,9 +9,62 @@
 from dataclasses import dataclass, field, asdict
 import datetime
 import logging
-from typing import Any, Dict, List, Optional, Mapping, TypedDict, Union
+from typing import Any, Dict, List, Optional, Mapping, Tuple, TypedDict, Union
 
 log = logging.getLogger("red.mcoc.types")
+
+
+@dataclass(frozen=True)
+class ChampionTierLimits:
+    """Canonical progression limits for a champion tier."""
+
+    tier: int
+    max_rank: int
+    max_sig: int
+    max_ascended: int
+
+
+CHAMPION_TIER_LIMITS: Dict[int, ChampionTierLimits] = {
+    1: ChampionTierLimits(tier=1, max_rank=2, max_sig=0, max_ascended=0),
+    2: ChampionTierLimits(tier=2, max_rank=3, max_sig=99, max_ascended=0),
+    3: ChampionTierLimits(tier=3, max_rank=4, max_sig=99, max_ascended=0),
+    4: ChampionTierLimits(tier=4, max_rank=5, max_sig=99, max_ascended=1),
+    5: ChampionTierLimits(tier=5, max_rank=5, max_sig=200, max_ascended=1),
+    6: ChampionTierLimits(tier=6, max_rank=5, max_sig=200, max_ascended=1),
+    7: ChampionTierLimits(tier=7, max_rank=5, max_sig=200, max_ascended=2),
+}
+
+
+def get_champion_tier_limits(tier: Any) -> ChampionTierLimits:
+    """Return canonical progression limits for the provided tier."""
+    try:
+        tier_int = int(tier)
+    except Exception:
+        tier_int = 7
+    tier_int = max(1, min(7, tier_int))
+    return CHAMPION_TIER_LIMITS[tier_int]
+
+
+def normalize_champion_progression(tier: Any, rank: Any, sig: Any, ascended: Any) -> Tuple[int, int, int, int]:
+    """Clamp roster progression values to the allowed limits for the tier."""
+    limits = get_champion_tier_limits(tier)
+    try:
+        rank_int = int(rank)
+    except Exception:
+        rank_int = 1
+    try:
+        sig_int = int(sig)
+    except Exception:
+        sig_int = 0
+    try:
+        asc_int = int(ascended)
+    except Exception:
+        asc_int = 0
+
+    rank_int = max(1, min(limits.max_rank, rank_int))
+    sig_int = max(0, min(limits.max_sig, sig_int))
+    asc_int = max(0, min(limits.max_ascended, asc_int))
+    return limits.tier, rank_int, sig_int, asc_int
 
 
 @dataclass
@@ -34,6 +87,13 @@ class Champion:
     @property
     def class_lower(self) -> str:
         return (self.class_name or "").lower()
+
+    @property
+    def tier_limits(self) -> ChampionTierLimits:
+        return get_champion_tier_limits(self.tier)
+
+    def normalize_progression(self, rank: Any, sig: Any = 0, ascended: Any = 0) -> Tuple[int, int, int, int]:
+        return normalize_champion_progression(self.tier, rank, sig, ascended)
 
     def get_portrait(self) -> Optional[str]:
         # prefer explicit images dict, then image_url, then raw fallbacks
