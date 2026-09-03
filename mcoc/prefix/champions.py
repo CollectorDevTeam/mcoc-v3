@@ -330,7 +330,7 @@ class ChampionsPrefix(commands.Cog):
 
         if not pages:
             try:
-                await ctx.send(embed=Embed.Embed.embed(ctx.author, title="Champions", description="No champions match your search."))
+                await ctx.send(embed=Embed.embed(ctx.author, title="Champions", description="No champions match your search."))
             except Exception:
                 await safe_send_ctx(ctx, "No champions match your search.")
             return
@@ -404,7 +404,7 @@ class ChampionsPrefix(commands.Cog):
                 except Exception:
                     continue
             desc = "\n\n".join(desc_lines) or "Abilities unavailable."
-            await ctx.send(embed=Embed.Embed.embed(ctx.author, title=f"{champ_obj.get('name') or champ_obj.get('slug')}'s Abilities", description=desc))
+            await ctx.send(embed=Embed.embed(ctx.author, title=f"{champ_obj.get('name') or champ_obj.get('slug')}'s Abilities", description=desc))
         except Exception:
             log.exception("Failed to render abilities for %s", name)
             await safe_send_ctx(ctx, "Abilities unavailable.")
@@ -438,7 +438,7 @@ class ChampionsPrefix(commands.Cog):
             tags = ", ".join(champ_obj.get("tags") or []) or "None"
             role = champ_obj.get("role") or champ_obj.get("archetype") or "Unknown"
             desc = f"**Class:** {class_name}\n**Role:** {role}\n**Tags:** {tags}"
-            await ctx.send(embed=Embed.Embed.embed(ctx.author, title=f"{name_text} — Info", description=desc))
+            await ctx.send(embed=Embed.embed(ctx.author, title=f"{name_text} — Info", description=desc))
         except Exception:
             log.exception("Failed to render champion info for %s", name)
             await safe_send_ctx(ctx, "Champion info unavailable.")
@@ -468,7 +468,7 @@ class ChampionsPrefix(commands.Cog):
 
         try:
             bio = champ_obj.get("bio") or "Biography unavailable."
-            await ctx.send(embed=Embed.Embed.embed(ctx.author, title=f"{champ_obj.get('name') or champ_obj.get('slug')}'s Biography", description=bio))
+            await ctx.send(embed=Embed.embed(ctx.author, title=f"{champ_obj.get('name') or champ_obj.get('slug')}'s Biography", description=bio))
         except Exception:
             log.exception("Failed to render champion biography for %s", name)
             await safe_send_ctx(ctx, "Champion biography unavailable.")
@@ -498,7 +498,7 @@ class ChampionsPrefix(commands.Cog):
 
         try:
             synergies = champ_obj.get("synergies") or "Synergies unavailable."
-            await ctx.send(embed=Embed.Embed.embed(ctx.author, title=f"{champ_obj.get('name') or champ_obj.get('slug')}'s Synergies", description=synergies))
+            await ctx.send(embed=Embed.embed(ctx.author, title=f"{champ_obj.get('name') or champ_obj.get('slug')}'s Synergies", description=synergies))
         except Exception:
             log.exception("Failed to render champion synergies for %s", name)
             await safe_send_ctx(ctx, "Champion synergies unavailable.")
@@ -528,7 +528,7 @@ class ChampionsPrefix(commands.Cog):
 
         try:
             counters = champ_obj.get("counters") or "Counters unavailable."
-            await ctx.send(embed=Embed.Embed.embed(ctx.author, title=f"{champ_obj.get('name') or champ_obj.get('slug')}'s Counters", description=counters))
+            await ctx.send(embed=Embed.embed(ctx.author, title=f"{champ_obj.get('name') or champ_obj.get('slug')}'s Counters", description=counters))
         except Exception:
             log.exception("Failed to render champion counters for %s", name)
             await safe_send_ctx(ctx, "Champion counters unavailable.")
@@ -558,7 +558,7 @@ class ChampionsPrefix(commands.Cog):
 
         try:
             signature = champ_obj.get("signature") or "Signature ability unavailable."
-            await ctx.send(embed=Embed.Embed.embed(ctx.author, title=f"{champ_obj.get('name') or champ_obj.get('slug')}'s Signature Ability", description=signature))
+            await ctx.send(embed=Embed.embed(ctx.author, title=f"{champ_obj.get('name') or champ_obj.get('slug')}'s Signature Ability", description=signature))
         except Exception:
             log.exception("Failed to render champion signature ability for %s", name)
             await safe_send_ctx(ctx, "Champion signature ability unavailable.")
@@ -588,7 +588,7 @@ class ChampionsPrefix(commands.Cog):
 
         try:
             stats = champ_obj.get("stats") or "Stats unavailable."
-            await ctx.send(embed=Embed.Embed.embed(ctx.author, title=f"{champ_obj.get('name') or champ_obj.get('slug')}'s Stats", description=stats))
+            await ctx.send(embed=Embed.embed(ctx.author, title=f"{champ_obj.get('name') or champ_obj.get('slug')}'s Stats", description=stats))
         except Exception:
             log.exception("Failed to render champion stats for %s", name)
             await safe_send_ctx(ctx, "Champion stats unavailable.")

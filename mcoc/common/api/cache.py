@@ -67,6 +67,7 @@ class CacheManager:
                         "abilities": None,
                         "aw": None,
                         "champions": None,
+                        "champions_map": None,
                         "immunities": None,
                         "prestige": None,
                         "tags": None
@@ -83,6 +84,7 @@ class CacheManager:
                         "abilities": None,
                         "aw": None,
                         "champions": None,
+                        "champions_map": None,
                         "immunities": None,
                         "prestige": None,
                         "tags": None
@@ -98,6 +100,7 @@ class CacheManager:
                     "abilities": None,
                     "aw": None,
                     "champions": None,
+                    "champions_map": None,
                     "immunities": None,
                     "prestige": None,
                     "tags": None,
@@ -112,6 +115,7 @@ class CacheManager:
                     "abilities": None,
                     "aw": None,
                     "champions": None,
+                    "champions_map": None,
                     "immunities": None,
                     "prestige": None,
                     "tags": None,
@@ -126,6 +130,7 @@ class CacheManager:
                     "abilities": None,
                     "aw": None,
                     "champions": None,
+                    "champions_map": None,
                     "immunities": None,
                     "prestige": None,
                     "tags": None,
@@ -452,6 +457,38 @@ class CacheManager:
             "champions": champions
         }
 
+    def normalize_champions_map_payload(self, payload: Any) -> Optional[Dict[str, Any]]:
+        """
+        Canonicalize champions_map payload into:
+        { "version": <hash>, "champions_map": {id: item, ...} }
+
+        Keeps the raw max prestige feed separate from the current prestige rows.
+        """
+        if not payload:
+            return None
+
+        items = payload if isinstance(payload, list) else payload.get("champions_map")
+        if not isinstance(items, list):
+            return None
+
+        mapped: Dict[str, Any] = {}
+        for index, item in enumerate(items):
+            if not isinstance(item, dict):
+                continue
+            key = str(item.get("id") or self._make_key_from_item(item, index)).strip().lower()
+            if not key:
+                continue
+            mapped[key] = item
+
+        if not mapped:
+            return None
+
+        version = self._hash(items)
+        return {
+            "version": version,
+            "champions_map": mapped,
+        }
+
 
     # -----------------------------
     # Diff + Save
@@ -475,6 +512,8 @@ class CacheManager:
             new_data = self.normalize_tags_payload(new_data)
         elif name == "tierlist":
             new_data = self.normalize_tierlist_payload(new_data)
+        elif name == "champions_map":
+            new_data = self.normalize_champions_map_payload(new_data)
 
 
         if not new_data:
@@ -576,6 +615,15 @@ class CacheManager:
 
                 await _report("Saving tierlist...")
                 updated |= await self._diff_and_save("tierlist", tierlist)
+
+                await _report("Fetching champions_map...")
+                champions_map = await api.get_champions_map()
+                if champions_map is None:
+                    await _report("Champions map endpoint returned no data; aborting sync.")
+                    return False
+
+                await _report("Saving champions_map...")
+                updated |= await self._diff_and_save("champions_map", champions_map)
 
                 
                 await _report("Fetching immunities...")
@@ -788,6 +836,54 @@ class CacheManager:
         if isinstance(champs, list):
             return champs
         return []
+
+    def get_all_champions_map(self) -> list:
+        data = self._load_file("champions_map")
+        champs = data.get("champions_map", {})
+        if isinstance(champs, dict):
+            return list(champs.values())
+        if isinstance(champs, list):
+            return champs
+        return []
+
+    def get_champion_map_entry(self, id_or_name: str) -> Optional[Dict[str, Any]]:
+        if id_or_name is None:
+            return None
+        raw = str(id_or_name).strip()
+        if not raw:
+            return None
+
+        lookup = self._normalize_lookup_token(raw)
+        data = self._load_file("champions_map")
+        champs = data.get("champions_map", {})
+        if isinstance(champs, dict):
+            for key, item in champs.items():
+                if not isinstance(item, dict):
+                    continue
+                candidates = [key, item.get("id"), item.get("en")]
+                for candidate in candidates:
+                    if candidate is None:
+                        continue
+                    if self._normalize_lookup_token(candidate) == lookup:
+                        return item
+        elif isinstance(champs, list):
+            for item in champs:
+                if not isinstance(item, dict):
+                    continue
+                for candidate in (item.get("id"), item.get("en")):
+                    if candidate is not None and self._normalize_lookup_token(candidate) == lookup:
+                        return item
+        return None
+
+    def get_champion_max_prestige(self, id_or_name: str) -> Optional[int]:
+        item = self.get_champion_map_entry(id_or_name)
+        if not isinstance(item, dict):
+            return None
+        try:
+            value = item.get("max_prestige")
+            return int(value) if value is not None else None
+        except Exception:
+            return None
 
     # -----------------------------
     # File loader
