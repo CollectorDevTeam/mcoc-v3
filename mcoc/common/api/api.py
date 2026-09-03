@@ -26,6 +26,7 @@ class RateLimitedError(Exception):
 class MCOCHubAPI:
     BASE_URL = "https://mcochub.insaneskull.com/api/v1"
     CHAMPIONS_MAP_URL = "https://summoners-hub.shared.mcoc-cdn.net/production/champions_map.json"
+    GLOSSARY_URL = "https://playcontestofchampions.com/wp-json/kabam/v1/glossary/"
 
     def __init__(
         self,
@@ -265,6 +266,10 @@ class MCOCHubAPI:
     async def get_champions_map(self) -> Optional[Any]:
         log.debug("Fetching champions_map.json from Summoners Hub")
         return await self._fetch_public_json(self.CHAMPIONS_MAP_URL)
+
+    async def get_glossary(self) -> Optional[Any]:
+        log.debug("Fetching glossary from playcontestofchampions.com")
+        return await self._fetch_public_json(self.GLOSSARY_URL)
 
 
     # -----------------------------

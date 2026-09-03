@@ -68,6 +68,7 @@ class CacheManager:
                         "aw": None,
                         "champions": None,
                         "champions_map": None,
+                        "glossary": None,
                         "immunities": None,
                         "prestige": None,
                         "tags": None
@@ -85,6 +86,7 @@ class CacheManager:
                         "aw": None,
                         "champions": None,
                         "champions_map": None,
+                        "glossary": None,
                         "immunities": None,
                         "prestige": None,
                         "tags": None
@@ -101,6 +103,7 @@ class CacheManager:
                     "aw": None,
                     "champions": None,
                     "champions_map": None,
+                    "glossary": None,
                     "immunities": None,
                     "prestige": None,
                     "tags": None,
@@ -116,6 +119,7 @@ class CacheManager:
                     "aw": None,
                     "champions": None,
                     "champions_map": None,
+                    "glossary": None,
                     "immunities": None,
                     "prestige": None,
                     "tags": None,
@@ -131,6 +135,7 @@ class CacheManager:
                     "aw": None,
                     "champions": None,
                     "champions_map": None,
+                    "glossary": None,
                     "immunities": None,
                     "prestige": None,
                     "tags": None,
@@ -489,6 +494,38 @@ class CacheManager:
             "champions_map": mapped,
         }
 
+    def normalize_glossary_payload(self, payload: Any) -> Optional[Dict[str, Any]]:
+        """
+        Canonicalize Kabam glossary payload into:
+        { "version": <hash>, "glossary": {id: item, ...}, ...metadata }
+        """
+        if not isinstance(payload, dict):
+            return None
+
+        items = payload.get("glossary")
+        if not isinstance(items, list):
+            return None
+
+        mapped: Dict[str, Any] = {}
+        for index, item in enumerate(items):
+            if not isinstance(item, dict):
+                continue
+            key = str(item.get("id") or self._make_key_from_item(item, index)).strip().lower()
+            if not key:
+                continue
+            mapped[key] = item
+
+        if not mapped:
+            return None
+
+        return {
+            "version": self._hash(items),
+            "title": ((payload.get("title") or {}).get("rendered") if isinstance(payload.get("title"), dict) else payload.get("title")),
+            "date_time": payload.get("date_time"),
+            "permalink": payload.get("permalink"),
+            "glossary": mapped,
+        }
+
 
     # -----------------------------
     # Diff + Save
@@ -514,6 +551,8 @@ class CacheManager:
             new_data = self.normalize_tierlist_payload(new_data)
         elif name == "champions_map":
             new_data = self.normalize_champions_map_payload(new_data)
+        elif name == "glossary":
+            new_data = self.normalize_glossary_payload(new_data)
 
 
         if not new_data:
@@ -624,6 +663,14 @@ class CacheManager:
 
                 await _report("Saving champions_map...")
                 updated |= await self._diff_and_save("champions_map", champions_map)
+
+                await _report("Fetching glossary...")
+                glossary = await api.get_glossary()
+                if glossary is None:
+                    await _report("Glossary endpoint returned no data; skipping glossary update.")
+                else:
+                    await _report("Saving glossary...")
+                    updated |= await self._diff_and_save("glossary", glossary)
 
                 
                 await _report("Fetching immunities...")
@@ -884,6 +931,56 @@ class CacheManager:
             return int(value) if value is not None else None
         except Exception:
             return None
+
+    @staticmethod
+    def _normalize_glossary_lookup(value: Any) -> str:
+        text = str(value or "").strip().lower().replace("-", "_")
+        return "".join(ch for ch in text if ch.isalnum() or ch == "_")
+
+    def get_all_glossary_terms(self) -> list:
+        data = self._load_file("glossary")
+        glossary = data.get("glossary", {})
+        if isinstance(glossary, dict):
+            return list(glossary.values())
+        if isinstance(glossary, list):
+            return glossary
+        return []
+
+    def get_glossary_term(self, term_id_or_name: str) -> Optional[Dict[str, Any]]:
+        if term_id_or_name is None:
+            return None
+        raw = str(term_id_or_name).strip()
+        if not raw:
+            return None
+
+        lookup = self._normalize_glossary_lookup(raw)
+        data = self._load_file("glossary")
+        glossary = data.get("glossary", {})
+        if isinstance(glossary, dict):
+            for key, item in glossary.items():
+                if not isinstance(item, dict):
+                    continue
+                candidates = [key, item.get("id"), item.get("word")]
+                for candidate in candidates:
+                    if candidate is not None and self._normalize_glossary_lookup(candidate) == lookup:
+                        return item
+        elif isinstance(glossary, list):
+            for item in glossary:
+                if not isinstance(item, dict):
+                    continue
+                for candidate in (item.get("id"), item.get("word")):
+                    if candidate is not None and self._normalize_glossary_lookup(candidate) == lookup:
+                        return item
+        return None
+
+    def get_glossary_icon_url(self, term_id_or_name: str) -> Optional[str]:
+        item = self.get_glossary_term(term_id_or_name)
+        if not isinstance(item, dict):
+            return None
+        term_id = self._normalize_glossary_lookup(item.get("id"))
+        if not term_id:
+            return None
+        return f"https://playcontestofchampions.com/wp-content/uploads/glossary/glossary-{term_id}.svg"
 
     # -----------------------------
     # File loader

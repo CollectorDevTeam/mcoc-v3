@@ -391,19 +391,11 @@ class ChampionsPrefix(commands.Cog):
             return
 
         try:
-            abilities = champ_obj.get("abilities") or champ_obj.get("ability_list") or []
-            if not abilities:
+            lines = Champions.build_champion_ability_lines(champ_obj, cache=cache)
+            if not lines:
                 await safe_send_ctx(ctx, "Abilities unavailable.")
                 return
-            desc_lines = []
-            for ability in abilities:
-                try:
-                    title = ability.get("name") or ability.get("title") or "Ability"
-                    text = ability.get("description") or ability.get("desc") or ""
-                    desc_lines.append(f"**{title}** — {text}")
-                except Exception:
-                    continue
-            desc = "\n\n".join(desc_lines) or "Abilities unavailable."
+            desc = "\n\n".join(lines) or "Abilities unavailable."
             await ctx.send(embed=Embed.embed(ctx.author, title=f"{champ_obj.get('name') or champ_obj.get('slug')}'s Abilities", description=desc))
         except Exception:
             log.exception("Failed to render abilities for %s", name)
@@ -497,8 +489,9 @@ class ChampionsPrefix(commands.Cog):
             return
 
         try:
-            synergies = champ_obj.get("synergies") or "Synergies unavailable."
-            await ctx.send(embed=Embed.embed(ctx.author, title=f"{champ_obj.get('name') or champ_obj.get('slug')}'s Synergies", description=synergies))
+            lines = Champions.build_champion_synergy_lines(champ_obj, cache=cache)
+            desc = "\n\n".join(lines) if lines else "Synergies unavailable."
+            await ctx.send(embed=Embed.embed(ctx.author, title=f"{champ_obj.get('name') or champ_obj.get('slug')}'s Synergies", description=desc))
         except Exception:
             log.exception("Failed to render champion synergies for %s", name)
             await safe_send_ctx(ctx, "Champion synergies unavailable.")

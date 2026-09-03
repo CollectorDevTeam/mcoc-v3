@@ -33,6 +33,94 @@ CHAMPIONS_FOOTER = " | CollectorDevTeam"
 log = logging.getLogger("red.mcoc.champions")
 
 
+def _titleize_token(value: Any) -> str:
+    token = str(value or "").strip()
+    if not token:
+        return "Ability"
+    return token.replace("_", " ").replace("-", " ").title()
+
+
+def _resolve_glossary_term(cache: Any, term: Any) -> Optional[Dict[str, Any]]:
+    if not cache or not term:
+        return None
+    try:
+        getter = getattr(cache, "get_glossary_term", None)
+        if callable(getter):
+            item = getter(term)
+            if isinstance(item, dict):
+                return item
+    except Exception:
+        pass
+    return None
+
+
+def _resolve_champion_name(cache: Any, champion_id: Any) -> str:
+    raw = str(champion_id or "").strip()
+    if not raw:
+        return "Unknown"
+    if cache:
+        try:
+            champ = cache.get_champion(raw)
+            if isinstance(champ, dict):
+                return str(champ.get("name") or champ.get("slug") or raw)
+        except Exception:
+            pass
+    return _titleize_token(raw)
+
+
+def extract_champion_synergies(champ: Mapping[str, Any]) -> List[Dict[str, Any]]:
+    out: List[Dict[str, Any]] = []
+    for ability in (champ.get("abilities") or []):
+        if not isinstance(ability, dict):
+            continue
+        if ability.get("source") == "synergy" or ability.get("synergy_with") or ability.get("note"):
+            out.append(ability)
+    return out
+
+
+def build_champion_ability_lines(champ: Mapping[str, Any], cache: Any = None) -> List[str]:
+    lines: List[str] = []
+    for ability in (champ.get("abilities") or champ.get("ability_list") or []):
+        if not isinstance(ability, dict):
+            label = _titleize_token(ability)
+            lines.append(f"**{label}**")
+            continue
+        raw_name = ability.get("name") or ability.get("id") or ability.get("title") or "Ability"
+        glossary = _resolve_glossary_term(cache, raw_name)
+        title = glossary.get("word") if glossary else _titleize_token(raw_name)
+        description = ability.get("description") or ability.get("desc") or ability.get("note") or (glossary.get("description") if glossary else "")
+        suffix_parts: List[str] = []
+        ability_type = ability.get("type")
+        if ability_type and ability_type != "full":
+            suffix_parts.append(str(ability_type))
+        if ability.get("source") == "synergy":
+            suffix_parts.append("synergy")
+        suffix = f" [{', '.join(suffix_parts)}]" if suffix_parts else ""
+        if description:
+            lines.append(f"**{title}**{suffix} — {description}")
+        else:
+            lines.append(f"**{title}**{suffix}")
+    return lines
+
+
+def build_champion_synergy_lines(champ: Mapping[str, Any], cache: Any = None) -> List[str]:
+    lines: List[str] = []
+    for synergy in extract_champion_synergies(champ):
+        raw_name = synergy.get("name") or synergy.get("id") or "Synergy"
+        glossary = _resolve_glossary_term(cache, raw_name)
+        title = glossary.get("word") if glossary else _titleize_token(raw_name)
+        partners = [_resolve_champion_name(cache, partner) for partner in (synergy.get("synergy_with") or [])]
+        partner_text = f" With: {', '.join(partners)}." if partners else ""
+        description = synergy.get("note") or (glossary.get("description") if glossary else "") or ""
+        if description:
+            lines.append(f"**{title}** — {description}{partner_text}")
+        elif partner_text:
+            lines.append(f"**{title}** —{partner_text}")
+        else:
+            lines.append(f"**{title}**")
+    return lines
+
+
 # -----------------------------
 # Low-level cache helpers
 # -----------------------------
