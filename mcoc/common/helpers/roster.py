@@ -102,6 +102,8 @@ ROSTER_OPERATION_SPECS: Dict[str, RosterOperationSpec] = {
 }
 
 ROSTER_OPERATION_CLASSES = ["cosmic", "tech", "mutant", "skill", "science", "mystic"]
+ROSTER_FLOW_TIMEOUT = 600.0
+ROSTER_SELECTION_LIMIT = 75
 
 # module-level debounce map
 _persist_pending: Dict[int, asyncio.Task] = {}
@@ -783,6 +785,20 @@ def _build_operation_apply_summary(ctx_or_author: Any, cache: Any, operation: st
     return CDTEmbed.embed(ctx_or_author, title=f"{ROSTER_OPERATION_SPECS[operation].title} Applied", description=description, footer_text=f"Done {ROSTER_FOOTER}")
 
 
+def _build_operation_confirm_embed(ctx_or_author: Any, cache: Any, operation: str, entries: List[Dict[str, Any]]) -> Any:
+    preview_entries = entries[:10]
+    lines = [f"Selected champions: {len(entries)}", "", "Review these changes before applying:"]
+    lines.extend(_format_operation_line(cache, dict(entry), operation) for entry in preview_entries)
+    if len(entries) > len(preview_entries):
+        lines.append(f"... and {len(entries) - len(preview_entries)} more")
+    return CDTEmbed.embed(
+        ctx_or_author,
+        title=f"{ROSTER_OPERATION_SPECS[operation].title} Confirm",
+        description="\n".join(lines),
+        footer_text=f"Confirm {ROSTER_FOOTER}",
+    )
+
+
 def apply_roster_operation_entries(core: Any, user_id: int, operation: str, entries: List[Dict[str, Any]]) -> int:
     users = ensure_user_manager(core)
     if not users:
@@ -930,23 +946,29 @@ def _build_operation_selection_embed(
     tier: Optional[int] = None,
     class_filter: Optional[str] = None,
     stage: str = "tier",
+    selected_count: int = 0,
 ) -> Any:
     spec = ROSTER_OPERATION_SPECS[operation]
     description_lines = [spec.summary, ""]
     if stage == "tier":
-        description_lines.append("Step 1 of 4: choose a star tier.")
+        description_lines.append("Step 1 of 5: choose a star tier.")
     elif stage == "class":
-        description_lines.append(f"Step 2 of 4: choose a class for {tier}★.")
+        description_lines.append(f"Step 2 of 5: choose a class for {tier}★.")
     elif stage == "select":
-        description_lines.append(f"Step 3 of 4: choose one or more champions for {tier}★ {class_filter.title() if class_filter else 'All Classes'}.")
+        description_lines.append(f"Step 3 of 5: choose one or more champions for {tier}★ {class_filter.title() if class_filter else 'All Classes'}.")
+    elif stage == "config":
+        description_lines.append("Step 4 of 5: configure the selected champions.")
     else:
-        description_lines.append("Step 4 of 4: configure the selected champions.")
+        description_lines.append("Step 5 of 5: confirm and apply the selected changes.")
     if tier is not None:
         description_lines.append(f"Selected tier: {tier}★")
     if class_filter:
         description_lines.append(f"Selected class: {class_filter.title()}")
+    if stage == "select":
+        description_lines.append(f"Selected champions: {selected_count}/{ROSTER_SELECTION_LIMIT}")
+        description_lines.append(f"Selection cap: {ROSTER_SELECTION_LIMIT} champions held between pages.")
     description_lines.append("")
-    description_lines.append("This guided flow currently narrows the result set, then opens the eligible pager for the chosen operation.")
+    description_lines.append("This guided flow narrows the result set and keeps your selections until you explicitly continue.")
     description = "\n".join(description_lines)
     return CDTEmbed.embed(ctx_or_author, title=spec.title, description=description, footer_text=f"Workflow {ROSTER_FOOTER}")
 
@@ -976,7 +998,11 @@ def _champion_page_label(entries: List[Dict[str, Any]], page_index: int, page_si
     start, end = _champion_page_window(entries, page_index, page_size)
     if end <= start:
         return "Champions"
-    return f"Champs {start + 1}-{end}"
+    return f"Page {start + 1}-{end}"
+
+
+def _entry_selection_key(entry: Dict[str, Any]) -> str:
+    return f"{entry.get('champion')}|{int(entry.get('rarity') or entry.get('stars') or 0)}"
 
 
 def _config_button_specs(field: str) -> List[Tuple[str, int]]:
@@ -989,7 +1015,7 @@ def _config_button_specs(field: str) -> List[Tuple[str, int]]:
 if discord is not None:
     class _RosterFlowView(discord.ui.View):
         def __init__(self, core: Any, author: Any, operation: str, *, parsed_filters: Optional[Dict[str, Any]] = None, tier: Optional[int] = None):
-            super().__init__(timeout=120.0)
+            super().__init__(timeout=ROSTER_FLOW_TIMEOUT)
             self.core = core
             self.author = author
             self.operation = operation
@@ -1045,9 +1071,9 @@ if discord is not None:
                 tier=tier,
                 class_filter=class_filter,
             )
-            embed = _build_operation_selection_embed(self.author, self.operation, tier=tier, class_filter=class_filter, stage="select")
+            embed = _build_operation_selection_embed(self.author, self.operation, tier=tier, class_filter=class_filter, stage="select", selected_count=0)
             try:
-                embed.description = f"{embed.description}\n\nSelect one or more champions to continue into per-champion configuration."
+                embed.description = f"{embed.description}\n\nSelect champions on any page, then use Continue To Config when ready."
             except Exception:
                 pass
             await interaction.response.edit_message(embed=embed, view=view)
@@ -1186,54 +1212,96 @@ if discord is not None:
             tier: Optional[int] = None,
             class_filter: Optional[str] = None,
             page_index: int = 0,
+            selected_keys: Optional[set] = None,
         ):
             super().__init__(core, author, operation, parsed_filters=parsed_filters, tier=tier)
             self.entries = list(entries)
             self.class_filter = class_filter
             self.page_index = page_index
             self.page_size = 25
+            self.selected_keys = set(selected_keys or set())
             start = self.page_index * self.page_size
             end = start + self.page_size
             current_entries = self.entries[start:end]
             if current_entries:
-                self.add_item(_RosterChampionSelect(current_entries))
+                self.add_item(_RosterChampionSelect(current_entries, selected_keys=self.selected_keys))
             if self.page_index > 0:
                 self.add_item(_RosterSelectPageButton(label=_champion_page_label(self.entries, self.page_index - 1, self.page_size), delta=-1, row=3))
             if end < len(self.entries):
                 self.add_item(_RosterSelectPageButton(label=_champion_page_label(self.entries, self.page_index + 1, self.page_size), delta=1, row=3))
             self.add_item(_RosterShowAllSelectedButton(row=3))
+            self.add_item(_RosterContinueToConfigButton(selected_count=len(self.selected_keys), row=3))
             self.add_item(_RosterSelectBackButton(row=3))
+
+        def selected_entries(self) -> List[Dict[str, Any]]:
+            selected = []
+            for entry in self.entries:
+                if _entry_selection_key(entry) in self.selected_keys:
+                    selected.append(entry)
+            return selected
+
+        def build_embed(self) -> Any:
+            embed = _build_operation_selection_embed(
+                self.author,
+                self.operation,
+                tier=self.tier,
+                class_filter=self.class_filter,
+                stage="select",
+                selected_count=len(self.selected_keys),
+            )
+            try:
+                embed.description = f"{embed.description}\n\nSelect champions on this page. Use page buttons to keep browsing, or Continue To Config to move to step 4."
+            except Exception:
+                pass
+            return embed
 
 
     class _RosterChampionSelect(discord.ui.Select):
-        def __init__(self, entries: List[Dict[str, Any]]):
+        def __init__(self, entries: List[Dict[str, Any]], *, selected_keys: Optional[set] = None):
+            selected_keys = selected_keys or set()
             options = []
             for entry in entries:
+                value = _entry_selection_key(entry)
                 options.append(
                     discord.SelectOption(
                         label=_build_selection_option_label(entry),
-                        value=f"{entry.get('champion')}|{int(entry.get('rarity') or entry.get('stars') or 0)}",
+                        value=value,
+                        default=value in selected_keys,
                     )
                 )
-            super().__init__(placeholder="Choose champions", min_values=1, max_values=len(options), options=options, row=0)
+            super().__init__(placeholder="Choose champions", min_values=0, max_values=len(options), options=options, row=0)
 
         async def callback(self, interaction: discord.Interaction):
             view = self.view
             if not isinstance(view, RosterChampionSelectView):
                 return
+            start, end = _champion_page_window(view.entries, view.page_index, view.page_size)
+            page_entries = view.entries[start:end]
+            page_keys = {_entry_selection_key(entry) for entry in page_entries}
             chosen = set(self.values)
-            selected = []
-            for entry in view.entries:
-                key = f"{entry.get('champion')}|{int(entry.get('rarity') or entry.get('stars') or 0)}"
-                if key in chosen:
-                    selected.append(entry)
-            if not selected:
+            selected_keys = (view.selected_keys - page_keys) | chosen
+            if len(selected_keys) > ROSTER_SELECTION_LIMIT:
                 try:
-                    await interaction.response.send_message("No champions were selected.", ephemeral=True)
+                    await interaction.response.send_message(
+                        f"You can hold up to {ROSTER_SELECTION_LIMIT} selected champions between pages. Deselect some champions before adding more.",
+                        ephemeral=True,
+                    )
                 except Exception:
                     pass
                 return
-            await view._open_config(interaction, selected)
+            new_view = RosterChampionSelectView(
+                view.core,
+                view.author,
+                view.operation,
+                view.entries,
+                parsed_filters=view.parsed_filters,
+                tier=view.tier,
+                class_filter=view.class_filter,
+                page_index=view.page_index,
+                selected_keys=selected_keys,
+            )
+            await interaction.response.edit_message(embed=new_view.build_embed(), view=new_view)
+            await new_view._attach_message(interaction)
 
 
     class _RosterSelectPageButton(discord.ui.Button):
@@ -1255,9 +1323,9 @@ if discord is not None:
                 tier=view.tier,
                 class_filter=view.class_filter,
                 page_index=new_index,
+                selected_keys=view.selected_keys,
             )
-            embed = _build_operation_selection_embed(view.author, view.operation, tier=view.tier, class_filter=view.class_filter, stage="select")
-            await interaction.response.edit_message(embed=embed, view=new_view)
+            await interaction.response.edit_message(embed=new_view.build_embed(), view=new_view)
             await new_view._attach_message(interaction)
 
 
@@ -1270,6 +1338,24 @@ if discord is not None:
             if not isinstance(view, RosterChampionSelectView):
                 return
             await view._open_results(interaction, tier=view.tier, class_filter=view.class_filter)
+
+
+    class _RosterContinueToConfigButton(discord.ui.Button):
+        def __init__(self, *, selected_count: int, row: int):
+            super().__init__(label=f"Continue To Config ({selected_count}/{ROSTER_SELECTION_LIMIT})", style=discord.ButtonStyle.success, row=row)
+
+        async def callback(self, interaction: discord.Interaction):
+            view = self.view
+            if not isinstance(view, RosterChampionSelectView):
+                return
+            selected = view.selected_entries()
+            if not selected:
+                try:
+                    await interaction.response.send_message("Select at least one champion before continuing.", ephemeral=True)
+                except Exception:
+                    pass
+                return
+            await view._open_config(interaction, selected)
 
 
     class _RosterSelectBackButton(discord.ui.Button):
@@ -1303,7 +1389,7 @@ if discord is not None:
                 for label, delta in _config_button_specs(field):
                     self.add_item(_RosterConfigAdjustButton(field=field, delta=delta, row=row_index, label=label))
             self.add_item(_RosterConfigPreviewButton(row=4))
-            self.add_item(_RosterConfigApplyButton(row=4))
+            self.add_item(_RosterConfigConfirmButton(row=4))
 
 
     class _RosterConfigNavButton(discord.ui.Button):
@@ -1347,13 +1433,64 @@ if discord is not None:
             await view._open_selected_results(interaction, view.entries)
 
 
-    class _RosterConfigApplyButton(discord.ui.Button):
+    class _RosterConfigConfirmButton(discord.ui.Button):
         def __init__(self, *, row: int):
-            super().__init__(label="Apply", style=discord.ButtonStyle.success, row=row)
+            super().__init__(label="Review And Confirm", style=discord.ButtonStyle.success, row=row)
 
         async def callback(self, interaction: discord.Interaction):
             view = self.view
             if not isinstance(view, RosterConfigView):
+                return
+            confirm_view = RosterConfirmView(
+                view.core,
+                view.author,
+                view.operation,
+                view.entries,
+                parsed_filters=view.parsed_filters,
+                tier=view.tier,
+            )
+            embed = _build_operation_confirm_embed(view.author, getattr(view.core, "cache", None), view.operation, view.entries)
+            await interaction.response.edit_message(embed=embed, view=confirm_view)
+            await confirm_view._attach_message(interaction)
+
+
+    class RosterConfirmView(_RosterFlowView):
+        def __init__(self, core: Any, author: Any, operation: str, entries: List[Dict[str, Any]], *, parsed_filters: Optional[Dict[str, Any]] = None, tier: Optional[int] = None):
+            super().__init__(core, author, operation, parsed_filters=parsed_filters, tier=tier)
+            self.entries = [_normalize_operation_entry(entry, operation) for entry in entries]
+            self.add_item(_RosterConfirmBackButton(row=0))
+            self.add_item(_RosterConfirmApplyButton(row=0))
+
+
+    class _RosterConfirmBackButton(discord.ui.Button):
+        def __init__(self, *, row: int):
+            super().__init__(label="Back To Config", style=discord.ButtonStyle.secondary, row=row)
+
+        async def callback(self, interaction: discord.Interaction):
+            view = self.view
+            if not isinstance(view, RosterConfirmView):
+                return
+            config_view = RosterConfigView(
+                view.core,
+                view.author,
+                view.operation,
+                view.entries,
+                parsed_filters=view.parsed_filters,
+                tier=view.tier,
+            )
+            config_view.entries = [_normalize_operation_entry(entry, view.operation) for entry in view.entries]
+            embed = _build_operation_config_embed(view.author, getattr(view.core, "cache", None), view.operation, config_view.entries, config_view.index)
+            await interaction.response.edit_message(embed=embed, view=config_view)
+            await config_view._attach_message(interaction)
+
+
+    class _RosterConfirmApplyButton(discord.ui.Button):
+        def __init__(self, *, row: int):
+            super().__init__(label="Confirm Apply", style=discord.ButtonStyle.success, row=row)
+
+        async def callback(self, interaction: discord.Interaction):
+            view = self.view
+            if not isinstance(view, RosterConfirmView):
                 return
             applied = apply_roster_operation_entries(view.core, getattr(view.author, "id", None), view.operation, view.entries)
             embed = _build_operation_apply_summary(view.author, getattr(view.core, "cache", None), view.operation, view.entries, applied)
