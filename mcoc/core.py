@@ -23,6 +23,7 @@ immediately and can be reloaded independently during development.
 """
 
 from typing import Any
+import inspect
 import logging
 
 log = logging.getLogger("red.mcoc")
@@ -65,10 +66,11 @@ async def setup(bot: Any) -> None:
             await bot.add_cog(MCOCPrefix(bot))
             log.debug("MCOCPrefix loaded")
         except Exception:
-            # Some Red installs expect synchronous add_cog; try fallback
             try:
-                bot.add_cog(MCOCPrefix(bot))
-                log.debug("MCOCPrefix loaded (sync fallback)")
+                result = bot.add_cog(MCOCPrefix(bot))
+                if inspect.isawaitable(result):
+                    await result
+                log.debug("MCOCPrefix loaded (async fallback)")
             except Exception:
                 log.exception("Failed to add MCOCPrefix cog")
     except Exception:
@@ -96,10 +98,11 @@ async def setup(bot: Any) -> None:
                 await bot.add_cog(cog_cls(bot))
                 log.debug("Loaded feature cog %s from %s", class_name, module_path)
             except Exception:
-                # fallback to sync add_cog if async add_cog fails
                 try:
-                    bot.add_cog(cog_cls(bot))
-                    log.debug("Loaded feature cog %s (sync fallback) from %s", class_name, module_path)
+                    result = bot.add_cog(cog_cls(bot))
+                    if inspect.isawaitable(result):
+                        await result
+                    log.debug("Loaded feature cog %s (async fallback) from %s", class_name, module_path)
                 except Exception:
                     log.exception("Failed to add feature cog %s from %s", class_name, module_path)
         except ModuleNotFoundError:
@@ -116,8 +119,10 @@ async def setup(bot: Any) -> None:
             log.debug("MCOCSlash loaded")
         except Exception:
             try:
-                bot.add_cog(MCOCSlash(bot))
-                log.debug("MCOCSlash loaded (sync fallback)")
+                result = bot.add_cog(MCOCSlash(bot))
+                if inspect.isawaitable(result):
+                    await result
+                log.debug("MCOCSlash loaded (async fallback)")
             except Exception:
                 log.exception("Failed to add MCOCSlash cog")
     except ModuleNotFoundError:
@@ -133,8 +138,10 @@ async def setup(bot: Any) -> None:
             log.debug("Diagnostics loaded")
         except Exception:
             try:
-                bot.add_cog(Diagnostics(bot))
-                log.debug("Diagnostics loaded (sync fallback)")
+                result = bot.add_cog(Diagnostics(bot))
+                if inspect.isawaitable(result):
+                    await result
+                log.debug("Diagnostics loaded (async fallback)")
             except Exception:
                 log.exception("Failed to add Diagnostics cog")
     except ModuleNotFoundError:

@@ -280,6 +280,20 @@ def schedule_persist_user_prestige(core, user_id: int, delay: float = 1.5) -> No
 # -----------------------------
 # Parsing helpers
 # -----------------------------
+def validate_entry_for_add(entry: Dict[str, Any]) -> bool:
+    """Return True when an entry contains the minimum fields needed to add a roster record."""
+    if not isinstance(entry, dict):
+        return False
+    rarity = entry.get("rarity")
+    rank = entry.get("rank")
+    if rarity is None or rank is None:
+        return False
+    try:
+        return int(rarity) > 0 and int(rank) > 0
+    except Exception:
+        return False
+
+
 def extract_entry_from_parsed(parsed: Dict[str, Any]) -> Dict[str, Any]:
     """
     Normalize a parsed token (from parse_harg_token or parse_hargs) into canonical entry:

@@ -34,6 +34,121 @@ CHAMPIONS_FOOTER = " | CollectorDevTeam"
 log = logging.getLogger("red.mcoc.champions")
 
 
+def resolve_champion(cache: Any, champion_ref: Any) -> Optional[Dict[str, Any]]:
+    """Resolve a champion from a cache by id/slug/name.
+
+    This keeps the slash layer compatible with the shared helper contract.
+    """
+    if not cache or champion_ref is None:
+        return None
+
+    try:
+        direct = cache.get_champion(champion_ref)
+        if isinstance(direct, dict):
+            return direct
+    except Exception:
+        pass
+
+    needle = str(champion_ref).strip().lower()
+    if not needle:
+        return None
+
+    try:
+        for champ in (cache.get_all_champions() or []):
+            if not isinstance(champ, dict):
+                continue
+            candidates = [
+                champ.get("id"),
+                champ.get("slug"),
+                champ.get("name"),
+                champ.get("title"),
+                champ.get("shortname"),
+            ]
+            candidates.extend(champ.get("aliases") or [])
+            for candidate in candidates:
+                if candidate is None:
+                    continue
+                if str(candidate).strip().lower() == needle:
+                    return champ
+    except Exception:
+        log.exception("resolve_champion failed for %s", champion_ref)
+    return None
+
+
+async def safe_respond_interaction(interaction: Any, *, content: Optional[str] = None, embed: Optional[Any] = None, view: Optional[Any] = None, ephemeral: bool = False, followup: bool = False) -> None:
+    """Minimal compatibility helper for slash interaction responses."""
+    if interaction is None:
+        return
+
+    try:
+        if followup and hasattr(interaction, "followup"):
+            await interaction.followup.send(content=content or "", embed=embed, view=view, ephemeral=ephemeral)
+            return
+
+        if hasattr(interaction, "response") and getattr(interaction, "response", None) is not None:
+            await interaction.response.send_message(content=content or "", embed=embed, view=view, ephemeral=ephemeral)
+            return
+
+        if hasattr(interaction, "followup"):
+            await interaction.followup.send(content=content or "", embed=embed, view=view, ephemeral=ephemeral)
+            return
+
+        if hasattr(interaction, "channel") and hasattr(interaction.channel, "send"):
+            await interaction.channel.send(content=content or "", embed=embed, view=view)
+            return
+    except Exception:
+        log.exception("safe_respond_interaction failed for interaction=%r", interaction)
+
+
+def lookup_stat(champ: Optional[Mapping[str, Any]], rarity: Any, rank: Any, ascended: Any = 0) -> Optional[Dict[str, Any]]:
+    """Return a stat table for a champion at the given rarity/rank/ascension.
+
+    This compatibility helper fills in the contract used by the slash champion commands
+    when they build a calcstats embed.
+    """
+    if not isinstance(champ, Mapping):
+        return None
+    stats = champ.get("stats") or {}
+    try:
+        rarity_key = int(rarity)
+        rank_key = int(rank)
+        asc = int(ascended or 0)
+    except Exception:
+        return None
+
+    rarity_bucket = stats.get(str(rarity_key), {}) if isinstance(stats, Mapping) else {}
+    if not isinstance(rarity_bucket, Mapping):
+        rarity_bucket = stats.get(rarity_key, {}) if isinstance(stats, Mapping) else {}
+    if not isinstance(rarity_bucket, Mapping):
+        return None
+
+    rank_bucket = rarity_bucket.get(str(rank_key), {}) if isinstance(rarity_bucket, Mapping) else {}
+    if not isinstance(rank_bucket, Mapping):
+        rank_bucket = rarity_bucket.get(rank_key, {}) if isinstance(rarity_bucket, Mapping) else {}
+    if not isinstance(rank_bucket, Mapping):
+        return None
+
+    if asc and isinstance(rank_bucket, Mapping):
+        asc_bucket = rank_bucket.get("ascended", {})
+        if isinstance(asc_bucket, Mapping):
+            try:
+                rank_bucket = asc_bucket.get(str(asc), asc_bucket.get(asc, rank_bucket))
+            except Exception:
+                rank_bucket = asc_bucket.get(str(asc), rank_bucket)
+
+    if not isinstance(rank_bucket, Mapping):
+        return None
+
+    return {
+        "attack": rank_bucket.get("attack") or rank_bucket.get("ATK") or rank_bucket.get("atk") or rank_bucket.get("attack_rating"),
+        "health": rank_bucket.get("health") or rank_bucket.get("HP") or rank_bucket.get("hp") or rank_bucket.get("health_rating"),
+        "speed": rank_bucket.get("speed") or rank_bucket.get("SPD") or rank_bucket.get("spd"),
+        "crit": rank_bucket.get("crit") or rank_bucket.get("crit_rating"),
+        "armor": rank_bucket.get("armor") or rank_bucket.get("armour") or rank_bucket.get("armor_rating"),
+        "resist": rank_bucket.get("resist") or rank_bucket.get("resistance") or rank_bucket.get("resist_rating"),
+    }
+
+
 def _titleize_token(value: Any) -> str:
     token = str(value or "").strip()
     if not token:
