@@ -55,13 +55,15 @@ class MCOCCommonCore:
         try:
             # Initialize cache manager
             self.cache = CacheManager(bot)
-            # Provide a key getter that returns a string or None
-            def _key_getter() -> Optional[str]:
+            # Provide a key getter that awaits the async Red token lookup method.
+            async def _key_getter() -> Optional[str]:
                 try:
-                    # bot.get_shared_api_tokens may return dict or string depending on host
-                    tokens = getattr(self.bot, "get_shared_api_tokens", lambda name: None)("mcochub")
+                    getter = getattr(self.bot, "get_shared_api_tokens", None)
+                    if not callable(getter):
+                        return None
+                    tokens = await getter("mcochub")
                     if isinstance(tokens, dict):
-                        return tokens.get("api_key") or tokens.get("key") or None
+                        return tokens.get("api_key") or tokens.get("key") or tokens.get("apikey") or None
                     if isinstance(tokens, str):
                         return tokens
                     return None
