@@ -70,12 +70,37 @@ class MCOCAdminPrefix(commands.Cog):
 
     # ADMIN COMMANDS GROUP
     @commands.is_owner()
-    @commands.group(name="admin", aliases=["mcoc", "mcocadmin"])
+    @commands.group(name="mcocadmin", aliases=["admin", "mcoc"], invoke_without_command=True)
     async def admin(self, ctx, *args):
         """Admin commands for MCOC (development / fallback)."""
-        # if not args:
-        #     # show help for this group
-        #     await send_or_brand_help(ctx, "mcocadmin", title="MCOC Admin Help", fallback_text="Admin commands for MCOC (development / fallback).")
+        if args and str(args[0]).lower() in {"help", "?"}:
+            subcommands = [
+                "status",
+                "sync",
+                "force-sync",
+                "prestige_sync",
+                "key",
+                "features",
+                "feature-enable",
+                "feature-disable",
+                "dump",
+                "inspect",
+            ]
+            emb = Embed.embed(ctx, title="MCOC Admin Help", description="Owner/admin utilities for the MCOC bot.")
+            Embed.add_field(emb, name="Available Commands", value="\n".join(f"• `{cmd}`" for cmd in subcommands), inline=False)
+            Embed.add_field(emb, name="Usage", value="`///mcocadmin status`\n`///mcocadmin sync`\n`///mcocadmin help`", inline=False)
+            await safe_send_ctx(ctx, None, embed=emb)
+            return
+
+        if not args:
+            subcommands = ["status", "sync", "force-sync", "prestige_sync", "key", "features"]
+            emb = Embed.embed(ctx, title="MCOC Admin", description="Owner/admin utilities for the MCOC bot.")
+            Embed.add_field(emb, name="Common Commands", value="\n".join(f"• `{cmd}`" for cmd in subcommands), inline=False)
+            Embed.add_field(emb, name="Example", value="`///mcocadmin status`", inline=False)
+            await safe_send_ctx(ctx, None, embed=emb)
+            return
+
+        await safe_send_ctx(ctx, f"Unknown admin command: `{args[0]}`. Use `///mcocadmin help`.")
 
     # -------------------------
     # Owner-only utilities
