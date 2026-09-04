@@ -19,8 +19,8 @@ discord = None
 discord_commands = None
 
 if TYPE_CHECKING:
-    from discord import Embed, Interaction
-    from discord.ui import View, Button
+    from discord import Embed
+    from discord.ui import View
 else:
     Embed = Any
     Interaction = Any
@@ -29,15 +29,15 @@ else:
 
 try:
     import discord as _discord
-    from discord import Embed, Interaction
-    from discord.ui import View, Button
+    from discord import Embed
+    from discord.ui import View
     discord = _discord
 except ModuleNotFoundError:  # pragma: no cover - optional runtime dependency
     discord = None
     Embed = Any
-    Interaction = Any
+    # Interaction = Any
     View = Any
-    Button = Any
+    # Button = Any
 
 try:
     from discord.ext import commands as discord_commands
@@ -391,7 +391,7 @@ else:
             self.confirm_label = confirm_label
             self.cancel_label = cancel_label
 
-        @Button(label="Yes", style=discord.ButtonStyle.success)
+        @discord.ui.button(label="Yes", style=discord.ButtonStyle.success)
         async def confirm(self, interaction: Any, button: Any):
             self.value = True
             for item in self.children:
@@ -402,7 +402,7 @@ else:
                 pass
             self.stop()
 
-        @Button(label="No", style=discord.ButtonStyle.secondary)
+        @discord.ui.button(label="No", style=discord.ButtonStyle.secondary)
         async def cancel(self, interaction: Any, button: Any):
             self.value = False
             for item in self.children:
@@ -477,27 +477,27 @@ else:
                     log.exception("CDTPagesMenu.start retry failed; aborting")
                     raise
 
-        @Button(emoji="⏮️", style=discord.ButtonStyle.secondary)
+        @discord.ui.button(emoji="⏮️", style=discord.ButtonStyle.secondary)
         async def first(self, interaction: Any, button: Any):
             self.index = 0
             await interaction.response.edit_message(embed=await self._render_page(), view=self)
 
-        @Button(emoji="◀️", style=discord.ButtonStyle.secondary)
+        @discord.ui.button(emoji="◀️", style=discord.ButtonStyle.secondary)
         async def prev(self, interaction: Any, button: Any):
             self.index = max(0, self.index - 1)
             await interaction.response.edit_message(embed=await self._render_page(), view=self)
 
-        @Button(emoji="▶️", style=discord.ButtonStyle.secondary)
+        @discord.ui.button(emoji="▶️", style=discord.ButtonStyle.secondary)
         async def next(self, interaction: Any, button: Any):
             self.index = min(len(self.pages) - 1, self.index + 1)
             await interaction.response.edit_message(embed=await self._render_page(), view=self)
 
-        @Button(emoji="⏭️", style=discord.ButtonStyle.secondary)
+        @discord.ui.button(emoji="⏭️", style=discord.ButtonStyle.secondary)
         async def last(self, interaction: Any, button: Any):
             self.index = len(self.pages) - 1
             await interaction.response.edit_message(embed=await self._render_page(), view=self)
 
-        @Button(label="Close", style=discord.ButtonStyle.danger)
+        @discord.ui.button(label="Close", style=discord.ButtonStyle.danger)
         async def close(self, interaction: Any, button: Any):
             for item in self.children:
                 item.disabled = True
