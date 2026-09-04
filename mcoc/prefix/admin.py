@@ -216,8 +216,8 @@ class MCOCAdminPrefix(commands.Cog):
             emb = Embed.embed(ctx, title="📊 MCOC Cache Status", color=discord.Color.gold())
             
             # Core sync info
-            Embed.add_field(emb, name="Last Sync", value=last_sync, inline=False)
-            Embed.add_field(emb, name="API Connected", value="✅ Yes" if api_available else "❌ No", inline=True)
+            Embed.add_field(emb, ctx, name="Last Sync", value=last_sync, inline=False)
+            Embed.add_field(emb, ctx, name="API Connected", value="✅ Yes" if api_available else "❌ No", inline=True)
             
             # Core data counts
             core_data = (
@@ -226,7 +226,7 @@ class MCOCAdminPrefix(commands.Cog):
                 f"• Tags: **{tags_count}**\n"
                 f"• Immunities: **{immunities_count}**"
             )
-            Embed.add_field(emb, name="Core Data", value=core_data, inline=True)
+            Embed.add_field(emb, ctx, name="Core Data", value=core_data, inline=True)
             
             # Extended data
             extended_data = (
@@ -235,14 +235,14 @@ class MCOCAdminPrefix(commands.Cog):
                 f"• Glossary: **{glossary_count}**\n"
                 f"• Tierlist: **{tierlist_count}**"
             )
-            Embed.add_field(emb, name="Extended Data", value=extended_data, inline=True)
+            Embed.add_field(emb, ctx, name="Extended Data", value=extended_data, inline=True)
             
             # Prestige data
             prestige_info = (
                 f"• Rows: **{prestige_rows_count}**\n"
                 f"• Version: `{versions.get('prestige', 'unknown')}`"
             )
-            Embed.add_field(emb, name="Prestige", value=prestige_info, inline=False)
+            Embed.add_field(emb, ctx, name="Prestige", value=prestige_info, inline=False)
             
             # Cache versions
             if versions:
@@ -250,7 +250,7 @@ class MCOCAdminPrefix(commands.Cog):
                 version_text = "\n".join(version_items)
             else:
                 version_text = "No cached versions found."
-            Embed.add_field(emb, name="Version Hashes", value=version_text, inline=False)
+            Embed.add_field(emb, ctx, name="Version Hashes", value=version_text, inline=False)
             
             await safe_send_ctx(ctx, None, embed=emb)
         except Exception:
