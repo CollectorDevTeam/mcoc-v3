@@ -87,16 +87,16 @@ class MCOCAdminPrefix(commands.Cog):
                 "inspect",
             ]
             emb = Embed.embed(ctx, title="MCOC Admin Help", description="Owner/admin utilities for the MCOC bot.")
-            Embed.add_field(emb, name="Available Commands", value="\n".join(f"• `{cmd}`" for cmd in subcommands), inline=False)
-            Embed.add_field(emb, name="Usage", value="`///mcocadmin status`\n`///mcocadmin sync`\n`///mcocadmin help`", inline=False)
+            Embed.add_field(ctx, emb=emb, name="Available Commands", value="\n".join(f"• `{cmd}`" for cmd in subcommands), inline=False)
+            Embed.add_field(ctx, emb=emb, name="Usage", value="`///mcocadmin status`\n`///mcocadmin sync`\n`///mcocadmin help`", inline=False)
             await safe_send_ctx(ctx, None, embed=emb)
             return
 
         if not args:
             subcommands = ["status", "sync", "force-sync", "prestige_sync", "key", "features"]
             emb = Embed.embed(ctx, title="MCOC Admin", description="Owner/admin utilities for the MCOC bot.")
-            Embed.add_field(emb, name="Common Commands", value="\n".join(f"• `{cmd}`" for cmd in subcommands), inline=False)
-            Embed.add_field(emb, name="Example", value="`///mcocadmin status`", inline=False)
+            Embed.add_field(ctx, emb=emb, name="Common Commands", value="\n".join(f"• `{cmd}`" for cmd in subcommands), inline=False)
+            Embed.add_field(ctx, emb=emb, name="Example", value="`///mcocadmin status`", inline=False)
             await safe_send_ctx(ctx, None, embed=emb)
             return
 
@@ -117,6 +117,8 @@ class MCOCAdminPrefix(commands.Cog):
             tier = meta["tier"]
             desc = meta["description"]
             Embed.add_field(
+                ctx,
+                emb=emb,
                 name=f"{fname} ({tier})",
                 value=f"{'ENABLED' if enabled else 'disabled'}\n{desc}",
                 inline=False
@@ -216,8 +218,8 @@ class MCOCAdminPrefix(commands.Cog):
             emb = Embed.embed(ctx, title="📊 MCOC Cache Status", color=discord.Color.gold())
             
             # Core sync info
-            Embed.add_field(emb, ctx, name="Last Sync", value=last_sync, inline=False)
-            Embed.add_field(emb, ctx, name="API Connected", value="✅ Yes" if api_available else "❌ No", inline=True)
+            Embed.add_field(ctx, emb=emb, name="Last Sync", value=last_sync, inline=False)
+            Embed.add_field(ctx, emb=emb, name="API Connected", value="✅ Yes" if api_available else "❌ No", inline=True)
             
             # Core data counts
             core_data = (
@@ -226,7 +228,7 @@ class MCOCAdminPrefix(commands.Cog):
                 f"• Tags: **{tags_count}**\n"
                 f"• Immunities: **{immunities_count}**"
             )
-            Embed.add_field(emb, ctx, name="Core Data", value=core_data, inline=True)
+            Embed.add_field(ctx, emb=emb, name="Core Data", value=core_data, inline=True)
             
             # Extended data
             extended_data = (
@@ -235,14 +237,14 @@ class MCOCAdminPrefix(commands.Cog):
                 f"• Glossary: **{glossary_count}**\n"
                 f"• Tierlist: **{tierlist_count}**"
             )
-            Embed.add_field(emb, ctx, name="Extended Data", value=extended_data, inline=True)
+            Embed.add_field(ctx, emb=emb, name="Extended Data", value=extended_data, inline=True)
             
             # Prestige data
             prestige_info = (
                 f"• Rows: **{prestige_rows_count}**\n"
                 f"• Version: `{versions.get('prestige', 'unknown')}`"
             )
-            Embed.add_field(emb, ctx, name="Prestige", value=prestige_info, inline=False)
+            Embed.add_field(ctx, emb=emb, name="Prestige", value=prestige_info, inline=False)
             
             # Cache versions
             if versions:
@@ -250,7 +252,7 @@ class MCOCAdminPrefix(commands.Cog):
                 version_text = "\n".join(version_items)
             else:
                 version_text = "No cached versions found."
-            Embed.add_field(emb, ctx, name="Version Hashes", value=version_text, inline=False)
+            Embed.add_field(ctx, emb=emb, name="Version Hashes", value=version_text, inline=False)
             
             await safe_send_ctx(ctx, None, embed=emb)
         except Exception:
@@ -331,8 +333,8 @@ class MCOCAdminPrefix(commands.Cog):
             emb = Embed.embed(ctx, title="✅ Sync Complete" if updated else "⏭️ Sync Skipped", color=discord.Color.green() if updated else discord.Color.greyple())
             
             sync_status = "Updated" if updated else "No changes (cache was current)"
-            Embed.add_field(emb, name="Status", value=sync_status, inline=False)
-            Embed.add_field(emb, name="Completed At", value=datetime.datetime.utcnow().isoformat(), inline=False)
+            Embed.add_field(ctx, emb=emb, name="Status", value=sync_status, inline=False)
+            Embed.add_field(ctx, emb=emb, name="Completed At", value=datetime.datetime.utcnow().isoformat(), inline=False)
             
             # Core data summary
             core_summary = (
@@ -341,7 +343,7 @@ class MCOCAdminPrefix(commands.Cog):
                 f"• Tags: **{tags_count}**\n"
                 f"• Immunities: **{immunities_count}**"
             )
-            Embed.add_field(emb, name="Core Data", value=core_summary, inline=True)
+            Embed.add_field(ctx, emb=emb, name="Core Data", value=core_summary, inline=True)
             
             # Extended data summary
             extended_summary = (
@@ -350,14 +352,14 @@ class MCOCAdminPrefix(commands.Cog):
                 f"• Glossary: **{glossary_count}**\n"
                 f"• Tierlist: **{tierlist_count}**"
             )
-            Embed.add_field(emb, name="Extended Data", value=extended_summary, inline=True)
+            Embed.add_field(ctx, emb=emb, name="Extended Data", value=extended_summary, inline=True)
             
             # Version info
             if versions:
                 version_summary = "\n".join([f"• {k}: `{v[:12]}...`" for k, v in versions.items()])
             else:
                 version_summary = "No versions cached."
-            Embed.add_field(emb, name="Cached Versions", value=version_summary, inline=False)
+            Embed.add_field(ctx, emb=emb, name="Cached Versions", value=version_summary, inline=False)
             
             await poster.finalize("Full sync complete")
             await safe_send_ctx(ctx, None, embed=emb)
@@ -462,7 +464,7 @@ class MCOCAdminPrefix(commands.Cog):
 
             # Build comprehensive summary embed
             emb = Embed.embed(ctx, title="✅ Force Sync Complete", color=discord.Color.green())
-            Embed.add_field(emb, name="Completed At", value=datetime.datetime.utcnow().isoformat(), inline=False)
+            Embed.add_field(ctx, emb=emb, name="Completed At", value=datetime.datetime.utcnow().isoformat(), inline=False)
             
             core_summary = (
                 f"• Champions: **{results.get('champions', 0)}**\n"
@@ -470,7 +472,7 @@ class MCOCAdminPrefix(commands.Cog):
                 f"• Tags: **{results.get('tags', 0)}**\n"
                 f"• Immunities: **{results.get('immunities', 0)}**"
             )
-            Embed.add_field(emb, name="Core Data", value=core_summary, inline=True)
+            Embed.add_field(ctx, emb=emb, name="Core Data", value=core_summary, inline=True)
             
             extended_summary = (
                 f"• Alliance War: **{results.get('aw', 0)}**\n"
@@ -478,9 +480,9 @@ class MCOCAdminPrefix(commands.Cog):
                 f"• Glossary: **{results.get('glossary', 0)}**\n"
                 f"• Tierlist: **{results.get('tierlist', 0)}**"
             )
-            Embed.add_field(emb, name="Extended Data", value=extended_summary, inline=True)
+            Embed.add_field(ctx, emb=emb, name="Extended Data", value=extended_summary, inline=True)
             
-            Embed.add_field(emb, name="Prestige Status", value=f"**{results.get('prestige', 'Unknown')}**", inline=False)
+            Embed.add_field(ctx, emb=emb, name="Prestige Status", value=f"**{results.get('prestige', 'Unknown')}**", inline=False)
 
             await poster.finalize("Forced sync complete")
             await safe_send_ctx(ctx, None, embed=emb)
