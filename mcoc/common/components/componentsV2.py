@@ -223,6 +223,11 @@ else:
             if color is None:
                 author = getattr(ctx_or_author, "author", ctx_or_author)
                 color = getattr(author, "color", None) or discord.Color.gold()
+            else:
+                try:
+                    color = cls._get_color_value(ctx_or_author, color)
+                except Exception:
+                    pass
             emb = Embed(title=title, description=description, color=color, url=url)
             name, avatar = _get_author_info(ctx_or_author)
             if avatar:

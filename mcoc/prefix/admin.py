@@ -70,7 +70,7 @@ class MCOCAdminPrefix(commands.Cog):
 
     # ADMIN COMMANDS GROUP
     @commands.is_owner()
-    @commands.group(name="mcocadmin", aliases=["admin", "mcoc"], invoke_without_command=True)
+    @commands.group(name="mcocadmin", aliases=["admin"], invoke_without_command=True)
     async def admin(self, ctx, *args):
         """Admin commands for MCOC (development / fallback)."""
         if args and str(args[0]).lower() in {"help", "?"}:

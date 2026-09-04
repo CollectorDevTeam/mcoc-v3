@@ -19,10 +19,8 @@ from ..common.helpers.champions import (
     safe_respond_interaction,
     lookup_stat,
     add_page_footers,
-    CDTEmbed,
-    CDTConfirm,
-    CDTPagesMenu,
 )
+from ..common.components.componentsV2 import CDTEmbed, CDTPagesMenu
 
 # Keep the app_commands.Group lightweight and import-neutral
 class _ChampionGroup(app_commands.Group):
