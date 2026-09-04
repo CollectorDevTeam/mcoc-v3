@@ -488,19 +488,60 @@ def _format_champion_entry(champ: Dict[str, Any], default_entry: Optional[Dict[s
 
 
 async def build_tierlist_embed_pages(author: Any, pages: List[Dict[str, Any]]) -> List[Any]:
-    """Translate a tierlist page payload into Discord embed objects."""
+    """Translate a tierlist page payload into Discord-safe embed objects.
+
+    Each original tierlist page may contain many groups and many champion lines, which
+    can explode past Discord's 6000-character embed limit. We split the field list into
+    multiple embed pages once the current payload would exceed a conservative size budget.
+    """
+    MAX_EMBED_CHARS = 5000
+    MAX_FIELD_COUNT = 25
     out: List[Any] = []
-    for idx, page in enumerate(pages, start=1):
-        embed = CDTEmbed.embed(author, title=f"Tierlist ({idx}/{len(pages)})", color=page.get("color"), description="")
-        for group in page.get("groups", []) or []:
-            lines = []
-            for champion in group.get("items", []) or []:
-                lines.append(format_tierlist_champion_line(champion))
-            if lines:
-                CDTEmbed.add_field(author, embed, name=group.get("title", "Tier"), value="\n".join(lines), inline=False)
+
+    def _make_embed(target_title: str, color: Any, field_batches: List[Tuple[str, str]], empty_message: str) -> Any:
+        embed = CDTEmbed.embed(author, title=target_title, color=color, description="")
+        for field_name, field_value in field_batches:
+            if not field_value:
+                continue
+            CDTEmbed.add_field(author, embed, name=field_name, value=field_value, inline=False)
         if not getattr(embed, "fields", None):
-            embed.description = "No champions match your tierlist filters."
-        out.append(embed)
+            embed.description = empty_message
+        return embed
+
+    for idx, page in enumerate(pages, start=1):
+        page_groups = page.get("groups", []) or []
+        if not page_groups:
+            out.append(_make_embed(f"Tierlist ({idx}/{len(pages)})", page.get("color"), [], "No champions match your tierlist filters."))
+            continue
+
+        current_fields: List[Tuple[str, str]] = []
+        current_size = 0
+        current_title = f"Tierlist ({idx}/{len(pages)})"
+        for group in page_groups:
+            lines = [format_tierlist_champion_line(champion) for champion in (group.get("items", []) or [])]
+            field_value = "\n".join(lines)
+            if not field_value:
+                continue
+            field_name = str(group.get("title", "Tier"))
+            proposal = (field_name, field_value)
+            proposal_size = len(field_name) + len(field_value) + 32
+
+            if current_fields and (
+                len(current_fields) >= MAX_FIELD_COUNT or
+                current_size + proposal_size > MAX_EMBED_CHARS
+            ):
+                out.append(_make_embed(current_title, page.get("color"), current_fields, "No champions match your tierlist filters."))
+                current_fields = []
+                current_size = 0
+
+            current_fields.append(proposal)
+            current_size += proposal_size
+
+        if current_fields:
+            out.append(_make_embed(current_title, page.get("color"), current_fields, "No champions match your tierlist filters."))
+        elif not out:
+            out.append(_make_embed(current_title, page.get("color"), [], "No champions match your tierlist filters."))
+
     return out
 
 
