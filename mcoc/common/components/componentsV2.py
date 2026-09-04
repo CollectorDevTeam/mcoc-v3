@@ -493,18 +493,31 @@ else:
         def _sanitize_embed_for_discord(self, emb: Any) -> Any:
             try:
                 if self._embed_size_bytes(emb) <= 5500:
-                    return emb
+                    pass
+                else:
+                    try:
+                        emb.clear_fields()
+                        emb.description = "This page is too large for one Discord embed. Please narrow the filters or use a smaller range."
+                        emb.set_image(url=None)
+                        emb.set_thumbnail(url=None)
+                        return emb
+                    except Exception:
+                        return emb
             except Exception:
                 return emb
 
             try:
-                emb.clear_fields()
-                emb.description = "This page is too large for one Discord embed. Please narrow the filters or use a smaller range."
-                emb.set_image(url=None)
-                emb.set_thumbnail(url=None)
-                return emb
+                for field in list(getattr(emb, "fields", []) or []):
+                    try:
+                        if len(str(field.value)) > 1024:
+                            field.value = str(field.value)[:1021] + "..."
+                    except Exception:
+                        pass
+                if len(str(emb.description or "")) > 4096:
+                    emb.description = str(emb.description)[:4093] + "..."
             except Exception:
-                return emb
+                pass
+            return emb
 
         async def start(self, ctx):
             emb = await self._render_page()

@@ -496,7 +496,8 @@ async def build_tierlist_embed_pages(author: Any, pages: List[Dict[str, Any]]) -
     """
     MAX_EMBED_CHARS = 5000
     MAX_FIELD_COUNT = 25
-    TARGET_GROUP_CHARS = 1800
+    TARGET_GROUP_CHARS = 900
+    MAX_FIELD_VALUE_CHARS = 1024
     out: List[Any] = []
 
     def _make_embed(target_title: str, color: Any, field_batches: List[Tuple[str, str]], empty_message: str) -> Any:
@@ -520,7 +521,10 @@ async def build_tierlist_embed_pages(author: Any, pages: List[Dict[str, Any]]) -
         for line in lines:
             line_size = len(line) + 1
             if current and (current_size + line_size > TARGET_GROUP_CHARS):
-                chunks.append((group_title if len(chunks) == 0 else f"{group_title} ({chunk_index + 1})", "\n".join(current)))
+                value = "\n".join(current)
+                if len(value) > 1024:
+                    value = value[:1021] + "..."
+                chunks.append((group_title if len(chunks) == 0 else f"{group_title} ({chunk_index + 1})", value))
                 chunk_index += 1
                 current = []
                 current_size = 0
@@ -528,7 +532,10 @@ async def build_tierlist_embed_pages(author: Any, pages: List[Dict[str, Any]]) -
             current_size += line_size
 
         if current:
-            chunks.append((group_title if len(chunks) == 0 else f"{group_title} ({chunk_index + 1})", "\n".join(current)))
+            value = "\n".join(current)
+            if len(value) > 1024:
+                value = value[:1021] + "..."
+            chunks.append((group_title if len(chunks) == 0 else f"{group_title} ({chunk_index + 1})", value))
 
         return chunks
 
