@@ -387,33 +387,55 @@ class MCOCAdminPrefix(commands.Cog):
         await poster.post_initial()
 
         results = {}
+
+        def _count_payload_items(payload: Any, key: Optional[str] = None) -> int:
+            if payload is None:
+                return 0
+            if isinstance(payload, dict):
+                if key and key in payload and isinstance(payload.get(key), list):
+                    return len(payload[key])
+                if "champions" in payload and isinstance(payload.get("champions"), list):
+                    return len(payload["champions"])
+                if "abilities" in payload and isinstance(payload.get("abilities"), list):
+                    return len(payload["abilities"])
+                if "tags" in payload and isinstance(payload.get("tags"), list):
+                    return len(payload["tags"])
+                if "immunities" in payload and isinstance(payload.get("immunities"), list):
+                    return len(payload["immunities"])
+                if "aw" in payload and isinstance(payload.get("aw"), dict):
+                    return len(payload["aw"].get("defense", {})) + len(payload["aw"].get("attack", {})) + 1
+                return len(payload)
+            if isinstance(payload, list):
+                return len(payload)
+            return 0
+
         try:
             await poster.update_section("Overall", "Forcing full sync from API…")
 
             # Core data fetches
             await poster.update_section("Champions", "fetching...")
             champions = await parent.api.get_champions()
-            results["champions"] = len(champions) if champions else 0
+            results["champions"] = _count_payload_items(champions, "champions")
             await poster.update_section("Champions", f"fetched: {results['champions']}")
 
             await poster.update_section("Abilities", "fetching...")
             abilities = await parent.api.get_abilities()
-            results["abilities"] = len(abilities) if abilities else 0
+            results["abilities"] = _count_payload_items(abilities, "abilities")
             await poster.update_section("Abilities", f"fetched: {results['abilities']}")
 
             await poster.update_section("Tags", "fetching...")
             tags = await parent.api.get_tags()
-            results["tags"] = len(tags) if tags else 0
+            results["tags"] = _count_payload_items(tags, "tags")
             await poster.update_section("Tags", f"fetched: {results['tags']}")
 
             await poster.update_section("Immunities", "fetching...")
             immunities = await parent.api.get_immunities()
-            results["immunities"] = len(immunities) if immunities else 0
+            results["immunities"] = _count_payload_items(immunities, "immunities")
             await poster.update_section("Immunities", f"fetched: {results['immunities']}")
 
             await poster.update_section("Alliance War", "fetching...")
             aw = await parent.api.get_aw()
-            results["aw"] = len(aw) if aw else 0
+            results["aw"] = _count_payload_items(aw, "aw")
             await poster.update_section("Alliance War", f"fetched: {results['aw']}")
 
             # Extended data
