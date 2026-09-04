@@ -286,7 +286,7 @@ class AccountPrefix(commands.Cog):
         ok = Account.set_profile_field(self.parent, user_id, "privacy_mode", mode.lower())
         await safe_send_ctx(ctx, "Privacy mode updated." if ok else "Failed to update privacy mode.")
 
-    @account.command(name="connect", aliases=["connect", "link"])
+    @account.command(name="mcocid", aliases=["connect", "link", "mcoc-id"])
     async def account_link(self, ctx, mcoc_id: str):
         """Set your MCOC username ID for association with your account."""
         if not await self._require_parent(ctx):
