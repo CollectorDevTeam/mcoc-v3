@@ -391,8 +391,15 @@ else:
             self.confirm_label = confirm_label
             self.cancel_label = cancel_label
 
-        @discord.ui.button(label="Yes", style=discord.ButtonStyle.success)
-        async def confirm(self, interaction: Any, button: Any):
+            yes_button = discord.ui.Button(label=confirm_label, style=discord.ButtonStyle.success)
+            yes_button.callback = self._confirm_callback
+            self.add_item(yes_button)
+
+            no_button = discord.ui.Button(label=cancel_label, style=discord.ButtonStyle.secondary)
+            no_button.callback = self._cancel_callback
+            self.add_item(no_button)
+
+        async def _confirm_callback(self, interaction: Any):
             self.value = True
             for item in self.children:
                 item.disabled = True
@@ -402,8 +409,7 @@ else:
                 pass
             self.stop()
 
-        @discord.ui.button(label="No", style=discord.ButtonStyle.secondary)
-        async def cancel(self, interaction: Any, button: Any):
+        async def _cancel_callback(self, interaction: Any):
             self.value = False
             for item in self.children:
                 item.disabled = True
@@ -425,6 +431,26 @@ else:
             self.author = author
             self.message: Optional[Any] = None
             self.show_brand = show_brand
+
+            first_button = discord.ui.Button(emoji="⏮️", style=discord.ButtonStyle.secondary)
+            first_button.callback = self._first_callback
+            self.add_item(first_button)
+
+            prev_button = discord.ui.Button(emoji="◀️", style=discord.ButtonStyle.secondary)
+            prev_button.callback = self._prev_callback
+            self.add_item(prev_button)
+
+            next_button = discord.ui.Button(emoji="▶️", style=discord.ButtonStyle.secondary)
+            next_button.callback = self._next_callback
+            self.add_item(next_button)
+
+            last_button = discord.ui.Button(emoji="⏭️", style=discord.ButtonStyle.secondary)
+            last_button.callback = self._last_callback
+            self.add_item(last_button)
+
+            close_button = discord.ui.Button(label="Close", style=discord.ButtonStyle.danger)
+            close_button.callback = self._close_callback
+            self.add_item(close_button)
 
         async def _render_page(self):
             page = self.pages[self.index]
@@ -477,28 +503,23 @@ else:
                     log.exception("CDTPagesMenu.start retry failed; aborting")
                     raise
 
-        @discord.ui.button(emoji="⏮️", style=discord.ButtonStyle.secondary)
-        async def first(self, interaction: Any, button: Any):
+        async def _first_callback(self, interaction: Any):
             self.index = 0
             await interaction.response.edit_message(embed=await self._render_page(), view=self)
 
-        @discord.ui.button(emoji="◀️", style=discord.ButtonStyle.secondary)
-        async def prev(self, interaction: Any, button: Any):
+        async def _prev_callback(self, interaction: Any):
             self.index = max(0, self.index - 1)
             await interaction.response.edit_message(embed=await self._render_page(), view=self)
 
-        @discord.ui.button(emoji="▶️", style=discord.ButtonStyle.secondary)
-        async def next(self, interaction: Any, button: Any):
+        async def _next_callback(self, interaction: Any):
             self.index = min(len(self.pages) - 1, self.index + 1)
             await interaction.response.edit_message(embed=await self._render_page(), view=self)
 
-        @discord.ui.button(emoji="⏭️", style=discord.ButtonStyle.secondary)
-        async def last(self, interaction: Any, button: Any):
+        async def _last_callback(self, interaction: Any):
             self.index = len(self.pages) - 1
             await interaction.response.edit_message(embed=await self._render_page(), view=self)
 
-        @discord.ui.button(label="Close", style=discord.ButtonStyle.danger)
-        async def close(self, interaction: Any, button: Any):
+        async def _close_callback(self, interaction: Any):
             for item in self.children:
                 item.disabled = True
             try:
