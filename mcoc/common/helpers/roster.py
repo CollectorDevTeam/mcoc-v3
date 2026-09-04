@@ -30,7 +30,8 @@ import asyncio
 from mcoc.common.components.componentsV2 import CDTEmbed, CDTPagesMenu
 
 try:
-    import discord
+    from discord import Interaction
+    from discord.ui import View, Button
 except ModuleNotFoundError:  # pragma: no cover - optional runtime dependency
     discord = None
 
@@ -1014,7 +1015,7 @@ def _config_button_specs(field: str) -> List[Tuple[str, int]]:
 
 
 if discord is not None:
-    class _RosterFlowView(discord.ui.View):
+    class _RosterFlowView(View):
         def __init__(self, core: Any, author: Any, operation: str, *, parsed_filters: Optional[Dict[str, Any]] = None, tier: Optional[int] = None):
             super().__init__(timeout=ROSTER_FLOW_TIMEOUT)
             self.core = core
@@ -1024,7 +1025,7 @@ if discord is not None:
             self.tier = tier
             self.message = None
 
-        async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        async def interaction_check(self, interaction: Interaction) -> bool:
             if getattr(interaction.user, "id", None) == getattr(self.author, "id", None):
                 return True
             try:
@@ -1042,19 +1043,19 @@ if discord is not None:
             except Exception:
                 pass
 
-        async def _attach_message(self, interaction: discord.Interaction) -> None:
+        async def _attach_message(self, interaction: Interaction) -> None:
             try:
                 self.message = await interaction.original_response()
             except Exception:
                 self.message = None
 
-        async def _open_class_selection(self, interaction: discord.Interaction, tier: int) -> None:
+        async def _open_class_selection(self, interaction: Interaction, tier: int) -> None:
             view = RosterClassSelectionView(self.core, self.author, self.operation, parsed_filters=self.parsed_filters, tier=tier)
             embed = _build_operation_selection_embed(self.author, self.operation, tier=tier, stage="class")
             await interaction.response.edit_message(embed=embed, view=view)
             await view._attach_message(interaction)
 
-        async def _open_multi_select(self, interaction: discord.Interaction, *, tier: Optional[int], class_filter: Optional[str]) -> None:
+        async def _open_multi_select(self, interaction: Interaction, *, tier: Optional[int], class_filter: Optional[str]) -> None:
             entries, _ = await collect_roster_operation_entries(
                 self.core,
                 self.author,
@@ -1080,7 +1081,7 @@ if discord is not None:
             await interaction.response.edit_message(embed=embed, view=view)
             await view._attach_message(interaction)
 
-        async def _open_results(self, interaction: discord.Interaction, *, tier: Optional[int], class_filter: Optional[str]) -> None:
+        async def _open_results(self, interaction: Interaction, *, tier: Optional[int], class_filter: Optional[str]) -> None:
             pages = await build_roster_operation_pages(
                 self.core,
                 self.author,
@@ -1096,7 +1097,7 @@ if discord is not None:
             except Exception:
                 pager.message = None
 
-        async def _open_selected_results(self, interaction: discord.Interaction, entries: List[Dict[str, Any]]) -> None:
+        async def _open_selected_results(self, interaction: Interaction, entries: List[Dict[str, Any]]) -> None:
             pages = _build_operation_pages_from_entries(self.author, getattr(self.core, "cache", None), self.operation, entries)
             pager = CDTPagesMenu(pages, author=self.author)
             await interaction.response.edit_message(embed=await pager._render_page(), view=pager)
@@ -1105,7 +1106,7 @@ if discord is not None:
             except Exception:
                 pager.message = None
 
-        async def _open_config(self, interaction: discord.Interaction, entries: List[Dict[str, Any]]) -> None:
+        async def _open_config(self, interaction: Interaction, entries: List[Dict[str, Any]]) -> None:
             view = RosterConfigView(self.core, self.author, self.operation, entries, parsed_filters=self.parsed_filters, tier=self.tier)
             embed = _build_operation_selection_embed(self.author, self.operation, tier=self.tier, stage="config")
             config_embed = _build_operation_config_embed(self.author, getattr(self.core, "cache", None), self.operation, view.entries, view.index)
@@ -1126,23 +1127,23 @@ if discord is not None:
             self.add_item(_RosterTierResultsButton())
 
 
-    class _RosterTierButton(discord.ui.Button):
+    class _RosterTierButton(Button):
         def __init__(self, tier: int):
             super().__init__(label=f"{tier}★", style=discord.ButtonStyle.primary, row=0 if tier >= 4 else 1)
             self.tier = tier
 
-        async def callback(self, interaction: discord.Interaction):
+        async def callback(self, interaction: Interaction):
             view = self.view
             if not isinstance(view, _RosterFlowView):
                 return
             await view._open_class_selection(interaction, self.tier)
 
 
-    class _RosterTierResultsButton(discord.ui.Button):
+    class _RosterTierResultsButton(Button):
         def __init__(self):
             super().__init__(label="Show Overview", style=discord.ButtonStyle.secondary, row=2)
 
-        async def callback(self, interaction: discord.Interaction):
+        async def callback(self, interaction: Interaction):
             view = self.view
             if not isinstance(view, _RosterFlowView):
                 return
@@ -1158,7 +1159,7 @@ if discord is not None:
             self.add_item(_RosterBackToTierButton())
 
 
-    class _RosterClassButton(discord.ui.Button):
+    class _RosterClassButton(Button):
         def __init__(self, class_name: str, *, row: int):
             super().__init__(
                 label=class_name.title(),
@@ -1168,30 +1169,30 @@ if discord is not None:
             )
             self.class_name = class_name
 
-        async def callback(self, interaction: discord.Interaction):
+        async def callback(self, interaction: Interaction):
             view = self.view
             if not isinstance(view, _RosterFlowView):
                 return
             await view._open_multi_select(interaction, tier=view.tier, class_filter=self.class_name)
 
 
-    class _RosterClassResultsButton(discord.ui.Button):
+    class _RosterClassResultsButton(Button):
         def __init__(self, *, label: str, class_filter: Optional[str], row: int):
             super().__init__(label=label, emoji=CLASS_EMOJI.get("all"), style=discord.ButtonStyle.secondary, row=row)
             self.class_filter = class_filter
 
-        async def callback(self, interaction: discord.Interaction):
+        async def callback(self, interaction: Interaction):
             view = self.view
             if not isinstance(view, _RosterFlowView):
                 return
             await view._open_multi_select(interaction, tier=view.tier, class_filter=self.class_filter)
 
 
-    class _RosterBackToTierButton(discord.ui.Button):
+    class _RosterBackToTierButton(Button):
         def __init__(self):
             super().__init__(label="Back To Star", style=discord.ButtonStyle.secondary, row=2)
 
-        async def callback(self, interaction: discord.Interaction):
+        async def callback(self, interaction: Interaction):
             view = self.view
             if not isinstance(view, _RosterFlowView):
                 return
@@ -1272,7 +1273,7 @@ if discord is not None:
                 )
             super().__init__(placeholder="Choose champions", min_values=0, max_values=len(options), options=options, row=0)
 
-        async def callback(self, interaction: discord.Interaction):
+        async def callback(self, interaction: Interaction):
             view = self.view
             if not isinstance(view, RosterChampionSelectView):
                 return
@@ -1305,12 +1306,12 @@ if discord is not None:
             await new_view._attach_message(interaction)
 
 
-    class _RosterSelectPageButton(discord.ui.Button):
+    class _RosterSelectPageButton(Button):
         def __init__(self, *, label: str, delta: int, row: int):
             super().__init__(label=label, style=discord.ButtonStyle.secondary, row=row)
             self.delta = delta
 
-        async def callback(self, interaction: discord.Interaction):
+        async def callback(self, interaction: Interaction):
             view = self.view
             if not isinstance(view, RosterChampionSelectView):
                 return
@@ -1330,22 +1331,22 @@ if discord is not None:
             await new_view._attach_message(interaction)
 
 
-    class _RosterShowAllSelectedButton(discord.ui.Button):
+    class _RosterShowAllSelectedButton(Button):
         def __init__(self, *, row: int):
             super().__init__(label="Show All", style=discord.ButtonStyle.secondary, row=row)
 
-        async def callback(self, interaction: discord.Interaction):
+        async def callback(self, interaction: Interaction):
             view = self.view
             if not isinstance(view, RosterChampionSelectView):
                 return
             await view._open_results(interaction, tier=view.tier, class_filter=view.class_filter)
 
 
-    class _RosterContinueToConfigButton(discord.ui.Button):
+    class _RosterContinueToConfigButton(Button):
         def __init__(self, *, selected_count: int, row: int):
             super().__init__(label=f"Continue To Config ({selected_count}/{ROSTER_SELECTION_LIMIT})", style=discord.ButtonStyle.success, row=row)
 
-        async def callback(self, interaction: discord.Interaction):
+        async def callback(self, interaction: Interaction):
             view = self.view
             if not isinstance(view, RosterChampionSelectView):
                 return
@@ -1359,11 +1360,11 @@ if discord is not None:
             await view._open_config(interaction, selected)
 
 
-    class _RosterSelectBackButton(discord.ui.Button):
+    class _RosterSelectBackButton(Button):
         def __init__(self, *, row: int):
             super().__init__(label="Back To Class", style=discord.ButtonStyle.secondary, row=row)
 
-        async def callback(self, interaction: discord.Interaction):
+        async def callback(self, interaction: Interaction):
             view = self.view
             if not isinstance(view, RosterChampionSelectView):
                 return
@@ -1393,12 +1394,12 @@ if discord is not None:
             self.add_item(_RosterConfigConfirmButton(row=4))
 
 
-    class _RosterConfigNavButton(discord.ui.Button):
+    class _RosterConfigNavButton(Button):
         def __init__(self, *, label: str, delta: int, row: int):
             super().__init__(label=label, style=discord.ButtonStyle.secondary, row=row)
             self.delta = delta
 
-        async def callback(self, interaction: discord.Interaction):
+        async def callback(self, interaction: Interaction):
             view = self.view
             if not isinstance(view, RosterConfigView):
                 return
@@ -1407,13 +1408,13 @@ if discord is not None:
             await interaction.response.edit_message(embed=embed, view=view)
 
 
-    class _RosterConfigAdjustButton(discord.ui.Button):
+    class _RosterConfigAdjustButton(Button):
         def __init__(self, *, field: str, delta: int, row: int, label: str):
             super().__init__(label=label, style=discord.ButtonStyle.primary, row=row)
             self.field = field
             self.delta = delta
 
-        async def callback(self, interaction: discord.Interaction):
+        async def callback(self, interaction: Interaction):
             view = self.view
             if not isinstance(view, RosterConfigView):
                 return
@@ -1423,22 +1424,22 @@ if discord is not None:
             await interaction.response.edit_message(embed=embed, view=view)
 
 
-    class _RosterConfigPreviewButton(discord.ui.Button):
+    class _RosterConfigPreviewButton(Button):
         def __init__(self, *, row: int):
             super().__init__(label="Preview", style=discord.ButtonStyle.secondary, row=row)
 
-        async def callback(self, interaction: discord.Interaction):
+        async def callback(self, interaction: Interaction):
             view = self.view
             if not isinstance(view, RosterConfigView):
                 return
             await view._open_selected_results(interaction, view.entries)
 
 
-    class _RosterConfigConfirmButton(discord.ui.Button):
+    class _RosterConfigConfirmButton(Button):
         def __init__(self, *, row: int):
             super().__init__(label="Review And Confirm", style=discord.ButtonStyle.success, row=row)
 
-        async def callback(self, interaction: discord.Interaction):
+        async def callback(self, interaction: Interaction):
             view = self.view
             if not isinstance(view, RosterConfigView):
                 return
@@ -1463,11 +1464,11 @@ if discord is not None:
             self.add_item(_RosterConfirmApplyButton(row=0))
 
 
-    class _RosterConfirmBackButton(discord.ui.Button):
+    class _RosterConfirmBackButton(Button):
         def __init__(self, *, row: int):
             super().__init__(label="Back To Config", style=discord.ButtonStyle.secondary, row=row)
 
-        async def callback(self, interaction: discord.Interaction):
+        async def callback(self, interaction: Interaction):
             view = self.view
             if not isinstance(view, RosterConfirmView):
                 return
@@ -1485,11 +1486,11 @@ if discord is not None:
             await config_view._attach_message(interaction)
 
 
-    class _RosterConfirmApplyButton(discord.ui.Button):
+    class _RosterConfirmApplyButton(Button):
         def __init__(self, *, row: int):
             super().__init__(label="Confirm Apply", style=discord.ButtonStyle.success, row=row)
 
-        async def callback(self, interaction: discord.Interaction):
+        async def callback(self, interaction: Interaction):
             view = self.view
             if not isinstance(view, RosterConfirmView):
                 return

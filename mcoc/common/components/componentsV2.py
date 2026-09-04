@@ -14,7 +14,8 @@ from typing import Any, Dict, List, Optional, Tuple
 from urllib.parse import urlparse
 
 try:
-    import discord
+    from discord import Embed, Interaction
+    from discord.ui import View, Button
 except ModuleNotFoundError:  # pragma: no cover - optional runtime dependency
     discord = None
 
@@ -202,7 +203,7 @@ else:
             if color is None:
                 author = getattr(ctx_or_author, "author", ctx_or_author)
                 color = getattr(author, "color", None) or discord.Color.gold()
-            emb = discord.Embed(title=title, description=description, color=color, url=url)
+            emb = Embed(title=title, description=description, color=color, url=url)
             name, avatar = _get_author_info(ctx_or_author)
             if avatar:
                 try:
@@ -260,7 +261,7 @@ else:
             return emb
 
         @classmethod
-        def set_author(cls, ctx_or_author: Any, emb: "discord.Embed", *, name: str, url: Optional[str] = None, icon_url: Optional[str] = None) -> "discord.Embed":
+        def set_author(cls, ctx_or_author: Any, emb: Embed, *, name: str, url: Optional[str] = None, icon_url: Optional[str] = None) -> Embed:
             try:
                 if icon_url and not _is_valid_http_url(icon_url):
                     icon_url = None
@@ -273,7 +274,7 @@ else:
             return emb
 
         @classmethod
-        def insert_field_at(cls, ctx_or_author: Any, emb: "discord.Embed", index: int, *, name: str, value: str, inline: bool = True) -> "discord.Embed":
+        def insert_field_at(cls, ctx_or_author: Any, emb: Embed, index: int, *, name: str, value: str, inline: bool = True) -> Embed:
             try:
                 emb.insert_field_at(index=index, name=name, value=value, inline=inline)
             except Exception:
@@ -281,7 +282,7 @@ else:
             return emb
 
         @classmethod
-        def set_field_at(cls, ctx_or_author: Any, emb: "discord.Embed", index: int, *, name: str, value: str, inline: bool = True) -> "discord.Embed":
+        def set_field_at(cls, ctx_or_author: Any, emb: Embed, index: int, *, name: str, value: str, inline: bool = True) -> Embed:
             try:
                 emb.set_field_at(index=index, name=name, value=value, inline=inline)
             except Exception:
@@ -289,7 +290,7 @@ else:
             return emb
 
         @classmethod
-        def champion_embed(cls, ctx_or_author: Any, champ: Dict[str, Any]) -> Any:
+        def champion_embed(cls, ctx_or_author: Any, champ: Dict[str, Any]) -> Embed:
             name = champ.get("name", "Unknown")
             cls_name = (champ.get("class") or "?").title()
             tags = ", ".join(champ.get("tags", []) or []) or "None"
@@ -314,7 +315,7 @@ else:
             return emb
 
         @classmethod
-        def roster_entry_embed(cls, ctx_or_author: Any, champ: Dict[str, Any], entry: Dict[str, Any]) -> Any:
+        def roster_entry_embed(cls, ctx_or_author: Any, champ: Dict[str, Any], entry: Dict[str, Any]) -> Embed:
             rarity = entry.get("rarity", "?")
             rank = entry.get("rank", "?")
             sig = entry.get("sig", "?")
@@ -328,7 +329,7 @@ else:
             return CDTEmbed.embed(ctx_or_author, title=champ.get("name", "Unknown"), description=desc, thumbnail=(champ.get("images") or {}).get("portrait"))
 
         @classmethod
-        def tag_list_embed(cls, ctx_or_author: Any, tag: str, champions: List[Dict[str, Any]]) -> Any:
+        def tag_list_embed(cls, ctx_or_author: Any, tag: str, champions: List[Dict[str, Any]]) -> Embed:
             emb = CDTEmbed.embed(ctx_or_author, title=f"Champions with #{tag}", description=f"{len(champions)} champions match this tag.")
             lines = [c.get("name", "Unknown") for c in champions or []]
             try:
@@ -338,7 +339,7 @@ else:
             return emb
 
         @classmethod
-        def brand_view(cls, *, include_patreon: bool = True, include_docs: bool = True, include_import_help: bool = True, patreon_label: str = "Support on Patreon", docs_label: str = "Docs", import_label: str = "Import Help") -> Any:
+        def brand_view(cls, *, include_patreon: bool = True, include_docs: bool = True, include_import_help: bool = True, patreon_label: str = "Support on Patreon", docs_label: str = "Docs", import_label: str = "Import Help") -> View        :
             view = discord.ui.View()
             if include_patreon and _is_valid_http_url(PATREON):
                 view.add_item(discord.ui.Button(label=patreon_label, url=PATREON, style=discord.ButtonStyle.link))
@@ -349,14 +350,14 @@ else:
             return view
 
         @classmethod
-        def set_image(cls, embed: "discord.Embed", image_url: str) -> None:
+        def set_image(cls, embed: Embed, image_url: str) -> None:
             try:
                 embed.set_image(url=image_url)
             except Exception:
                 pass
 
         @classmethod
-        def set_url(cls, embed: "discord.Embed", url: str) -> None:
+        def set_url(cls, embed: Embed, url: str) -> None:
             try:
                 embed.url = url
             except Exception:
@@ -370,8 +371,8 @@ else:
             self.confirm_label = confirm_label
             self.cancel_label = cancel_label
 
-        @discord.ui.button(label="Yes", style=discord.ButtonStyle.success)
-        async def confirm(self, interaction: discord.Interaction, button: discord.ui.Button):
+        @Button(label="Yes", style=discord.ButtonStyle.success)
+        async def confirm(self, interaction: Interaction, button: Button):
             self.value = True
             for item in self.children:
                 item.disabled = True
@@ -381,8 +382,8 @@ else:
                 pass
             self.stop()
 
-        @discord.ui.button(label="No", style=discord.ButtonStyle.secondary)
-        async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
+        @Button(label="No", style=discord.ButtonStyle.secondary)
+        async def cancel(self, interaction: Interaction, button: Button):
             self.value = False
             for item in self.children:
                 item.disabled = True
@@ -396,7 +397,7 @@ else:
             await self.wait()
             return self.value
 
-    class CDTPagesMenu(discord.ui.View):
+    class CDTPagesMenu(View):
         def __init__(self, pages: list, *, author: Optional[Any] = None, timeout: float = 120.0, show_brand: bool = True):
             super().__init__(timeout=timeout)
             self.pages = pages
@@ -407,12 +408,12 @@ else:
 
         async def _render_page(self):
             page = self.pages[self.index]
-            if isinstance(page, discord.Embed):
+            if isinstance(page, Embed):
                 emb = page
             elif isinstance(page, dict):
-                emb = discord.Embed(title=page.get("title", "Page"), description=page.get("description", ""))
+                emb = Embed(title=page.get("title", "Page"), description=page.get("description", ""))
             else:
-                emb = discord.Embed(title="Page", description=str(page))
+                emb = Embed(title="Page", description=str(page))
             try:
                 base = emb.footer.text if getattr(emb, "footer", None) and getattr(emb.footer, "text", None) else ""
                 footer_text = f"{base} • Page {self.index + 1} of {len(self.pages)}{CDT_FOOTER_TAG}" if base else f"Page {self.index + 1} of {len(self.pages)}{CDT_FOOTER_TAG}"
@@ -456,28 +457,28 @@ else:
                     log.exception("CDTPagesMenu.start retry failed; aborting")
                     raise
 
-        @discord.ui.button(emoji="⏮️", style=discord.ButtonStyle.secondary)
-        async def first(self, interaction: discord.Interaction, button: discord.ui.Button):
+        @Button(emoji="⏮️", style=discord.ButtonStyle.secondary)
+        async def first(self, interaction: Interaction, button: Button):
             self.index = 0
             await interaction.response.edit_message(embed=await self._render_page(), view=self)
 
-        @discord.ui.button(emoji="◀️", style=discord.ButtonStyle.secondary)
-        async def prev(self, interaction: discord.Interaction, button: discord.ui.Button):
+        @Button(emoji="◀️", style=discord.ButtonStyle.secondary)
+        async def prev(self, interaction: Interaction, button: Button):
             self.index = max(0, self.index - 1)
             await interaction.response.edit_message(embed=await self._render_page(), view=self)
 
-        @discord.ui.button(emoji="▶️", style=discord.ButtonStyle.secondary)
-        async def next(self, interaction: discord.Interaction, button: discord.ui.Button):
+        @Button(emoji="▶️", style=discord.ButtonStyle.secondary)
+        async def next(self, interaction: Interaction, button: Button):
             self.index = min(len(self.pages) - 1, self.index + 1)
             await interaction.response.edit_message(embed=await self._render_page(), view=self)
 
-        @discord.ui.button(emoji="⏭️", style=discord.ButtonStyle.secondary)
-        async def last(self, interaction: discord.Interaction, button: discord.ui.Button):
+        @Button(emoji="⏭️", style=discord.ButtonStyle.secondary)
+        async def last(self, interaction: Interaction, button: Button):
             self.index = len(self.pages) - 1
             await interaction.response.edit_message(embed=await self._render_page(), view=self)
 
-        @discord.ui.button(label="Close", style=discord.ButtonStyle.danger)
-        async def close(self, interaction: discord.Interaction, button: discord.ui.Button):
+        @Button(label="Close", style=discord.ButtonStyle.danger)
+        async def close(self, interaction: Interaction, button: Button):
             for item in self.children:
                 item.disabled = True
             try:
