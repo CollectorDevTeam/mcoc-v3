@@ -111,7 +111,7 @@ def format_tierlist_champion_line(champ: ChampionLike, *, long_labels: bool = Fa
         return f"{name} | {score_text} | {token_text}"
 
     tier_text = str(tier or "Unranked")
-    return f"{name} | {tier_text} | score {score_text} | {token_text}"
+    return f"{name} | score {score_text} | {token_text}"
 
 
 def format_tierlist_champion_detail(champ: ChampionLike) -> Dict[str, str]:
