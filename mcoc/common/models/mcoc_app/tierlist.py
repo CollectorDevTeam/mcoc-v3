@@ -37,7 +37,7 @@ class MCOCAppTierlistChampion(BaseModel):
     no7star: bool = False
     tags: List[str] = Field(default_factory=list)
     rank: int = 1
-    portrait: str = ""
+    portrait: Optional[str] = None
     immunities: List[Union[str, MCOCAppImmunity]] = Field(default_factory=list)
     inflicts: List[str] = Field(default_factory=list)
     class_rank: int = 0
@@ -69,6 +69,13 @@ class MCOCAppTierlistChampion(BaseModel):
             return [str(item) for item in value]
         return [str(value)]
 
+    @field_validator("portrait", mode="before")
+    @classmethod
+    def coerce_portrait(cls, value: Any) -> Optional[str]:
+        if value is None:
+            return ""
+        return str(value)
+
     @field_validator("immunities", mode="before")
     @classmethod
     def coerce_immunities(cls, value: Any) -> List[Union[str, MCOCAppImmunity]]:
@@ -85,8 +92,34 @@ class MCOCAppTierlistChampion(BaseModel):
         return normalized
 
 
-class TierList(BaseModel):
+class MCOCAppTierlistDocument(BaseModel):
+    """Root tierlist document from mcoc.app.
+
+    The live JSON is not just a flat champion list; it includes metadata that is useful
+    for display and filtering (tag labels, immunity/debuff maps, tier ordering, and
+    class metadata) while also carrying prestige data that we intentionally do not
+    normalize into the active cache.
+    """
+
+    model_config = ConfigDict(populate_by_name=True, extra="allow")
+
     champions: List[MCOCAppTierlistChampion] = Field(default_factory=list)
+    tag_labels: Dict[str, Any] = Field(default_factory=dict)
+    immunity_map: Dict[str, Any] = Field(default_factory=dict)
+    immunity_types: List[str] = Field(default_factory=list)
+    debuff_map: Dict[str, Any] = Field(default_factory=dict)
+    debuff_types: List[str] = Field(default_factory=list)
+    by_class: Dict[str, Any] = Field(default_factory=dict)
+    tier_order: List[str] = Field(default_factory=list)
+    tier_colors: Dict[str, str] = Field(default_factory=dict)
+    class_colors: Dict[str, str] = Field(default_factory=dict)
+    awakening_data: Dict[str, Any] = Field(default_factory=dict)
+    sig_stones_data: Dict[str, Any] = Field(default_factory=dict)
+    last_updated: Optional[str] = None
+    total_champions: int = 0
+
+
+TierList = MCOCAppTierlistDocument
 
 
 Immunity = MCOCAppImmunity

@@ -482,11 +482,15 @@ class CacheManager:
         return self.normalize_list_payload(payload, "tags")
 
     def normalize_tierlist_payload(self, payload: Any) -> Optional[Dict[str, Any]]:
-        """
-        Canonicalize tierlist payload into:
-        { "version": <hash>, "champions": [...] }
+        """Canonicalize the mcoc.app tierlist document while preserving useful metadata.
+
+        The live payload is a document root containing the champion list plus support
+        metadata such as tier ordering, tag labels, and immunity/debuff maps. We keep
+        the helpful subset here and intentionally discard prestige-only payloads.
         """
         if not payload:
+            return None
+        if not isinstance(payload, dict):
             return None
         if self._validate_model_payload(TierList, payload) is None:
             return None
@@ -495,13 +499,35 @@ class CacheManager:
         if not isinstance(champions, list):
             return None
 
-        # Create a stable version hash from the data
-        version = self._hash(champions)
+        useful_keys = [
+            "tag_labels",
+            "immunity_map",
+            "immunity_types",
+            "debuff_map",
+            "debuff_types",
+            "by_class",
+            "tier_order",
+            "tier_colors",
+            "class_colors",
+            "awakening_data",
+            "sig_stones_data",
+            "last_updated",
+            "total_champions",
+        ]
+        metadata = {key: payload[key] for key in useful_keys if key in payload}
 
-        return {
-            "version": version,
-            "champions": champions
+        version_payload = {
+            "champions": champions,
+            **metadata,
         }
+        version = self._hash(version_payload)
+
+        normalized = {
+            "version": version,
+            "champions": champions,
+        }
+        normalized.update(metadata)
+        return normalized
 
     def normalize_champions_map_payload(self, payload: Any) -> Optional[Dict[str, Any]]:
         """
