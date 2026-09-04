@@ -25,6 +25,7 @@ from pathlib import Path
 import discord
 from redbot.core import commands
 from mcoc.common import Core
+from mcoc.slash import admin
 Embed = Core.Embed
 PagesMenu = Core.PagesMenu
 Confirm = Core.Confirm
@@ -69,8 +70,8 @@ class MCOCAdminPrefix(commands.Cog):
 
     # ADMIN COMMANDS GROUP
     @commands.is_owner()
-    @commands.group(name="mcocadmin")
-    async def mcocadmin(self, ctx, *args):
+    @commands.group(name="admin", aliases=["mcoc", "mcocadmin"])
+    async def admin(self, ctx, *args):
         """Admin commands for MCOC (development / fallback)."""
         # if not args:
         #     # show help for this group
@@ -79,7 +80,7 @@ class MCOCAdminPrefix(commands.Cog):
     # -------------------------
     # Owner-only utilities
     # -------------------------
-    @mcocadmin.command(name="features")
+    @admin.command(name="features")
     async def features(self, ctx):
         """List all features and their status for this guild."""
         guild_cfg = Entitlements.get_guild_config(ctx.guild.id)
@@ -98,7 +99,7 @@ class MCOCAdminPrefix(commands.Cog):
 
         await safe_send_ctx(ctx, None, embed=emb)
 
-    @mcocadmin.command(name="feature-enable")
+    @admin.command(name="feature-enable")
     async def feature_enable(self, ctx, feature: str):
         """Enable a feature for this guild."""
         guild_cfg = Entitlements.get_guild_config(ctx.guild.id)
@@ -112,7 +113,7 @@ class MCOCAdminPrefix(commands.Cog):
 
         await safe_send_ctx(ctx, f"Feature `{feature}` enabled.")
 
-    @mcocadmin.command(name="feature-disable")
+    @admin.command(name="feature-disable")
     async def feature_disable(self, ctx, feature: str):
         """Disable a feature for this guild."""
         guild_cfg = Entitlements.get_guild_config(ctx.guild.id)
@@ -126,7 +127,7 @@ class MCOCAdminPrefix(commands.Cog):
 
         await safe_send_ctx(ctx, f"Feature `{feature}` disabled.")
 
-    @mcocadmin.command(name="feature-map-roles")
+    @admin.command(name="feature-map-roles")
     @commands.has_permissions(administrator=True)
     async def feature_map_roles(self, ctx, feature: str, *roles: discord.Role):
         if feature not in Entitlements.FEATURES:
@@ -147,9 +148,9 @@ class MCOCAdminPrefix(commands.Cog):
         await safe_send_ctx(ctx, f"Mapped roles {[r.name for r in roles]} to {feature}")
 
     @commands.is_owner()
-    @mcocadmin.command(name="status")
+    @admin.command(name="status")
     async def status(self, ctx):
-        """Show cache / API status for debugging."""
+        """Show comprehensive cache / API status for debugging."""
         parent = getattr(self, "parent", None)
         if not parent:
             await safe_send_ctx(ctx, "MCOC core not attached; cache and API unavailable.")
@@ -161,47 +162,78 @@ class MCOCAdminPrefix(commands.Cog):
 
         try:
             meta = getattr(cache, "metadata", {}) or {}
-            last = meta.get("last_sync")
+            last_sync = meta.get("last_sync", "Never")
             versions = meta.get("versions", {})
+            
+            # Gather all cached data counts
             champs_count = len(cache.get_all_champions() or [])
             abilities_count = len(cache.get_all_abilities() or [])
             tags_count = len(cache.get_all_tags() or [])
             immunities_count = len(cache.get_all_immunities() or [])
-            prestige_version = versions.get("prestige")
-            prestige_file = getattr(cache, "cache_dir", Path("data")) / "prestige.json"
-            prestige_exists = prestige_file.exists()
-            prestige_rows_count = 0
-            prestige_last_sync = None
-            try:
-                prestige_data = cache._load_file("prestige") or {}
-                prestige_rows = prestige_data.get("rows", []) if isinstance(prestige_data, dict) else []
-                prestige_rows_count = len(prestige_rows)
-                prestige_last_sync = meta.get("last_sync")
-            except Exception:
-                prestige_rows_count = 0
-
-            msg = (
-                f"**MCOC cache status**\n"
-                f"Last sync: {last}\n"
-                f"Versions: {versions}\n"
-                f"Champions: {champs_count}\n"
-                f"Abilities: {abilities_count}\n"
-                f"Tags: {tags_count}\n"
-                f"Immunities: {immunities_count}\n"
-                f"API client present: {bool(getattr(parent, 'api', None))}\n\n"
-                f"**Prestige data**\n"
-                f"Prestige version (metadata): {prestige_version}\n"
-                f"Prestige file present: {prestige_exists}\n"
-                f"Prestige rows (aggregated): {prestige_rows_count}\n"
-                f"Prestige last sync (metadata): {prestige_last_sync}\n"
+            aw_count = len(cache.get_all_aw() or [])
+            champions_map_count = len(cache.get_all_champions_map() or [])
+            glossary_count = len(cache.get_all_glossary_terms() or [])
+            
+            # Prestige data
+            prestige_data = cache._load_file("prestige") or {}
+            prestige_rows = prestige_data.get("rows", []) if isinstance(prestige_data, dict) else []
+            prestige_rows_count = len(prestige_rows)
+            
+            # Tierlist data
+            tierlist_data = cache._load_file("tierlist") or {}
+            tierlist_champs = tierlist_data.get("champions", []) if isinstance(tierlist_data, dict) else []
+            tierlist_count = len(tierlist_champs)
+            
+            # API client status
+            api_available = bool(getattr(parent, "api", None))
+            
+            # Build comprehensive embed
+            emb = Embed.embed(ctx, title="📊 MCOC Cache Status", color=discord.Color.gold())
+            
+            # Core sync info
+            Embed.add_field(emb, name="Last Sync", value=last_sync, inline=False)
+            Embed.add_field(emb, name="API Connected", value="✅ Yes" if api_available else "❌ No", inline=True)
+            
+            # Core data counts
+            core_data = (
+                f"• Champions: **{champs_count}**\n"
+                f"• Abilities: **{abilities_count}**\n"
+                f"• Tags: **{tags_count}**\n"
+                f"• Immunities: **{immunities_count}**"
             )
-            await ctx.send(msg)
+            Embed.add_field(emb, name="Core Data", value=core_data, inline=True)
+            
+            # Extended data
+            extended_data = (
+                f"• Alliance War: **{aw_count}**\n"
+                f"• Champions Map: **{champions_map_count}**\n"
+                f"• Glossary: **{glossary_count}**\n"
+                f"• Tierlist: **{tierlist_count}**"
+            )
+            Embed.add_field(emb, name="Extended Data", value=extended_data, inline=True)
+            
+            # Prestige data
+            prestige_info = (
+                f"• Rows: **{prestige_rows_count}**\n"
+                f"• Version: `{versions.get('prestige', 'unknown')}`"
+            )
+            Embed.add_field(emb, name="Prestige", value=prestige_info, inline=False)
+            
+            # Cache versions
+            if versions:
+                version_items = [f"• {k}: `{v[:16]}{'...' if len(v) > 16 else ''}`" for k, v in versions.items()]
+                version_text = "\n".join(version_items)
+            else:
+                version_text = "No cached versions found."
+            Embed.add_field(emb, name="Version Hashes", value=version_text, inline=False)
+            
+            await safe_send_ctx(ctx, None, embed=emb)
         except Exception:
             log.exception("Failed to build status")
             await safe_send_ctx(ctx, "Failed to fetch status. Check logs.")
 
     @commands.is_owner()
-    @mcocadmin.command(name="key")
+    @admin.command(name="key")
     async def key(self, ctx):
         """Show whether shared API key for mcochub is set (owner only)."""
         try:
@@ -230,12 +262,15 @@ class MCOCAdminPrefix(commands.Cog):
     # Sync using CacheStatusPoster
     # -------------------------
     @commands.is_owner()
-    @mcocadmin.command(name="sync")
+    @admin.command(name="sync")
     async def sync(self, ctx):
         """Trigger a full cache sync (owner only)."""
         parent = getattr(self, "parent", None)
         if not parent:
             await safe_send_ctx(ctx, "MCOC core not attached; cache and API unavailable.")
+            return
+        if not getattr(parent, "api", None):
+            await safe_send_ctx(ctx, "API not available. Set API key first.")
             return
 
         poster = CacheStatusPoster(ctx, title="MCOC Full Sync")
@@ -244,7 +279,6 @@ class MCOCAdminPrefix(commands.Cog):
         # reporter used by cache.sync to provide progress updates
         async def reporter(text: str):
             try:
-                # update a general progress field
                 await poster.update_section("Progress", text)
             except Exception:
                 log.exception("Reporter failed to update poster")
@@ -252,80 +286,189 @@ class MCOCAdminPrefix(commands.Cog):
         try:
             await poster.update_section("Overall", "Starting full sync…")
             updated = await parent.cache.sync(parent.api, progress=reporter)
-            if updated:
-                await poster.update_section("Overall", "Sync complete")
+            
+            # Gather sync results for summary
+            meta = parent.cache.metadata or {}
+            versions = meta.get("versions", {})
+            
+            # Check all synced data
+            champs_count = len(parent.cache.get_all_champions() or [])
+            abilities_count = len(parent.cache.get_all_abilities() or [])
+            tags_count = len(parent.cache.get_all_tags() or [])
+            immunities_count = len(parent.cache.get_all_immunities() or [])
+            aw_count = len(parent.cache.get_all_aw() or [])
+            champions_map_count = len(parent.cache.get_all_champions_map() or [])
+            glossary_count = len(parent.cache.get_all_glossary_terms() or [])
+            tierlist_data = parent.cache._load_file("tierlist") or {}
+            tierlist_count = len(tierlist_data.get("champions", []))
+            
+            # Build summary embed
+            emb = Embed.embed(ctx, title="✅ Sync Complete" if updated else "⏭️ Sync Skipped", color=discord.Color.green() if updated else discord.Color.greyple())
+            
+            sync_status = "Updated" if updated else "No changes (cache was current)"
+            Embed.add_field(emb, name="Status", value=sync_status, inline=False)
+            Embed.add_field(emb, name="Completed At", value=datetime.datetime.utcnow().isoformat(), inline=False)
+            
+            # Core data summary
+            core_summary = (
+                f"• Champions: **{champs_count}**\n"
+                f"• Abilities: **{abilities_count}**\n"
+                f"• Tags: **{tags_count}**\n"
+                f"• Immunities: **{immunities_count}**"
+            )
+            Embed.add_field(emb, name="Core Data", value=core_summary, inline=True)
+            
+            # Extended data summary
+            extended_summary = (
+                f"• Alliance War: **{aw_count}**\n"
+                f"• Champions Map: **{champions_map_count}**\n"
+                f"• Glossary: **{glossary_count}**\n"
+                f"• Tierlist: **{tierlist_count}**"
+            )
+            Embed.add_field(emb, name="Extended Data", value=extended_summary, inline=True)
+            
+            # Version info
+            if versions:
+                version_summary = "\n".join([f"• {k}: `{v[:12]}...`" for k, v in versions.items()])
             else:
-                await poster.update_section("Overall", "No update performed")
-            await poster.update_section("Last update", datetime.datetime.utcnow().isoformat())
-            await ctx.send("Sync finished.")
+                version_summary = "No versions cached."
+            Embed.add_field(emb, name="Cached Versions", value=version_summary, inline=False)
+            
+            await poster.finalize("Full sync complete")
+            await safe_send_ctx(ctx, None, embed=emb)
         except Exception as e:
             log.exception("Sync failed")
             try:
                 await poster.update_section("Overall", f"Sync failed: {e}")
             except Exception:
                 pass
-            await safe_send_ctx(ctx, f"Sync failed: {e}")
+            await safe_send_ctx(ctx, f"❌ Sync failed: {e}")
 
     @commands.is_owner()
-    @mcocadmin.command(name="force-sync")
+    @admin.command(name="force-sync")
     async def force_sync(self, ctx):
-        """Force a full fetch from the API and update cache (owner only)."""
+        """Force a full fetch from the API and update all cache data (owner only)."""
         parent = getattr(self, "parent", None)
         if not parent:
             await safe_send_ctx(ctx, "MCOC core not attached; cache and API unavailable.")
+            return
+        if not getattr(parent, "api", None):
+            await safe_send_ctx(ctx, "API not available. Set API key first.")
             return
 
         poster = CacheStatusPoster(ctx, title="MCOC Force Sync")
         await poster.post_initial()
 
+        results = {}
         try:
-            await poster.update_section("Overall", "Forcing full sync…")
+            await poster.update_section("Overall", "Forcing full sync from API…")
 
+            # Core data fetches
             await poster.update_section("Champions", "fetching...")
             champions = await parent.api.get_champions()
-            await poster.update_section("Champions", f"fetched: {len(champions)}")
-
-            await poster.update_section("Tags", "fetching...")
-            tags = await parent.api.get_tags()
-            await poster.update_section("Tags", f"fetched: {len(tags)}")
+            results["champions"] = len(champions) if champions else 0
+            await poster.update_section("Champions", f"fetched: {results['champions']}")
 
             await poster.update_section("Abilities", "fetching...")
             abilities = await parent.api.get_abilities()
-            await poster.update_section("Abilities", f"fetched: {len(abilities)}")
+            results["abilities"] = len(abilities) if abilities else 0
+            await poster.update_section("Abilities", f"fetched: {results['abilities']}")
+
+            await poster.update_section("Tags", "fetching...")
+            tags = await parent.api.get_tags()
+            results["tags"] = len(tags) if tags else 0
+            await poster.update_section("Tags", f"fetched: {results['tags']}")
 
             await poster.update_section("Immunities", "fetching...")
             immunities = await parent.api.get_immunities()
-            await poster.update_section("Immunities", f"fetched: {len(immunities)}")
+            results["immunities"] = len(immunities) if immunities else 0
+            await poster.update_section("Immunities", f"fetched: {results['immunities']}")
 
+            await poster.update_section("Alliance War", "fetching...")
+            aw = await parent.api.get_aw()
+            results["aw"] = len(aw) if aw else 0
+            await poster.update_section("Alliance War", f"fetched: {results['aw']}")
+
+            # Extended data
+            await poster.update_section("Champions Map", "fetching...")
+            champions_map = await parent.api.get_champions_map()
+            results["champions_map"] = len(champions_map) if champions_map else 0
+            await poster.update_section("Champions Map", f"fetched: {results['champions_map']}")
+
+            await poster.update_section("Glossary", "fetching...")
+            glossary = await parent.api.get_glossary()
+            results["glossary"] = len(glossary) if glossary else 0
+            await poster.update_section("Glossary", f"fetched: {results['glossary']}")
+
+            # Tierlist (from mcochub)
+            await poster.update_section("Tierlist", "fetching...")
+            tierlist = await parent.api.get_tierlist() if hasattr(parent.api, 'get_tierlist') else None
+            results["tierlist"] = len(tierlist.get("champions", [])) if tierlist and isinstance(tierlist, dict) else 0
+            await poster.update_section("Tierlist", f"fetched: {results['tierlist']}")
+
+            # Save all to cache
             await poster.update_section("Saving", "writing to cache...")
             await parent.cache._diff_and_save("champions", champions)
-            await parent.cache._diff_and_save("tags", tags)
             await parent.cache._diff_and_save("abilities", abilities)
+            await parent.cache._diff_and_save("tags", tags)
             await parent.cache._diff_and_save("immunities", immunities)
-            await poster.update_section("Saving", "saved")
+            await parent.cache._diff_and_save("aw", aw)
+            await parent.cache._diff_and_save("champions_map", champions_map)
+            await parent.cache._diff_and_save("glossary", glossary)
+            if tierlist:
+                await parent.cache._diff_and_save("tierlist", tierlist)
+            await poster.update_section("Saving", "✅ saved to cache")
 
+            # Update prestige
             try:
                 await poster.update_section("Prestige", "checking/updating...")
-                # pass a reporter that appends prestige progress lines
                 async def prestige_reporter(text: str):
                     try:
                         await poster.update_prestige_line(text)
                     except Exception:
                         log.exception("Prestige reporter failed")
                 await parent.cache.check_update_prestige(parent.api, force=False, progress=prestige_reporter)
-                await poster.update_section("Prestige", "completed")
+                results["prestige"] = "Updated"
+                await poster.update_section("Prestige", "✅ completed")
             except Exception:
                 log.exception("Prestige check during sync failed")
-                await poster.update_section("Prestige", "failed (see logs)")
+                results["prestige"] = "Failed"
+                await poster.update_section("Prestige", "❌ failed (see logs)")
+
+            # Build comprehensive summary embed
+            emb = Embed.embed(ctx, title="✅ Force Sync Complete", color=discord.Color.green())
+            Embed.add_field(emb, name="Completed At", value=datetime.datetime.utcnow().isoformat(), inline=False)
+            
+            core_summary = (
+                f"• Champions: **{results.get('champions', 0)}**\n"
+                f"• Abilities: **{results.get('abilities', 0)}**\n"
+                f"• Tags: **{results.get('tags', 0)}**\n"
+                f"• Immunities: **{results.get('immunities', 0)}**"
+            )
+            Embed.add_field(emb, name="Core Data", value=core_summary, inline=True)
+            
+            extended_summary = (
+                f"• Alliance War: **{results.get('aw', 0)}**\n"
+                f"• Champions Map: **{results.get('champions_map', 0)}**\n"
+                f"• Glossary: **{results.get('glossary', 0)}**\n"
+                f"• Tierlist: **{results.get('tierlist', 0)}**"
+            )
+            Embed.add_field(emb, name="Extended Data", value=extended_summary, inline=True)
+            
+            Embed.add_field(emb, name="Prestige Status", value=f"**{results.get('prestige', 'Unknown')}**", inline=False)
 
             await poster.finalize("Forced sync complete")
-            await ctx.send("Forced sync complete.")
-        except Exception:
+            await safe_send_ctx(ctx, None, embed=emb)
+        except Exception as e:
             log.exception("force-sync failed")
-            await safe_send_ctx(ctx, "Forced sync failed. Check logs.")
+            try:
+                await poster.update_section("Overall", f"❌ Sync failed: {e}")
+            except Exception:
+                pass
+            await safe_send_ctx(ctx, f"❌ Forced sync failed: {e}")
 
     @commands.is_owner()
-    @mcocadmin.command(name="prestige_sync")
+    @admin.command(name="prestige_sync")
     async def prestige_sync(self, ctx, force: bool = False):
         """Update prestige data (owner only)."""
         core = getattr(ctx.bot, "mcoc_core", None)
@@ -429,7 +572,7 @@ class MCOCAdminPrefix(commands.Cog):
         return None
 
     @commands.is_owner()
-    @mcocadmin.command(name="dump")
+    @admin.command(name="dump")
     async def dump(self, ctx, kind: str, *, key: str):
         """Dump a cache object (champion, ability, immunity, tag) with flexible resolved lookup."""
         kind = kind.lower()
@@ -467,7 +610,7 @@ class MCOCAdminPrefix(commands.Cog):
                     log.exception("Failed to send dump file")
 
     @commands.is_owner()
-    @mcocadmin.command(name="inspect")
+    @admin.command(name="inspect")
     async def inspect(self, ctx, kind: str, *, key: str):
         """Alias for the dump command, kept for quick raw object inspection."""
         await self.dump(ctx, kind, key=key)
