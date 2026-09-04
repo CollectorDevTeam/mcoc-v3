@@ -490,12 +490,13 @@ def _format_champion_entry(champ: Dict[str, Any], default_entry: Optional[Dict[s
 async def build_tierlist_embed_pages(author: Any, pages: List[Dict[str, Any]]) -> List[Any]:
     """Translate a tierlist page payload into Discord-safe embed objects.
 
-    Each original tierlist page may contain many groups and many champion lines, which
-    can explode past Discord's 6000-character embed limit. We split the field list into
-    multiple embed pages once the current payload would exceed a conservative size budget.
+    Discord caps an embed at 6000 chars, and a single tier group can still be larger than
+    that when it contains dozens of champion lines. We split groups into subfields and
+    flush pages before the embed exceeds a conservative maximum.
     """
     MAX_EMBED_CHARS = 5000
     MAX_FIELD_COUNT = 25
+    TARGET_GROUP_CHARS = 1800
     out: List[Any] = []
 
     def _make_embed(target_title: str, color: Any, field_batches: List[Tuple[str, str]], empty_message: str) -> Any:
@@ -508,6 +509,29 @@ async def build_tierlist_embed_pages(author: Any, pages: List[Dict[str, Any]]) -
             embed.description = empty_message
         return embed
 
+    def _chunk_group_lines(group_title: str, lines: List[str]) -> List[Tuple[str, str]]:
+        if not lines:
+            return []
+        chunks: List[Tuple[str, str]] = []
+        current: List[str] = []
+        current_size = 0
+        chunk_index = 0
+
+        for line in lines:
+            line_size = len(line) + 1
+            if current and (current_size + line_size > TARGET_GROUP_CHARS):
+                chunks.append((group_title if len(chunks) == 0 else f"{group_title} ({chunk_index + 1})", "\n".join(current)))
+                chunk_index += 1
+                current = []
+                current_size = 0
+            current.append(line)
+            current_size += line_size
+
+        if current:
+            chunks.append((group_title if len(chunks) == 0 else f"{group_title} ({chunk_index + 1})", "\n".join(current)))
+
+        return chunks
+
     for idx, page in enumerate(pages, start=1):
         page_groups = page.get("groups", []) or []
         if not page_groups:
@@ -519,23 +543,22 @@ async def build_tierlist_embed_pages(author: Any, pages: List[Dict[str, Any]]) -
         current_title = f"Tierlist ({idx}/{len(pages)})"
         for group in page_groups:
             lines = [format_tierlist_champion_line(champion) for champion in (group.get("items", []) or [])]
-            field_value = "\n".join(lines)
-            if not field_value:
+            if not lines:
                 continue
-            field_name = str(group.get("title", "Tier"))
-            proposal = (field_name, field_value)
-            proposal_size = len(field_name) + len(field_value) + 32
+            for field_name, field_value in _chunk_group_lines(str(group.get("title", "Tier")), lines):
+                proposal = (field_name, field_value)
+                proposal_size = len(field_name) + len(field_value) + 32
 
-            if current_fields and (
-                len(current_fields) >= MAX_FIELD_COUNT or
-                current_size + proposal_size > MAX_EMBED_CHARS
-            ):
-                out.append(_make_embed(current_title, page.get("color"), current_fields, "No champions match your tierlist filters."))
-                current_fields = []
-                current_size = 0
+                if current_fields and (
+                    len(current_fields) >= MAX_FIELD_COUNT or
+                    current_size + proposal_size > MAX_EMBED_CHARS
+                ):
+                    out.append(_make_embed(current_title, page.get("color"), current_fields, "No champions match your tierlist filters."))
+                    current_fields = []
+                    current_size = 0
 
-            current_fields.append(proposal)
-            current_size += proposal_size
+                current_fields.append(proposal)
+                current_size += proposal_size
 
         if current_fields:
             out.append(_make_embed(current_title, page.get("color"), current_fields, "No champions match your tierlist filters."))

@@ -19,25 +19,31 @@ discord = None
 discord_commands = None
 
 if TYPE_CHECKING:
-    from discord import Embed
-    from discord.ui import View
+    from discord import Embed as DiscordEmbed
+    from discord.ui import View as DiscordView
 else:
-    Embed = Any
-    Interaction = Any
-    View = Any
-    Button = Any
+    DiscordEmbed = Any
+    DiscordView = Any
+
+# Use aliases for annotations so static analysis does not treat runtime variables
+# as invalid type expressions when discord is optionally unavailable.
+Embed = DiscordEmbed
+View = DiscordView
+Interaction = Any
+Button = Any
 
 try:
     import discord as _discord
-    from discord import Embed
-    from discord.ui import View
+    from discord import Embed as DiscordEmbed
+    from discord.ui import View as DiscordView
     discord = _discord
 except ModuleNotFoundError:  # pragma: no cover - optional runtime dependency
     discord = None
-    Embed = Any
-    # Interaction = Any
-    View = Any
-    # Button = Any
+    DiscordEmbed = Any
+    DiscordView = Any
+
+Embed = DiscordEmbed
+View = DiscordView
 
 try:
     from discord.ext import commands as discord_commands
@@ -476,8 +482,33 @@ else:
                     pass
             return emb
 
+        def _embed_size_bytes(self, emb: Any) -> int:
+            try:
+                payload = emb.to_dict()
+                import json
+                return len(json.dumps(payload, separators=(",", ":"), ensure_ascii=False).encode("utf-8"))
+            except Exception:
+                return 0
+
+        def _sanitize_embed_for_discord(self, emb: Any) -> Any:
+            try:
+                if self._embed_size_bytes(emb) <= 5500:
+                    return emb
+            except Exception:
+                return emb
+
+            try:
+                emb.clear_fields()
+                emb.description = "This page is too large for one Discord embed. Please narrow the filters or use a smaller range."
+                emb.set_image(url=None)
+                emb.set_thumbnail(url=None)
+                return emb
+            except Exception:
+                return emb
+
         async def start(self, ctx):
             emb = await self._render_page()
+            emb = self._sanitize_embed_for_discord(emb)
             if self.show_brand:
                 try:
                     brand = CDTEmbed.brand_view()
@@ -499,6 +530,8 @@ else:
                     log.exception("CDTPagesMenu.start failed; retrying with sanitized embed")
                     emb.set_image(url=None)
                     emb.set_thumbnail(url=None)
+                    emb.description = "This page is too large for one Discord embed. Please narrow the filters or use a smaller range."
+                    emb.clear_fields()
                     if hasattr(ctx, "send"):
                         self.message = await ctx.send(embed=emb, view=self)
                     else:
