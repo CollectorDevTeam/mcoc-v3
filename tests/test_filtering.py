@@ -1,4 +1,6 @@
-from mcoc.common.helpers.champions import _champion_matches_filters
+from mcoc.common.helpers.champions import _champion_matches_filters, build_tier_pages
+from mcoc.common.utilities.formatters import format_tierlist_champion_line
+from mcoc.common.helpers.types import MCOCAPP_TIERS
 from mcoc.common.utilities.query_parser import parse_query
 
 
@@ -22,3 +24,39 @@ def test_champion_match_uses_tags_and_immunities_union():
     assert _champion_matches_filters(champ, {"tags": ["bleed-immunity"]}) is True
     assert _champion_matches_filters(champ, {"tags": ["bleed", "bleed-immunity"]}) is True
     assert _champion_matches_filters(champ, {"tags": ["bleed", "incinerate"]}) is False
+
+
+def test_tierlist_pages_group_by_defined_tier_order_and_color():
+    champions = [
+        {"name": "Black Bolt", "tier": "S+", "score": 97, "class": "Cosmic", "tags": ["control"], "awakened": True, "high_sig": True, "no7star": False, "immunities": [], "inflicts": [], "portrait": "", "rank": 1, "class_rank": 1},
+        {"name": "White Bolt", "tier": "S+", "score": 94, "class": "Cosmic", "tags": ["control"], "awakened": False, "high_sig": True, "no7star": True, "immunities": [], "inflicts": [], "portrait": "", "rank": 2, "class_rank": 1},
+        {"name": "Alpha", "tier": "A", "score": 88, "class": "Skill", "tags": ["defense"], "awakened": False, "high_sig": False, "no7star": False, "immunities": [], "inflicts": [], "portrait": "", "rank": 1, "class_rank": 2},
+    ]
+
+    pages = build_tier_pages(champions, filters={"name": "bolt"})
+
+    assert len(pages) == 1
+    assert pages[0]["color"] == MCOCAPP_TIERS["S+"]["color"]
+    assert [group["tier"] for group in pages[0]["groups"]] == ["S+"]
+    assert [champ["name"] for champ in pages[0]["groups"][0]["items"]] == ["Black Bolt", "White Bolt"]
+
+
+def test_tierlist_line_uses_short_property_tokens_and_tags():
+    champ = {
+        "name": "Black Bolt",
+        "tier": "S+",
+        "score": 97,
+        "class": "Cosmic",
+        "tags": ["defense", "control"],
+        "awakened": True,
+        "high_sig": True,
+        "no7star": False,
+        "immunities": [{"type": "bleed", "conditional": False}],
+        "inflicts": ["Incinerate"],
+    }
+
+    token_line = format_tierlist_champion_line(champ)
+    assert "Black Bolt" in token_line
+    assert "97" in token_line
+    assert "A" in token_line and "HS" in token_line
+    assert "BG-DEF" in token_line or "control" in token_line

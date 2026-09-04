@@ -11,6 +11,7 @@ from redbot.core import commands
 from mcoc.common import Core
 from mcoc.common.utilities.query_parser import parse_query
 from mcoc.common.components.prefix_utils import safe_send_ctx
+from mcoc.common.helpers.types import MCOCAPP_TIERS, MCOCAPP_PROPERTIES
 
 Embed = Core.Embed
 PagesMenu = Core.PagesMenu
@@ -366,6 +367,120 @@ class ChampionsPrefix(commands.Cog):
                 except Exception:
                     await safe_send_ctx(ctx, "Failed to display champion search results.")
                     return
+
+    def _tierlist_champion_detail_embed(self, author: Any, champ: dict) -> Any:
+        name = champ.get("name") or champ.get("slug") or "Unknown"
+        tier = champ.get("tier") or "Unranked"
+        title = f"{name} ({tier})"
+        emb = Embed.embed(author, title=title, color=MCOCAPP_TIERS.get(str(tier), {}).get("color", 0xD4AF37))
+        class_name = champ.get("class") or champ.get("class_name") or "Unknown"
+        properties = []
+        for key in ("awakened", "high_sig", "no7star"):
+            if champ.get(key):
+                meta = MCOCAPP_PROPERTIES.get(key, {})
+                properties.append(str(meta.get("long") or meta.get("short") or key.upper()))
+        tag_values = []
+        for tag in champ.get("tags") or []:
+            meta = MCOCAPP_PROPERTIES.get("tags", {}).get(str(tag).strip().lower().replace("-", "_"))
+            tag_values.append(str(meta.get("long") if meta else tag))
+        if properties:
+            emb.add_field(name="Properties", value=", ".join(properties), inline=False)
+        if tag_values:
+            emb.add_field(name="Tags", value=", ".join(tag_values), inline=False)
+
+        always = []
+        conditional = []
+        for immune in champ.get("immunities") or []:
+            if isinstance(immune, str):
+                always.append(immune)
+            elif isinstance(immune, dict):
+                kind = str(immune.get("type") or "").strip()
+                if not kind:
+                    continue
+                if immune.get("conditional"):
+                    conditional.append(kind)
+                else:
+                    always.append(kind)
+        if always:
+            emb.add_field(name="IMMUNE (always)", value=", ".join(always), inline=False)
+        if conditional:
+            emb.add_field(name="IMMUNE (conditional)", value=", ".join(conditional), inline=False)
+        inflicts = champ.get("inflicts") or []
+        if inflicts:
+            emb.add_field(name="Inflicts", value="\n".join(f"• {item}" for item in inflicts if item), inline=False)
+        return emb
+
+    @champ.command(name="tierlist")
+    async def champ_tierlist(self, ctx, *items: str):
+        """Search or inspect champions using the cached mcoc.app tierlist data."""
+        if not await self._require_parent(ctx):
+            return
+
+        raw = " ".join(items or "").strip()
+        cache = getattr(self.parent, "cache", None)
+        if not cache:
+            await safe_send_ctx(ctx, "Champion cache unavailable.")
+            return
+
+        candidate = cache.get_champion(raw) if raw else None
+        if candidate:
+            try:
+                await ctx.send(embed=self._tierlist_champion_detail_embed(ctx.author, candidate))
+                return
+            except Exception:
+                log.exception("Failed to render tierlist champion embed for %s", raw)
+                await safe_send_ctx(ctx, "Champion tierlist details unavailable.")
+                return
+
+        try:
+            tier_raw = cache._load_file("tierlist") or {}
+            if isinstance(tier_raw, dict):
+                champion_rows = tier_raw.get("champions") or []
+            else:
+                champion_rows = []
+        except Exception:
+            champion_rows = []
+        if not champion_rows:
+            champion_rows = cache.get_all_champions() or []
+
+        try:
+            entries, filters = parse_query(raw, cache=cache)
+        except Exception:
+            entries, filters = [], {"raw_text": raw}
+        parsed_filters = {}
+        if entries:
+            parsed_filters["explicit_entries"] = entries
+        if isinstance(filters, dict):
+            parsed_filters.update(filters)
+
+        filtered = []
+        for champ in champion_rows:
+            if not isinstance(champ, dict):
+                continue
+            if not Champions._champion_matches_filters(champ, parsed_filters):
+                continue
+            filtered.append(champ)
+
+        if not filtered:
+            await safe_send_ctx(ctx, "No champions match the tierlist filters.")
+            return
+
+        pages = Champions.build_tier_pages(filtered, filters=parsed_filters)
+        embed_pages = Champions.build_tierlist_embed_pages(ctx.author, pages)
+        if not embed_pages:
+            await safe_send_ctx(ctx, "Tierlist unavailable.")
+            return
+
+        try:
+            pager = PagesMenu(embed_pages, author=ctx.author)
+            await pager.start(ctx)
+            return
+        except Exception:
+            log.exception("Failed to start tierlist PagesMenu")
+            try:
+                await ctx.send(embed=embed_pages[0])
+            except Exception:
+                await safe_send_ctx(ctx, "Tierlist could not be displayed.")
 
     @champ.command(name="abilities")
     async def champ_abilities(self, ctx, *, name: str):

@@ -13,6 +13,68 @@ from typing import Any, Dict, List, Optional, Mapping, Tuple, TypedDict, Union
 
 log = logging.getLogger("red.mcoc.types")
 
+MCOCAPP_TIERS: Dict[str, Dict[str, Any]] = {
+    "S+": {"color": "#f59e0b", "name": "S+ TIER"},
+    "S": {"color": "#fbbf24", "name": "S TIER"},
+    "A": {"color": "#a3e635", "name": "A TIER"},
+    "B": {"color": "#34d399", "name": "B TIER"},
+    "C": {"color": "#22d3ee", "name": "C TIER"},
+    "D": {"color": "#60a5fa", "name": "D TIER"},
+    "F": {"color": "#94a3b8", "name": "F TIER"},
+}
+
+MCOCAPP_PROPERTIES: Dict[str, Any] = {   
+    "awakened": {
+        "short": "A",
+        "long": "AWAKENED"
+    },  
+    "high_sig": {
+        "short": "HS",
+        "long": "HIGH SIG"
+    },
+    "no7star": {
+        "short": "!7",
+        "long": "NO 7 STAR"
+    },
+    "tags": {
+        "defense": {
+            "short": "BG-DEF",
+            "long" : "BG DEFENSE"
+        },
+        "high_skill": {
+            "short": "+SKILL",
+            "long": "HIGH SKILL"
+        },
+        "recoil": {
+            "short": "RECOIL",
+            "long": "RECOIL"
+        },
+        "relic": {
+            "short": "RELIC",
+            "long": "RELIC"
+        },
+        "ramp_up": {
+            "short": "RAMP",
+            "long": "RAMP UP"
+        },
+        "ascendable": {
+            "short": "ASC",
+            "long": "ASCENDABLE"
+        },
+        "early_ranking": {
+            "short": "EARLY",
+            "long": "EARLY RANKING"
+        },
+        "synergy": {
+            "short": "SYNERGY",
+            "long": "SYNERGY"
+        },
+        "meteor_tactic": {
+            "short": "METEOR",
+            "long": "METEOR TACTIC"
+        }
+    }
+}
 
 CLASS_EMOJI: Dict[str, str] = {
     "all": "<:all2:339511715920084993>",
@@ -24,7 +86,6 @@ CLASS_EMOJI: Dict[str, str] = {
     "science": "<:science2:339511716029267969>",
     "ascended": "<:ascend:1137124043506585691>",
 }
-
 
 @dataclass(frozen=True)
 class ChampionTierLimits:

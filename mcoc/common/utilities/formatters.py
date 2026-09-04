@@ -7,11 +7,112 @@
 # Changelog:
 #   1.0 2026-09-01  Initial stabilized API header
 
-from typing import Dict, Any, Optional, Mapping, Union
-from mcoc.common.helpers.types import CLASS_EMOJI, Champion, champion_from_dict
+from typing import Dict, Any, Optional, Mapping, Union, List
+from mcoc.common.helpers.types import CLASS_EMOJI, Champion, champion_from_dict, MCOCAPP_PROPERTIES
 import re
 
 ChampionLike = Union[Champion, Mapping[str, Any], None]
+
+
+def _normalize_property_key(value: Any) -> str:
+    return str(value or "").strip().lower().replace(" ", "_").replace("-", "_")
+
+
+def _resolve_tag_shortname(tag: Any) -> Optional[str]:
+    key = _normalize_property_key(tag)
+    if not key:
+        return None
+    tag_map = MCOCAPP_PROPERTIES.get("tags", {})
+    if key in tag_map:
+        return tag_map[key].get("short")
+    for alias, meta in tag_map.items():
+        if alias == key or key in alias.replace("_", " ") or alias.replace("_", " ") in key:
+            return meta.get("short")
+    return None
+
+
+def format_tierlist_property_tokens(champ: ChampionLike) -> List[str]:
+    """Return a short token list for tierlist display using MCOCAPP_PROPERTIES."""
+    champion = _normalize_champ_obj(champ)
+    items: List[str] = []
+    if not champion:
+        return items
+
+    for key in ("awakened", "high_sig", "no7star"):
+        enabled = bool((champ.raw or {}).get(key)) if isinstance(champion.raw, Mapping) and champion.raw.get(key) is not None else False
+        if isinstance(champ, dict):
+            enabled = bool((champ or {}).get(key, False))
+        if enabled:
+            meta = MCOCAPP_PROPERTIES.get(key)
+            if meta:
+                items.append(str(meta.get("short") or meta.get("long") or key.upper()))
+
+    for tag in (champion.raw or {}).get("tags", []) if isinstance(champion.raw, Mapping) else []:
+        short = _resolve_tag_shortname(tag)
+        if short:
+            items.append(short)
+    if isinstance(champion.raw, Mapping) and not items:
+        for tag in champion.raw.get("tags", []) or []:
+            tag_text = str(tag).strip()
+            if tag_text:
+                items.append(tag_text)
+    return items
+
+
+def format_tierlist_champion_line(champ: ChampionLike) -> str:
+    """Short, score-first line for tierlist paging output."""
+    champion = _normalize_champ_obj(champ)
+    if champion is None:
+        return "Unknown"
+
+    name = getattr(champion, "name", None) or getattr(champion, "slug", None) or "Unknown"
+    tier = getattr(champion, "tier", None)
+    if isinstance(champion.raw, Mapping):
+        score = champion.raw.get("score")
+        tier = champion.raw.get("tier") or tier
+        tags = champion.raw.get("tags") or []
+    else:
+        score = None
+        tags = []
+
+    tier_text = str(tier or "Unranked")
+    score_text = score if score is not None else 0
+    property_tokens = format_tierlist_property_tokens(champion.raw if isinstance(champion.raw, Mapping) else champion)
+    if not property_tokens:
+        token_text = "—"
+    else:
+        token_text = " ".join(property_tokens)
+    return f"{name} | {tier_text} | score {score_text} | {token_text}"
+
+
+def format_tierlist_champion_detail(champ: ChampionLike) -> Dict[str, str]:
+    """Return long-form property/tag strings used by the champion tierlist embed."""
+    champion = _normalize_champ_obj(champ)
+    if champion is None:
+        return {"properties": "None", "tags": "None"}
+
+    raw = champion.raw if isinstance(champion.raw, Mapping) else {}
+    properties: List[str] = []
+
+    for key in ("awakened", "high_sig", "no7star"):
+        val = bool(raw.get(key)) if key in raw else False
+        if val:
+            meta = MCOCAPP_PROPERTIES.get(key)
+            if meta:
+                properties.append(f"{meta.get('long', key.upper())}")
+
+    tag_text = []
+    for tag in raw.get("tags", []) or []:
+        meta = MCOCAPP_PROPERTIES.get("tags", {}).get(_normalize_property_key(tag))
+        if meta:
+            tag_text.append(str(meta.get("long") or tag))
+        else:
+            tag_text.append(str(tag))
+
+    return {
+        "properties": ", ".join(properties) if properties else "None",
+        "tags": ", ".join(tag_text) if tag_text else "None",
+    }
 
 
 def _normalize_champ_obj(champ_obj: ChampionLike) -> Optional[Champion]:

@@ -20,6 +20,18 @@ from .cacheindex import CacheIndex
 from pathlib import Path
 from redbot.core import data_manager
 from mcoc.common.helpers.types import normalize_champion_progression
+from mcoc.common.models import (
+    AbilityList,
+    ChampionList,
+    CollectorBotAccount,
+    ImmunityList,
+    MCOCHubAbility,
+    MCOCHubChampion,
+    MCOCHubImmunity,
+    MCOCHubTag,
+    TagList,
+    TierList,
+)
 
 log = logging.getLogger("red.mcoc.cache")
 # near other constants/imports
@@ -382,10 +394,31 @@ class CacheManager:
 
         return {"version": version, "updated_at": updated_at, list_key: mapped}
 
+    def _validate_model_payload(self, model: Any, payload: Any, *, list_key: Optional[str] = None) -> Any:
+        """Validate a raw API payload against the typed model and return the original payload on success."""
+        if payload is None:
+            return None
+        try:
+            if list_key and isinstance(payload, dict):
+                candidate = payload.get(list_key, [])
+                model.model_validate({list_key: candidate})
+            else:
+                model.model_validate(payload)
+            return payload
+        except Exception:
+            log.exception("Failed to validate payload with %s", getattr(model, "__name__", type(model).__name__))
+            return None
+
     def normalize_champions_payload(self, payload: Any) -> Optional[Dict[str, Any]]:
+        validated = self._validate_model_payload(ChampionList, payload, list_key="champions")
+        if validated is None:
+            return None
         return self.normalize_list_payload(payload, "champions")
 
     def normalize_abilities_payload(self, payload: Any) -> Optional[Dict[str, Any]]:
+        validated = self._validate_model_payload(AbilityList, payload, list_key="abilities")
+        if validated is None:
+            return None
         return self.normalize_list_payload(payload, "abilities")
 
     def normalize_aw_payload(self, payload: Any) -> Optional[Dict[str, Any]]:
@@ -420,6 +453,9 @@ class CacheManager:
 
 
     def normalize_immunities_payload(self, payload: Any) -> Optional[Dict[str, Any]]:
+        validated = self._validate_model_payload(ImmunityList, payload, list_key="immunities")
+        if validated is None:
+            return None
         return self.normalize_list_payload(payload, "immunities")
 
     def normalize_prestige_payload(self, payload: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
@@ -440,6 +476,9 @@ class CacheManager:
 
 
     def normalize_tags_payload(self, payload: Any) -> Optional[Dict[str, Any]]:
+        validated = self._validate_model_payload(TagList, payload, list_key="tags")
+        if validated is None:
+            return None
         return self.normalize_list_payload(payload, "tags")
 
     def normalize_tierlist_payload(self, payload: Any) -> Optional[Dict[str, Any]]:
@@ -448,6 +487,8 @@ class CacheManager:
         { "version": <hash>, "champions": [...] }
         """
         if not payload:
+            return None
+        if self._validate_model_payload(TierList, payload) is None:
             return None
 
         champions = payload.get("champions")

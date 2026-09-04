@@ -23,10 +23,11 @@ Prefix handlers should be thin: call make_champion_pager or get_champion_pages a
 from typing import Any, Dict, List, Optional, Tuple, Mapping
 import logging
 import asyncio
+from collections import defaultdict
 
 from mcoc.common.components.componentsV2 import CDTEmbed, CDTPagesMenu
-from mcoc.common.utilities.formatters import format_champion_line
-from mcoc.common.helpers.types import Champion, champion_from_dict
+from mcoc.common.utilities.formatters import format_champion_line, format_tierlist_champion_line
+from mcoc.common.helpers.types import Champion, champion_from_dict, MCOCAPP_TIERS, MCOCAPP_PROPERTIES
 
 CHAMPIONS_FOOTER = " | CollectorDevTeam"
 
@@ -110,7 +111,12 @@ def build_champion_synergy_lines(champ: Mapping[str, Any], cache: Any = None) ->
         glossary = _resolve_glossary_term(cache, raw_name)
         title = glossary.get("word") if glossary else _titleize_token(raw_name)
         partners = [_resolve_champion_name(cache, partner) for partner in (synergy.get("synergy_with") or [])]
-        partner_text = f" With: {', '.join(partners)}." if partners else ""
+        if partners:
+            partner_text = f" With: {', '.join(partners)}."
+        elif synergy.get("source") == "synergy" or synergy.get("note"):
+            partner_text = " Partner data unavailable from source."
+        else:
+            partner_text = ""
         description = synergy.get("note") or (glossary.get("description") if glossary else "") or ""
         if description:
             lines.append(f"**{title}** — {description}{partner_text}")
@@ -192,7 +198,7 @@ def _champion_matches_filters(champ: Dict[str, Any], filters: Dict[str, Any]) ->
 
         # class match
         if class_filters:
-            champ_class = (champ.get("class") or "").lower()
+            champ_class = (champ.get("class") or champ.get("class_name") or "").lower()
             if champ_class not in class_filters:
                 return False
 
@@ -225,6 +231,105 @@ def _champion_matches_filters(champ: Dict[str, Any], filters: Dict[str, Any]) ->
         return True
     except Exception:
         return False
+
+
+def _normalized_tier_key(value: Any) -> str:
+    raw = str(value or "").strip()
+    if not raw:
+        return "Unranked"
+    return raw
+
+
+def _tierlist_tier_order() -> List[str]:
+    ordered = list(MCOCAPP_TIERS.keys())
+    seen = set(ordered)
+    for key in ["S+", "S", "A", "B", "C", "D", "F"]:
+        if key not in seen:
+            ordered.append(key)
+    return ordered
+
+
+def _tierlist_sort_key(champion: Dict[str, Any]) -> Tuple[float, str]:
+    name = str(champion.get("name") or champion.get("slug") or "").strip().lower()
+    score = champion.get("score")
+    try:
+        score_value = float(score)
+    except Exception:
+        score_value = 0.0
+    return (-score_value, name)
+
+
+def build_tier_pages(champions: List[Dict[str, Any]], *, filters: Optional[Dict[str, Any]] = None, page_size: int = 10, tier_order: Optional[List[str]] = None, tier_colors: Optional[Dict[str, str]] = None) -> List[Dict[str, Any]]:
+    """Build paged tier-grouped output from a tierlist-shaped champion list."""
+    filtered = []
+    for champion in champions or []:
+        if not isinstance(champion, dict):
+            continue
+        if not _champion_matches_filters(champion, filters or {}):
+            continue
+        filtered.append(champion)
+
+    grouped: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
+    for champion in filtered:
+        tier_name = _normalized_tier_key(champion.get("tier") or "Unranked")
+        grouped[tier_name].append(champion)
+
+    order = tier_order or _tierlist_tier_order()
+    ordered_groups: List[Dict[str, Any]] = []
+    for tier in order:
+        items = sorted(grouped.get(tier, []), key=_tierlist_sort_key)
+        if not items:
+            continue
+        ordered_groups.append({
+            "tier": tier,
+            "title": MCOCAPP_TIERS.get(tier, {}).get("name", f"{tier} TIER"),
+            "color": tier_colors.get(tier, MCOCAPP_TIERS.get(tier, {}).get("color", "#ffffff")) if tier_colors else MCOCAPP_TIERS.get(tier, {}).get("color", "#ffffff"),
+            "items": items,
+        })
+
+    leftovers = sorted(
+        [(tier, items) for tier, items in grouped.items() if tier not in {g["tier"] for g in ordered_groups}],
+        key=lambda pair: (pair[0] == "Unranked", pair[0]),
+    )
+    for tier, items in leftovers:
+        ordered_groups.append({
+            "tier": tier,
+            "title": MCOCAPP_TIERS.get(tier, {}).get("name", f"{tier} TIER"),
+            "color": tier_colors.get(tier, MCOCAPP_TIERS.get(tier, {}).get("color", "#ffffff")) if tier_colors else MCOCAPP_TIERS.get(tier, {}).get("color", "#ffffff"),
+            "items": sorted(items, key=_tierlist_sort_key),
+        })
+
+    page_groups: List[List[Dict[str, Any]]] = []
+    current: List[Dict[str, Any]] = []
+    current_len = 0
+    for group in ordered_groups:
+        block = [f"**{group['title']}**"]
+        for champ in group["items"]:
+            block.append(format_tierlist_champion_line(champ))
+        block_text = "\n".join(block)
+        if current and (current_len + len(block_text) + 2 > 1800 or len(current) >= page_size):
+            page_groups.append(current)
+            current = []
+            current_len = 0
+        current.append(group)
+        current_len += len(block_text)
+    if current:
+        page_groups.append(current)
+
+    pages: List[Dict[str, Any]] = []
+    for index, groups in enumerate(page_groups, start=1):
+        page_color = groups[0]["color"] if groups else "#ffffff"
+        pages.append({
+            "title": "Tierlist",
+            "color": page_color,
+            "groups": groups,
+            "page": index,
+            "page_count": len(page_groups),
+        })
+
+    if not pages:
+        return [{"title": "Tierlist", "color": "#ffffff", "groups": [], "page": 1, "page_count": 1}]
+    return pages
 
 
 # -----------------------------
@@ -265,6 +370,23 @@ def _format_champion_entry(champ: Dict[str, Any], default_entry: Optional[Dict[s
             return f"**{champ.get('name') or champ.get('slug') or 'Unknown'}**"
         except Exception:
             return "Unknown"
+
+
+async def build_tierlist_embed_pages(author: Any, pages: List[Dict[str, Any]]) -> List[Any]:
+    """Translate a tierlist page payload into Discord embed objects."""
+    out: List[Any] = []
+    for idx, page in enumerate(pages, start=1):
+        embed = CDTEmbed.embed(author, title=f"Tierlist ({idx}/{len(pages)})", color=page.get("color"), description="")
+        for group in page.get("groups", []) or []:
+            lines = []
+            for champion in group.get("items", []) or []:
+                lines.append(format_tierlist_champion_line(champion))
+            if lines:
+                CDTEmbed.add_field(author, embed, name=group.get("title", "Tier"), value="\n".join(lines), inline=False)
+        if not getattr(embed, "fields", None):
+            embed.description = "No champions match your tierlist filters."
+        out.append(embed)
+    return out
 
 
 async def build_champion_pages(core: Any, ctx_or_author: Any, filters: Optional[Dict[str, Any]] = None, *, lines_per_page: int = 15, char_limit: int = 1800) -> List[Any]:
