@@ -35,27 +35,36 @@ class MCOCSlash(commands.Cog):
         except Exception:
             log.exception("Failed to attach slash cogs in cog_load")
 
-    # async def _attach_slash_cogs(self):
-    #     try:
-    #         from .champions import ChampionSlashCog
-    #         await self.bot.add_cog(ChampionSlashCog(self.bot))
-    #         log.debug("ChampionSlashCog loaded (slash)")
-    #     except Exception:
-    #         log.exception("Failed to load ChampionSlashCog")
+    async def _attach_slash_cogs(self):
+        slash_cogs = [
+            ("mcoc.slash.champions", "ChampionSlashCog"),
+            ("mcoc.slash.roster", "RosterSlashCog"),
+            ("mcoc.slash.admin", "AdminSlashCog"),
+        ]
 
-    #     try:
-    #         from .roster import RosterSlashCog
-    #         await self.bot.add_cog(RosterSlashCog(self.bot))
-    #         log.debug("RosterSlashCog loaded (slash)")
-    #     except Exception:
-    #         log.exception("Failed to load RosterSlashCog")
-
-    #     try:
-    #         from .admin import AdminSlashCog
-    #         await self.bot.add_cog(AdminSlashCog(self.bot))
-    #         log.debug("AdminSlashCog loaded (slash)")
-    #     except Exception:
-    #         log.debug("AdminSlashCog not present (optional)")
+        for module_name, class_name in slash_cogs:
+            try:
+                mod = __import__(module_name, fromlist=[class_name])
+                cog_cls = getattr(mod, class_name, None)
+                if cog_cls is None:
+                    log.debug("Slash module %s missing %s; skipping", module_name, class_name)
+                    continue
+                if self.bot.get_cog(class_name):
+                    log.debug("Slash cog %s already loaded; skipping", class_name)
+                    continue
+                try:
+                    await self.bot.add_cog(cog_cls(self.bot))
+                    log.debug("%s loaded (slash)", class_name)
+                except Exception:
+                    try:
+                        self.bot.add_cog(cog_cls(self.bot))
+                        log.debug("%s loaded (slash, sync fallback)", class_name)
+                    except Exception:
+                        log.exception("Failed to load %s", class_name)
+            except ModuleNotFoundError:
+                log.debug("Slash module %s not present; skipping", module_name)
+            except Exception:
+                log.exception("Failed to import slash cog %s", class_name)
 
     @commands.Cog.listener()
     async def on_ready(self):

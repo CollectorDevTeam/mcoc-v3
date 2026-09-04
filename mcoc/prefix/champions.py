@@ -466,7 +466,7 @@ class ChampionsPrefix(commands.Cog):
             return
 
         pages = Champions.build_tier_pages(filtered, filters=parsed_filters)
-        embed_pages = Champions.build_tierlist_embed_pages(ctx.author, pages)
+        embed_pages = await Champions.build_tierlist_embed_pages(ctx.author, pages)
         if not embed_pages:
             await safe_send_ctx(ctx, "Tierlist unavailable.")
             return

@@ -82,7 +82,7 @@ async def setup(bot: Any) -> None:
         ("mcoc.prefix.roster", "RosterPrefix"),
         ("mcoc.prefix.alliance", "AlliancePrefix"),
         ("mcoc.prefix.champions", "ChampionsPrefix"),
-        ("mcoc.prefix.mcocadmin_prefix", "MCOCAdminPrefix"),
+        ("mcoc.prefix.admin", "MCOCAdminPrefix"),
     ]
 
     for module_path, class_name in feature_cogs:
