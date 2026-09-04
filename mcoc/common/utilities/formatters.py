@@ -31,57 +31,86 @@ def _resolve_tag_shortname(tag: Any) -> Optional[str]:
     return None
 
 
-def format_tierlist_property_tokens(champ: ChampionLike) -> List[str]:
-    """Return a short token list for tierlist display using MCOCAPP_PROPERTIES."""
+def _resolve_tag_longname(tag: Any) -> Optional[str]:
+    key = _normalize_property_key(tag)
+    if not key:
+        return None
+    tag_map = MCOCAPP_PROPERTIES.get("tags", {})
+    if key in tag_map:
+        return tag_map[key].get("long")
+    for alias, meta in tag_map.items():
+        if alias == key or key in alias.replace("_", " ") or alias.replace("_", " ") in key:
+            return meta.get("long")
+    return None
+
+
+def format_tierlist_property_tokens(champ: ChampionLike, *, long_labels: bool = False) -> List[str]:
+    """Return a short or long token list for tierlist display using MCOCAPP_PROPERTIES."""
     champion = _normalize_champ_obj(champ)
+    raw = {}
+    if isinstance(champ, Mapping):
+        raw = dict(champ)
+    elif champion is not None and isinstance(getattr(champion, "raw", None), Mapping):
+        raw = dict(champion.raw)
+    elif champion is not None and isinstance(champ, dict):
+        raw = dict(champ)
+
     items: List[str] = []
-    if not champion:
+    if not raw:
         return items
 
     for key in ("awakened", "high_sig", "no7star"):
-        enabled = bool((champ.raw or {}).get(key)) if isinstance(champion.raw, Mapping) and champion.raw.get(key) is not None else False
-        if isinstance(champ, dict):
-            enabled = bool((champ or {}).get(key, False))
+        enabled = bool(raw.get(key, False))
         if enabled:
             meta = MCOCAPP_PROPERTIES.get(key)
             if meta:
-                items.append(str(meta.get("short") or meta.get("long") or key.upper()))
+                items.append(str((meta.get("long") if long_labels else meta.get("short")) or meta.get("long") or meta.get("short") or key.upper()))
 
-    for tag in (champion.raw or {}).get("tags", []) if isinstance(champion.raw, Mapping) else []:
-        short = _resolve_tag_shortname(tag)
-        if short:
-            items.append(short)
-    if isinstance(champion.raw, Mapping) and not items:
-        for tag in champion.raw.get("tags", []) or []:
+    for tag in raw.get("tags", []) or []:
+        if long_labels:
+            label = _resolve_tag_longname(tag)
+        else:
+            label = _resolve_tag_shortname(tag)
+        if label:
+            items.append(label)
+    if not items:
+        for tag in raw.get("tags", []) or []:
             tag_text = str(tag).strip()
             if tag_text:
                 items.append(tag_text)
     return items
 
 
-def format_tierlist_champion_line(champ: ChampionLike) -> str:
-    """Short, score-first line for tierlist paging output."""
+def format_tierlist_champion_line(champ: ChampionLike, *, long_labels: bool = False) -> str:
+    """Display a tierlist row, optionally using long property labels for wider pages."""
     champion = _normalize_champ_obj(champ)
-    if champion is None:
+    if isinstance(champ, Mapping):
+        raw = dict(champ)
+    elif champion is not None and isinstance(getattr(champion, "raw", None), Mapping):
+        raw = dict(champion.raw)
+    else:
+        raw = {}
+
+    if not raw and champion is None:
         return "Unknown"
 
-    name = getattr(champion, "name", None) or getattr(champion, "slug", None) or "Unknown"
-    tier = getattr(champion, "tier", None)
-    if isinstance(champion.raw, Mapping):
-        score = champion.raw.get("score")
-        tier = champion.raw.get("tier") or tier
-        tags = champion.raw.get("tags") or []
-    else:
-        score = None
-        tags = []
+    name = str(raw.get("name") or getattr(champion, "name", None) or getattr(champion, "slug", None) or "Unknown")
+    tier = raw.get("tier") if raw else getattr(champion, "tier", None)
+    score = raw.get("score") if raw else None
+    if score is None and champion is not None:
+        score = getattr(champion, "raw", {}).get("score") if isinstance(getattr(champion, "raw", None), Mapping) else None
 
-    tier_text = str(tier or "Unranked")
     score_text = score if score is not None else 0
-    property_tokens = format_tierlist_property_tokens(champion.raw if isinstance(champion.raw, Mapping) else champion)
+    property_tokens = format_tierlist_property_tokens(raw if raw else champion, long_labels=long_labels)
     if not property_tokens:
         token_text = "—"
     else:
-        token_text = " ".join(property_tokens)
+        token_text = ", ".join(property_tokens)
+
+    if long_labels:
+        return f"{name} | {score_text} | {token_text}"
+
+    tier_text = str(tier or "Unranked")
     return f"{name} | {tier_text} | score {score_text} | {token_text}"
 
 

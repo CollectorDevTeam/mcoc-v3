@@ -26,7 +26,7 @@ MCOCAPP_TIERS: Dict[str, Dict[str, Any]] = {
 MCOCAPP_PROPERTIES: Dict[str, Any] = {   
     "awakened": {
         "short": "A",
-        "long": "AWAKENED"
+        "long": "AWAKENING"
     },  
     "high_sig": {
         "short": "HS",

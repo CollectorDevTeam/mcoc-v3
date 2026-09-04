@@ -23,6 +23,7 @@ Prefix handlers should be thin: call make_champion_pager or get_champion_pages a
 from typing import Any, Dict, List, Optional, Tuple, Mapping
 import logging
 import asyncio
+import re
 from collections import defaultdict
 
 from mcoc.common.components.componentsV2 import CDTEmbed, CDTPagesMenu
@@ -352,7 +353,22 @@ def _normalized_tier_key(value: Any) -> str:
     raw = str(value or "").strip()
     if not raw:
         return "Unranked"
-    return raw
+
+    normalized = raw.strip().upper().replace("_", " ").replace("-", " ")
+    if not normalized or "UNRANKED" in normalized:
+        return "Unranked"
+
+    match = re.search(r"(S\+|S|A|B|C|D|F)", normalized)
+    if match:
+        return match.group(1)
+
+    # Some sources encode tiers like "C TIER", "Tier C", or "S+ Tier".
+    compact = re.sub(r"[^A-Z0-9+]", "", normalized)
+    for token in ["S+", "S", "A", "B", "C", "D", "F"]:
+        if token in compact:
+            return token
+
+    return "Unranked"
 
 
 def _tierlist_tier_order() -> List[str]:
@@ -364,14 +380,16 @@ def _tierlist_tier_order() -> List[str]:
     return ordered
 
 
-def _tierlist_sort_key(champion: Dict[str, Any]) -> Tuple[float, str]:
+def _tierlist_sort_key(champion: Dict[str, Any]) -> Tuple[int, float, str]:
     name = str(champion.get("name") or champion.get("slug") or "").strip().lower()
+    tier_name = _normalized_tier_key(champion.get("tier") or "Unranked")
+    tier_rank = _tierlist_tier_order().index(tier_name) if tier_name in _tierlist_tier_order() else len(_tierlist_tier_order())
     score = champion.get("score")
     try:
         score_value = float(score)
     except Exception:
         score_value = 0.0
-    return (-score_value, name)
+    return (tier_rank, -score_value, name)
 
 
 def build_tier_pages(champions: List[Dict[str, Any]], *, filters: Optional[Dict[str, Any]] = None, page_size: int = 10, tier_order: Optional[List[str]] = None, tier_colors: Optional[Dict[str, str]] = None) -> List[Dict[str, Any]]:
@@ -389,9 +407,9 @@ def build_tier_pages(champions: List[Dict[str, Any]], *, filters: Optional[Dict[
         tier_name = _normalized_tier_key(champion.get("tier") or "Unranked")
         grouped[tier_name].append(champion)
 
-    order = tier_order or _tierlist_tier_order()
+    canonical_order = list(tier_order or _tierlist_tier_order())
     ordered_groups: List[Dict[str, Any]] = []
-    for tier in order:
+    for tier in canonical_order:
         items = sorted(grouped.get(tier, []), key=_tierlist_sort_key)
         if not items:
             continue
@@ -420,7 +438,7 @@ def build_tier_pages(champions: List[Dict[str, Any]], *, filters: Optional[Dict[
     for group in ordered_groups:
         block = [f"**{group['title']}**"]
         for champ in group["items"]:
-            block.append(format_tierlist_champion_line(champ))
+            block.append(format_tierlist_champion_line(champ, long_labels=True))
         block_text = "\n".join(block)
         if current and (current_len + len(block_text) + 2 > 1800 or len(current) >= page_size):
             page_groups.append(current)

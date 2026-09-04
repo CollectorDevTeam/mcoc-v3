@@ -60,3 +60,20 @@ def test_tierlist_line_uses_short_property_tokens_and_tags():
     assert "97" in token_line
     assert "A" in token_line and "HS" in token_line
     assert "BG-DEF" in token_line or "control" in token_line
+
+
+def test_tierlist_pages_normalize_live_mco_app_tier_strings_and_sort_order():
+    champions = [
+        {"name": "Abomination", "tier": "F", "score": 20, "class": "Skill", "tags": [], "awakened": False, "high_sig": False, "no7star": False},
+        {"name": "Abomination Immortal", "tier": "C Tier", "score": 58, "class": "Skill", "tags": [], "awakened": False, "high_sig": False, "no7star": False},
+        {"name": "Black Bolt", "tier": "D", "score": 30, "class": "Cosmic", "tags": [], "awakened": False, "high_sig": False, "no7star": False},
+        {"name": "Alpha", "tier": "S+", "score": 80, "class": "Mutant", "tags": [], "awakened": False, "high_sig": False, "no7star": False},
+    ]
+
+    pages = build_tier_pages(champions)
+    groups = pages[0]["groups"]
+    assert [group["tier"] for group in groups] == ["S+", "C", "D", "F"]
+    assert "Unranked" not in [group["tier"] for group in groups]
+    assert groups[0]["items"][0]["name"] == "Alpha"
+    assert groups[1]["items"][0]["name"] == "Abomination Immortal"
+    assert groups[3]["items"][0]["name"] == "Abomination"
