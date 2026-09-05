@@ -286,8 +286,47 @@ def _normalize_champion_input(champ_obj: Optional[Mapping[str, Any]]) -> Optiona
 # Filtering helpers
 # -----------------------------
 def _normalize_champion_token(value: Any) -> str:
-    """Collapse separators so tag and immunity names compare consistently."""
+    """Collapse separators so filter names compare consistently across tag, ability, and immunity sources."""
     return "".join(ch for ch in str(value or "").lower() if ch.isalnum())
+
+
+def _iter_champion_filter_values(value: Any) -> List[str]:
+    """Flatten a champion field into the canonical filter vocabulary used by the shared matcher."""
+    flattened: List[str] = []
+    if value is None:
+        return flattened
+    if isinstance(value, Mapping):
+        for key in ("name", "id", "slug", "type", "class", "class_name", "tier", "title", "value"):
+            if key in value and value.get(key) not in (None, ""):
+                flattened.extend(_iter_champion_filter_values(value.get(key)))
+        return flattened
+    if isinstance(value, (list, tuple, set)):
+        for item in value:
+            flattened.extend(_iter_champion_filter_values(item))
+        return flattened
+    text = str(value).strip()
+    if text:
+        flattened.append(text)
+    return flattened
+
+
+def _champion_filter_tokens(champ: Dict[str, Any]) -> List[str]:
+    """Return the normalized champion filter vocabulary: class, tier, tags, abilities, immunities, inflicts."""
+    tokens: List[str] = []
+    for source in (
+        champ.get("class"),
+        champ.get("class_name"),
+        champ.get("tier"),
+        champ.get("tags"),
+        champ.get("abilities"),
+        champ.get("immunities"),
+        champ.get("inflicts"),
+    ):
+        for item in _iter_champion_filter_values(source):
+            token = _normalize_champion_token(item)
+            if token:
+                tokens.append(token)
+    return tokens
 
 
 def _champion_matches_filters(champ: Dict[str, Any], filters: Dict[str, Any]) -> bool:
@@ -312,26 +351,16 @@ def _champion_matches_filters(champ: Dict[str, Any], filters: Dict[str, Any]) ->
             if name_filter not in name:
                 return False
 
-        # class match
+        # class match (supports direct class filters and tag-token class filters, e.g. #skill)
+        champ_class = (champ.get("class") or champ.get("class_name") or "").lower()
         if class_filters:
-            champ_class = (champ.get("class") or champ.get("class_name") or "").lower()
             if champ_class not in class_filters:
                 return False
 
-        # tags/immunities: every requested token must be present somewhere on the champion
+        # filter tokens are intentionally canonicalized across class, tier, tags, abilities,
+        # immunities, and inflicts so the same query works regardless of source payload.
         if tag_filters:
-            champion_tokens: List[str] = []
-            for tag in (champ.get("tags") or []):
-                champion_tokens.append(_normalize_champion_token(tag))
-            for immunity in (champ.get("immunities") or []):
-                if isinstance(immunity, dict):
-                    for key in ("name", "id", "slug"):
-                        val = immunity.get(key)
-                        if val:
-                            champion_tokens.append(_normalize_champion_token(val))
-                else:
-                    champion_tokens.append(_normalize_champion_token(immunity))
-            champion_tokens = [t for t in champion_tokens if t]
+            champion_tokens = _champion_filter_tokens(champ)
             for tf in tag_filters:
                 tf_norm = _normalize_champion_token(tf)
                 if not tf_norm:

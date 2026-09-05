@@ -542,6 +542,24 @@ def filter_roster_entries(entries: List[Dict[str, Any]], filters: Dict[str, Any]
     def _normalize_token(value: Any) -> str:
         return "".join(ch for ch in str(value or "").lower() if ch.isalnum())
 
+    def _field_tokens(raw: Any) -> List[str]:
+        flattened: List[str] = []
+        if raw is None:
+            return flattened
+        if isinstance(raw, dict):
+            for key in ("name", "id", "slug", "type", "class", "class_name", "tier", "title", "value"):
+                if key in raw:
+                    flattened.extend(_field_tokens(raw[key]))
+            return flattened
+        if isinstance(raw, (list, tuple, set)):
+            for item in raw:
+                flattened.extend(_field_tokens(item))
+            return flattened
+        token = _normalize_token(raw)
+        if token:
+            flattened.append(token)
+        return flattened
+
     out: List[Dict[str, Any]] = []
     rarities = set(filters.get("rarities") or [])
     ranks = set(filters.get("ranks") or [])
@@ -571,17 +589,9 @@ def filter_roster_entries(entries: List[Dict[str, Any]], filters: Dict[str, Any]
                 continue
             # tags / immunities: every requested token must be present in roster metadata
             if tags:
-                entry_tokens = []
-                for tag in (e.get("tags") or []):
-                    entry_tokens.append(_normalize_token(tag))
-                for imm in (e.get("immunities") or []):
-                    if isinstance(imm, dict):
-                        for key in ("name", "id", "slug"):
-                            val = imm.get(key)
-                            if val:
-                                entry_tokens.append(_normalize_token(val))
-                    else:
-                        entry_tokens.append(_normalize_token(imm))
+                entry_tokens: List[str] = []
+                for field in ("class", "class_name", "tier", "tags", "abilities", "immunities", "inflicts"):
+                    entry_tokens.extend(_field_tokens(e.get(field)))
                 entry_tokens = [t for t in entry_tokens if t]
                 for tf in tags:
                     tf_norm = _normalize_token(tf)
@@ -597,7 +607,12 @@ def filter_roster_entries(entries: List[Dict[str, Any]], filters: Dict[str, Any]
             # classes: if provided, entry should include class in its champion metadata (caller may attach)
             if classes:
                 champ_class = (e.get("class") or "").lower()
-                if champ_class and champ_class not in classes:
+                if not champ_class:
+                    # class tokens can be supplied as tag-style filters (#skill) and should still match
+                    class_candidates = [str(t).lower() for t in (e.get("tags") or [])]
+                    if not any(cls in class_candidates for cls in classes):
+                        continue
+                elif champ_class not in classes:
                     continue
             # name filter: allow partial match against champion slug/name
             if name_filter:

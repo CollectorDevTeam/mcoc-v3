@@ -1,4 +1,5 @@
 from mcoc.common.helpers.champions import _champion_matches_filters, build_tier_pages
+from mcoc.common.helpers.roster import filter_roster_entries
 from mcoc.common.utilities.formatters import format_tierlist_champion_line
 from mcoc.common.helpers.types import MCOCAPP_TIERS
 from mcoc.common.utilities.query_parser import parse_query
@@ -24,6 +25,28 @@ def test_champion_match_uses_tags_and_immunities_union():
     assert _champion_matches_filters(champ, {"tags": ["bleed-immunity"]}) is True
     assert _champion_matches_filters(champ, {"tags": ["bleed", "bleed-immunity"]}) is True
     assert _champion_matches_filters(champ, {"tags": ["bleed", "incinerate"]}) is False
+
+
+def test_parse_query_and_match_support_class_tag_tokens():
+    _, filters = parse_query("#bleed #skill", cache=None)
+
+    assert "bleed" in filters["tags"]
+    assert "skill" in filters["tags"]
+    assert "classes" in filters
+
+    champ = {
+        "name": "Alpha",
+        "slug": "alpha",
+        "class": "skill",
+        "tags": ["bleed"],
+        "immunities": [],
+    }
+
+    assert _champion_matches_filters(champ, {"tags": ["skill"]}) is True
+    assert _champion_matches_filters(champ, {"tags": ["bleed", "skill"]}) is True
+
+    roster_entries = [{"champion": "alpha", "rarity": 6, "rank": 1, "sig": 0, "ascended": 0, "tags": ["bleed"], "class": "skill"}]
+    assert filter_roster_entries(roster_entries, {"tags": ["skill"]}) == roster_entries
 
 
 def test_tierlist_pages_group_by_defined_tier_order_and_color():

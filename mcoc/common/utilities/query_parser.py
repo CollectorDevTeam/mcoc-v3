@@ -40,14 +40,19 @@ def parse_query(text: Optional[str], cache: Any = None, **opts) -> Tuple[List[Di
     # 1. quick tag extraction
     try:
         parsed_filters = parse_hargs(text) if text else {}
-        filters["tags"] = parsed_filters.get("tags", [])
-        filters["classes"] = parsed_filters.get("classes", [])
-        filters["rarities"] = parsed_filters.get("rarities", [])
-        filters["ranks"] = parsed_filters.get("ranks", [])
-        filters["sigs"] = parsed_filters.get("sigs", [])
-        filters["ascended"] = parsed_filters.get("ascended", [])
+        filters["tags"] = list(parsed_filters.get("tags", []))
+        filters["classes"] = list(parsed_filters.get("classes", []))
+        filters["rarities"] = list(parsed_filters.get("rarities", []))
+        filters["ranks"] = list(parsed_filters.get("ranks", []))
+        filters["sigs"] = list(parsed_filters.get("sigs", []))
+        filters["ascended"] = list(parsed_filters.get("ascended", []))
         if parsed_filters.get("champion"):
             filters["name"] = parsed_filters.get("champion")
+
+        # allow class tokens to behave like tag tokens in the phase-1 filters
+        for cls_name in filters["classes"]:
+            if cls_name not in filters["tags"]:
+                filters["tags"].append(cls_name)
     except Exception:
         pass
 
