@@ -100,6 +100,19 @@ def format_tierlist_champion_line(champ: ChampionLike, *, long_labels: bool = Fa
     if score is None and champion is not None:
         score = getattr(champion, "raw", {}).get("score") if isinstance(getattr(champion, "raw", None), Mapping) else None
 
+    # class resolution: support multiple possible field names
+    cls = ""
+    if champ:
+        cls = (
+            getattr(champ, "class_name", None)
+            or getattr(champ, "class_", None)
+            or getattr(champ, "class", None)
+            or getattr(champ, "cls", None)
+            or ""
+        )
+    cls = (cls or "").lower()
+    class_emoji = MCOCAPP_PROPERTIES.get("class", {}).get(cls, {}).get("emoji") if cls else ""
+
     score_text = score if score is not None else 0
     property_tokens = format_tierlist_property_tokens(raw if raw else champion, long_labels=long_labels)
     if not property_tokens:
@@ -108,10 +121,10 @@ def format_tierlist_champion_line(champ: ChampionLike, *, long_labels: bool = Fa
         token_text = ", ".join(property_tokens)
 
     if long_labels:
-        return f"{name} | {score_text} | {token_text}"
+        return f"{class_emoji}{name} | {score_text} | {token_text}"
 
     tier_text = str(tier or "Unranked")
-    return f"{name} | score {score_text} | {token_text}"
+    return f"{class_emoji}{name} | score {score_text}" #| {token_text}"
 
 
 def format_tierlist_champion_detail(champ: ChampionLike) -> Dict[str, str]:
