@@ -302,6 +302,13 @@ class ChampionsPrefix(commands.Cog):
         if isinstance(filters, dict):
             parsed_filters.update(filters)
 
+        if not raw:
+            try:
+                if await Champions.start_champion_filter_flow(self.parent, ctx, raw_input=raw, parsed_filters=parsed_filters):
+                    return
+            except Exception:
+                log.exception("Failed to start no-args champion filter flow")
+
         try:
             pager = await Champions.make_champion_pager(self.parent, ctx, raw_input=raw, parsed_filters=parsed_filters, author_for_controls=ctx.author)
         except Exception:

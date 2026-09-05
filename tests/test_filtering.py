@@ -1,4 +1,4 @@
-from mcoc.common.helpers.champions import _champion_matches_filters, build_tier_pages
+from mcoc.common.helpers.champions import _champion_matches_filters, build_tier_pages, build_filter_flow_state
 from mcoc.common.helpers.roster import filter_roster_entries
 from mcoc.common.utilities.formatters import format_tierlist_champion_line
 from mcoc.common.helpers.types import MCOCAPP_TIERS
@@ -36,6 +36,27 @@ def test_champion_match_uses_tags_and_immunities_union():
     assert _champion_matches_filters(champ, {"tags": ["bleed-immunity"]}) is True
     assert _champion_matches_filters(champ, {"tags": ["bleed", "bleed-immunity"]}) is True
     assert _champion_matches_filters(champ, {"tags": ["bleed", "incinerate"]}) is False
+
+
+def test_filter_flow_state_builds_deduplicated_filter_and_stage_two_choices():
+    state = build_filter_flow_state({
+        "tags": ["bleed", "bleed", "incinerate"],
+        "classes": ["mystic", "cosmic"],
+        "tiers": ["7", "6"],
+        "rarities": [7, 6],
+    }, catalog=[
+        {"value": "bleed", "label": "Bleed"},
+        {"value": "incinerate", "label": "Incinerate"},
+        {"value": "mystic", "label": "Mystic"},
+        {"value": "cosmic", "label": "Cosmic"},
+    ])
+
+    assert "bleed" in state["filters"]
+    assert "incinerate" in state["filters"]
+    assert "mystic" in state["classes"]
+    assert "cosmic" in state["classes"]
+    assert "7" in state["tiers"] or 7 in state["tiers"]
+    assert "6" in state["tiers"] or 6 in state["tiers"]
 
 
 def test_parse_query_and_match_support_class_tag_tokens():

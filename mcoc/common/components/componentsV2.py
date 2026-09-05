@@ -590,6 +590,13 @@ else:
             self.stop()
 
         async def _filter_callback(self, interaction: Any):
+            handler = getattr(self, "filter_handler", None)
+            if callable(handler):
+                try:
+                    await handler(self, interaction)
+                    return
+                except Exception:
+                    pass
             try:
                 await interaction.response.send_message(
                     self.filter_hint,

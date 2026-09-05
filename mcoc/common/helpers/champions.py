@@ -26,7 +26,7 @@ import asyncio
 import re
 from collections import defaultdict
 
-from mcoc.common.components.componentsV2 import CDTEmbed, CDTPagesMenu
+from mcoc.common.components.componentsV2 import CDTEmbed, CDTPagesMenu, discord
 from mcoc.common.utilities.formatters import format_champion_line, format_tierlist_champion_line
 from mcoc.common.helpers.types import Champion, champion_from_dict, MCOCAPP_TIERS, MCOCAPP_PROPERTIES
 
@@ -412,6 +412,190 @@ def _champion_matches_filters(champ: Dict[str, Any], filters: Dict[str, Any]) ->
         return True
     except Exception:
         return False
+
+
+def build_filter_flow_state(filters: Optional[Dict[str, Any]] = None, *, catalog: Optional[List[Any]] = None) -> Dict[str, List[str]]:
+    """Reduce the current filter dict into deduplicated filter/class/tier buckets for the multi-step UI."""
+    raw = dict(filters or {})
+    filter_values: List[str] = []
+    classes: List[str] = []
+    tiers: List[str] = []
+    seen_filters: set = set()
+    seen_classes: set = set()
+    seen_tiers: set = set()
+
+    def add_filter(value: Any) -> None:
+        token = str(value or "").strip().lower()
+        if not token:
+            return
+        token = token.strip("#")
+        if token not in seen_filters:
+            seen_filters.add(token)
+            filter_values.append(token)
+
+    def add_class(value: Any) -> None:
+        token = str(value or "").strip().lower()
+        if not token:
+            return
+        if token not in seen_classes:
+            seen_classes.add(token)
+            classes.append(token)
+
+    def add_tier(value: Any) -> None:
+        token = str(value or "").strip().lower()
+        if not token:
+            return
+        if token.isdigit():
+            cleaned = str(int(token))
+        else:
+            cleaned = token.replace("*", "").replace("★", "").replace("star", "").replace("stars", "")
+            cleaned = cleaned.strip()
+        if not cleaned:
+            return
+        if cleaned not in seen_tiers:
+            seen_tiers.add(cleaned)
+            tiers.append(cleaned)
+
+    for key in ("tags", "abilities", "immunities", "inflicts"):
+        for value in raw.get(key) or []:
+            add_filter(value)
+    for value in raw.get("classes") or []:
+        add_class(value)
+    for value in raw.get("tiers") or raw.get("rarities") or []:
+        add_tier(value)
+
+    if catalog:
+        for item in catalog:
+            if isinstance(item, dict):
+                if "value" in item:
+                    add_filter(item.get("value"))
+                    if item.get("type") == "class":
+                        add_class(item.get("value"))
+                    if item.get("type") == "tier":
+                        add_tier(item.get("value"))
+                else:
+                    for key in ("label", "name", "value"):
+                        if key in item:
+                            add_filter(item.get(key))
+                            break
+            else:
+                add_filter(item)
+
+    return {"filters": filter_values, "classes": classes, "tiers": tiers}
+
+
+async def start_champion_filter_flow(core: Any, ctx_or_interaction: Any, *, raw_input: Optional[str] = None, parsed_filters: Optional[Dict[str, Any]] = None) -> bool:
+    """Launch the staged champion filter selector from the command path or pager filter button."""
+    if discord is None:
+        return False
+
+    state = build_filter_flow_state(parsed_filters or {})
+    author = getattr(ctx_or_interaction, "author", getattr(ctx_or_interaction, "user", ctx_or_interaction))
+    if author is None:
+        return False
+
+    class _ChampionFilterSelect(discord.ui.Select):
+        def __init__(self, *, placeholder: str, options: List[discord.SelectOption], max_values: int = 1, label_key: str = "filter"):
+            super().__init__(placeholder=placeholder, min_values=0, max_values=max_values, options=options)
+            self.label_key = label_key
+
+        async def callback(self, interaction: Any):
+            view = self.view
+            if not isinstance(view, ChampionFilterSelectionView):
+                return
+            if self.label_key == "filter":
+                view.selected_filters = set(self.values)
+            elif self.label_key == "class":
+                view.selected_classes = set(self.values)
+            elif self.label_key == "tier":
+                view.selected_tiers = set(self.values)
+            try:
+                await interaction.response.defer()
+            except Exception:
+                pass
+
+    class ChampionFilterSelectionView(discord.ui.View):
+        def __init__(self, *, core: Any, author: Any, state: Dict[str, List[str]], raw_input: Optional[str] = None, parsed_filters: Optional[Dict[str, Any]] = None):
+            super().__init__(timeout=180)
+            self.core = core
+            self.author = author
+            self.state = dict(state)
+            self.raw_input = raw_input or ""
+            self.parsed_filters = dict(parsed_filters or {})
+            self.selected_filters: set = set()
+            self.selected_classes: set = set()
+            self.selected_tiers: set = set()
+
+            filter_options = [
+                discord.SelectOption(label=(item.replace("-", " ").title()), value=item)
+                for item in self.state.get("filters", [])
+            ]
+            if filter_options:
+                self.add_item(_ChampionFilterSelect(placeholder="Select filters", options=filter_options, max_values=min(5, len(filter_options)), label_key="filter"))
+            else:
+                self.add_item(discord.ui.Button(label="No filter hints available", style=discord.ButtonStyle.secondary, disabled=True))
+
+            class_options = [
+                discord.SelectOption(label=cls.title(), value=cls)
+                for cls in ("skill", "mutant", "tech", "cosmic", "mystic", "science")
+                if cls in (self.state.get("classes") or []) or True
+            ]
+            self.add_item(_ChampionFilterSelect(placeholder="Choose classes", options=class_options, max_values=min(6, len(class_options)), label_key="class"))
+
+            tier_values = ["7", "6", "5", "4", "3", "2", "1"]
+            tier_options = [discord.SelectOption(label=f"{tier}★", value=tier) for tier in tier_values if tier in (self.state.get("tiers") or []) or True]
+            self.add_item(_ChampionFilterSelect(placeholder="Choose tiers", options=tier_options, max_values=min(7, len(tier_options)), label_key="tier"))
+
+            apply_button = discord.ui.Button(label="Apply Filters", style=discord.ButtonStyle.success)
+            apply_button.callback = self._apply_callback
+            self.add_item(apply_button)
+
+        async def _apply_callback(self, interaction: Any):
+            final_filters = dict(self.parsed_filters)
+            selected_filters = sorted(self.selected_filters or set())
+            selected_classes = sorted(self.selected_classes or set())
+            selected_tiers = sorted(self.selected_tiers or set(), key=lambda value: int(value) if str(value).isdigit() else 0, reverse=True)
+
+            if selected_filters:
+                final_filters["tags"] = list(dict.fromkeys([str(v).lower() for v in (final_filters.get("tags") or [])] + selected_filters))
+            if selected_classes:
+                final_filters["classes"] = list(dict.fromkeys([str(v).lower() for v in (final_filters.get("classes") or [])] + selected_classes))
+            if selected_tiers:
+                final_filters["tiers"] = list(dict.fromkeys([str(v).lower() for v in (final_filters.get("tiers") or [])] + selected_tiers))
+                final_filters["rarities"] = [int(v) for v in final_filters["tiers"] if str(v).isdigit()]
+
+            pages = await get_champion_pages(self.core, interaction.user, filters=final_filters)
+            if not pages:
+                try:
+                    await interaction.response.edit_message(embed=CDTEmbed.embed(interaction.user, title="Champions", description="No champions match the selected filters."), view=None)
+                except Exception:
+                    await interaction.response.send_message("No champions match the selected filters.", ephemeral=True)
+                return
+
+            pager = CDTPagesMenu(pages, author=interaction.user)
+            pager.filter_handler = lambda menu, btn_interaction: start_champion_filter_flow(self.core, btn_interaction, raw_input=self.raw_input, parsed_filters=final_filters)
+            try:
+                await interaction.response.edit_message(embed=pages[0], view=pager)
+                pager.message = await interaction.original_response()
+            except Exception:
+                try:
+                    await interaction.response.send_message(embed=pages[0], view=pager)
+                    pager.message = await interaction.original_response()
+                except Exception:
+                    await interaction.followup.send(embed=pages[0], view=pager)
+
+    embed = CDTEmbed.embed(author, title="Champion Filter Picker", description="Step 1: select filter tokens.\nStep 2: choose class and tier buckets.\nStep 3: apply the narrowed filter set.")
+    view = ChampionFilterSelectionView(core=core, author=author, state=state, raw_input=raw_input, parsed_filters=parsed_filters)
+    try:
+        if hasattr(ctx_or_interaction, "send"):
+            await ctx_or_interaction.send(embed=embed, view=view)
+        elif hasattr(getattr(ctx_or_interaction, "response", None), "send_message"):
+            await ctx_or_interaction.response.send_message(embed=embed, view=view)
+        else:
+            return False
+    except Exception:
+        return False
+    return True
 
 
 def _normalized_tier_key(value: Any) -> str:
@@ -844,6 +1028,20 @@ async def make_champion_pager(core: Any, ctx_or_author: Any, *, raw_input: Optio
                             pass
                 except Exception:
                     return None
+
+        async def _handle_filter(menu: CDTPagesMenu, interaction: Any) -> None:
+            try:
+                await start_champion_filter_flow(core, interaction, raw_input=raw_input, parsed_filters=parsed)
+            except Exception:
+                try:
+                    await interaction.response.send_message("Filter selection is unavailable right now.", ephemeral=True)
+                except Exception:
+                    pass
+
+        try:
+            pager.filter_handler = _handle_filter
+        except Exception:
+            pass
 
         # Merge brand buttons if available
         try:
