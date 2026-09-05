@@ -342,72 +342,56 @@ def _bucket_matches(bucket: List[str], accepted: List[str]) -> bool:
 def _champion_matches_filters(champ: Dict[str, Any], filters: Dict[str, Any]) -> bool:
     """
     Return True if champion object matches the provided filters.
-    Supported filters:
-      - name: substring match against name or slug
-      - tags: list of tag substrings (all must match)
-      - classes: list of class names (any match)
+
+    A filter token may match any of the champion's canonical vocabularies: class,
+    tier, tag, ability, immunity, or inflicted effect. This keeps the shared
+    filtering layer consistent across champion search, roster filtering, and the
+    no-args picker flow.
     """
     try:
         if not filters:
             return True
 
         name_filter = (filters.get("name") or "").strip().lower() if filters.get("name") else None
-        tag_filters = [str(t).lower() for t in (filters.get("tags") or [])]
-        class_filters = [c.lower() for c in (filters.get("classes") or [])]
-        tier_filters = [str(t).lower() for t in (filters.get("tiers") or [])]
-        ability_filters = [str(t).lower() for t in (filters.get("abilities") or [])]
-        immunity_filters = [str(t).lower() for t in (filters.get("immunities") or [])]
-        inflict_filters = [str(t).lower() for t in (filters.get("inflicts") or [])]
-
-        # name/slug match
         if name_filter:
             name = (str(champ.get("name") or "") + " " + str(champ.get("slug") or "")).lower()
             if name_filter not in name:
                 return False
 
-        champ_class = (champ.get("class") or champ.get("class_name") or "").lower()
-        champ_tier = str(champ.get("tier") or "").lower()
-        champion_buckets = {
-            "class": [champ_class],
-            "tier": [champ_tier],
-            "tags": [str(v).lower() for v in (champ.get("tags") or [])],
-            "abilities": [str(v.get("name") or v.get("id") or v.get("slug") or v).lower() for v in (champ.get("abilities") or []) if isinstance(v, dict)] + [str(v).lower() for v in (champ.get("abilities") or []) if not isinstance(v, dict)],
-            "immunities": [str(v.get("name") or v.get("id") or v.get("slug") or v).lower() for v in (champ.get("immunities") or []) if isinstance(v, dict)] + [str(v).lower() for v in (champ.get("immunities") or []) if not isinstance(v, dict)],
-            "inflicts": [str(v).lower() for v in (champ.get("inflicts") or [])],
-        }
+        requested_tokens: List[str] = []
+        for key in ("tags", "classes", "abilities", "immunities", "inflicts", "tiers", "rarities"):
+            for value in (filters.get(key) or []):
+                token = str(value).lower().strip()
+                if token:
+                    requested_tokens.append(token)
 
-        if class_filters and not _bucket_matches(champion_buckets["class"], class_filters):
-            return False
+        if not requested_tokens:
+            return True
 
-        if tier_filters and not _bucket_matches(champion_buckets["tier"], tier_filters):
-            return False
-
-        filter_sets = [
-            ("tags", tag_filters),
-            ("abilities", ability_filters),
-            ("immunities", immunity_filters),
-            ("inflicts", inflict_filters),
-        ]
-        for key, requested in filter_sets:
-            if not requested:
+        champion_tokens = _champion_filter_tokens(champ)
+        champion_tokens_norm = {_normalize_champion_token(token) for token in champion_tokens if _normalize_champion_token(token)}
+        for requested in requested_tokens:
+            wanted = _normalize_champion_token(requested)
+            if not wanted:
                 continue
-            if not _bucket_matches(champion_buckets.get(key, []), requested):
-                return False
-
-        # generic filter tokens continue to act as a catch-all and preserve the legacy #tag style
-        if tag_filters:
-            champion_tokens = _champion_filter_tokens(champ)
-            for tf in tag_filters:
-                tf_norm = _normalize_champion_token(tf)
-                if not tf_norm:
+            matches = False
+            for candidate in champion_tokens_norm:
+                if wanted == candidate:
+                    matches = True
+                    break
+                if len(wanted) > 1 and len(candidate) > 1 and (candidate.startswith(wanted) or wanted.startswith(candidate)):
+                    matches = True
+                    break
+            if not matches:
+                # allow direct class/tier value checks to remain compatible with legacy filters
+                bucket_values = []
+                for key in ("class", "tier"):
+                    value = champ.get(key) or champ.get("class_name") if key == "class" else champ.get(key)
+                    if value is not None:
+                        bucket_values.append(str(value).lower())
+                if wanted and bucket_values and any(wanted == _normalize_champion_token(v) for v in bucket_values):
                     continue
-                ok = False
-                for ct in champion_tokens:
-                    if tf_norm == ct or tf_norm in ct or ct in tf_norm:
-                        ok = True
-                        break
-                if not ok:
-                    return False
+                return False
 
         return True
     except Exception:

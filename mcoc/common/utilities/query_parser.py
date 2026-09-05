@@ -7,7 +7,11 @@
 # Changelog:
 #   1.0 2026-09-01  Initial stabilized API header
 
-from typing import Any, Dict, List, Tuple, Optional
+import re
+from typing import Any, Dict, List, Optional, Tuple
+
+from .hargs import CLASSES, parse_hargs
+from ..helpers.roster import parse_roster_entries_from_input
 
 
 def _cache_has_champion(cache: Any, candidate: str) -> bool:
@@ -66,11 +70,11 @@ def _is_direct_filter_token(token: str, *, cache: Any = None) -> bool:
     lowered = clean.lower()
     if lowered.startswith(("#", "!", "@")):
         return False
-    if any(ch in clean for ch in "*★rRsSaA"):
-        return False
     if lowered in {"all", "and", "or"}:
         return False
-    if lowered in {"skill", "mutant", "tech", "cosmic", "mystic", "science"}:
+    if re.fullmatch(r"(?i)(?:[1-7](?:\*|★)?(?:[-\s]*stars?)?|[rR][1-5](?:-[1-5])?|[sS]\d{1,4}|[aA]\d)", clean):
+        return False
+    if lowered in set(CLASSES):
         return True
     if _cache_has_champion(cache, clean):
         return False
@@ -78,38 +82,49 @@ def _is_direct_filter_token(token: str, *, cache: Any = None) -> bool:
         return False
     return bool(re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_\-]*", clean))
 
+
+def _dedupe_preserve_order(values: List[Any]) -> List[Any]:
+    seen = set()
+    out: List[Any] = []
+    for value in values:
+        if value is None:
+            continue
+        key = str(value).lower() if isinstance(value, str) else value
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(value)
+    return out
+
+
 def parse_query(
     text: Optional[str],
     cache: Any = None,
     *,
     allow_tags: bool = True,
     allow_hargs: bool = True,
-    allow_names: bool = True
+    allow_names: bool = True,
 ) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
-    """
-    Returns (entries, filters)
-
-    entries: list of canonical entry dicts:
-      { "champion": slug, "rarity": int, "rank": int, "sig": int, "ascended": int, "raw": str }
-
-    filters: dict for search filters:
-      { "tags": [str], "classes": [str], "name": Optional[str], "raw_text": str }
-    """
-
-from .hargs import parse_harg_list
-from ..helpers.roster import parse_roster_entries_from_input
-from .hargs import parse_hargs
-from typing import Any, Dict, List, Tuple, Optional
-import re
-
-def parse_query(text: Optional[str], cache: Any = None, **opts) -> Tuple[List[Dict[str,Any]], Dict[str,Any]]:
+    """Return parsed entries and canonical filters for champion search input."""
     text = (text or "").strip()
-    entries: List[Dict[str,Any]] = []
-    filters: Dict[str,Any] = {"tags": [], "classes": [], "name": None, "raw_text": text}
+    entries: List[Dict[str, Any]] = []
+    filters: Dict[str, Any] = {
+        "tags": [],
+        "classes": [],
+        "name": None,
+        "raw_text": text,
+        "rarities": [],
+        "tiers": [],
+        "ranks": [],
+        "sigs": [],
+        "ascended": [],
+    }
 
-    # 1. quick tag extraction
+    if not text:
+        return entries, filters
+
     try:
-        parsed_filters = parse_hargs(text) if text else {}
+        parsed_filters = parse_hargs(text)
         filters["tags"] = list(parsed_filters.get("tags", []))
         filters["classes"] = list(parsed_filters.get("classes", []))
         filters["rarities"] = list(parsed_filters.get("rarities", []))
@@ -119,48 +134,42 @@ def parse_query(text: Optional[str], cache: Any = None, **opts) -> Tuple[List[Di
         filters["ascended"] = list(parsed_filters.get("ascended", []))
         if parsed_filters.get("champion"):
             filters["name"] = parsed_filters.get("champion")
-
-        # Support direct string filter tokens like "bleed", "incinerate", or "mystic"
-        # without requiring the # predicate. If a bare token does not resolve to a champion
-        # name in the current cache, it is treated as a general tag/class filter.
-        for token in _tokenize_direct_filters(text):
-            lower = token.lower()
-            if lower.startswith(("#", "!", "@")):
-                continue
-            if any(ch in token for ch in "*★rRsSaA"):
-                continue
-            if lower in {"all", "and", "or"}:
-                continue
-            if lower in {"skill", "mutant", "tech", "cosmic", "mystic", "science"}:
-                if lower not in filters["classes"]:
-                    filters["classes"].append(lower)
-                if filters.get("name") and filters["name"].lower() == lower:
-                    filters["name"] = None
-                if lower not in filters["tags"]:
-                    filters["tags"].append(lower)
-                continue
-            if _is_direct_filter_token(token, cache=cache):
-                if token.lower() not in filters["tags"]:
-                    filters["tags"].append(token.lower())
-                if filters.get("name") and filters["name"].lower() == token.lower():
-                    filters["name"] = None
-
-        # allow class tokens to behave like tag tokens in the phase-1 filters
-        for cls_name in filters["classes"]:
-            if cls_name not in filters["tags"]:
-                filters["tags"].append(cls_name)
     except Exception:
         pass
 
-    # 2. try explicit hargs entries (prefer these if present)
+    for token in _tokenize_direct_filters(text):
+        lower = token.lower()
+        if lower.startswith(("#", "!", "@")):
+            continue
+        if re.fullmatch(r"(?i)(?:[1-7](?:\*|★)?(?:[-\s]*stars?)?|[rR][1-5](?:-[1-5])?|[sS]\d{1,4}|[aA]\d)", token):
+            continue
+        if lower in {"all", "and", "or"}:
+            continue
+        if lower in set(CLASSES):
+            if lower not in filters["classes"]:
+                filters["classes"].append(lower)
+            if lower not in filters["tags"]:
+                filters["tags"].append(lower)
+            if filters.get("name") and filters["name"].lower() == lower:
+                filters["name"] = None
+            continue
+        if _is_direct_filter_token(token, cache=cache):
+            if lower not in filters["tags"]:
+                filters["tags"].append(lower)
+            if filters.get("name") and filters["name"].lower() == lower:
+                filters["name"] = None
+
+    for key in ("tags", "classes", "rarities", "tiers", "ranks", "sigs", "ascended"):
+        if key in filters:
+            filters[key] = _dedupe_preserve_order(filters[key])
+
+    if filters.get("name") and filters["name"].lower() in set(CLASSES):
+        filters["name"] = None
+
     try:
         if text and (any(ch.isdigit() for ch in text) or "r" in text.lower() or "s" in text.lower() or "a" in text.lower()):
-            try:
-                entries = parse_roster_entries_from_input(text, cache)
-            except Exception:
-                entries = []
+            entries = parse_roster_entries_from_input(text, cache)
     except Exception:
         entries = []
 
-    # 3. if no entries and a plain name exists, leave filters["name"] for caller to search
     return entries, filters

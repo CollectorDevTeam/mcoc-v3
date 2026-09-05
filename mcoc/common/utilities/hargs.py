@@ -340,7 +340,10 @@ def parse_hargs(text: str) -> Dict[str, Any]:
 
         m = TAG_RE.fullmatch(p) or TAG_RE.search(p)
         if m:
-            result["tags"].append(m.group("tag").lower())
+            tag_value = m.group("tag").lower()
+            result["tags"].append(tag_value)
+            if tag_value in CLASSES:
+                result["classes"].append(tag_value)
             continue
 
         # Class filter (exact token match)
