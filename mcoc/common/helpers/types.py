@@ -155,6 +155,7 @@ class Champion:
     abilities: Optional[List[Dict[str, Any]]] = None
     immunities: Optional[List[Dict[str, Any]]] = None
     release_year: Optional[int] = None
+    prestige: Optional[int] = None
     raw: Optional[Mapping[str, Any]] = None
 
     @property
@@ -212,6 +213,14 @@ def champion_from_dict(d: Optional[Mapping[str, Any]]) -> Optional[Champion]:
         abilities = d.get("abilities") or None
         immunities = d.get("immunities") or None
         release_year = d.get("release_year") or None
+        prestige_raw = d.get("prestige")
+        prestige = None
+        if isinstance(prestige_raw, (int, float)):
+            prestige = int(prestige_raw)
+        elif isinstance(prestige_raw, str):
+            digits = "".join(ch for ch in prestige_raw if ch.isdigit())
+            if digits:
+                prestige = int(digits)
 
         return Champion(
             slug=str(slug),
@@ -226,6 +235,7 @@ def champion_from_dict(d: Optional[Mapping[str, Any]]) -> Optional[Champion]:
             abilities=abilities,
             immunities=immunities,
             release_year=release_year,
+            prestige=prestige,
             raw=d,
         )
     except Exception:

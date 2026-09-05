@@ -1,7 +1,7 @@
 from mcoc.common.helpers.champions import _champion_matches_filters, build_tier_pages, build_filter_flow_state
 from mcoc.common.helpers.roster import filter_roster_entries
 from mcoc.common.utilities.formatters import format_tierlist_champion_line
-from mcoc.common.helpers.types import MCOCAPP_TIERS
+from mcoc.common.helpers.types import MCOCAPP_TIERS, champion_from_dict
 from mcoc.common.utilities.query_parser import parse_query
 
 
@@ -28,6 +28,32 @@ def test_parse_query_does_not_treat_bare_tag_as_champion_name():
 
     assert filters["name"] is None or filters["name"] == "bleed" and "bleed" in filters["tags"]
     assert "bleed" in filters["tags"]
+
+
+def test_parse_query_treats_known_ability_name_as_filter_even_if_champion_name_exists():
+    class FakeCache:
+        def get_champion(self, value):
+            if value.lower() in {"shocker", "shock"}:
+                return {"id": "shocker", "name": "Shocker", "class": "science"}
+            return None
+
+        def get_all_abilities(self):
+            return [{"id": "shock", "name": "Shock"}, {"id": "bleed", "name": "Bleed"}]
+
+        def get_all_tags(self):
+            return ["shock", "bleed"]
+
+    _, filters = parse_query("shock", cache=FakeCache())
+
+    assert "shock" in filters["tags"]
+    assert filters["name"] is None
+
+
+def test_champion_from_dict_preserves_prestige_value():
+    champ = champion_from_dict({"id": "alpha", "name": "Alpha", "class": "skill", "prestige": 12345})
+
+    assert champ is not None
+    assert champ.prestige == 12345
 
 
 def test_champion_match_uses_tags_and_immunities_union():

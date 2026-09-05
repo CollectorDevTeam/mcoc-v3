@@ -76,6 +76,23 @@ def _is_direct_filter_token(token: str, *, cache: Any = None) -> bool:
         return False
     if lowered in set(CLASSES):
         return True
+
+    # Known ability/tag names should remain filter tokens even if a champion with the same
+    # name exists (e.g. "shock" vs "Shocker"). The canonical matcher accepts these values.
+    try:
+        if cache is not None:
+            if hasattr(cache, "get_all_abilities"):
+                for ability in cache.get_all_abilities() or []:
+                    name = (ability.get("name") if isinstance(ability, dict) else str(ability))
+                    if name and name.lower() == lowered:
+                        return True
+            if hasattr(cache, "get_all_tags"):
+                for tag in cache.get_all_tags() or []:
+                    if isinstance(tag, str) and tag.lower() == lowered:
+                        return True
+    except Exception:
+        pass
+
     if _cache_has_champion(cache, clean):
         return False
     if any(ch.isdigit() for ch in clean):
