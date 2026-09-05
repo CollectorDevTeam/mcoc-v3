@@ -435,13 +435,18 @@ else:
             return self.value
 
     class CDTPagesMenu(View):
-        def __init__(self, pages: list, *, author: Optional[Any] = None, timeout: float = 120.0, show_brand: bool = True):
+        def __init__(self, pages: list, *, author: Optional[Any] = None, timeout: float = 120.0, show_brand: bool = True, show_filter: bool = True, filter_hint: Optional[str] = None):
             super().__init__(timeout=timeout)
             self.pages = pages
             self.index = 0
             self.author = author
             self.message: Optional[Any] = None
             self.show_brand = show_brand
+            self.show_filter = show_filter
+            self.filter_hint = filter_hint or (
+                "Use filter tokens like #bleed, mystic, cosmic, 6*, 7-star, or a champion name. "
+                "Class + tier + tag filters combine as AND across buckets."
+            )
 
             first_button = discord.ui.Button(emoji="⏮️", style=discord.ButtonStyle.secondary)
             first_button.callback = self._first_callback
@@ -462,6 +467,11 @@ else:
             close_button = discord.ui.Button(label="Close", style=discord.ButtonStyle.danger)
             close_button.callback = self._close_callback
             self.add_item(close_button)
+
+            if self.show_filter:
+                filter_button = discord.ui.Button(label="Filter", style=discord.ButtonStyle.primary)
+                filter_button.callback = self._filter_callback
+                self.add_item(filter_button)
 
         async def _render_page(self):
             page = self.pages[self.index]
@@ -578,6 +588,18 @@ else:
             except Exception:
                 pass
             self.stop()
+
+        async def _filter_callback(self, interaction: Any):
+            try:
+                await interaction.response.send_message(
+                    self.filter_hint,
+                    ephemeral=True,
+                )
+            except Exception:
+                try:
+                    await interaction.followup.send(self.filter_hint, ephemeral=True)
+                except Exception:
+                    pass
 
         async def on_timeout(self):
             try:

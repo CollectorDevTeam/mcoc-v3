@@ -329,6 +329,16 @@ def _champion_filter_tokens(champ: Dict[str, Any]) -> List[str]:
     return tokens
 
 
+def _bucket_matches(bucket: List[str], accepted: List[str]) -> bool:
+    """Each bucket uses multi-select OR semantics, while the whole filter set uses AND semantics across buckets."""
+    if not accepted:
+        return True
+    accepted_tokens = {_normalize_champion_token(value) for value in accepted if _normalize_champion_token(value)}
+    if not accepted_tokens:
+        return True
+    return any(token in {_normalize_champion_token(v) for v in bucket if _normalize_champion_token(v)} for token in accepted_tokens)
+
+
 def _champion_matches_filters(champ: Dict[str, Any], filters: Dict[str, Any]) -> bool:
     """
     Return True if champion object matches the provided filters.
@@ -344,6 +354,10 @@ def _champion_matches_filters(champ: Dict[str, Any], filters: Dict[str, Any]) ->
         name_filter = (filters.get("name") or "").strip().lower() if filters.get("name") else None
         tag_filters = [str(t).lower() for t in (filters.get("tags") or [])]
         class_filters = [c.lower() for c in (filters.get("classes") or [])]
+        tier_filters = [str(t).lower() for t in (filters.get("tiers") or [])]
+        ability_filters = [str(t).lower() for t in (filters.get("abilities") or [])]
+        immunity_filters = [str(t).lower() for t in (filters.get("immunities") or [])]
+        inflict_filters = [str(t).lower() for t in (filters.get("inflicts") or [])]
 
         # name/slug match
         if name_filter:
@@ -351,14 +365,36 @@ def _champion_matches_filters(champ: Dict[str, Any], filters: Dict[str, Any]) ->
             if name_filter not in name:
                 return False
 
-        # class match (supports direct class filters and tag-token class filters, e.g. #skill)
         champ_class = (champ.get("class") or champ.get("class_name") or "").lower()
-        if class_filters:
-            if champ_class not in class_filters:
+        champ_tier = str(champ.get("tier") or "").lower()
+        champion_buckets = {
+            "class": [champ_class],
+            "tier": [champ_tier],
+            "tags": [str(v).lower() for v in (champ.get("tags") or [])],
+            "abilities": [str(v.get("name") or v.get("id") or v.get("slug") or v).lower() for v in (champ.get("abilities") or []) if isinstance(v, dict)] + [str(v).lower() for v in (champ.get("abilities") or []) if not isinstance(v, dict)],
+            "immunities": [str(v.get("name") or v.get("id") or v.get("slug") or v).lower() for v in (champ.get("immunities") or []) if isinstance(v, dict)] + [str(v).lower() for v in (champ.get("immunities") or []) if not isinstance(v, dict)],
+            "inflicts": [str(v).lower() for v in (champ.get("inflicts") or [])],
+        }
+
+        if class_filters and not _bucket_matches(champion_buckets["class"], class_filters):
+            return False
+
+        if tier_filters and not _bucket_matches(champion_buckets["tier"], tier_filters):
+            return False
+
+        filter_sets = [
+            ("tags", tag_filters),
+            ("abilities", ability_filters),
+            ("immunities", immunity_filters),
+            ("inflicts", inflict_filters),
+        ]
+        for key, requested in filter_sets:
+            if not requested:
+                continue
+            if not _bucket_matches(champion_buckets.get(key, []), requested):
                 return False
 
-        # filter tokens are intentionally canonicalized across class, tier, tags, abilities,
-        # immunities, and inflicts so the same query works regardless of source payload.
+        # generic filter tokens continue to act as a catch-all and preserve the legacy #tag style
         if tag_filters:
             champion_tokens = _champion_filter_tokens(champ)
             for tf in tag_filters:

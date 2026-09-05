@@ -9,6 +9,75 @@
 
 from typing import Any, Dict, List, Tuple, Optional
 
+
+def _cache_has_champion(cache: Any, candidate: str) -> bool:
+    token = (candidate or "").strip()
+    if not token:
+        return False
+    try:
+        if cache is not None and hasattr(cache, "get_champion"):
+            try:
+                if cache.get_champion(token):
+                    return True
+            except Exception:
+                pass
+    except Exception:
+        pass
+
+    needle = "".join(ch for ch in token.lower() if ch.isalnum())
+    if not needle:
+        return False
+    try:
+        champions = cache.get_all_champions() if cache is not None and hasattr(cache, "get_all_champions") else []
+        for champ in champions or []:
+            if not isinstance(champ, dict):
+                continue
+            for choice in (
+                champ.get("id"),
+                champ.get("slug"),
+                champ.get("name"),
+                champ.get("title"),
+                champ.get("shortname"),
+            ):
+                if choice is None:
+                    continue
+                if "".join(ch for ch in str(choice).lower() if ch.isalnum()) == needle:
+                    return True
+    except Exception:
+        pass
+    return False
+
+
+def _tokenize_direct_filters(text: str) -> List[str]:
+    if not text:
+        return []
+    raw_tokens: List[str] = []
+    for token in text.replace(";", " ").replace(",", " ").split():
+        clean = token.strip().strip('"\'').strip()
+        if clean:
+            raw_tokens.append(clean)
+    return raw_tokens
+
+
+def _is_direct_filter_token(token: str, *, cache: Any = None) -> bool:
+    clean = (token or "").strip().strip('"\'')
+    if not clean:
+        return False
+    lowered = clean.lower()
+    if lowered.startswith(("#", "!", "@")):
+        return False
+    if any(ch in clean for ch in "*★rRsSaA"):
+        return False
+    if lowered in {"all", "and", "or"}:
+        return False
+    if lowered in {"skill", "mutant", "tech", "cosmic", "mystic", "science"}:
+        return True
+    if _cache_has_champion(cache, clean):
+        return False
+    if any(ch.isdigit() for ch in clean):
+        return False
+    return bool(re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_\-]*", clean))
+
 def parse_query(
     text: Optional[str],
     cache: Any = None,
@@ -31,6 +100,7 @@ from .hargs import parse_harg_list
 from ..helpers.roster import parse_roster_entries_from_input
 from .hargs import parse_hargs
 from typing import Any, Dict, List, Tuple, Optional
+import re
 
 def parse_query(text: Optional[str], cache: Any = None, **opts) -> Tuple[List[Dict[str,Any]], Dict[str,Any]]:
     text = (text or "").strip()
@@ -43,11 +113,31 @@ def parse_query(text: Optional[str], cache: Any = None, **opts) -> Tuple[List[Di
         filters["tags"] = list(parsed_filters.get("tags", []))
         filters["classes"] = list(parsed_filters.get("classes", []))
         filters["rarities"] = list(parsed_filters.get("rarities", []))
+        filters["tiers"] = list(parsed_filters.get("rarities", []))
         filters["ranks"] = list(parsed_filters.get("ranks", []))
         filters["sigs"] = list(parsed_filters.get("sigs", []))
         filters["ascended"] = list(parsed_filters.get("ascended", []))
         if parsed_filters.get("champion"):
             filters["name"] = parsed_filters.get("champion")
+
+        # Support direct string filter tokens like "bleed", "incinerate", or "mystic"
+        # without requiring the # predicate. If a bare token does not resolve to a champion
+        # name in the current cache, it is treated as a general tag/class filter.
+        for token in _tokenize_direct_filters(text):
+            lower = token.lower()
+            if lower.startswith(("#", "!", "@")):
+                continue
+            if any(ch in token for ch in "*★rRsSaA"):
+                continue
+            if lower in {"all", "and", "or"}:
+                continue
+            if lower in {"skill", "mutant", "tech", "cosmic", "mystic", "science"}:
+                if lower not in filters["classes"]:
+                    filters["classes"].append(lower)
+                continue
+            if _is_direct_filter_token(token, cache=cache):
+                if token.lower() not in filters["tags"]:
+                    filters["tags"].append(token.lower())
 
         # allow class tokens to behave like tag tokens in the phase-1 filters
         for cls_name in filters["classes"]:

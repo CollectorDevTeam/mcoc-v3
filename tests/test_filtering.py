@@ -12,6 +12,17 @@ def test_parse_query_tracks_immunity_tokens_and_rarity():
     assert filters["rarities"] == [6]
 
 
+def test_parse_query_supports_direct_string_filters_without_hash_prefix():
+    _, filters = parse_query("bleed incinerate mystic #cosmic 7-star 6*", cache=None)
+
+    assert "bleed" in filters["tags"]
+    assert "incinerate" in filters["tags"]
+    assert "mystic" in filters["classes"] or "mystic" in filters["tags"]
+    assert "cosmic" in filters["classes"]
+    assert 7 in filters["rarities"]
+    assert 6 in filters["rarities"]
+
+
 def test_champion_match_uses_tags_and_immunities_union():
     champ = {
         "name": "Archangel",
@@ -47,6 +58,24 @@ def test_parse_query_and_match_support_class_tag_tokens():
 
     roster_entries = [{"champion": "alpha", "rarity": 6, "rank": 1, "sig": 0, "ascended": 0, "tags": ["bleed"], "class": "skill"}]
     assert filter_roster_entries(roster_entries, {"tags": ["skill"]}) == roster_entries
+
+
+def test_filters_are_normalized_by_category_for_multi_select_filters():
+    champ = {
+        "name": "Alpha",
+        "slug": "alpha",
+        "class": "skill",
+        "tier": "S+",
+        "tags": ["bleed"],
+        "abilities": [{"name": "incinerate"}],
+        "immunities": [{"name": "bleed-immunity"}],
+        "inflicts": ["incinerate"],
+    }
+
+    assert _champion_matches_filters(champ, {"classes": ["skill"], "tiers": ["S+"]}) is True
+    assert _champion_matches_filters(champ, {"tags": ["bleed", "incinerate"]}) is True
+    assert _champion_matches_filters(champ, {"abilities": ["incinerate"], "immunities": ["bleed-immunity"]}) is True
+    assert _champion_matches_filters(champ, {"classes": ["skill"], "tags": ["science"]}) is False
 
 
 def test_tierlist_pages_group_by_defined_tier_order_and_color():
