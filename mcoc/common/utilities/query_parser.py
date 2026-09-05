@@ -134,10 +134,16 @@ def parse_query(text: Optional[str], cache: Any = None, **opts) -> Tuple[List[Di
             if lower in {"skill", "mutant", "tech", "cosmic", "mystic", "science"}:
                 if lower not in filters["classes"]:
                     filters["classes"].append(lower)
+                if filters.get("name") and filters["name"].lower() == lower:
+                    filters["name"] = None
+                if lower not in filters["tags"]:
+                    filters["tags"].append(lower)
                 continue
             if _is_direct_filter_token(token, cache=cache):
                 if token.lower() not in filters["tags"]:
                     filters["tags"].append(token.lower())
+                if filters.get("name") and filters["name"].lower() == token.lower():
+                    filters["name"] = None
 
         # allow class tokens to behave like tag tokens in the phase-1 filters
         for cls_name in filters["classes"]:

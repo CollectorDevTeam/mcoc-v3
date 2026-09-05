@@ -23,6 +23,13 @@ def test_parse_query_supports_direct_string_filters_without_hash_prefix():
     assert 6 in filters["rarities"]
 
 
+def test_parse_query_does_not_treat_bare_tag_as_champion_name():
+    _, filters = parse_query("bleed", cache=None)
+
+    assert filters["name"] is None or filters["name"] == "bleed" and "bleed" in filters["tags"]
+    assert "bleed" in filters["tags"]
+
+
 def test_champion_match_uses_tags_and_immunities_union():
     champ = {
         "name": "Archangel",
