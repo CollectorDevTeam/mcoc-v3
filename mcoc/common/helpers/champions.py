@@ -414,6 +414,59 @@ def _champion_matches_filters(champ: Dict[str, Any], filters: Dict[str, Any]) ->
         return False
 
 
+def _collect_champion_filter_catalog(core: Any) -> List[Any]:
+    """Build a canonical live catalog of filter tokens from the cache-backed champion deck."""
+    catalog: List[Any] = []
+    if core is None:
+        return catalog
+
+    try:
+        cache = getattr(core, "cache", None)
+        if cache is None:
+            return catalog
+        getter = getattr(cache, "get_all_champions", None) or getattr(cache, "all_champions", None)
+        champions = getter() if callable(getter) else []
+    except Exception:
+        return catalog
+
+    if not isinstance(champions, list):
+        return catalog
+
+    seen: set = set()
+    for champ in champions:
+        if not isinstance(champ, dict):
+            continue
+
+        for bucket_key, bucket in (
+            ("tags", champ.get("tags") or []),
+            ("abilities", champ.get("abilities") or []),
+            ("immunities", champ.get("immunities") or []),
+            ("inflicts", champ.get("inflicts") or []),
+        ):
+            for item in _iter_champion_filter_values(bucket):
+                token = str(item or "").strip().lower()
+                if not token:
+                    continue
+                token = token.strip("#")
+                if token not in seen:
+                    seen.add(token)
+                    catalog.append({"value": token, "type": bucket_key})
+
+        class_name = str(champ.get("class") or champ.get("class_name") or "").strip().lower()
+        if class_name and class_name not in seen:
+            seen.add(class_name)
+            catalog.append({"value": class_name, "type": "class"})
+
+        tier_name = str(champ.get("tier") or "").strip().lower()
+        if tier_name:
+            cleaned = tier_name.replace("*", "").replace("★", "").replace("star", "").replace("stars", "").strip()
+            if cleaned and cleaned not in seen:
+                seen.add(cleaned)
+                catalog.append({"value": cleaned, "type": "tier"})
+
+    return catalog
+
+
 def build_filter_flow_state(filters: Optional[Dict[str, Any]] = None, *, catalog: Optional[List[Any]] = None) -> Dict[str, List[str]]:
     """Reduce the current filter dict into deduplicated filter/class/tier buckets for the multi-step UI."""
     raw = dict(filters or {})
@@ -489,7 +542,7 @@ async def start_champion_filter_flow(core: Any, ctx_or_interaction: Any, *, raw_
     if discord is None:
         return False
 
-    state = build_filter_flow_state(parsed_filters or {})
+    state = build_filter_flow_state(parsed_filters or {}, catalog=_collect_champion_filter_catalog(core))
     author = getattr(ctx_or_interaction, "author", getattr(ctx_or_interaction, "user", ctx_or_interaction))
     if author is None:
         return False
@@ -526,14 +579,15 @@ async def start_champion_filter_flow(core: Any, ctx_or_interaction: Any, *, raw_
             self.selected_classes: set = set()
             self.selected_tiers: set = set()
 
+            filter_hints = self.state.get("filters", []) or [
+                "bleed", "poison", "control", "buff", "debuff", "incinerate", "shield", "stun",
+                "cosmic", "mystic", "science", "skill", "mutant", "tech"
+            ]
             filter_options = [
                 discord.SelectOption(label=(item.replace("-", " ").title()), value=item)
-                for item in self.state.get("filters", [])
+                for item in dict.fromkeys(filter_hints)
             ]
-            if filter_options:
-                self.add_item(_ChampionFilterSelect(placeholder="Select filters", options=filter_options, max_values=min(5, len(filter_options)), label_key="filter"))
-            else:
-                self.add_item(discord.ui.Button(label="No filter hints available", style=discord.ButtonStyle.secondary, disabled=True))
+            self.add_item(_ChampionFilterSelect(placeholder="Select filters", options=filter_options[:25], max_values=min(5, len(filter_options[:25])), label_key="filter"))
 
             class_options = [
                 discord.SelectOption(label=cls.title(), value=cls)
