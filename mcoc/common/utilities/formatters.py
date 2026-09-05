@@ -81,6 +81,32 @@ def format_tierlist_property_tokens(champ: ChampionLike, *, long_labels: bool = 
     return items
 
 
+def _resolve_champion_class_name(champ: ChampionLike) -> str:
+    champion = _normalize_champ_obj(champ)
+    raw = {}
+    if isinstance(champ, Mapping):
+        raw = dict(champ)
+    elif champion is not None and isinstance(getattr(champion, "raw", None), Mapping):
+        raw = dict(champion.raw)
+
+    if champion is not None:
+        for key in ("class_name", "class_", "class", "cls"):
+            value = getattr(champion, key, None)
+            if value:
+                return str(value).strip().lower()
+
+    for key in ("class_name", "class_", "class", "cls"):
+        value = raw.get(key)
+        if value:
+            return str(value).strip().lower()
+    return ""
+
+
+def _resolve_champion_class_emoji(champ: ChampionLike) -> str:
+    class_name = _resolve_champion_class_name(champ)
+    return CLASS_EMOJI.get(class_name, CLASS_EMOJI["all"])
+
+
 def format_tierlist_champion_line(champ: ChampionLike, *, long_labels: bool = False) -> str:
     """Display a tierlist row, optionally using long property labels for wider pages."""
     champion = _normalize_champ_obj(champ)
@@ -100,19 +126,6 @@ def format_tierlist_champion_line(champ: ChampionLike, *, long_labels: bool = Fa
     if score is None and champion is not None:
         score = getattr(champion, "raw", {}).get("score") if isinstance(getattr(champion, "raw", None), Mapping) else None
 
-    # class resolution: support multiple possible field names
-    cls = ""
-    if champ:
-        cls = (
-            getattr(champ, "class_name", None)
-            or getattr(champ, "class_", None)
-            or getattr(champ, "class", None)
-            or getattr(champ, "cls", None)
-            or ""
-        )
-    cls = (cls or "").lower()
-    class_emoji = MCOCAPP_PROPERTIES.get("class", {}).get(cls, {}).get("emoji") if cls else ""
-
     score_text = score if score is not None else 0
     property_tokens = format_tierlist_property_tokens(raw if raw else champion, long_labels=long_labels)
     if not property_tokens:
@@ -120,11 +133,14 @@ def format_tierlist_champion_line(champ: ChampionLike, *, long_labels: bool = Fa
     else:
         token_text = ", ".join(property_tokens)
 
+    class_emoji = _resolve_champion_class_emoji(champ)
+    prefix = f"{class_emoji} " if class_emoji else ""
+
     if long_labels:
-        return f"{class_emoji}{name} | {score_text} | {token_text}"
+        return f"{prefix}{name} | {score_text} | {token_text}"
 
     tier_text = str(tier or "Unranked")
-    return f"{class_emoji}{name} | score {score_text}" #| {token_text}"
+    return f"{prefix}{name} | score {score_text} | {token_text}"
 
 
 def format_tierlist_champion_detail(champ: ChampionLike) -> Dict[str, str]:
