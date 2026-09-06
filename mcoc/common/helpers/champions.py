@@ -652,13 +652,8 @@ async def start_champion_filter_flow(core: Any, ctx_or_interaction: Any, *, raw_
 
             ability_values = sections.get("abilities", [])
             if ability_values:
-                ability_chunks = [ability_values[index:index + 25] for index in range(0, len(ability_values), 25)]
-                for chunk_index, chunk in enumerate(ability_chunks, start=1):
-                    self.add_item(_ChampionFilterSelect(key=f"abilities_{chunk_index}", placeholder=f"Abilities ({chunk_index}/{len(ability_chunks)})", options=_build_options(chunk, max_values=25), max_values=min(25, len(chunk)), selected_values=set()))
-
-            tier_values = ["7", "6", "5", "4", "3", "2", "1"]
-            tier_options = [discord.SelectOption(label=f"{tier}★", value=tier) for tier in tier_values]
-            self.add_item(_ChampionFilterSelect(key="tiers", placeholder="Choose tiers", options=tier_options, max_values=min(7, len(tier_options)), selected_values=self.selected_tiers))
+                ability_options = _build_options(ability_values[:25], max_values=25)
+                self.add_item(_ChampionFilterSelect(key="abilities", placeholder="Select abilities", options=ability_options, max_values=min(25, len(ability_options)), selected_values=self.selected_abilities))
 
             apply_button = discord.ui.Button(label="Apply Filters", style=discord.ButtonStyle.success)
             apply_button.callback = self._apply_callback
@@ -667,13 +662,11 @@ async def start_champion_filter_flow(core: Any, ctx_or_interaction: Any, *, raw_
         async def _apply_callback(self, interaction: Any):
             final_filters = dict(self.parsed_filters)
 
-            selected_inflicts = sorted({v for key, value in vars(self).items() if key.startswith("selected_") and key == "selected_inflicts" for v in value}) if hasattr(self, "selected_inflicts") else set()
+            selected_inflicts = set(getattr(self, "selected_inflicts", set()))
             selected_immune_to = set(getattr(self, "selected_immune_to", set()))
             selected_classes = set(getattr(self, "selected_classes", set()))
+            selected_abilities = set(getattr(self, "selected_abilities", set()))
             selected_tier_values = set(getattr(self, "selected_tiers", set()))
-            selected_abilities = set()
-            for key in sorted([name for name in vars(self) if name.startswith("selected_abilities_")]):
-                selected_abilities |= set(getattr(self, key, set()))
 
             if selected_inflicts:
                 final_filters["inflicts"] = list(dict.fromkeys([str(v).lower() for v in selected_inflicts]))

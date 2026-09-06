@@ -1,6 +1,6 @@
 from mcoc.common.helpers.champions import _champion_matches_filters, build_tier_pages, build_filter_flow_state, build_filter_picker_sections
 from mcoc.common.helpers.roster import filter_roster_entries, _build_selection_option_label
-from mcoc.common.utilities.formatters import format_tierlist_champion_line
+from mcoc.common.utilities.formatters import format_tierlist_champion_line, format_champion_line
 from mcoc.common.helpers.types import MCOCAPP_TIERS, champion_from_dict
 from mcoc.common.utilities.query_parser import parse_query
 
@@ -109,6 +109,14 @@ def test_filter_picker_sections_split_primary_categories():
     assert "poison" in sections["immune_to"]
     assert "mystic" in sections["classes"]
     assert "incinerate" in sections["abilities"]
+
+
+def test_format_champion_line_uses_prestige_when_available():
+    champ = champion_from_dict({"id": "alpha", "name": "Alpha", "class": "skill", "prestige": 12345})
+    line = format_champion_line(champ, {"champion": "alpha", "rarity": 6, "rank": 1, "sig": 0, "ascended": 0})
+
+    assert "[12,345]" in line
+    assert "Alpha" in line
 
 
 def test_parse_query_and_match_support_class_tag_tokens():
