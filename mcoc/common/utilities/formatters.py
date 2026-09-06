@@ -4,6 +4,7 @@
 # Purpose: Provide utility functions for formatting champion and prestige lines in MCOC bot context.
 # Public-API: format_champion_line, format_top5_prestige_line
 # Last-Modified: 2026-09-01
+# Used-By: mcoc/common/helpers/types.py
 # Changelog:
 #   1.0 2026-09-01  Initial stabilized API header
 

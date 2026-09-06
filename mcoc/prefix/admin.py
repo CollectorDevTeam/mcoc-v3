@@ -5,6 +5,7 @@
 # Public-API: MCOCAdminPrefix
 # Internal: _require_parent
 # Last-Modified: 2026-09-01
+# Used-By: mcoc/common/__init__.py, mcoc/common/components/cache_status.py, mcoc/common/components/help_utils.py, mcoc/common/components/prefix_utils.py, mcoc/slash/__init__.py
 """
 Prefix commands for MCOC admin (development / fallback).
 

@@ -38,3 +38,4 @@ class Champion(MCOCHubChampion):
 
 class ChampionList(BaseModel):
     champions: List[MCOCHubChampion] = Field(default_factory=list)
+# Used-By: mcoc/common/models/mcochub/abilities.py, mcoc/common/models/mcochub/immunities.py

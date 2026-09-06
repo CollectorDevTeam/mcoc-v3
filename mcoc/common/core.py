@@ -4,6 +4,7 @@
 # Purpose: Provide a centralized container for shared MCOC systems and manage their lifecycle.
 # Public-API: MCOCCommonCore
 # Last-Modified: 2026-09-01
+# Used-By: mcoc/common/api/api.py, mcoc/common/api/cache.py
 # Changelog:
 #   1.0 2026-09-01  Initial stabilized API header
 

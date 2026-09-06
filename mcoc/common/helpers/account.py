@@ -6,6 +6,7 @@
 # Internal: 
 #   - relies on mcoc.common.userdata for persistent storage
 # Last-Modified: 2026-09-01
+# Used-By: mcoc/common/components/componentsV2.py, mcoc/common/helpers/__init__.py, mcoc/common/helpers/types.py
 # Changelog:
 #   1.0 2026-09-01  Initial stabilized API header
 """

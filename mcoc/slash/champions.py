@@ -4,6 +4,7 @@
 # Purpose: Provide slash command handler for MCOC champion information commands.
 # Public-API: _ChampionGroup
 # Last-Modified: 2026-09-01
+# Used-By: mcoc/common/components/componentsV2.py, mcoc/common/helpers/champions.py
 # Changelog:
 #   1.0 2026-09-01  Initial stabilized API header
 import logging

@@ -4,6 +4,7 @@
 # Purpose: Provide utility functions for handling command prefixes and safe message sending in MCOC bot context.
 # Public-API: get_runtime_prefix, safe_send_ctx
 # Last-Modified: 2026-09-01
+# Used-By: None
 # Changelog:
 #   1.0 2026-09-01  Initial stabilized API header
 from typing import Any, Optional

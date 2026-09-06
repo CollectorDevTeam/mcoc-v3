@@ -4,6 +4,7 @@
 # Purpose: Short one-line purpose describing responsibilities and public API
 # Public-API: CacheStatusPoster
 # Last-Modified: 2026-09-01
+# Used-By: mcoc/common/components/componentsV2.py
 # Changelog:
 #   1.0 2026-09-01  Initial stabilized API header
 from typing import Any, Dict, Optional

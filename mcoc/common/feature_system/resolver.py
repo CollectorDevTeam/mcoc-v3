@@ -4,6 +4,7 @@
 # Purpose: Short one-line purpose describing responsibilities and public API
 # Public-API: has_feature
 # Last-Modified: 2026-09-01
+# Used-By: mcoc/common/feature_system/model.py, mcoc/common/feature_system/registry.py
 # Changelog:
 #   1.0 2026-09-01  Initial stabilized API header
 

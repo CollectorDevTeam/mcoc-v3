@@ -4,6 +4,7 @@
 # Purpose: Provide utility functions for sending branded help messages in MCOC bot context.
 # Public-API: send_or_brand_help
 # Last-Modified: 2026-09-01
+# Used-By: mcoc/common/components/componentsV2.py, mcoc/common/components/prefix_utils.py
 # Changelog:
 #   1.0 2026-09-01  Initial stabilized API header
 from typing import Optional

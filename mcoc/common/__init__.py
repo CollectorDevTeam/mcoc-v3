@@ -4,6 +4,7 @@
 # Purpose: Provide a unified namespace for all common MCOC systems.
 # Public-API: Core
 # Last-Modified: 2026-09-01
+# Used-By: mcoc/common/components/componentsV2.py, mcoc/common/feature_system/__init__.py
 # Changelog:
 #   1.0 2026-09-01  Initial stabilized API header
 """

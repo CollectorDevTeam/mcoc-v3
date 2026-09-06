@@ -1,5 +1,5 @@
 from mcoc.common.helpers.champions import _champion_matches_filters, build_tier_pages, build_filter_flow_state
-from mcoc.common.helpers.roster import filter_roster_entries
+from mcoc.common.helpers.roster import filter_roster_entries, _build_selection_option_label
 from mcoc.common.utilities.formatters import format_tierlist_champion_line
 from mcoc.common.helpers.types import MCOCAPP_TIERS, champion_from_dict
 from mcoc.common.utilities.query_parser import parse_query
@@ -183,3 +183,29 @@ def test_tierlist_pages_normalize_live_mco_app_tier_strings_and_sort_order():
     assert groups[0]["items"][0]["name"] == "Alpha"
     assert groups[1]["items"][0]["name"] == "Abomination Immortal"
     assert groups[3]["items"][0]["name"] == "Abomination"
+
+
+def test_ability_and_inflict_names_behave_as_filter_tokens():
+    champ = {
+        "name": "Shocker",
+        "slug": "shocker",
+        "class": "science",
+        "abilities": [{"name": "Shock"}],
+        "inflicts": ["Shock"],
+        "tags": ["shock"],
+    }
+
+    assert _champion_matches_filters(champ, {"tags": ["shock"]}) is True
+    assert _champion_matches_filters(champ, {"tags": ["Shock"]}) is True
+    assert _champion_matches_filters(champ, {"classes": ["science"], "tags": ["shock"]}) is True
+
+
+def test_roster_selection_label_uses_champion_name_not_slug():
+    class FakeCache:
+        def get_champion(self, value):
+            return {"name": "Doctor Doom", "slug": "doctordoom"}
+
+    entry = {"champion": "doctordoom", "raw": "doctordoom", "rarity": 6, "rank": 5, "sig": 60, "ascended": 1}
+    label = _build_selection_option_label(entry, cache=FakeCache())
+
+    assert label == "Doctor Doom (6★ r5 s60 a1)"

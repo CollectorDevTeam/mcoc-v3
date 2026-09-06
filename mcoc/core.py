@@ -4,6 +4,7 @@
 # Purpose: Provide the main setup function for the MCOC package, initializing shared systems and registering feature cogs.
 # Public-API: setup
 # Last-Modified: 2026-09-01
+# Used-By: mcoc/common/core.py, mcoc/diagnostics/diagnostics.py, mcoc/prefix/core.py, mcoc/slash/core.py
 # Changelog:
 #   1.0 2026-09-01  Initial stabilized API header
 """

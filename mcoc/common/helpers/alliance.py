@@ -4,6 +4,7 @@
 # Purpose: Short one-line purpose describing responsibilities and public API
 # Public-API: get_guild_config, set_guild_config, remove_guild_config, create_or_link_role, register_alliance, unregister_alliance
 # Last-Modified: 2026-09-01
+# Used-By: None
 # Changelog:
 #   1.0 2026-09-01  Initial stabilized API header
 

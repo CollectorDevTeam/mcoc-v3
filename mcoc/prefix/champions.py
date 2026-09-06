@@ -711,3 +711,4 @@ class ChampionsPrefix(commands.Cog):
 
 async def setup(bot):
     bot.add_cog(ChampionsPrefix(bot))
+# Used-By: mcoc/common/__init__.py, mcoc/common/components/prefix_utils.py, mcoc/common/helpers/types.py, mcoc/common/utilities/query_parser.py

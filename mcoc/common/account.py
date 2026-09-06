@@ -4,6 +4,7 @@
 # Purpose: Backward-compatible account helper re-export module.
 # Public-API: account helper functions used by prefix command modules.
 # Last-Modified: 2026-09-01
+# Used-By: mcoc/common/helpers/account.py
 """Compatibility shim for legacy imports.
 
 Historically, callers imported account helpers from mcoc.common.account.

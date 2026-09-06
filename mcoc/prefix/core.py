@@ -5,6 +5,7 @@
 # Public-API: MCOCPrefix
 # Internal: _find_top_command
 # Last-Modified: 2026-09-01
+# Used-By: mcoc/common/__init__.py, mcoc/common/components/prefix_utils.py
 """
 Prefix command root for MCOC (hybrid mode).
 

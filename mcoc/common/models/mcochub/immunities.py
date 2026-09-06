@@ -20,3 +20,4 @@ class Immunity(MCOCHubImmunity):
 
 class ImmunityList(BaseModel):
     immunities: List[MCOCHubImmunity] = Field(default_factory=list)
+# Used-By: None

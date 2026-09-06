@@ -4,5 +4,6 @@
 # Purpose: Initialize the mcoc.prefix package.
 # Public-API: MCOCPrefix
 # Last-Modified: 2026-09-01
+# Used-By: mcoc/prefix/core.py
 from .core import MCOCPrefix
 __all__ = ("MCOCPrefix",)

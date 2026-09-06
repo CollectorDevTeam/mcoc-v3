@@ -4,6 +4,7 @@
 # Purpose: Provide slash command handler for MCOC roster management commands.
 # Public-API: _RosterGroup
 # Last-Modified: 2026-09-01
+# Used-By: mcoc/common/components/componentsV2.py, mcoc/common/helpers/roster.py, mcoc/common/utilities/hargs.py
 # Changelog:
 #   1.0 2026-09-01  Initial stabilized API header
 

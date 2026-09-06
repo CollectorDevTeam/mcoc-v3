@@ -4,6 +4,7 @@
 # Purpose: Provide helpers for building branded embeds and Discord Components V2 views.
 # Public-API: CDTEmbed, _get_author_info, _brand_footer, _is_valid_http_url
 # Last-Modified: 2026-09-01
+# Used-By: None
 """
 CDTv2 — CollectorDevTeam branded embed + components helpers.
 """

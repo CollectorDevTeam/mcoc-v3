@@ -5,6 +5,7 @@
 # Public-API: AccountPrefix
 # Internal: _require_parent
 # Last-Modified: 2026-09-01
+# Used-By: mcoc/common/__init__.py, mcoc/common/components/help_utils.py, mcoc/common/components/prefix_utils.py, mcoc/common/helpers/__init__.py
 """Account prefix commands.
 
 This module owns the user-facing consent, profile, and account-link surfaces.

@@ -5,6 +5,7 @@
 # Public-API: UserDataManager
 # Internal: 
 # Last-Modified: 2026-09-01
+# Used-By: None
 # Changelog:
 #   1.0 2026-09-01  Initial stabilized API header
 

@@ -4,6 +4,7 @@
 # Purpose: Short one-line purpose describing responsibilities and public API
 # Public-API: CacheManager
 # Last-Modified: 2026-09-01
+# Used-By: mcoc/common/api/api.py, mcoc/common/api/cacheindex.py, mcoc/common/helpers/types.py, mcoc/common/models/__init__.py
 # Changelog:
 #   1.0 2026-09-01  Initial stabilized API header
 

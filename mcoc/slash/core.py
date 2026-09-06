@@ -4,6 +4,7 @@
 # Purpose: Provide unified slash command root for MCOC, loading champion, roster, and admin slash cogs.
 # Public-API: MCOCSlash
 # Last-Modified: 2026-09-01
+# Used-By: None
 # Changelog:
 #   1.0 2026-09-01  Initial stabilized API header
 import logging

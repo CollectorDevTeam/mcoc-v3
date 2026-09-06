@@ -5,6 +5,7 @@
 # Public-API: 
 # Internal: CDTEntitlements
 # Last-Modified: 2026-09-01
+# Used-By: mcoc/common/feature_system/audit.py, mcoc/common/feature_system/model.py, mcoc/common/feature_system/registry.py, mcoc/common/feature_system/resolver.py
 # Changelog:
 #   1.0 2026-09-01  Initial stabilized API header
 from .model import UserEntitlement, GuildFeatureConfig

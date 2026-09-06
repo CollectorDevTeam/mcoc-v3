@@ -4,6 +4,7 @@
 # Purpose: Provide helpers for managing and displaying user rosters, including parsing, matching, prestige resolution, and page construction.
 # Public-API: ensure_user_manager, _ensure_hook_registered, persist_user_prestige
 # Last-Modified: 2026-09-01
+# Used-By: mcoc/common/components/componentsV2.py, mcoc/common/helpers/__init__.py, mcoc/common/helpers/types.py, mcoc/common/utilities/formatters.py, mcoc/common/utilities/hargs.py
 # Changelog:
 #   1.0 2026-09-01  Initial stabilized API header
 """
@@ -1023,8 +1024,18 @@ def _build_operation_selection_embed(
     return CDTEmbed.embed(ctx_or_author, title=spec.title, description=description, footer_text=f"Workflow {ROSTER_FOOTER}")
 
 
-def _build_selection_option_label(entry: Dict[str, Any]) -> str:
+def _build_selection_option_label(entry: Dict[str, Any], *, cache: Optional[Any] = None) -> str:
     name = str(entry.get("raw") or entry.get("champion") or "Unknown")
+    champion_ref = entry.get("champion") or entry.get("raw")
+    if cache is not None:
+        try:
+            resolved = cache.get_champion(champion_ref) if champion_ref else None
+            if isinstance(resolved, dict):
+                candidate_name = resolved.get("name") or resolved.get("title") or resolved.get("slug")
+                if candidate_name:
+                    name = str(candidate_name)
+        except Exception:
+            pass
     rarity = int(entry.get("rarity") or entry.get("stars") or 0)
     rank = int(entry.get("rank") or 1)
     sig = int(entry.get("sig") or 0)
@@ -1314,7 +1325,7 @@ if discord is not None:
                 value = _entry_selection_key(entry)
                 options.append(
                     discord.SelectOption(
-                        label=_build_selection_option_label(entry),
+                        label=_build_selection_option_label(entry, cache=self.core.cache if getattr(self, "core", None) else None),
                         value=value,
                         default=value in selected_keys,
                     )

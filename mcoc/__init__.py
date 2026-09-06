@@ -4,6 +4,7 @@
 # Purpose: Initialize the MCOC package and provide the public setup function.
 # Public-API: list of exported functions/classes (comma separated)
 # Last-Modified: 2026-09-01
+# Used-By: mcoc/core.py
 # Changelog:
 #   1.0 2026-09-01  Initial stabilized API header
 

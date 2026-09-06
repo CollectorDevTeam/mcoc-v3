@@ -69,3 +69,4 @@ class CollectorBotChampion(BaseModel):
     @property
     def class_lower(self) -> Optional[str]:
         return (self.class_name or self.class_ or "").lower() or None
+# Used-By: None

@@ -15,3 +15,4 @@ __all__ = [
     "MCOCAppTierlistChampion",
     "TierList",
 ]
+# Used-By: mcoc/common/models/mcoc_app/tierlist.py

@@ -4,6 +4,7 @@
 # Purpose: Provide utility functions and regex patterns for parsing champion hargs in MCOC bot context.
 # Public-API: _expand_range_token, _tokenize_preserving_quotes, _strip_nonname_edges, _extract_name_by_removing_components
 # Last-Modified: 2026-09-01
+# Used-By: None
 # Changelog:
 #   1.0 2026-09-01  Initial stabilized API header
 

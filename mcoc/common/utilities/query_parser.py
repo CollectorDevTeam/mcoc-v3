@@ -4,6 +4,7 @@
 # Purpose: Parse user queries into structured entries and filters for MCOC champions.
 # Public-API: parse_query
 # Last-Modified: 2026-09-01
+# Used-By: mcoc/common/helpers/roster.py, mcoc/common/utilities/hargs.py
 # Changelog:
 #   1.0 2026-09-01  Initial stabilized API header
 

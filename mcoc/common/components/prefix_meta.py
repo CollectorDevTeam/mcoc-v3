@@ -4,6 +4,7 @@
 # Purpose: Define allowed profile and roster fields along with help text for MCOC bot commands.
 # Public-API: ALLOWED_PROFILE_FIELDS, ACCOUNT_GROUP_HELP, ALLOWED_ROSTER_FIELDS, ROSTER_GROUP_HELP, ALLIANCE_HELP, ALLIANCE_PROFILE_FIELDS
 # Last-Modified: 2026-09-01
+# Used-By: None
 # Changelog:
 #   1.0 2026-09-01  Initial stabilized API header
 ALLOWED_PROFILE_FIELDS = {

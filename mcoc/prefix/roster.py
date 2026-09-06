@@ -5,6 +5,7 @@
 # Public-API: RosterPrefix
 # Internal: _require_parent, _resolve_target_member
 # Last-Modified: 2026-09-01
+# Used-By: mcoc/common/__init__.py, mcoc/common/components/help_utils.py, mcoc/common/components/prefix_utils.py, mcoc/common/helpers/__init__.py, mcoc/common/utilities/query_parser.py
 """Thin roster prefix layer.
 
 This module resolves the user/context and delegates roster logic to the shared

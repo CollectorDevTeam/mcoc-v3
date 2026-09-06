@@ -4,6 +4,7 @@
 # Purpose: Provide slash command handler for MCOC commands.
 # Public-API: SlashCommandManager
 # Last-Modified: 2026-09-01
+# Used-By: mcoc/slash/core.py
 # Changelog:
 #   1.0 2026-09-01  Initial stabilized API header
 

@@ -4,6 +4,7 @@
 # Purpose: Provide an in-memory index for fast lookups of cache data, including champions, tags, abilities, and immunities.
 # Public-API: CacheIndex
 # Last-Modified: 2026-09-01
+# Used-By: None
 # Changelog:
 #   1.0 2026-09-01  Initial stabilized API header
 

@@ -4,6 +4,7 @@
 # Purpose: Public helper API for frontends (userdata, account, roster, champions)
 # Public-API: get_user_manager, UserDataManager, Account helpers, Champion, champion_from_dict, useraccount_from_userdata
 # Last-Modified: 2026-09-01
+# Used-By: mcoc/common/helpers/account.py, mcoc/common/helpers/roster.py, mcoc/common/helpers/types.py, mcoc/common/helpers/userdata.py
 
 from . import account, alliance, champions, roster, types, userdata
 from .userdata import get_user_manager, UserDataManager

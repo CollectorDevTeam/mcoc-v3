@@ -5,6 +5,7 @@
 # Public-API: AlliancePrefix
 # Internal: _confirm
 # Last-Modified: 2026-09-01
+# Used-By: mcoc/common/__init__.py, mcoc/common/components/componentsV2.py, mcoc/common/components/help_utils.py, mcoc/common/components/prefix_utils.py
 """Thin alliance prefix handlers.
 
 The core logic lives in mcoc.common.helpers.alliance; these commands focus on

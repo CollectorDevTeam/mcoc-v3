@@ -4,6 +4,7 @@
 # Purpose: Define core types and dataclasses for MCOC entities (Champion, UserAccount).
 # Public-API: Champion, champion_from_dict, UserAccount
 # Last-Modified: 2026-09-01
+# Used-By: None
 # Changelog:
 #   1.0 2026-09-01  Initial stabilized API header
 from dataclasses import dataclass, field, asdict
