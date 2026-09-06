@@ -458,6 +458,63 @@ def _collect_champion_filter_catalog(core: Any) -> List[Any]:
     return catalog
 
 
+def build_filter_picker_sections(catalog: Optional[List[Any]] = None) -> Dict[str, List[str]]:
+    """Split the live filter catalog into the compact selector buckets used by the filter picker.
+
+    Discord Select components do not provide text autocomplete. To keep the picker usable,
+    we group filters by semantic buckets instead of exposing a single 16-page list.
+    """
+    sections: Dict[str, List[str]] = {
+        "inflicts": [],
+        "immune_to": [],
+        "classes": [],
+        "abilities": [],
+        "tags": [],
+    }
+    seen: Dict[str, set] = {key: set() for key in sections}
+
+    def add_value(section: str, value: Any) -> None:
+        token = str(value or "").strip().lower()
+        token = token.strip("#")
+        if not token or token in seen[section]:
+            return
+        seen[section].add(token)
+        sections[section].append(token)
+
+    for item in catalog or []:
+        if not isinstance(item, Mapping):
+            continue
+        raw_value = item.get("value")
+        if raw_value is None:
+            raw_value = item.get("label")
+        if raw_value is None:
+            raw_value = item.get("name")
+        kind = str(item.get("type") or "").strip().lower()
+        if kind in {"inflict", "inflicts"}:
+            add_value("inflicts", raw_value)
+            continue
+        if kind in {"immunity", "immunities", "immune_to"}:
+            add_value("immune_to", raw_value)
+            continue
+        if kind in {"class", "classes"}:
+            add_value("classes", raw_value)
+            continue
+        if kind in {"ability", "abilities"}:
+            add_value("abilities", raw_value)
+            continue
+        if kind in {"tag", "tags"}:
+            add_value("tags", raw_value)
+            continue
+
+    for key in list(sections):
+        if key == "classes":
+            ordered = ["mystic", "cosmic", "tech", "mutant", "skill", "science"]
+            sections[key] = sorted(set(sections[key]), key=lambda token: (token not in ordered, ordered.index(token) if token in ordered else 9999, token))
+        else:
+            sections[key] = sorted(set(sections[key]))
+    return sections
+
+
 def build_filter_flow_state(filters: Optional[Dict[str, Any]] = None, *, catalog: Optional[List[Any]] = None) -> Dict[str, List[str]]:
     """Reduce the current filter dict into deduplicated filter/class/tier buckets for the multi-step UI."""
     raw = dict(filters or {})
@@ -529,19 +586,24 @@ def build_filter_flow_state(filters: Optional[Dict[str, Any]] = None, *, catalog
 
 
 async def start_champion_filter_flow(core: Any, ctx_or_interaction: Any, *, raw_input: Optional[str] = None, parsed_filters: Optional[Dict[str, Any]] = None) -> bool:
-    """Launch the staged champion filter selector from the command path or pager filter button."""
+    """Launch the champion filter selector with compact category buckets instead of one giant filter list.
+
+    Discord Select widgets do not support text autocomplete; the practical workaround is to
+    split filters into semantic groups and keep each list short enough for a user-facing picker.
+    """
     if discord is None:
         return False
 
+    sections = build_filter_picker_sections(_collect_champion_filter_catalog(core))
     state = build_filter_flow_state(parsed_filters or {}, catalog=_collect_champion_filter_catalog(core))
     author = getattr(ctx_or_interaction, "author", getattr(ctx_or_interaction, "user", ctx_or_interaction))
     if author is None:
         return False
 
     class _ChampionFilterSelect(discord.ui.Select):
-        def __init__(self, *, placeholder: str, options: List[discord.SelectOption], max_values: int = 1, label_key: str = "filter", selected_values: Optional[set] = None):
+        def __init__(self, *, key: str, placeholder: str, options: List[discord.SelectOption], max_values: int = 1, selected_values: Optional[set] = None):
             super().__init__(placeholder=placeholder, min_values=0, max_values=max_values, options=options)
-            self.label_key = label_key
+            self.key = key
             self.selected_values = set(selected_values or set())
             if self.selected_values:
                 self.default = [option for option in options if option.value in self.selected_values]
@@ -550,100 +612,79 @@ async def start_champion_filter_flow(core: Any, ctx_or_interaction: Any, *, raw_
             view = self.view
             if not isinstance(view, ChampionFilterSelectionView):
                 return
-            if self.label_key == "filter":
-                view.selected_filters = set(self.values)
-            elif self.label_key == "class":
-                view.selected_classes = set(self.values)
-            elif self.label_key == "tier":
-                view.selected_tiers = set(self.values)
+            setattr(view, f"selected_{self.key}", set(self.values))
             try:
                 await interaction.response.defer()
             except Exception:
                 pass
 
     class ChampionFilterSelectionView(discord.ui.View):
-        def __init__(self, *, core: Any, author: Any, state: Dict[str, List[str]], raw_input: Optional[str] = None, parsed_filters: Optional[Dict[str, Any]] = None, selected_filters: Optional[set] = None, selected_classes: Optional[set] = None, selected_tiers: Optional[set] = None, page_index: int = 0):
+        def __init__(self, *, core: Any, author: Any, state: Dict[str, List[str]], raw_input: Optional[str] = None, parsed_filters: Optional[Dict[str, Any]] = None, selected_inflicts: Optional[set] = None, selected_immune_to: Optional[set] = None, selected_classes: Optional[set] = None, selected_abilities: Optional[set] = None, selected_tiers: Optional[set] = None):
             super().__init__(timeout=180)
             self.core = core
             self.author = author
             self.state = dict(state)
             self.raw_input = raw_input or ""
             self.parsed_filters = dict(parsed_filters or {})
-            self.selected_filters = set(selected_filters or set())
+            self.selected_inflicts = set(selected_inflicts or set())
+            self.selected_immune_to = set(selected_immune_to or set())
             self.selected_classes = set(selected_classes or set())
+            self.selected_abilities = set(selected_abilities or set())
             self.selected_tiers = set(selected_tiers or set())
-            self.page_index = max(0, page_index)
 
-            raw_filter_hints = list(self.state.get("filters", []) or [
-                "bleed", "poison", "control", "buff", "debuff", "incinerate", "shield", "stun",
-                "cosmic", "mystic", "science", "skill", "mutant", "tech", "shock", "burn",
-                "immunity", "bleed-immunity", "debuff", "counter", "dodge", "crit"
-            ])
-            filter_hints = sorted(dict.fromkeys(raw_filter_hints), key=lambda value: str(value).lower())
-            if filter_hints:
-                page_size = 25
-                total_pages = max(1, (len(filter_hints) + page_size - 1) // page_size)
-                self.filter_page_count = total_pages
-                self.filter_page_index = min(self.page_index, total_pages - 1)
-                page_items = filter_hints[self.filter_page_index * page_size:(self.filter_page_index + 1) * page_size]
-                filter_options = [discord.SelectOption(label=(item.replace("-", " ").title()), value=item) for item in page_items]
-                self.add_item(_ChampionFilterSelect(placeholder=f"Select filters ({self.filter_page_index + 1}/{total_pages})", options=filter_options, max_values=min(25, len(filter_options)), label_key="filter", selected_values=self.selected_filters & set(page_items)))
-                if total_pages > 1:
-                    if self.filter_page_index > 0:
-                        prev_button = discord.ui.Button(label="Prev Page", style=discord.ButtonStyle.secondary)
-                        prev_button.callback = lambda interaction, page_index=self.filter_page_index - 1: self._page_callback(interaction, page_index)
-                        self.add_item(prev_button)
-                    if self.filter_page_index < total_pages - 1:
-                        next_button = discord.ui.Button(label="Next Page", style=discord.ButtonStyle.secondary)
-                        next_button.callback = lambda interaction, page_index=self.filter_page_index + 1: self._page_callback(interaction, page_index)
-                        self.add_item(next_button)
+            def _build_options(values: List[str], *, max_values: int = 25, label_prefix: Optional[str] = None) -> List[discord.SelectOption]:
+                ordered = sorted(dict.fromkeys(values), key=lambda token: str(token).lower())
+                if label_prefix:
+                    return [discord.SelectOption(label=f"{label_prefix}: {token.replace('-', ' ').title()}", value=token) for token in ordered[:max_values]]
+                return [discord.SelectOption(label=token.replace('-', ' ').title(), value=token) for token in ordered[:max_values]]
 
-            class_options = [
-                discord.SelectOption(label=cls.title(), value=cls)
-                for cls in ("skill", "mutant", "tech", "cosmic", "mystic", "science")
-            ]
-            self.add_item(_ChampionFilterSelect(placeholder="Choose classes", options=class_options, max_values=min(6, len(class_options)), label_key="class", selected_values=self.selected_classes))
+            inflicts = sections.get("inflicts", [])
+            if inflicts:
+                self.add_item(_ChampionFilterSelect(key="inflicts", placeholder="Select inflicts", options=_build_options(inflicts, max_values=25), max_values=min(25, len(inflicts)), selected_values=self.selected_inflicts))
+
+            immune_to = sections.get("immune_to", [])
+            if immune_to:
+                self.add_item(_ChampionFilterSelect(key="immune_to", placeholder="Select immune to", options=_build_options(immune_to, max_values=25), max_values=min(25, len(immune_to)), selected_values=self.selected_immune_to))
+
+            class_values = sections.get("classes", []) or ["skill", "mutant", "tech", "cosmic", "mystic", "science"]
+            class_options = [discord.SelectOption(label=cls.replace('-', ' ').title(), value=cls) for cls in class_values]
+            self.add_item(_ChampionFilterSelect(key="classes", placeholder="Choose classes", options=class_options, max_values=min(6, len(class_options)), selected_values=self.selected_classes))
+
+            ability_values = sections.get("abilities", [])
+            if ability_values:
+                ability_chunks = [ability_values[index:index + 25] for index in range(0, len(ability_values), 25)]
+                for chunk_index, chunk in enumerate(ability_chunks, start=1):
+                    self.add_item(_ChampionFilterSelect(key=f"abilities_{chunk_index}", placeholder=f"Abilities ({chunk_index}/{len(ability_chunks)})", options=_build_options(chunk, max_values=25), max_values=min(25, len(chunk)), selected_values=set()))
 
             tier_values = ["7", "6", "5", "4", "3", "2", "1"]
             tier_options = [discord.SelectOption(label=f"{tier}★", value=tier) for tier in tier_values]
-            self.add_item(_ChampionFilterSelect(placeholder="Choose tiers", options=tier_options, max_values=min(7, len(tier_options)), label_key="tier", selected_values=self.selected_tiers))
+            self.add_item(_ChampionFilterSelect(key="tiers", placeholder="Choose tiers", options=tier_options, max_values=min(7, len(tier_options)), selected_values=self.selected_tiers))
 
             apply_button = discord.ui.Button(label="Apply Filters", style=discord.ButtonStyle.success)
             apply_button.callback = self._apply_callback
             self.add_item(apply_button)
 
-        async def _page_callback(self, interaction: Any, page_index: int):
-            new_view = ChampionFilterSelectionView(
-                core=self.core,
-                author=self.author,
-                state=self.state,
-                raw_input=self.raw_input,
-                parsed_filters=self.parsed_filters,
-                selected_filters=self.selected_filters,
-                selected_classes=self.selected_classes,
-                selected_tiers=self.selected_tiers,
-                page_index=page_index,
-            )
-            try:
-                await interaction.response.edit_message(embed=CDTEmbed.embed(self.author, title="Champion Filter Picker", description="Step 1: select filter tokens.\nStep 2: choose class and tier buckets.\nStep 3: apply the narrowed filter set."), view=new_view)
-            except Exception:
-                try:
-                    await interaction.response.send_message(embed=CDTEmbed.embed(self.author, title="Champion Filter Picker", description="Step 1: select filter tokens.\nStep 2: choose class and tier buckets.\nStep 3: apply the narrowed filter set."), view=new_view)
-                except Exception:
-                    pass
-
         async def _apply_callback(self, interaction: Any):
             final_filters = dict(self.parsed_filters)
-            selected_filters = sorted(self.selected_filters or set())
-            selected_classes = sorted(self.selected_classes or set())
-            selected_tiers = sorted(self.selected_tiers or set(), key=lambda value: int(value) if str(value).isdigit() else 0, reverse=True)
 
-            if selected_filters:
-                final_filters["tags"] = list(dict.fromkeys([str(v).lower() for v in (final_filters.get("tags") or [])] + selected_filters))
+            selected_inflicts = sorted({v for key, value in vars(self).items() if key.startswith("selected_") and key == "selected_inflicts" for v in value}) if hasattr(self, "selected_inflicts") else set()
+            selected_immune_to = set(getattr(self, "selected_immune_to", set()))
+            selected_classes = set(getattr(self, "selected_classes", set()))
+            selected_tier_values = set(getattr(self, "selected_tiers", set()))
+            selected_abilities = set()
+            for key in sorted([name for name in vars(self) if name.startswith("selected_abilities_")]):
+                selected_abilities |= set(getattr(self, key, set()))
+
+            if selected_inflicts:
+                final_filters["inflicts"] = list(dict.fromkeys([str(v).lower() for v in selected_inflicts]))
+            if selected_immune_to:
+                final_filters["immunities"] = list(dict.fromkeys([str(v).lower() for v in selected_immune_to]))
             if selected_classes:
-                final_filters["classes"] = list(dict.fromkeys([str(v).lower() for v in (final_filters.get("classes") or [])] + selected_classes))
-            if selected_tiers:
-                final_filters["tiers"] = list(dict.fromkeys([str(v).lower() for v in (final_filters.get("tiers") or [])] + selected_tiers))
+                final_filters["classes"] = list(dict.fromkeys([str(v).lower() for v in selected_classes]))
+            if selected_abilities:
+                final_filters["abilities"] = list(dict.fromkeys([str(v).lower() for v in selected_abilities]))
+            if selected_tier_values:
+                final_filters["tiers"] = list(dict.fromkeys([str(v).lower() for v in selected_tier_values]))
                 final_filters["rarities"] = [int(v) for v in final_filters["tiers"] if str(v).isdigit()]
 
             pages = await get_champion_pages(self.core, interaction.user, filters=final_filters)
@@ -666,7 +707,7 @@ async def start_champion_filter_flow(core: Any, ctx_or_interaction: Any, *, raw_
                 except Exception:
                     await interaction.followup.send(embed=pages[0], view=pager)
 
-    embed = CDTEmbed.embed(author, title="Champion Filter Picker", description="Step 1: select filter tokens.\nStep 2: choose class and tier buckets.\nStep 3: apply the narrowed filter set.")
+    embed = CDTEmbed.embed(author, title="Champion Filter Picker", description="Choose the filter buckets you want to combine.\nDiscord select menus do not support live text autocomplete, so the picker is split by category for usability.")
     view = ChampionFilterSelectionView(core=core, author=author, state=state, raw_input=raw_input, parsed_filters=parsed_filters)
     try:
         target_message = getattr(ctx_or_interaction, "message", None)

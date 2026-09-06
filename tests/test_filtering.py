@@ -1,4 +1,4 @@
-from mcoc.common.helpers.champions import _champion_matches_filters, build_tier_pages, build_filter_flow_state
+from mcoc.common.helpers.champions import _champion_matches_filters, build_tier_pages, build_filter_flow_state, build_filter_picker_sections
 from mcoc.common.helpers.roster import filter_roster_entries, _build_selection_option_label
 from mcoc.common.utilities.formatters import format_tierlist_champion_line
 from mcoc.common.helpers.types import MCOCAPP_TIERS, champion_from_dict
@@ -90,6 +90,25 @@ def test_filter_flow_state_builds_deduplicated_filter_and_stage_two_choices():
     assert "cosmic" in state["classes"]
     assert "7" in state["tiers"] or 7 in state["tiers"]
     assert "6" in state["tiers"] or 6 in state["tiers"]
+
+
+def test_filter_picker_sections_split_primary_categories():
+    sections = build_filter_picker_sections([
+        {"value": "bleed", "type": "tags"},
+        {"value": "shock", "type": "inflicts"},
+        {"value": "poison", "type": "immunities"},
+        {"value": "mystic", "type": "class"},
+        {"value": "incinerate", "type": "abilities"},
+    ])
+
+    assert "inflicts" in sections
+    assert "immune_to" in sections
+    assert "classes" in sections
+    assert "abilities" in sections
+    assert "shock" in sections["inflicts"]
+    assert "poison" in sections["immune_to"]
+    assert "mystic" in sections["classes"]
+    assert "incinerate" in sections["abilities"]
 
 
 def test_parse_query_and_match_support_class_tag_tokens():
