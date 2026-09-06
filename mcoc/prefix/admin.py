@@ -41,6 +41,29 @@ from mcoc.common.components.prefix_utils import safe_send_ctx
 log = logging.getLogger("red.mcoc.prefix")
 
 
+class CacheHealthCleanupView(discord.ui.View):
+    def __init__(self, cache: Any, *, status_message: str = "Cleanup cache"):
+        super().__init__(timeout=60)
+        self.cache = cache
+        self.status_message = status_message
+        cleanup_button = discord.ui.Button(label="Cleanup Cache", style=discord.ButtonStyle.danger)
+        cleanup_button.callback = self._cleanup_callback
+        self.add_item(cleanup_button)
+
+    async def _cleanup_callback(self, interaction: discord.Interaction):
+        try:
+            result = self.cache.cleanup_stale_cache()
+            removed = result.get("removed", 0)
+            if removed:
+                message = f"Cleaned up {removed} stale cache file(s)."
+            else:
+                message = "Cache health looks good; no cleanup needed."
+            await interaction.response.edit_message(content=message, view=None)
+        except Exception as exc:
+            log.exception("Cache cleanup action failed")
+            await interaction.response.edit_message(content=f"Cleanup failed: {exc}", view=None)
+
+
 def _normalize_lookup_key(value: Any) -> str:
     """Normalize names/ids for fuzzy lookup across spaces, hyphens, and punctuation."""
     if value is None:
@@ -192,7 +215,12 @@ class MCOCAdminPrefix(commands.Cog):
             meta = getattr(cache, "metadata", {}) or {}
             last_sync = meta.get("last_sync", "Never")
             versions = meta.get("versions", {})
-            
+
+            health = getattr(cache, "health_check", None)
+            health_summary = health() if callable(health) else {"ok": True, "issues": [], "details": {}}
+            health_ok = bool(health_summary.get("ok", True))
+            health_details_map = health_summary.get("details", {}) or {}
+
             # Gather all cached data counts
             champs_count = len(cache.get_all_champions() or [])
             abilities_count = len(cache.get_all_abilities() or [])
@@ -201,27 +229,40 @@ class MCOCAdminPrefix(commands.Cog):
             aw_count = len(cache.get_all_aw() or [])
             champions_map_count = len(cache.get_all_champions_map() or [])
             glossary_count = len(cache.get_all_glossary_terms() or [])
-            
+
             # Prestige data
             prestige_data = cache._load_file("prestige") or {}
             prestige_rows = prestige_data.get("rows", []) if isinstance(prestige_data, dict) else []
             prestige_rows_count = len(prestige_rows)
-            
+
             # Tierlist data
             tierlist_data = cache._load_file("tierlist") or {}
             tierlist_champs = tierlist_data.get("champions", []) if isinstance(tierlist_data, dict) else []
             tierlist_count = len(tierlist_champs)
-            
+
             # API client status
             api_available = bool(getattr(parent, "api", None))
-            
+
             # Build comprehensive embed
-            emb = Embed.embed(ctx, title="📊 MCOC Cache Status", color=discord.Color.gold())
-            
+            emb = Embed.embed(ctx, title="📊 MCOC Cache Status", color=discord.Color.gold() if health_ok else discord.Color.orange())
+
             # Core sync info
-            Embed.add_field(ctx, emb=emb, name="Last Sync", value=last_sync, inline=False)
+            Embed.add_field(ctx, emb=emb, name="Last Sync", value=str(last_sync), inline=False)
             Embed.add_field(ctx, emb=emb, name="API Connected", value="✅ Yes" if api_available else "❌ No", inline=True)
-            
+            health_text = "✅ Healthy" if health_ok else "⚠️ Issues detected"
+            health_details = "No malformed cache payloads found." if health_ok else "\n".join(f"• {issue}" for issue in health_summary.get("issues", [])[:3])
+            Embed.add_field(ctx, emb=emb, name="Cache Health", value=f"{health_text}\n{health_details}", inline=True)
+
+            internal_data_lines = [
+                f"• Champions: **{champs_count}** ({'OK' if health_details_map.get('champions', {}).get('valid', True) else 'BAD'})",
+                f"• Abilities: **{abilities_count}** ({'OK' if health_details_map.get('abilities', {}).get('valid', True) else 'BAD'})",
+                f"• Tags: **{tags_count}** ({'OK' if health_details_map.get('tags', {}).get('valid', True) else 'BAD'})",
+                f"• Immunities: **{immunities_count}** ({'OK' if health_details_map.get('immunities', {}).get('valid', True) else 'BAD'})",
+                f"• AW: **{aw_count}** ({'OK' if health_details_map.get('aw', {}).get('valid', True) else 'BAD'})",
+                f"• Tierlist: **{tierlist_count}** ({'OK' if health_details_map.get('tierlist', {}).get('valid', True) else 'BAD'})",
+            ]
+            Embed.add_field(ctx, emb=emb, name="Internal Data", value="\n".join(internal_data_lines), inline=False)
+
             # Core data counts
             core_data = (
                 f"• Champions: **{champs_count}**\n"
@@ -230,7 +271,7 @@ class MCOCAdminPrefix(commands.Cog):
                 f"• Immunities: **{immunities_count}**"
             )
             Embed.add_field(ctx, emb=emb, name="Core Data", value=core_data, inline=True)
-            
+
             # Extended data
             extended_data = (
                 f"• Alliance War: **{aw_count}**\n"
@@ -239,23 +280,24 @@ class MCOCAdminPrefix(commands.Cog):
                 f"• Tierlist: **{tierlist_count}**"
             )
             Embed.add_field(ctx, emb=emb, name="Extended Data", value=extended_data, inline=True)
-            
+
             # Prestige data
             prestige_info = (
                 f"• Rows: **{prestige_rows_count}**\n"
                 f"• Version: `{versions.get('prestige', 'unknown')}`"
             )
             Embed.add_field(ctx, emb=emb, name="Prestige", value=prestige_info, inline=False)
-            
+
             # Cache versions
             if versions:
-                version_items = [f"• {k}: `{v[:16]}{'...' if len(v) > 16 else ''}`" for k, v in versions.items()]
+                version_items = [f"• {k}: `{str(v)[:16]}{'...' if len(str(v)) > 16 else ''}`" for k, v in versions.items()]
                 version_text = "\n".join(version_items)
             else:
                 version_text = "No cached versions found."
             Embed.add_field(ctx, emb=emb, name="Version Hashes", value=version_text, inline=False)
-            
-            await safe_send_ctx(ctx, None, embed=emb)
+
+            view = CacheHealthCleanupView(cache) if not health_ok else None
+            await safe_send_ctx(ctx, None, embed=emb, view=view)
         except Exception:
             log.exception("Failed to build status")
             await safe_send_ctx(ctx, "Failed to fetch status. Check logs.")

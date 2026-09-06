@@ -1077,3 +1077,143 @@ class CacheManager:
         except Exception:
             log.exception("Failed to load cache file %s", path)
             return {}
+
+    def _cache_file_schema(self, name: str) -> Optional[str]:
+        return {
+            "champions": "champions",
+            "abilities": "abilities",
+            "tags": "tags",
+            "immunities": "immunities",
+            "aw": "aw",
+            "tierlist": "champions",
+            "champions_map": "champions_map",
+            "glossary": "glossary",
+            "prestige": "rows",
+        }.get(name)
+
+    def _is_valid_cache_file(self, name: str, payload: Any) -> bool:
+        if payload is None:
+            return False
+        schema_key = self._cache_file_schema(name)
+        if schema_key is None:
+            return True
+
+        if not isinstance(payload, dict):
+            return False
+
+        if name == "prestige":
+            rows = payload.get("rows")
+            return isinstance(rows, list)
+
+        if name == "tierlist":
+            champions = payload.get("champions")
+            return isinstance(champions, list)
+
+        if name == "aw":
+            aw_payload = payload.get("aw")
+            return isinstance(aw_payload, dict)
+
+        value = payload.get(schema_key)
+        if isinstance(value, dict):
+            return bool(value)
+        if isinstance(value, list):
+            return True
+        return False
+
+    def health_check(self) -> Dict[str, Any]:
+        issues: List[str] = []
+        checked: List[str] = []
+        details: Dict[str, Dict[str, Any]] = {}
+        for name in [
+            "champions",
+            "abilities",
+            "tags",
+            "immunities",
+            "aw",
+            "tierlist",
+            "champions_map",
+            "glossary",
+            "prestige",
+        ]:
+            path = self.cache_dir / f"{name}.json"
+            entry = {"exists": path.exists(), "valid": False, "count": 0, "kind": None}
+            if not path.exists():
+                details[name] = entry
+                continue
+            checked.append(name)
+            try:
+                with open(path, "r", encoding="utf-8") as handle:
+                    payload = json.load(handle)
+            except Exception as exc:
+                issues.append(f"{name}.json is unreadable: {exc}")
+                entry["valid"] = False
+                entry["kind"] = "unreadable"
+                details[name] = entry
+                continue
+
+            valid = self._is_valid_cache_file(name, payload)
+            entry["valid"] = valid
+            entry["kind"] = type(payload).__name__
+            if isinstance(payload, dict):
+                schema_key = self._cache_file_schema(name)
+                value = payload.get(schema_key) if schema_key else payload
+                if isinstance(value, dict):
+                    entry["count"] = len(value)
+                elif isinstance(value, list):
+                    entry["count"] = len(value)
+            elif isinstance(payload, list):
+                entry["count"] = len(payload)
+            if not valid:
+                issues.append(f"{name}.json has a malformed cache payload.")
+            details[name] = entry
+
+        return {
+            "ok": not issues,
+            "issues": issues,
+            "checked": checked,
+            "details": details,
+        }
+
+    def cleanup_stale_cache(self) -> Dict[str, Any]:
+        health = self.health_check()
+        removed: List[str] = []
+
+        for name in health.get("checked", []):
+            path = self.cache_dir / f"{name}.json"
+            if not path.exists():
+                continue
+            try:
+                with open(path, "r", encoding="utf-8") as handle:
+                    payload = json.load(handle)
+            except Exception:
+                try:
+                    path.unlink()
+                    removed.append(name)
+                except Exception:
+                    log.exception("Failed to delete unreadable cache file %s", path)
+                continue
+
+            if not self._is_valid_cache_file(name, payload):
+                try:
+                    path.unlink()
+                    removed.append(name)
+                except Exception:
+                    log.exception("Failed to delete malformed cache file %s", path)
+
+        versions = self.metadata.setdefault("versions", {})
+        for name in removed:
+            if isinstance(versions, dict):
+                versions.pop(name, None)
+
+        if removed:
+            try:
+                self._save_metadata()
+            except Exception:
+                log.exception("Failed to save metadata after cache cleanup")
+
+        return {
+            "healthy": not self.health_check()["issues"],
+            "removed": len(removed),
+            "files": removed,
+            "issues": health["issues"],
+        }

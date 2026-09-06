@@ -574,11 +574,12 @@ async def start_champion_filter_flow(core: Any, ctx_or_interaction: Any, *, raw_
             self.selected_tiers = set(selected_tiers or set())
             self.page_index = max(0, page_index)
 
-            filter_hints = list(dict.fromkeys(self.state.get("filters", []) or [
+            raw_filter_hints = list(self.state.get("filters", []) or [
                 "bleed", "poison", "control", "buff", "debuff", "incinerate", "shield", "stun",
                 "cosmic", "mystic", "science", "skill", "mutant", "tech", "shock", "burn",
                 "immunity", "bleed-immunity", "debuff", "counter", "dodge", "crit"
-            ]))
+            ])
+            filter_hints = sorted(dict.fromkeys(raw_filter_hints), key=lambda value: str(value).lower())
             if filter_hints:
                 page_size = 25
                 total_pages = max(1, (len(filter_hints) + page_size - 1) // page_size)

@@ -209,3 +209,23 @@ def test_roster_selection_label_uses_champion_name_not_slug():
     label = _build_selection_option_label(entry, cache=FakeCache())
 
     assert label == "Doctor Doom (6★ r5 s60 a1)"
+
+
+def test_cache_health_check_flags_invalid_payloads_and_cleanup_can_repair(tmp_path):
+    from mcoc.common.api.cache import CacheManager
+
+    mgr = CacheManager.__new__(CacheManager)
+    mgr.cache_dir = tmp_path
+    mgr.metadata = {"versions": {}, "last_sync": None}
+    mgr.index = type("IndexStub", (), {"rebuild": lambda self: None})()
+
+    (tmp_path / "champions.json").write_text('{"bad": "shape"}', encoding="utf-8")
+    (tmp_path / "tags.json").write_text('[]', encoding="utf-8")
+
+    health = mgr.health_check()
+    assert health["ok"] is False
+    assert any("champions" in issue.lower() for issue in health["issues"])
+
+    result = mgr.cleanup_stale_cache()
+    assert result["healthy"] is True
+    assert result["removed"] >= 1
