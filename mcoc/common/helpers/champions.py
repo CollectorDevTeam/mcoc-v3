@@ -469,6 +469,7 @@ def build_filter_picker_sections(catalog: Optional[List[Any]] = None) -> Dict[st
         "immune_to": [],
         "classes": [],
         "abilities": [],
+        "tiers": [],
         "tags": [],
     }
     seen: Dict[str, set] = {key: set() for key in sections}
@@ -502,6 +503,9 @@ def build_filter_picker_sections(catalog: Optional[List[Any]] = None) -> Dict[st
         if kind in {"ability", "abilities"}:
             add_value("abilities", raw_value)
             continue
+        if kind in {"tier", "tiers", "rarity", "rarities"}:
+            add_value("tiers", raw_value)
+            continue
         if kind in {"tag", "tags"}:
             add_value("tags", raw_value)
             continue
@@ -510,9 +514,33 @@ def build_filter_picker_sections(catalog: Optional[List[Any]] = None) -> Dict[st
         if key == "classes":
             ordered = ["mystic", "cosmic", "tech", "mutant", "skill", "science"]
             sections[key] = sorted(set(sections[key]), key=lambda token: (token not in ordered, ordered.index(token) if token in ordered else 9999, token))
+        elif key == "tiers":
+            sections[key] = sorted(set(sections[key]), key=lambda token: (not str(token).isdigit(), int(token) if str(token).isdigit() else 9999, str(token)))
         else:
             sections[key] = sorted(set(sections[key]))
     return sections
+
+
+def _filter_picker_category_label(category: str) -> str:
+    labels = {
+        "inflicts": "Inflicts",
+        "immune_to": "Immune To",
+        "classes": "Class",
+        "abilities": "Abilities",
+        "tiers": "Tier",
+    }
+    return labels.get(category, _titleize_token(category))
+
+
+def _filter_picker_page_values(values: List[str], page_index: int, *, page_size: int = 25) -> Tuple[List[str], int]:
+    ordered = list(dict.fromkeys(values))
+    if not ordered:
+        return [], 1
+    total_pages = max(1, (len(ordered) + page_size - 1) // page_size)
+    current_page = max(0, min(page_index, total_pages - 1))
+    start = current_page * page_size
+    end = start + page_size
+    return ordered[start:end], total_pages
 
 
 def build_filter_flow_state(filters: Optional[Dict[str, Any]] = None, *, catalog: Optional[List[Any]] = None) -> Dict[str, List[str]]:
@@ -594,90 +622,217 @@ async def start_champion_filter_flow(core: Any, ctx_or_interaction: Any, *, raw_
     if discord is None:
         return False
 
-    sections = build_filter_picker_sections(_collect_champion_filter_catalog(core))
-    state = build_filter_flow_state(parsed_filters or {}, catalog=_collect_champion_filter_catalog(core))
+    catalog = _collect_champion_filter_catalog(core)
+    sections = build_filter_picker_sections(catalog)
+    state = build_filter_flow_state(parsed_filters or {}, catalog=catalog)
     author = getattr(ctx_or_interaction, "author", getattr(ctx_or_interaction, "user", ctx_or_interaction))
     if author is None:
         return False
 
+    category_order = ["inflicts", "immune_to", "classes", "abilities", "tiers"]
+
+    def _normalize_selected(values: Optional[List[Any]]) -> set:
+        selected: set = set()
+        for value in values or []:
+            token = str(value or "").strip().lower().strip("#")
+            if token:
+                selected.add(token)
+        return selected
+
     class _ChampionFilterSelect(discord.ui.Select):
-        def __init__(self, *, key: str, placeholder: str, options: List[discord.SelectOption], max_values: int = 1, selected_values: Optional[set] = None):
+        def __init__(self, *, key: str, placeholder: str, options: List[Any], page_values: List[str], max_values: int = 1, selected_values: Optional[set] = None):
             super().__init__(placeholder=placeholder, min_values=0, max_values=max_values, options=options)
             self.key = key
+            self.page_values = list(page_values)
             self.selected_values = set(selected_values or set())
-            if self.selected_values:
-                self.default = [option for option in options if option.value in self.selected_values]
 
         async def callback(self, interaction: Any):
             view = self.view
             if not isinstance(view, ChampionFilterSelectionView):
                 return
-            setattr(view, f"selected_{self.key}", set(self.values))
-            try:
-                await interaction.response.defer()
-            except Exception:
-                pass
+            view.merge_page_selection(self.key, self.page_values, self.values)
+            await view.refresh(interaction)
+
+    class _ChampionFilterCategoryButton(discord.ui.Button):
+        def __init__(self, *, category: str, selected_count: int):
+            label = _filter_picker_category_label(category)
+            if selected_count:
+                label = f"{label} ({selected_count})"
+            super().__init__(label=label, style=discord.ButtonStyle.primary)
+            self.category = category
+
+        async def callback(self, interaction: Any):
+            view = self.view
+            if not isinstance(view, ChampionFilterSelectionView):
+                return
+            view.active_category = self.category
+            await view.refresh(interaction)
+
+    class _ChampionFilterNavButton(discord.ui.Button):
+        def __init__(self, *, label: str, step: int, disabled: bool = False):
+            super().__init__(label=label, style=discord.ButtonStyle.secondary, disabled=disabled)
+            self.step = step
+
+        async def callback(self, interaction: Any):
+            view = self.view
+            if not isinstance(view, ChampionFilterSelectionView):
+                return
+            current = view.page_index.get(view.active_category, 0)
+            page_values, total_pages = _filter_picker_page_values(view.section_values(view.active_category), current)
+            del page_values
+            view.page_index[view.active_category] = max(0, min(total_pages - 1, current + self.step))
+            await view.refresh(interaction)
+
+    class _ChampionFilterClearButton(discord.ui.Button):
+        def __init__(self):
+            super().__init__(label="Clear Category", style=discord.ButtonStyle.danger)
+
+        async def callback(self, interaction: Any):
+            view = self.view
+            if not isinstance(view, ChampionFilterSelectionView):
+                return
+            view.selected_by_category[view.active_category] = set()
+            await view.refresh(interaction)
+
+    class _ChampionFilterApplyButton(discord.ui.Button):
+        def __init__(self):
+            super().__init__(label="Apply Filters", style=discord.ButtonStyle.success)
+
+        async def callback(self, interaction: Any):
+            view = self.view
+            if not isinstance(view, ChampionFilterSelectionView):
+                return
+            await view.apply(interaction)
 
     class ChampionFilterSelectionView(discord.ui.View):
-        def __init__(self, *, core: Any, author: Any, state: Dict[str, List[str]], raw_input: Optional[str] = None, parsed_filters: Optional[Dict[str, Any]] = None, selected_inflicts: Optional[set] = None, selected_immune_to: Optional[set] = None, selected_classes: Optional[set] = None, selected_abilities: Optional[set] = None, selected_tiers: Optional[set] = None):
+        def __init__(self, *, core: Any, author: Any, state: Dict[str, List[str]], raw_input: Optional[str] = None, parsed_filters: Optional[Dict[str, Any]] = None):
             super().__init__(timeout=180)
             self.core = core
             self.author = author
             self.state = dict(state)
             self.raw_input = raw_input or ""
             self.parsed_filters = dict(parsed_filters or {})
-            self.selected_inflicts = set(selected_inflicts or set())
-            self.selected_immune_to = set(selected_immune_to or set())
-            self.selected_classes = set(selected_classes or set())
-            self.selected_abilities = set(selected_abilities or set())
-            self.selected_tiers = set(selected_tiers or set())
+            self.sections = sections
+            self.selected_by_category: Dict[str, set] = {
+                "inflicts": _normalize_selected(self.parsed_filters.get("inflicts")),
+                "immune_to": _normalize_selected(self.parsed_filters.get("immunities")),
+                "classes": _normalize_selected(self.parsed_filters.get("classes")),
+                "abilities": _normalize_selected(self.parsed_filters.get("abilities")),
+                "tiers": _normalize_selected(self.parsed_filters.get("tiers") or self.parsed_filters.get("rarities")),
+            }
+            self.page_index: Dict[str, int] = {category: 0 for category in category_order}
+            self.active_category = next((category for category in category_order if self.section_values(category)), "inflicts")
+            self._rebuild_items()
 
-            def _build_options(values: List[str], *, max_values: int = 25, label_prefix: Optional[str] = None) -> List[discord.SelectOption]:
-                ordered = sorted(dict.fromkeys(values), key=lambda token: str(token).lower())
-                if label_prefix:
-                    return [discord.SelectOption(label=f"{label_prefix}: {token.replace('-', ' ').title()}", value=token) for token in ordered[:max_values]]
-                return [discord.SelectOption(label=token.replace('-', ' ').title(), value=token) for token in ordered[:max_values]]
+        def section_values(self, category: str) -> List[str]:
+            if category == "inflicts":
+                return self.sections.get("inflicts", []) or ["bleed", "poison", "shock", "burn", "stun", "slow", "heal", "control"]
+            if category == "immune_to":
+                return self.sections.get("immune_to", []) or ["bleed", "poison", "shock", "slow", "stun", "control"]
+            if category == "classes":
+                return self.sections.get("classes", []) or ["skill", "mutant", "tech", "cosmic", "mystic", "science"]
+            if category == "abilities":
+                return self.sections.get("abilities", []) or ["incinerate", "shield", "healing", "buff", "debuff", "counter", "stun"]
+            if category == "tiers":
+                return self.sections.get("tiers", []) or ["6", "7"]
+            return []
 
-            inflict_values = sections.get("inflicts", []) or ["bleed", "poison", "shock", "burn", "stun", "slow", "heal", "control"]
-            inflict_options = _build_options(inflict_values[:25], max_values=25)
-            self.add_item(_ChampionFilterSelect(key="inflicts", placeholder="Select inflicts", options=inflict_options, max_values=min(25, len(inflict_options)), selected_values=self.selected_inflicts))
+        def merge_page_selection(self, category: str, page_values: List[str], current_values: List[str]) -> None:
+            selected = set(self.selected_by_category.get(category, set()))
+            selected.difference_update(page_values)
+            selected.update(str(value).strip().lower() for value in current_values if str(value).strip())
+            self.selected_by_category[category] = selected
 
-            immune_values = sections.get("immune_to", []) or ["bleed", "poison", "shock", "slow", "stun", "control"]
-            immune_options = _build_options(immune_values[:25], max_values=25)
-            self.add_item(_ChampionFilterSelect(key="immune_to", placeholder="Select immune to", options=immune_options, max_values=min(25, len(immune_options)), selected_values=self.selected_immune_to))
+        def _build_select_options(self, category: str, page_values: List[str]) -> List[Any]:
+            selected_values = self.selected_by_category.get(category, set())
+            options: List[Any] = []
+            for token in page_values:
+                label = token.replace("-", " ").replace("_", " ").title()
+                option = discord.SelectOption(label=label, value=token, default=token in selected_values)
+                options.append(option)
+            return options
 
-            class_values = sections.get("classes", []) or ["skill", "mutant", "tech", "cosmic", "mystic", "science"]
-            class_options = [discord.SelectOption(label=cls.replace('-', ' ').title(), value=cls) for cls in class_values]
-            self.add_item(_ChampionFilterSelect(key="classes", placeholder="Select classes", options=class_options, max_values=min(6, len(class_options)), selected_values=self.selected_classes))
+        def _summary_lines(self) -> List[str]:
+            lines: List[str] = []
+            for category in category_order:
+                selected = sorted(self.selected_by_category.get(category, set()))
+                if selected:
+                    lines.append(f"{_filter_picker_category_label(category)}: {', '.join(selected[:6])}{' ...' if len(selected) > 6 else ''}")
+            return lines
 
-            ability_values = sections.get("abilities", []) or ["incinerate", "shield", "healing", "buff", "debuff", "counter", "stun"]
-            ability_options = _build_options(ability_values[:25], max_values=25)
-            self.add_item(_ChampionFilterSelect(key="abilities", placeholder="Select abilities", options=ability_options, max_values=min(25, len(ability_options)), selected_values=self.selected_abilities))
+        def build_embed(self) -> Any:
+            current_values = self.section_values(self.active_category)
+            current_page = self.page_index.get(self.active_category, 0)
+            page_values, total_pages = _filter_picker_page_values(current_values, current_page)
+            selected_count = len(self.selected_by_category.get(self.active_category, set()))
+            summary = self._summary_lines()
+            description_lines = [
+                "Choose a category, then select values from that page.",
+                f"Active category: {_filter_picker_category_label(self.active_category)}",
+                f"Page {min(current_page + 1, total_pages)}/{total_pages} | Showing {len(page_values)} of {len(current_values)} values | Selected {selected_count}",
+            ]
+            if summary:
+                description_lines.append("")
+                description_lines.append("Current filters:")
+                description_lines.extend(summary)
+            return CDTEmbed.embed(self.author, title="Champion Filter Picker", description="\n".join(description_lines))
 
-            apply_button = discord.ui.Button(label="Apply Filters", style=discord.ButtonStyle.success)
-            apply_button.callback = self._apply_callback
-            self.add_item(apply_button)
+        def _rebuild_items(self) -> None:
+            self.clear_items()
+            for category in category_order:
+                self.add_item(_ChampionFilterCategoryButton(category=category, selected_count=len(self.selected_by_category.get(category, set()))))
 
-        async def _apply_callback(self, interaction: Any):
+            current_values = self.section_values(self.active_category)
+            current_page = self.page_index.get(self.active_category, 0)
+            page_values, total_pages = _filter_picker_page_values(current_values, current_page)
+            if page_values:
+                options = self._build_select_options(self.active_category, page_values)
+                max_values = min(25, len(options))
+                self.add_item(_ChampionFilterSelect(key=self.active_category, placeholder=f"Select {_filter_picker_category_label(self.active_category)}", options=options, page_values=page_values, max_values=max_values, selected_values=self.selected_by_category.get(self.active_category, set())))
+
+            self.add_item(_ChampionFilterNavButton(label="Prev", step=-1, disabled=current_page <= 0 or total_pages <= 1))
+            self.add_item(_ChampionFilterNavButton(label="Next", step=1, disabled=current_page >= total_pages - 1 or total_pages <= 1))
+            self.add_item(_ChampionFilterClearButton())
+            self.add_item(_ChampionFilterApplyButton())
+
+        async def refresh(self, interaction: Any) -> None:
+            self._rebuild_items()
+            embed = self.build_embed()
+            try:
+                await interaction.response.edit_message(embed=embed, view=self)
+            except Exception:
+                try:
+                    await interaction.edit_original_response(embed=embed, view=self)
+                except Exception:
+                    pass
+
+        async def apply(self, interaction: Any):
             final_filters = dict(self.parsed_filters)
 
-            selected_inflicts = set(getattr(self, "selected_inflicts", set()))
-            selected_immune_to = set(getattr(self, "selected_immune_to", set()))
-            selected_classes = set(getattr(self, "selected_classes", set()))
-            selected_abilities = set(getattr(self, "selected_abilities", set()))
-            selected_tier_values = set(getattr(self, "selected_tiers", set()))
+            final_filters.pop("inflicts", None)
+            final_filters.pop("immunities", None)
+            final_filters.pop("classes", None)
+            final_filters.pop("abilities", None)
+            final_filters.pop("tiers", None)
+            final_filters.pop("rarities", None)
+
+            selected_inflicts = sorted(self.selected_by_category.get("inflicts", set()))
+            selected_immune_to = sorted(self.selected_by_category.get("immune_to", set()))
+            selected_classes = sorted(self.selected_by_category.get("classes", set()))
+            selected_abilities = sorted(self.selected_by_category.get("abilities", set()))
+            selected_tier_values = sorted(self.selected_by_category.get("tiers", set()))
 
             if selected_inflicts:
-                final_filters["inflicts"] = list(dict.fromkeys([str(v).lower() for v in selected_inflicts]))
+                final_filters["inflicts"] = selected_inflicts
             if selected_immune_to:
-                final_filters["immunities"] = list(dict.fromkeys([str(v).lower() for v in selected_immune_to]))
+                final_filters["immunities"] = selected_immune_to
             if selected_classes:
-                final_filters["classes"] = list(dict.fromkeys([str(v).lower() for v in selected_classes]))
+                final_filters["classes"] = selected_classes
             if selected_abilities:
-                final_filters["abilities"] = list(dict.fromkeys([str(v).lower() for v in selected_abilities]))
+                final_filters["abilities"] = selected_abilities
             if selected_tier_values:
-                final_filters["tiers"] = list(dict.fromkeys([str(v).lower() for v in selected_tier_values]))
-                final_filters["rarities"] = [int(v) for v in final_filters["tiers"] if str(v).isdigit()]
+                final_filters["tiers"] = selected_tier_values
+                final_filters["rarities"] = [int(v) for v in selected_tier_values if str(v).isdigit()]
 
             pages = await get_champion_pages(self.core, interaction.user, filters=final_filters)
             if not pages:
@@ -699,7 +854,7 @@ async def start_champion_filter_flow(core: Any, ctx_or_interaction: Any, *, raw_
                 except Exception:
                     await interaction.followup.send(embed=pages[0], view=pager)
 
-    embed = CDTEmbed.embed(author, title="Champion Filter Picker", description="Choose the filter buckets you want to combine.\nDiscord select menus do not support live text autocomplete, so the picker is split by category for usability.")
+    embed = CDTEmbed.embed(author, title="Champion Filter Picker", description="Choose a category, then page through its full value list.\nDiscord select menus do not support live text autocomplete, so categories and pagination keep the picker usable.")
     view = ChampionFilterSelectionView(core=core, author=author, state=state, raw_input=raw_input, parsed_filters=parsed_filters)
     try:
         target_message = getattr(ctx_or_interaction, "message", None)

@@ -155,6 +155,7 @@ class Champion:
     shortname: Optional[str] = None
     abilities: Optional[List[Dict[str, Any]]] = None
     immunities: Optional[List[Dict[str, Any]]] = None
+    inflicts: Optional[List[str]] = None
     release_year: Optional[int] = None
     prestige: Optional[int] = None
     raw: Optional[Mapping[str, Any]] = None
@@ -213,6 +214,7 @@ def champion_from_dict(d: Optional[Mapping[str, Any]]) -> Optional[Champion]:
         shortname = d.get("shortname") or d.get("alias") or None
         abilities = d.get("abilities") or None
         immunities = d.get("immunities") or None
+        inflicts = d.get("inflicts") or None
         release_year = d.get("release_year") or None
         prestige_raw = d.get("prestige")
         prestige = None
@@ -235,6 +237,7 @@ def champion_from_dict(d: Optional[Mapping[str, Any]]) -> Optional[Champion]:
             shortname=str(shortname) if shortname else None,
             abilities=abilities,
             immunities=immunities,
+            inflicts=list(inflicts) if isinstance(inflicts, list) else ([inflicts] if inflicts else None),
             release_year=release_year,
             prestige=prestige,
             raw=d,

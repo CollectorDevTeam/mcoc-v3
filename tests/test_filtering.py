@@ -1,4 +1,4 @@
-from mcoc.common.helpers.champions import _champion_matches_filters, build_tier_pages, build_filter_flow_state, build_filter_picker_sections
+from mcoc.common.helpers.champions import _champion_matches_filters, build_tier_pages, build_filter_flow_state, build_filter_picker_sections, _filter_picker_page_values
 from mcoc.common.helpers.roster import filter_roster_entries, _build_selection_option_label
 from mcoc.common.utilities.formatters import format_tierlist_champion_line, format_champion_line
 from mcoc.common.helpers.types import MCOCAPP_TIERS, champion_from_dict
@@ -56,6 +56,25 @@ def test_champion_from_dict_preserves_prestige_value():
     assert champ.prestige == 12345
 
 
+def test_champion_from_dict_preserves_inflicts_and_conditional_immunities():
+    champ = champion_from_dict({
+        "id": "abomination",
+        "name": "Abomination",
+        "class": "skill",
+        "inflicts": ["poison", "bleed"],
+        "immunities": [
+            {"type": "stun", "conditional": True},
+            {"type": "shock", "conditional": False},
+        ],
+    })
+
+    assert champ is not None
+    assert champ.inflicts == ["poison", "bleed"]
+    assert champ.immunities[0]["type"] == "stun"
+    assert champ.immunities[0]["conditional"] is True
+    assert champ.immunities[1]["type"] == "shock"
+
+
 def test_champion_match_uses_tags_and_immunities_union():
     champ = {
         "name": "Archangel",
@@ -99,16 +118,33 @@ def test_filter_picker_sections_split_primary_categories():
         {"value": "poison", "type": "immunities"},
         {"value": "mystic", "type": "class"},
         {"value": "incinerate", "type": "abilities"},
+        {"value": "7", "type": "tier"},
     ])
 
     assert "inflicts" in sections
     assert "immune_to" in sections
     assert "classes" in sections
     assert "abilities" in sections
+    assert "tiers" in sections
     assert "shock" in sections["inflicts"]
     assert "poison" in sections["immune_to"]
     assert "mystic" in sections["classes"]
     assert "incinerate" in sections["abilities"]
+    assert "7" in sections["tiers"]
+
+
+def test_filter_picker_page_values_cover_all_entries_across_pages():
+    values = [f"ability-{index}" for index in range(30)]
+
+    first_page, total_pages = _filter_picker_page_values(values, 0)
+    second_page, second_total_pages = _filter_picker_page_values(values, 1)
+
+    assert total_pages == 2
+    assert second_total_pages == 2
+    assert len(first_page) == 25
+    assert len(second_page) == 5
+    assert first_page[0] == "ability-0"
+    assert second_page[-1] == "ability-29"
 
 
 def test_format_champion_line_uses_prestige_when_available():
