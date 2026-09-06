@@ -31,6 +31,7 @@ import logging
 import asyncio
 
 from mcoc.common.components.componentsV2 import CDTEmbed, CDTPagesMenu
+from mcoc.common.helpers.champions import start_champion_filter_flow
 
 if TYPE_CHECKING:
     from discord import Interaction
@@ -1956,3 +1957,54 @@ async def get_roster_pages(core: Any, ctx_or_author: Any, parsed_filters: Option
         else:
             out.append(p)
     return out
+
+
+async def make_roster_pager(core: Any, ctx_or_author: Any, *, raw_input: Optional[str] = None, parsed_filters: Optional[Dict[str, Any]] = None, author_for_controls: Optional[Any] = None) -> Optional[CDTPagesMenu]:
+    """Build a roster pager that can reopen the shared category-first filter picker."""
+    try:
+        parsed = parsed_filters or {}
+        pages = await get_roster_pages(core, ctx_or_author, parsed_filters=parsed)
+        if not pages:
+            return None
+
+        author = author_for_controls or (ctx_or_author.author if hasattr(ctx_or_author, "author") else ctx_or_author)
+        try:
+            pager = CDTPagesMenu(pages, author=author)
+        except TypeError:
+            try:
+                pager = CDTPagesMenu(pages, ctx_or_author)
+            except TypeError:
+                pager = CDTPagesMenu(pages)
+                if hasattr(pager, "author"):
+                    pager.author = author
+
+        async def _load_roster_pages(loader_core: Any, loader_author: Any, final_filters: Dict[str, Any]) -> List[Any]:
+            return await get_roster_pages(loader_core, loader_author, parsed_filters=final_filters)
+
+        async def _handle_filter(menu: CDTPagesMenu, interaction: Any) -> None:
+            del menu
+            try:
+                await start_champion_filter_flow(
+                    core,
+                    interaction,
+                    raw_input=raw_input,
+                    parsed_filters=parsed,
+                    apply_pages_loader=_load_roster_pages,
+                    result_title="Roster",
+                    empty_message="No roster entries match the selected filters.",
+                )
+            except Exception:
+                try:
+                    await interaction.response.send_message("Filter selection is unavailable right now.", ephemeral=True)
+                except Exception:
+                    pass
+
+        try:
+            pager.filter_handler = _handle_filter
+        except Exception:
+            pass
+
+        return pager
+    except Exception:
+        log.exception("make_roster_pager failed")
+        return None

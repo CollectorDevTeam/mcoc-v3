@@ -613,7 +613,7 @@ def build_filter_flow_state(filters: Optional[Dict[str, Any]] = None, *, catalog
     return {"filters": filter_values, "classes": classes, "tiers": tiers}
 
 
-async def start_champion_filter_flow(core: Any, ctx_or_interaction: Any, *, raw_input: Optional[str] = None, parsed_filters: Optional[Dict[str, Any]] = None) -> bool:
+async def start_champion_filter_flow(core: Any, ctx_or_interaction: Any, *, raw_input: Optional[str] = None, parsed_filters: Optional[Dict[str, Any]] = None, apply_pages_loader: Optional[Any] = None, result_title: str = "Champions", empty_message: str = "No champions match the selected filters.") -> bool:
     """Launch the champion filter selector with compact category buckets instead of one giant filter list.
 
     Discord Select widgets do not support text autocomplete; the practical workaround is to
@@ -621,6 +621,9 @@ async def start_champion_filter_flow(core: Any, ctx_or_interaction: Any, *, raw_
     """
     if discord is None:
         return False
+
+    if apply_pages_loader is None:
+        apply_pages_loader = get_champion_pages
 
     catalog = _collect_champion_filter_catalog(core)
     sections = build_filter_picker_sections(catalog)
@@ -834,16 +837,16 @@ async def start_champion_filter_flow(core: Any, ctx_or_interaction: Any, *, raw_
                 final_filters["tiers"] = selected_tier_values
                 final_filters["rarities"] = [int(v) for v in selected_tier_values if str(v).isdigit()]
 
-            pages = await get_champion_pages(self.core, interaction.user, filters=final_filters)
+            pages = await apply_pages_loader(self.core, interaction.user, final_filters)
             if not pages:
                 try:
-                    await interaction.response.edit_message(embed=CDTEmbed.embed(interaction.user, title="Champions", description="No champions match the selected filters."), view=None)
+                    await interaction.response.edit_message(embed=CDTEmbed.embed(interaction.user, title=result_title, description=empty_message), view=None)
                 except Exception:
-                    await interaction.response.send_message("No champions match the selected filters.", ephemeral=True)
+                    await interaction.response.send_message(empty_message, ephemeral=True)
                 return
 
             pager = CDTPagesMenu(pages, author=interaction.user)
-            pager.filter_handler = lambda menu, btn_interaction: start_champion_filter_flow(self.core, btn_interaction, raw_input=self.raw_input, parsed_filters=final_filters)
+            pager.filter_handler = lambda menu, btn_interaction: start_champion_filter_flow(self.core, btn_interaction, raw_input=self.raw_input, parsed_filters=final_filters, apply_pages_loader=apply_pages_loader, result_title=result_title, empty_message=empty_message)
             try:
                 await interaction.response.edit_message(embed=pages[0], view=pager)
                 pager.message = await interaction.original_response()

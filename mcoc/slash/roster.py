@@ -21,6 +21,7 @@ from ..common.helpers.roster import (
     ensure_user_manager,
     extract_entry_from_parsed,
     build_roster_pages,
+    make_roster_pager,
     validate_entry_for_add,
 )
 from ..common.components.componentsV2 import CDTEmbed, CDTPagesMenu, CDTConfirm
@@ -197,24 +198,21 @@ class _RosterGroup(app_commands.Group):
     @app_commands.command(name="list", description="List your roster with optional filters")
     async def list(self, interaction, hargs: Optional[str] = None):
         parsed = parse_hargs(hargs or "")
-        pages = await build_roster_pages(self.core, interaction.user.id, parsed)
+        pager = await make_roster_pager(self.core, interaction.user, raw_input=hargs or "", parsed_filters=parsed, author_for_controls=interaction.user)
 
-        if not pages:
+        if not pager:
             await interaction.response.send_message("No roster entries match your filters.", ephemeral=True)
             return
 
         # add page numbers and send with PagesMenu if available
         try:
-            # add footers if helper exists
-            try:
-                pages = CDTEmbed.add_page_footers(pages)
-            except Exception:
-                pass
-            await interaction.response.send_message(embed=pages[0], view=CDTPagesMenu(pages, author=interaction.user))
+            await interaction.response.send_message(embed=pager.pages[0], view=pager)
         except Exception:
             # fallback: send simple list
-            names = [p.get("title") or "Entry" for p in pages][:50]
-            await interaction.response.send_message(f"Matches ({len(pages)}): {', '.join(names)}", ephemeral=True)
+            names = []
+            for page in pager.pages[:50]:
+                names.append(page.get("title") if isinstance(page, dict) else getattr(page, "title", None) or "Entry")
+            await interaction.response.send_message(f"Matches ({len(pager.pages)}): {', '.join(names)}", ephemeral=True)
 
     # -------------------------
     # /roster export

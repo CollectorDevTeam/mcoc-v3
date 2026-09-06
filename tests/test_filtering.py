@@ -3,6 +3,7 @@ from mcoc.common.helpers.roster import filter_roster_entries, _build_selection_o
 from mcoc.common.utilities.formatters import format_tierlist_champion_line, format_champion_line
 from mcoc.common.helpers.types import MCOCAPP_TIERS, champion_from_dict
 from mcoc.common.utilities.query_parser import parse_query
+import asyncio
 
 
 def test_parse_query_tracks_immunity_tokens_and_rarity():
@@ -292,3 +293,27 @@ def test_cache_health_check_flags_invalid_payloads_and_cleanup_can_repair(tmp_pa
     result = mgr.cleanup_stale_cache()
     assert result["healthy"] is True
     assert result["removed"] >= 1
+
+
+def test_make_roster_pager_attaches_filter_handler(monkeypatch):
+    from mcoc.common.helpers import roster as roster_helpers
+
+    class FakePager:
+        def __init__(self, pages, author=None):
+            self.pages = pages
+            self.author = author
+            self.filter_handler = None
+
+    async def fake_get_roster_pages(core, ctx_or_author, parsed_filters=None):
+        del core, ctx_or_author, parsed_filters
+        return [{"title": "Roster", "description": "Alpha"}]
+
+    monkeypatch.setattr(roster_helpers, "get_roster_pages", fake_get_roster_pages)
+    monkeypatch.setattr(roster_helpers, "CDTPagesMenu", FakePager)
+
+    author = type("Author", (), {"id": 1})()
+    pager = asyncio.run(roster_helpers.make_roster_pager(object(), author, raw_input="#bleed", parsed_filters={"tags": ["bleed"]}))
+
+    assert pager is not None
+    assert pager.pages
+    assert callable(pager.filter_handler)

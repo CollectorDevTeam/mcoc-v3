@@ -196,16 +196,15 @@ class RosterPrefix(commands.Cog):
             parsed_filters.update(filters)
 
         try:
-            pages = await Roster.get_roster_pages(self.parent, target_member, parsed_filters=parsed_filters)
-            if not pages:
+            pager = await Roster.make_roster_pager(self.parent, target_member, raw_input=items_text, parsed_filters=parsed_filters, author_for_controls=ctx.author)
+            if not pager:
                 await safe_send_ctx(ctx, "No roster entries match your filters.")
                 return
             try:
-                pager = PagesMenu(pages, author=ctx.author)
                 await pager.start(ctx)
                 return
             except Exception:
-                first = pages[0]
+                first = pager.pages[0]
                 await ctx.send(embed=first)
                 return
         except Exception:
