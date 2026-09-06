@@ -638,22 +638,21 @@ async def start_champion_filter_flow(core: Any, ctx_or_interaction: Any, *, raw_
                     return [discord.SelectOption(label=f"{label_prefix}: {token.replace('-', ' ').title()}", value=token) for token in ordered[:max_values]]
                 return [discord.SelectOption(label=token.replace('-', ' ').title(), value=token) for token in ordered[:max_values]]
 
-            inflicts = sections.get("inflicts", [])
-            if inflicts:
-                self.add_item(_ChampionFilterSelect(key="inflicts", placeholder="Select inflicts", options=_build_options(inflicts, max_values=25), max_values=min(25, len(inflicts)), selected_values=self.selected_inflicts))
+            inflict_values = sections.get("inflicts", []) or ["bleed", "poison", "shock", "burn", "stun", "slow", "heal", "control"]
+            inflict_options = _build_options(inflict_values[:25], max_values=25)
+            self.add_item(_ChampionFilterSelect(key="inflicts", placeholder="Select inflicts", options=inflict_options, max_values=min(25, len(inflict_options)), selected_values=self.selected_inflicts))
 
-            immune_to = sections.get("immune_to", [])
-            if immune_to:
-                self.add_item(_ChampionFilterSelect(key="immune_to", placeholder="Select immune to", options=_build_options(immune_to, max_values=25), max_values=min(25, len(immune_to)), selected_values=self.selected_immune_to))
+            immune_values = sections.get("immune_to", []) or ["bleed", "poison", "shock", "slow", "stun", "control"]
+            immune_options = _build_options(immune_values[:25], max_values=25)
+            self.add_item(_ChampionFilterSelect(key="immune_to", placeholder="Select immune to", options=immune_options, max_values=min(25, len(immune_options)), selected_values=self.selected_immune_to))
 
             class_values = sections.get("classes", []) or ["skill", "mutant", "tech", "cosmic", "mystic", "science"]
             class_options = [discord.SelectOption(label=cls.replace('-', ' ').title(), value=cls) for cls in class_values]
-            self.add_item(_ChampionFilterSelect(key="classes", placeholder="Choose classes", options=class_options, max_values=min(6, len(class_options)), selected_values=self.selected_classes))
+            self.add_item(_ChampionFilterSelect(key="classes", placeholder="Select classes", options=class_options, max_values=min(6, len(class_options)), selected_values=self.selected_classes))
 
-            ability_values = sections.get("abilities", [])
-            if ability_values:
-                ability_options = _build_options(ability_values[:25], max_values=25)
-                self.add_item(_ChampionFilterSelect(key="abilities", placeholder="Select abilities", options=ability_options, max_values=min(25, len(ability_options)), selected_values=self.selected_abilities))
+            ability_values = sections.get("abilities", []) or ["incinerate", "shield", "healing", "buff", "debuff", "counter", "stun"]
+            ability_options = _build_options(ability_values[:25], max_values=25)
+            self.add_item(_ChampionFilterSelect(key="abilities", placeholder="Select abilities", options=ability_options, max_values=min(25, len(ability_options)), selected_values=self.selected_abilities))
 
             apply_button = discord.ui.Button(label="Apply Filters", style=discord.ButtonStyle.success)
             apply_button.callback = self._apply_callback
