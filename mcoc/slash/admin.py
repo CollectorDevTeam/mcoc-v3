@@ -13,6 +13,9 @@ from discord import app_commands
 from redbot.core import commands
 from typing import Optional
 
+from ..common.components.componentsV2 import CDTEmbed, CDTPagesMenu
+from ..common.helpers.admin_status import collect_admin_status_snapshot, build_admin_status_page_specs
+
 log = logging.getLogger("red.mcoc.slash.admin")
 
 
@@ -58,7 +61,11 @@ class _AdminGroup(app_commands.Group):
 
     @app_commands.command(name="status", description="Show sync and API status")
     async def status(self, interaction: discord.Interaction):
-        metadata = getattr(self.core, "cache", None) and getattr(self.core.cache, "metadata", {})
+        cache = getattr(self.core, "cache", None)
+        if not cache:
+            await interaction.response.send_message("Cache not available on core.", ephemeral=True)
+            return
+
         api_key = None
         interval = None
         try:
@@ -68,18 +75,26 @@ class _AdminGroup(app_commands.Group):
         except Exception:
             pass
 
-        embed = discord.Embed(title="CollectorBot Status", color=discord.Color.gold())
-        embed.add_field(name="API Key", value="Set" if api_key else "Not Set", inline=False)
-        embed.add_field(name="Sync Interval", value=f"{interval} hours" if interval else "Unknown", inline=False)
+        health = getattr(cache, "health_check", None)
+        health_summary = health() if callable(health) else {"ok": True, "issues": [], "details": {}}
+        snapshot = await collect_admin_status_snapshot(self.core, cache, health_summary)
+        specs = build_admin_status_page_specs(snapshot)
+        color = discord.Color.gold() if bool(health_summary.get("ok", True)) else discord.Color.orange()
 
-        versions = (metadata or {}).get("versions", {})
-        if versions:
-            version_text = "\n".join(f"• {k}: `{v}`" for k, v in versions.items())
-        else:
-            version_text = "No cache metadata found."
-        embed.add_field(name="Cached Versions", value=version_text, inline=False)
+        pages = []
+        total_pages = len(specs)
+        for index, spec in enumerate(specs, start=1):
+            description = spec.get("description", "")
+            if index == 1:
+                description = f"API Key: {'Set' if api_key else 'Not Set'}\nSync Interval: {str(interval) + ' hours' if interval else 'Unknown'}\n\n{description}"
+            embed = CDTEmbed.embed(interaction, title=spec.get("title", "MCOC Status"), description=description, color=color)
+            try:
+                CDTEmbed.set_footer(interaction, embed, text=f"Page {index} of {total_pages} | Collector | Admin Status")
+            except Exception:
+                pass
+            pages.append(embed)
 
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+        await interaction.response.send_message(embed=pages[0], view=CDTPagesMenu(pages, author=interaction.user), ephemeral=True)
 
     @app_commands.command(name="forcesync", description="Force a full sync from MCOCHUB")
     async def forcesync(self, interaction: discord.Interaction):

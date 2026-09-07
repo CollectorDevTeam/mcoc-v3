@@ -35,6 +35,7 @@ Entitlements = Core.Entitlements
 from mcoc.common.components.cache_status import CacheStatusPoster
 from mcoc.common.components.help_utils import send_or_brand_help
 from mcoc.common.components.prefix_utils import safe_send_ctx
+from mcoc.common.helpers.admin_status import collect_admin_status_snapshot, build_admin_status_page_specs
 
 
 
@@ -77,146 +78,6 @@ def _normalize_lookup_key(value: Any) -> str:
 
 class MCOCAdminPrefix(commands.Cog):
     """Prefix commands for MCOC admin (development / fallback)."""
-
-    def _build_status_embed(self, ctx: Any, *, title: str, description: str, color: Any) -> Any:
-        return Embed.embed(ctx, title=title, description=description, color=color)
-
-    def _build_alignment_chart_text(self) -> str:
-        rows = [
-            ("name/id/slug", "champions.id,name", "champions.name/id", "champ_name input", "Champion.slug,name"),
-            ("class", "champions.class", "champions.class", "className", "Champion.class_name"),
-            ("abilities", "abilities + champ refs", "champion tags only", "coreAbilities,sigAbilities", "Champion.abilities"),
-            ("immunities", "champions/immunities", "immunity_map,immunity_types", "embedded text only", "Champion.immunities"),
-            ("inflicts", "derived from abilities", "debuff_map,debuff_types", "embedded text only", "Champion.inflicts"),
-            ("synergies", "partial notes", "not modeled", "synergies.title/parts/partners", "detail helpers"),
-            ("prestige", "prestige rows,map", "discarded from tierlist", "baseStats.Prestige", "Champion.prestige"),
-        ]
-        header = "Property         | MCOCHub              | mcoc.app                | Cocpit                    | CDT Internal"
-        divider = "---------------- | -------------------- | ----------------------- | ------------------------- | --------------------"
-        lines = [header, divider]
-        for prop, hub, app, cocpit, internal in rows:
-            lines.append(f"{prop:<16} | {hub:<20} | {app:<23} | {cocpit:<25} | {internal}")
-        return "```text\n" + "\n".join(lines)[:3900] + "\n```"
-
-    def _build_status_pages(self, ctx: Any, parent: Any, cache: Any, health_summary: dict) -> list[Any]:
-        meta = getattr(cache, "metadata", {}) or {}
-        last_sync = meta.get("last_sync", "Never")
-        versions = meta.get("versions", {}) or {}
-        health_ok = bool(health_summary.get("ok", True))
-        health_details_map = health_summary.get("details", {}) or {}
-        color = discord.Color.gold() if health_ok else discord.Color.orange()
-
-        champions = cache.get_all_champions() or []
-        abilities = cache.get_all_abilities() or []
-        tags = cache.get_all_tags() or []
-        immunities = cache.get_all_immunities() or []
-        aw_rows = cache.get_all_aw() or []
-        champion_map_rows = cache.get_all_champions_map() or []
-        glossary_rows = cache.get_all_glossary_terms() or []
-
-        prestige_data = cache._load_file("prestige") or {}
-        prestige_rows = prestige_data.get("rows", []) if isinstance(prestige_data, dict) else []
-
-        tierlist_data = cache._load_file("tierlist") or {}
-        tierlist_champions = tierlist_data.get("champions", []) if isinstance(tierlist_data, dict) else []
-        tierlist_order = tierlist_data.get("tier_order", []) if isinstance(tierlist_data, dict) else []
-        tierlist_tag_labels = tierlist_data.get("tag_labels", {}) if isinstance(tierlist_data, dict) else {}
-        tierlist_immunity_types = tierlist_data.get("immunity_types", []) if isinstance(tierlist_data, dict) else []
-        tierlist_debuff_types = tierlist_data.get("debuff_types", []) if isinstance(tierlist_data, dict) else []
-
-        sample_abilities = len([champ for champ in champions if champ.get("abilities")])
-        sample_immunities = len([champ for champ in champions if champ.get("immunities")])
-        sample_inflicts = len([champ for champ in champions if champ.get("inflicts")])
-
-        internal_lines = [
-            f"Last sync: {last_sync}",
-            f"API attached: {'Yes' if getattr(parent, 'api', None) else 'No'}",
-            f"Cache health: {'Healthy' if health_ok else 'Issues detected'}",
-            "",
-            f"Champions: {len(champions)} ({'OK' if health_details_map.get('champions', {}).get('valid', True) else 'BAD'})",
-            f"Abilities: {len(abilities)} ({'OK' if health_details_map.get('abilities', {}).get('valid', True) else 'BAD'})",
-            f"Tags: {len(tags)} ({'OK' if health_details_map.get('tags', {}).get('valid', True) else 'BAD'})",
-            f"Immunities: {len(immunities)} ({'OK' if health_details_map.get('immunities', {}).get('valid', True) else 'BAD'})",
-            f"Prestige rows: {len(prestige_rows)}",
-            f"Export: ///mcocadmin export-champions",
-        ]
-        if not health_ok:
-            issues = health_summary.get("issues", [])[:6]
-            if issues:
-                internal_lines.extend(["", "Health issues:", *[f"- {issue}" for issue in issues]])
-        internal_page = self._build_status_embed(ctx, title="MCOC Status | CDT Internal", description="\n".join(internal_lines), color=color)
-
-        mcochub_lines = [
-            "Primary sync source for champions, abilities, tags, immunities, and AW.",
-            "",
-            f"Champion rows: {len(champions)}",
-            f"Ability rows: {len(abilities)}",
-            f"Tag rows: {len(tags)}",
-            f"Immunity rows: {len(immunities)}",
-            f"AW payload rows: {len(aw_rows)}",
-            f"Prestige rows: {len(prestige_rows)}",
-            f"Version hashes: champions={str(versions.get('champions', 'n/a'))[:12]} abilities={str(versions.get('abilities', 'n/a'))[:12]} tags={str(versions.get('tags', 'n/a'))[:12]} immunities={str(versions.get('immunities', 'n/a'))[:12]}",
-            "",
-            "Coverage into CDT champion cache:",
-            f"- champions carrying abilities: {sample_abilities}",
-            f"- champions carrying immunities: {sample_immunities}",
-            f"- champions carrying inflicts: {sample_inflicts}",
-        ]
-        mcochub_page = self._build_status_embed(ctx, title="MCOC Status | MCOCHub", description="\n".join(mcochub_lines), color=color)
-
-        mcoc_app_lines = [
-            "Tierlist/document source used for tier ordering and filter vocabulary metadata.",
-            "",
-            f"Tierlist champions: {len(tierlist_champions)}",
-            f"Tier order entries: {len(tierlist_order)}",
-            f"Tag labels: {len(tierlist_tag_labels) if isinstance(tierlist_tag_labels, dict) else 0}",
-            f"Immunity types: {len(tierlist_immunity_types)}",
-            f"Debuff types: {len(tierlist_debuff_types)}",
-            f"Version hash: {str(versions.get('tierlist', 'n/a'))[:16]}",
-            "",
-            "Imported semantic fields:",
-            "- champions[]",
-            "- tag_labels",
-            "- immunity_map / immunity_types",
-            "- debuff_map / debuff_types",
-            "- tier_order / tier_colors / class_colors",
-        ]
-        mcoc_app_page = self._build_status_embed(ctx, title="MCOC Status | mcoc.app", description="\n".join(mcoc_app_lines), color=color)
-
-        cocpit_url = getattr(getattr(parent, 'api', None), 'COCPIT_CHAMPION_URL', 'https://cocpit.org/champion-abilities')
-        cocpit_lines = [
-            "On-demand descriptive source for champion abilities and synergies.",
-            "",
-            f"Endpoint: {cocpit_url}",
-            "Fetch mode: live per champion, not cached in the current cache manager",
-            "",
-            "Preferred detail fields:",
-            "- sigAbilityDisplayName",
-            "- sigAbilities",
-            "- coreAbilities",
-            "- synergies.title",
-            "- synergies.description_parts",
-            "- synergies.partners",
-            "- rotationData.summary_parts",
-            "- baseStats.Prestige",
-            "",
-            "Model status:",
-            "- Cocpit champion detail model registered",
-            "- Cocpit champion autocomplete model registered",
-            "- champ abilities and synergies now prefer Cocpit text",
-        ]
-        cocpit_page = self._build_status_embed(ctx, title="MCOC Status | Cocpit", description="\n".join(cocpit_lines), color=color)
-
-        alignment_page = self._build_status_embed(ctx, title="MCOC Status | Property Alignment", description=self._build_alignment_chart_text(), color=color)
-        try:
-            Embed.set_footer(ctx, internal_page, text=f"Page 1 of 5 | Collector | Admin Status")
-            Embed.set_footer(ctx, mcochub_page, text=f"Page 2 of 5 | Collector | Admin Status")
-            Embed.set_footer(ctx, mcoc_app_page, text=f"Page 3 of 5 | Collector | Admin Status")
-            Embed.set_footer(ctx, cocpit_page, text=f"Page 4 of 5 | Collector | Admin Status")
-            Embed.set_footer(ctx, alignment_page, text=f"Page 5 of 5 | Collector | Admin Status")
-        except Exception:
-            pass
-        return [internal_page, mcochub_page, mcoc_app_page, cocpit_page, alignment_page]
 
     is_mcoc_prefix = True
     mcoc_version = "3.0.0"
@@ -355,7 +216,18 @@ class MCOCAdminPrefix(commands.Cog):
         try:
             health = getattr(cache, "health_check", None)
             health_summary = health() if callable(health) else {"ok": True, "issues": [], "details": {}}
-            pages = self._build_status_pages(ctx, parent, cache, health_summary)
+            snapshot = await collect_admin_status_snapshot(parent, cache, health_summary)
+            specs = build_admin_status_page_specs(snapshot)
+            color = discord.Color.gold() if bool(health_summary.get("ok", True)) else discord.Color.orange()
+            total_pages = len(specs)
+            pages = []
+            for index, spec in enumerate(specs, start=1):
+                emb = Embed.embed(ctx, title=spec.get("title", "MCOC Status"), description=spec.get("description", ""), color=color)
+                try:
+                    Embed.set_footer(ctx, emb, text=f"Page {index} of {total_pages} | Collector | Admin Status")
+                except Exception:
+                    pass
+                pages.append(emb)
             cleanup_view = CacheHealthCleanupView(cache) if not bool(health_summary.get("ok", True)) else None
             try:
                 pager = PagesMenu(pages, author=ctx.author)
