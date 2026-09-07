@@ -346,6 +346,35 @@ class RosterPrefix(commands.Cog):
             log.exception("roster_export failed for %s", user_id)
             await safe_send_ctx(ctx, "Failed to export your data.")
 
+    @roster.command(name="import")
+    async def roster_import(self, ctx):
+        """Import roster entries from an attached Cocpit CSV export."""
+        if not await self._require_parent(ctx):
+            return
+
+        attachments = list(getattr(getattr(ctx, "message", None), "attachments", []) or [])
+        if not attachments:
+            await safe_send_ctx(ctx, "Attach a Cocpit roster CSV file to the command message.")
+            return
+
+        attachment = attachments[0]
+        try:
+            payload = await attachment.read()
+            text = payload.decode("utf-8-sig", errors="replace")
+            entries = Roster.parse_roster_entries_from_input(text, getattr(self.parent, "cache", None))
+            result = Roster.import_roster_entries(self.parent, getattr(ctx.author, "id", None), entries)
+        except Exception as exc:
+            log.exception("roster_import failed")
+            await safe_send_ctx(ctx, f"Failed to import roster CSV: {exc}")
+            return
+
+        imported = result.get("imported", 0)
+        errors = result.get("errors", []) or []
+        message = f"Imported {imported} roster entr{'y' if imported == 1 else 'ies'} from {attachment.filename}."
+        if errors:
+            message = f"{message}\nFirst error: {errors[0]}"
+        await safe_send_ctx(ctx, message)
+
     @roster.command(name="clear")
     async def roster_clear(self, ctx, confirm: Optional[str] = None):
         """Clear the user's roster after confirmation."""

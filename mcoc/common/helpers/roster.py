@@ -26,6 +26,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
 from dataclasses import dataclass
+import csv
+import io
 import re
 import logging
 import asyncio
@@ -411,6 +413,94 @@ def _resolve_champion_slug(name: str, cache) -> str:
     raise ValueError(f"Champion not found for '{name}'")
 
 
+def _normalize_csv_header(value: Any) -> str:
+    return re.sub(r"[^a-z0-9]+", "", str(value or "").strip().lower())
+
+
+def _looks_like_cocpit_roster_csv(text: str) -> bool:
+    if not text or not text.strip():
+        return False
+    lines = [line for line in text.splitlines() if line.strip()]
+    if not lines:
+        return False
+    try:
+        headers = next(csv.reader([lines[0]]))
+    except Exception:
+        return False
+    normalized_headers = {_normalize_csv_header(header) for header in headers}
+    required = {
+        "id",
+        "fullname",
+        "class",
+        "rarity",
+        "rank",
+        "siglevel",
+        "ascensionlevel",
+    }
+    return required.issubset(normalized_headers)
+
+
+def parse_cocpit_roster_csv(text: str, cache) -> List[Dict[str, Any]]:
+    """Parse a Cocpit roster CSV export into canonical roster entries."""
+    if not text or not text.strip():
+        raise ValueError("No CSV input provided")
+
+    reader = csv.DictReader(io.StringIO(text.strip()))
+    if not reader.fieldnames:
+        raise ValueError("Roster CSV is missing headers")
+
+    header_lookup = {_normalize_csv_header(header): header for header in reader.fieldnames if header}
+    required = ["id", "fullname", "class", "rarity", "rank", "siglevel", "ascensionlevel"]
+    missing = [header for header in required if header not in header_lookup]
+    if missing:
+        raise ValueError(f"Roster CSV is missing required columns: {', '.join(missing)}")
+
+    out: List[Dict[str, Any]] = []
+    errors: List[str] = []
+    for index, row in enumerate(reader, start=2):
+        try:
+            champ_id = str(row.get(header_lookup["id"]) or "").strip()
+            full_name = str(row.get(header_lookup["fullname"]) or "").strip()
+            champion_ref = champ_id or full_name
+            if not champion_ref:
+                errors.append(f"Row {index}: missing champion id and name")
+                continue
+
+            slug = _resolve_champion_slug(champion_ref, cache)
+            rarity, rank, sig, ascended = normalize_champion_progression(
+                row.get(header_lookup["rarity"]) or 6,
+                row.get(header_lookup["rank"]) or 1,
+                row.get(header_lookup["siglevel"]) or 0,
+                row.get(header_lookup["ascensionlevel"]) or 0,
+            )
+
+            prestige_value = row.get(header_lookup.get("prestige", "")) if header_lookup.get("prestige") else None
+            prestige = None
+            if prestige_value not in (None, ""):
+                try:
+                    prestige = int(str(prestige_value).strip())
+                except Exception:
+                    prestige = None
+
+            out.append({
+                "champion": slug,
+                "rarity": rarity,
+                "rank": rank,
+                "sig": sig,
+                "ascended": ascended,
+                "tags": [],
+                "class": str(row.get(header_lookup["class"]) or "").strip().lower() or None,
+                "prestige": prestige,
+                "raw": full_name or champion_ref,
+            })
+        except Exception as exc:
+            errors.append(f"Row {index}: {exc}")
+
+    if not out:
+        raise ValueError("No valid CSV roster entries parsed: " + ("; ".join(errors) if errors else "unknown error"))
+    return out
+
+
 def parse_roster_entries_from_input(text: str, cache) -> List[Dict[str, Any]]:
     """
     Parse free-form text into canonical roster entries.
@@ -419,6 +509,9 @@ def parse_roster_entries_from_input(text: str, cache) -> List[Dict[str, Any]]:
     """
     if not text or not text.strip():
         raise ValueError("No input provided")
+
+    if _looks_like_cocpit_roster_csv(text):
+        return parse_cocpit_roster_csv(text, cache)
 
     try:
         parsed_tokens = parse_harg_list(text)
@@ -489,6 +582,40 @@ def parse_roster_entries_from_input(text: str, cache) -> List[Dict[str, Any]]:
     if not out:
         raise ValueError("No valid entries parsed: " + ("; ".join(errors) if errors else "unknown error"))
     return out
+
+
+def import_roster_entries(core: Any, user_id: int, entries: List[Dict[str, Any]], *, users: Optional[Any] = None) -> Dict[str, Any]:
+    """Persist canonical roster entries for a user and schedule prestige recomputation."""
+    if not entries:
+        raise ValueError("No roster entries to import")
+
+    manager = users or ensure_user_manager(core)
+    if manager is None:
+        raise ValueError("User data manager unavailable")
+
+    imported = 0
+    errors: List[str] = []
+    for entry in entries:
+        try:
+            manager.add_champion(
+                user_id,
+                entry["champion"],
+                int(entry.get("rarity") or 6),
+                int(entry.get("rank") or 1),
+                int(entry.get("sig") or 0),
+                int(entry.get("ascended") or 0),
+                tags=entry.get("tags") or [],
+            )
+            imported += 1
+        except Exception as exc:
+            errors.append(str(exc))
+
+    try:
+        schedule_persist_user_prestige(core, user_id)
+    except Exception:
+        pass
+
+    return {"imported": imported, "errors": errors}
 
 
 # -----------------------------

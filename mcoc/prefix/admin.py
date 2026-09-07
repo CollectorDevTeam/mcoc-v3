@@ -14,7 +14,7 @@ a `register_with_group` function so the same commands can be attached to the
 main ///mcoc group via the registrar pattern.
 """
 
-from typing import Any
+from typing import Any, Optional
 import io
 import json
 import re
@@ -109,6 +109,7 @@ class MCOCAdminPrefix(commands.Cog):
                 "feature-disable",
                 "dump",
                 "inspect",
+                "export-champions",
             ]
             emb = Embed.embed(ctx, title="MCOC Admin Help", description="Owner/admin utilities for the MCOC bot.")
             Embed.add_field(ctx, emb=emb, name="Available Commands", value="\n".join(f"• `{cmd}`" for cmd in subcommands), inline=False)
@@ -117,7 +118,7 @@ class MCOCAdminPrefix(commands.Cog):
             return
 
         if not args:
-            subcommands = ["status", "sync", "force-sync", "prestige_sync", "key", "features"]
+            subcommands = ["status", "sync", "force-sync", "prestige_sync", "key", "features", "export-champions"]
             emb = Embed.embed(ctx, title="MCOC Admin", description="Owner/admin utilities for the MCOC bot.")
             Embed.add_field(ctx, emb=emb, name="Common Commands", value="\n".join(f"• `{cmd}`" for cmd in subcommands), inline=False)
             Embed.add_field(ctx, emb=emb, name="Example", value="`///mcocadmin status`", inline=False)
@@ -706,6 +707,33 @@ class MCOCAdminPrefix(commands.Cog):
     async def inspect(self, ctx, kind: str, *, key: str):
         """Alias for the dump command, kept for quick raw object inspection."""
         await self.dump(ctx, kind, key=key)
+
+    @commands.is_owner()
+    @admin.command(name="export-champions")
+    async def export_champions(self, ctx):
+        """Export the normalized CDT champion cache as JSON for offline review."""
+        core = getattr(ctx.bot, "mcoc_core", None)
+        if not core or not getattr(core, "cache", None):
+            await safe_send_ctx(ctx, "MCOC cache not initialized.")
+            return
+
+        cache = core.cache
+        champions = cache.get_all_champions() or []
+        payload = {
+            "exported_at": datetime.datetime.utcnow().isoformat(),
+            "count": len(champions),
+            "champions": champions,
+        }
+
+        try:
+            body = json.dumps(payload, indent=2, ensure_ascii=False)
+        except Exception as exc:
+            await safe_send_ctx(ctx, f"Failed to serialize champion export: {exc}")
+            return
+
+        bio = io.BytesIO(body.encode("utf-8"))
+        bio.seek(0)
+        await ctx.send(file=discord.File(bio, filename="cdt-champions-export.json"))
 
 # Cog setup for Red (async setup)
 async def setup(bot):

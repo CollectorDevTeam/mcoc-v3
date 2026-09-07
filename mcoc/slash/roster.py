@@ -11,7 +11,7 @@
 
 import logging
 from typing import Optional, Any, List
-from discord import app_commands
+from discord import app_commands, Attachment
 from redbot.core import commands
 
 log = logging.getLogger("red.mcoc.slash.roster")
@@ -22,6 +22,8 @@ from ..common.helpers.roster import (
     extract_entry_from_parsed,
     build_roster_pages,
     make_roster_pager,
+    parse_roster_entries_from_input,
+    import_roster_entries,
     validate_entry_for_add,
 )
 from ..common.components.componentsV2 import CDTEmbed, CDTPagesMenu, CDTConfirm
@@ -224,6 +226,25 @@ class _RosterGroup(app_commands.Group):
         import discord
         json_text = discord.utils.escape_markdown(str(data))
         await interaction.response.send_message(f"Your roster data:\n```json\n{json_text}\n```")
+
+    @app_commands.command(name="import", description="Import a roster from a Cocpit CSV export")
+    async def import_roster(self, interaction, file: Attachment):
+        try:
+            payload = await file.read()
+            text = payload.decode("utf-8-sig", errors="replace")
+            entries = parse_roster_entries_from_input(text, getattr(self.core, "cache", None))
+            result = import_roster_entries(self.core, interaction.user.id, entries)
+        except Exception as exc:
+            log.exception("slash roster import failed")
+            await interaction.response.send_message(f"Failed to import roster CSV: {exc}", ephemeral=True)
+            return
+
+        imported = result.get("imported", 0)
+        errors = result.get("errors", []) or []
+        message = f"Imported {imported} roster entr{'y' if imported == 1 else 'ies'} from {getattr(file, 'filename', 'upload')}."
+        if errors:
+            message = f"{message}\nFirst error: {errors[0]}"
+        await interaction.response.send_message(message, ephemeral=True)
 
     # -------------------------
     # /roster clear

@@ -1,5 +1,7 @@
 """Typed models for external and internal Collectorbot data."""
 
+from .cocpit.champion import AttackDamageEntry, AttackMoves, AbilityEntry as CocpitAbilityEntry, ChampionData as CocpitChampionData, Synergy, SynergyPartner
+from .cocpit.champions import ChampionAutocompleteEntry, ChampionAutocompleteList
 from .internal.account import CollectorBotAccount
 from .internal.champion import CollectorBotChampion
 from .mcochub.abilities import Ability, AbilityList, MCOCHubAbility
@@ -16,6 +18,14 @@ from .mcoc_app.tierlist import (
 __all__ = [
     "CollectorBotAccount",
     "CollectorBotChampion",
+    "ChampionAutocompleteEntry",
+    "ChampionAutocompleteList",
+    "CocpitAbilityEntry",
+    "CocpitChampionData",
+    "Synergy",
+    "SynergyPartner",
+    "AttackDamageEntry",
+    "AttackMoves",
     "Ability",
     "AbilityList",
     "MCOCHubAbility",

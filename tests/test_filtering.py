@@ -1,5 +1,5 @@
 from mcoc.common.helpers.champions import _champion_matches_filters, build_tier_pages, build_filter_flow_state, build_filter_picker_sections, _filter_picker_page_values
-from mcoc.common.helpers.roster import filter_roster_entries, _build_selection_option_label
+from mcoc.common.helpers.roster import filter_roster_entries, _build_selection_option_label, parse_cocpit_roster_csv, import_roster_entries
 from mcoc.common.utilities.formatters import format_tierlist_champion_line, format_champion_line
 from mcoc.common.helpers.types import MCOCAPP_TIERS, champion_from_dict
 from mcoc.common.utilities.query_parser import parse_query
@@ -317,3 +317,57 @@ def test_make_roster_pager_attaches_filter_handler(monkeypatch):
     assert pager is not None
     assert pager.pages
     assert callable(pager.filter_handler)
+
+
+def test_parse_cocpit_roster_csv_returns_canonical_entries():
+    csv_text = """ID,Full Name,Class,Rarity,Rank,Sig Level,Ascension Level,Prestige
+doctordoom,DOCTOR DOOM,mystic,6,5,40,0,15780
+ironman,IRON MAN,tech,7,1,40,0,14820
+"""
+
+    class FakeCache:
+        def get_champion(self, value):
+            lookup = {
+                "doctordoom": {"id": "doctordoom", "name": "Doctor Doom", "class": "mystic"},
+                "ironman": {"id": "ironman", "name": "Iron Man", "class": "tech"},
+            }
+            return lookup.get(str(value).lower())
+
+    entries = parse_cocpit_roster_csv(csv_text, FakeCache())
+
+    assert len(entries) == 2
+    assert entries[0]["champion"] == "doctordoom"
+    assert entries[0]["rarity"] == 6
+    assert entries[0]["rank"] == 5
+    assert entries[0]["sig"] == 40
+    assert entries[0]["prestige"] == 15780
+    assert entries[1]["champion"] == "ironman"
+    assert entries[1]["class"] == "tech"
+
+
+def test_import_roster_entries_persists_rows_and_reports_count(monkeypatch):
+    class FakeUsers:
+        def __init__(self):
+            self.calls = []
+
+        def add_champion(self, user_id, champ_slug, rarity, rank, sig, ascended=0, tags=None):
+            self.calls.append((user_id, champ_slug, rarity, rank, sig, ascended, tags or []))
+
+    recorded = []
+
+    def fake_schedule(core, user_id):
+        recorded.append((core, user_id))
+
+    monkeypatch.setattr("mcoc.common.helpers.roster.schedule_persist_user_prestige", fake_schedule)
+
+    users = FakeUsers()
+    core = object()
+    result = import_roster_entries(core, 42, [
+        {"champion": "doctordoom", "rarity": 6, "rank": 5, "sig": 40, "ascended": 0, "tags": []},
+        {"champion": "ironman", "rarity": 7, "rank": 1, "sig": 40, "ascended": 0, "tags": []},
+    ], users=users)
+
+    assert result["imported"] == 2
+    assert result["errors"] == []
+    assert len(users.calls) == 2
+    assert recorded == [(core, 42)]
