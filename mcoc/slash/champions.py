@@ -20,6 +20,13 @@ from ..common.helpers.champions import (
     safe_respond_interaction,
     lookup_stat,
     add_page_footers,
+    get_cocpit_champion_data,
+    build_cocpit_ability_lines,
+    build_cocpit_synergy_lines,
+    build_cocpit_synergy_intersection_lines,
+    build_champion_ability_lines,
+    build_champion_synergy_lines,
+    chunk_text_blocks,
 )
 from ..common.components.componentsV2 import CDTEmbed, CDTPagesMenu
 
@@ -117,23 +124,49 @@ class _ChampionGroup(app_commands.Group):
             await safe_respond_interaction(interaction, content=f"Champion `{champion}` not found.", ephemeral=True)
             return
         try:
-            embed = await CDTEmbed.champions_embed(interaction, champ)
-            await safe_respond_interaction(interaction, embed=embed)
+            cocpit = await get_cocpit_champion_data(self.core, champ)
+            lines = build_cocpit_ability_lines(cocpit) if cocpit else []
+            if not lines:
+                lines = build_champion_ability_lines(champ, cache=self._cache())
+            if not lines:
+                await safe_respond_interaction(interaction, content="Abilities unavailable.", ephemeral=True)
+                return
+            pages = [CDTEmbed.embed(interaction, title=f"{champ.get('name','Unknown')} Abilities", description=page) for page in chunk_text_blocks(lines)]
+            await safe_respond_interaction(interaction, embed=pages[0], view=CDTPagesMenu(pages, author=interaction.user))
         except Exception:
             log.exception("Failed to build abilities embed")
             await safe_respond_interaction(interaction, content="Abilities unavailable.", ephemeral=True)
 
     @app_commands.command(name="synergies", description="Show champion synergies")
     @app_commands.autocomplete(champion=champion_autocomplete)
-    async def synergies(self, interaction, champion: str):
+    async def synergies(self, interaction, champion: str, teammates: Optional[str] = None):
         champ = resolve_champion(self._cache(), champion)
         if not champ:
             await safe_respond_interaction(interaction, content=f"Champion `{champion}` not found.", ephemeral=True)
             return
         try:
-            synergies = champ.get("synergies", []) or []
-            embed = await CDTEmbed.synergy_embed(interaction, champ, synergies)
-            await safe_respond_interaction(interaction, embed=embed)
+            cocpit = await get_cocpit_champion_data(self.core, champ)
+            cache = self._cache()
+            team = [champ]
+            if teammates:
+                for token in [part.strip() for part in teammates.split(",") if part.strip()]:
+                    resolved = resolve_champion(cache, token)
+                    if resolved:
+                        team.append(resolved)
+            if cocpit and len(team) > 1:
+                lines = build_cocpit_synergy_intersection_lines(champ, team, cocpit, cache=cache)
+                title = f"Active Synergies: {champ.get('name','Unknown')}"
+            elif cocpit:
+                lines = build_cocpit_synergy_lines(cocpit, cache=cache)
+                title = f"{champ.get('name','Unknown')} Synergies"
+            else:
+                lines = build_champion_synergy_lines(champ, cache=cache)
+                title = f"{champ.get('name','Unknown')} Synergies"
+            if not lines:
+                await safe_respond_interaction(interaction, content="Synergies unavailable.", ephemeral=True)
+                return
+            pages = [CDTEmbed.embed(interaction, title=title, description=page) for page in chunk_text_blocks(lines)]
+            await safe_respond_interaction(interaction, embed=pages[0], view=CDTPagesMenu(pages, author=interaction.user))
         except Exception:
             log.exception("Failed to build synergies embed")
             await safe_respond_interaction(interaction, content="Synergies unavailable.", ephemeral=True)

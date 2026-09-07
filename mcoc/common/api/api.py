@@ -28,6 +28,7 @@ class MCOCHubAPI:
     BASE_URL = "https://mcochub.insaneskull.com/api/v1"
     CHAMPIONS_MAP_URL = "https://summoners-hub.shared.mcoc-cdn.net/production/champions_map.json"
     GLOSSARY_URL = "https://playcontestofchampions.com/wp-json/kabam/v1/glossary/"
+    COCPIT_CHAMPION_URL = "https://cocpit.org/champion-abilities"
 
     def __init__(
         self,
@@ -271,6 +272,24 @@ class MCOCHubAPI:
     async def get_glossary(self) -> Optional[Any]:
         log.debug("Fetching glossary from playcontestofchampions.com")
         return await self._fetch_public_json(self.GLOSSARY_URL)
+
+    async def get_cocpit_champion_data(self, champ_name: str, rarity: int, rank: int, sig_level: int, asc: int = 0) -> Optional[Any]:
+        log.debug(
+            "Fetching Cocpit champion data for %s (rarity=%s rank=%s sig=%s asc=%s)",
+            champ_name,
+            rarity,
+            rank,
+            sig_level,
+            asc,
+        )
+        params = {
+            "champ_name": champ_name,
+            "rarity": int(rarity),
+            "rank": int(rank),
+            "sig_level": int(sig_level),
+            "asc": int(asc or 0),
+        }
+        return await self._fetch_public_json(self.COCPIT_CHAMPION_URL, params=params)
 
 
     # -----------------------------

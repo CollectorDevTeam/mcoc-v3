@@ -1,4 +1,4 @@
-from mcoc.common.helpers.champions import _champion_matches_filters, build_tier_pages, build_filter_flow_state, build_filter_picker_sections, _filter_picker_page_values
+from mcoc.common.helpers.champions import _champion_matches_filters, build_tier_pages, build_filter_flow_state, build_filter_picker_sections, _filter_picker_page_values, build_cocpit_ability_lines, build_cocpit_synergy_intersection_lines
 from mcoc.common.helpers.roster import filter_roster_entries, _build_selection_option_label, parse_cocpit_roster_csv, import_roster_entries
 from mcoc.common.utilities.formatters import format_tierlist_champion_line, format_champion_line
 from mcoc.common.helpers.types import MCOCAPP_TIERS, champion_from_dict
@@ -371,3 +371,55 @@ def test_import_roster_entries_persists_rows_and_reports_count(monkeypatch):
     assert result["errors"] == []
     assert len(users.calls) == 2
     assert recorded == [(core, 42)]
+
+
+def test_build_cocpit_ability_lines_prefers_grouped_descriptions():
+    lines = build_cocpit_ability_lines({
+        "sigAbilities": {
+            "Passive": [
+                {"text": "Personal effects expire more slowly."},
+            ]
+        },
+        "coreAbilities": {
+            "Special Attack 1": [
+                {"text": "Gain a Fury Buff for 16 seconds."},
+            ]
+        },
+    })
+
+    assert "**Signature: Passive**" in lines
+    assert "• Personal effects expire more slowly." in lines
+    assert "**Core: Special Attack 1**" in lines
+    assert "• Gain a Fury Buff for 16 seconds." in lines
+
+
+def test_build_cocpit_synergy_intersection_only_returns_active_synergies():
+    base = {"id": "thanos_deathless_trophy", "name": "Thanos (Deathless)"}
+    team = [
+        base,
+        {"id": "vision_deathless", "name": "Vision (Deathless)"},
+    ]
+    lines = build_cocpit_synergy_intersection_lines(
+        base,
+        team,
+        {
+            "synergies": [
+                {
+                    "title": "TWISTED INSIGHT",
+                    "description_parts": ["Vision gains a power burn effect."],
+                    "partners": [{"champName": "vision_deathless", "champDisplayName": "VISION (DEATHLESS)"}],
+                },
+                {
+                    "title": "IRON HEEL",
+                    "description_parts": ["She-Hulk gains immunity to Rupture."],
+                    "partners": [{"champName": "shehulk_deathless", "champDisplayName": "SHE-HULK (DEATHLESS)"}],
+                },
+            ]
+        },
+        cache=None,
+    )
+
+    text = "\n".join(lines)
+    assert "TWISTED INSIGHT" in text
+    assert "VISION (DEATHLESS)" in text
+    assert "IRON HEEL" not in text

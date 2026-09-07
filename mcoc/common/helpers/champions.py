@@ -244,6 +244,168 @@ def build_champion_synergy_lines(champ: Mapping[str, Any], cache: Any = None) ->
     return lines
 
 
+def _clean_cocpit_text(value: Any) -> str:
+    text = str(value or "").strip()
+    if not text:
+        return ""
+    text = re.sub(r"!\[Image\]\([^)]*\)", "", text)
+    text = re.sub(r"\s+", " ", text)
+    return text.strip()
+
+
+def _titleize_partner_name(partner: Mapping[str, Any], cache: Any = None) -> str:
+    display_name = str(partner.get("champDisplayName") or "").strip()
+    if display_name:
+        return display_name
+    ref = partner.get("champName") or partner.get("champPortraitName")
+    if ref:
+        return _resolve_champion_name(cache, ref)
+    return "Unknown"
+
+
+def _champion_progression_defaults(champ: Mapping[str, Any]) -> Tuple[int, int, int, int]:
+    rarity = champ.get("rarity") or champ.get("stars") or champ.get("tier") or 6
+    rank = champ.get("rank") or 1
+    sig = champ.get("sig") or 0
+    ascended = champ.get("ascended") or 0
+    try:
+        rarity = int(rarity)
+    except Exception:
+        rarity = 6
+    try:
+        rank = int(rank)
+    except Exception:
+        rank = 1
+    try:
+        sig = int(sig)
+    except Exception:
+        sig = 0
+    try:
+        ascended = int(ascended)
+    except Exception:
+        ascended = 0
+    return rarity, rank, sig, ascended
+
+
+async def get_cocpit_champion_data(core: Any, champ: Mapping[str, Any], *, rarity: Optional[int] = None, rank: Optional[int] = None, sig: Optional[int] = None, ascended: Optional[int] = None) -> Optional[Dict[str, Any]]:
+    """Fetch richer per-champion detail data from Cocpit on demand."""
+    if not core or not isinstance(champ, Mapping):
+        return None
+
+    api = getattr(core, "api", None)
+    if api is None or not hasattr(api, "get_cocpit_champion_data"):
+        return None
+
+    champ_name = str(champ.get("id") or champ.get("slug") or "").strip()
+    if not champ_name:
+        return None
+
+    default_rarity, default_rank, default_sig, default_asc = _champion_progression_defaults(champ)
+    try:
+        payload = await api.get_cocpit_champion_data(
+            champ_name,
+            rarity if rarity is not None else default_rarity,
+            rank if rank is not None else default_rank,
+            sig if sig is not None else default_sig,
+            ascended if ascended is not None else default_asc,
+        )
+        return payload if isinstance(payload, dict) else None
+    except Exception:
+        log.exception("Failed to fetch Cocpit champion data for %s", champ_name)
+        return None
+
+
+def build_cocpit_ability_lines(cocpit_data: Mapping[str, Any]) -> List[str]:
+    """Flatten Cocpit core/signature ability buckets into display lines."""
+    lines: List[str] = []
+    for bucket_name, entries in (("Signature", cocpit_data.get("sigAbilities") or {}), ("Core", cocpit_data.get("coreAbilities") or {})):
+        if not isinstance(entries, Mapping):
+            continue
+        for section, items in entries.items():
+            clean_items: List[str] = []
+            for item in items or []:
+                if not isinstance(item, Mapping):
+                    continue
+                text = _clean_cocpit_text(item.get("text"))
+                if text:
+                    clean_items.append(text)
+            if clean_items:
+                lines.append(f"**{bucket_name}: {section}**")
+                lines.extend(f"• {text}" for text in clean_items)
+    return lines
+
+
+def build_cocpit_synergy_lines(cocpit_data: Mapping[str, Any], cache: Any = None) -> List[str]:
+    """Render Cocpit synergy cards with title, partners, and descriptive text."""
+    lines: List[str] = []
+    for synergy in cocpit_data.get("synergies") or []:
+        if not isinstance(synergy, Mapping):
+            continue
+        title = str(synergy.get("title") or "Synergy").strip()
+        partners = synergy.get("partners") or []
+        partner_names = [_titleize_partner_name(partner, cache=cache) for partner in partners if isinstance(partner, Mapping)]
+        description_parts = [_clean_cocpit_text(part) for part in (synergy.get("description_parts") or []) if _clean_cocpit_text(part)]
+        heading = f"**{title}**"
+        if partner_names:
+            heading = f"{heading} | {', '.join(partner_names)}"
+        lines.append(heading)
+        lines.extend(f"• {part}" for part in description_parts)
+    return lines
+
+
+def build_cocpit_synergy_intersection_lines(base_champion: Mapping[str, Any], team_champions: List[Mapping[str, Any]], cocpit_data: Mapping[str, Any], cache: Any = None) -> List[str]:
+    """Return synergy descriptions whose partner requirements are satisfied by the provided team."""
+    base_slug = str(base_champion.get("id") or base_champion.get("slug") or "").strip().lower()
+    team_slugs = {
+        str(champ.get("id") or champ.get("slug") or "").strip().lower()
+        for champ in team_champions
+        if isinstance(champ, Mapping)
+    }
+    if base_slug:
+        team_slugs.add(base_slug)
+
+    lines: List[str] = []
+    for synergy in cocpit_data.get("synergies") or []:
+        if not isinstance(synergy, Mapping):
+            continue
+        partners = [partner for partner in (synergy.get("partners") or []) if isinstance(partner, Mapping)]
+        partner_slugs = {
+            str(partner.get("champName") or partner.get("champPortraitName") or "").strip().lower()
+            for partner in partners
+            if str(partner.get("champName") or partner.get("champPortraitName") or "").strip()
+        }
+        required_partners = {slug for slug in partner_slugs if slug and slug != base_slug}
+        if required_partners and not required_partners.issubset(team_slugs):
+            continue
+
+        title = str(synergy.get("title") or "Synergy").strip()
+        matched = [_titleize_partner_name(partner, cache=cache) for partner in partners if isinstance(partner, Mapping) and str(partner.get("champName") or partner.get("champPortraitName") or "").strip().lower() in team_slugs]
+        description_parts = [_clean_cocpit_text(part) for part in (synergy.get("description_parts") or []) if _clean_cocpit_text(part)]
+        lines.append(f"**{title}** | Active with {', '.join(matched) if matched else 'Current team'}")
+        lines.extend(f"• {part}" for part in description_parts)
+    return lines
+
+
+def chunk_text_blocks(lines: List[str], *, max_chars: int = 3500) -> List[str]:
+    """Chunk formatted lines into embed-safe description blocks."""
+    if not lines:
+        return []
+    pages: List[str] = []
+    current: List[str] = []
+    current_len = 0
+    for line in lines:
+        line_len = len(line) + 1
+        if current and current_len + line_len > max_chars:
+            pages.append("\n".join(current))
+            current = []
+            current_len = 0
+        current.append(line)
+        current_len += line_len
+    if current:
+        pages.append("\n".join(current))
+    return pages
+
+
 # -----------------------------
 # Low-level cache helpers
 # -----------------------------

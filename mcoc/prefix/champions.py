@@ -5,6 +5,7 @@
 
 from typing import Any, Optional
 import logging
+import re
 
 from redbot.core import commands
 
@@ -95,6 +96,19 @@ class ChampionsPrefix(commands.Cog):
                 if _normalize_lookup_token(choice) == needle:
                     return champ
         return None
+
+    def _resolve_many_champions(self, cache: Any, raw_text: str) -> list[dict]:
+        champions = []
+        seen = set()
+        for token in [part.strip() for part in re.split(r"[,\n]+", raw_text or "") if part.strip()]:
+            champion = self._resolve_champion_record(cache, token)
+            if not champion:
+                continue
+            key = str(champion.get("id") or champion.get("slug") or champion.get("name") or "").strip().lower()
+            if key and key not in seen:
+                seen.add(key)
+                champions.append(champion)
+        return champions
 
     def _save_champion_metadata(self, target: dict, field: str, value: Any):
         if not self.parent or not getattr(self.parent, "cache", None):
@@ -513,12 +527,20 @@ class ChampionsPrefix(commands.Cog):
             return
 
         try:
-            lines = Champions.build_champion_ability_lines(champ_obj, cache=cache)
+            cocpit = await Champions.get_cocpit_champion_data(self.parent, champ_obj)
+            lines = Champions.build_cocpit_ability_lines(cocpit) if cocpit else []
+            if not lines:
+                lines = Champions.build_champion_ability_lines(champ_obj, cache=cache)
             if not lines:
                 await safe_send_ctx(ctx, "Abilities unavailable.")
                 return
-            desc = "\n\n".join(lines) or "Abilities unavailable."
-            await ctx.send(embed=Embed.embed(ctx.author, title=f"{champ_obj.get('name') or champ_obj.get('slug')}'s Abilities", description=desc))
+            pages = Champions.chunk_text_blocks(lines)
+            embeds = [Embed.embed(ctx.author, title=f"{champ_obj.get('name') or champ_obj.get('slug')}'s Abilities", description=page) for page in pages]
+            if len(embeds) == 1:
+                await ctx.send(embed=embeds[0])
+                return
+            pager = PagesMenu(embeds, author=ctx.author)
+            await pager.start(ctx)
         except Exception:
             log.exception("Failed to render abilities for %s", name)
             await safe_send_ctx(ctx, "Abilities unavailable.")
@@ -589,31 +611,43 @@ class ChampionsPrefix(commands.Cog):
 
     @champ.command(name="synergies")
     async def champ_synergies(self, ctx, *, name: str):
-        """Show the synergies of the specified champion."""
+        """Show Cocpit-backed synergies for one champion, or active intersections for a team."""
         if not await self._require_parent(ctx):
             return
 
         cache = getattr(self.parent, "cache", None)
-        champ_obj = None
-        try:
-            if cache:
-                champ_obj = cache.get_champion(name)
-                if not champ_obj:
-                    for c in (cache.get_all_champions() or []):
-                        if (c.get("name") or "").lower() == name.lower() or (c.get("slug") or "").lower() == name.lower():
-                            champ_obj = c
-                            break
-        except Exception:
-            champ_obj = None
+        team = self._resolve_many_champions(cache, name)
+        if not team:
+            champion = self._resolve_champion_record(cache, name) if cache else None
+            team = [champion] if champion else []
 
-        if not champ_obj:
+        if not team:
             await safe_send_ctx(ctx, "Champion not found.")
             return
 
         try:
-            lines = Champions.build_champion_synergy_lines(champ_obj, cache=cache)
-            desc = "\n\n".join(lines) if lines else "Synergies unavailable."
-            await ctx.send(embed=Embed.embed(ctx.author, title=f"{champ_obj.get('name') or champ_obj.get('slug')}'s Synergies", description=desc))
+            base = team[0]
+            cocpit = await Champions.get_cocpit_champion_data(self.parent, base)
+            if not cocpit:
+                lines = Champions.build_champion_synergy_lines(base, cache=cache)
+                title = f"{base.get('name') or base.get('slug')}'s Synergies"
+            elif len(team) == 1:
+                lines = Champions.build_cocpit_synergy_lines(cocpit, cache=cache)
+                title = f"{base.get('name') or base.get('slug')}'s Synergies"
+            else:
+                lines = Champions.build_cocpit_synergy_intersection_lines(base, team, cocpit, cache=cache)
+                title = f"Active Synergies: {', '.join(champ.get('name') or champ.get('slug') or 'Unknown' for champ in team[:5])}"
+
+            if not lines:
+                await safe_send_ctx(ctx, "Synergies unavailable.")
+                return
+
+            embeds = [Embed.embed(ctx.author, title=title, description=page) for page in Champions.chunk_text_blocks(lines)]
+            if len(embeds) == 1:
+                await ctx.send(embed=embeds[0])
+                return
+            pager = PagesMenu(embeds, author=ctx.author)
+            await pager.start(ctx)
         except Exception:
             log.exception("Failed to render champion synergies for %s", name)
             await safe_send_ctx(ctx, "Champion synergies unavailable.")
