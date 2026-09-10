@@ -1,3 +1,12 @@
+# Path: mcoc/common/models/mcoc_app/tierlist.py
+# File-Version: 1.0
+# File-Id: af9b2a6e-8c4b-4f2a-9d2b-1a2b3c4d5e6f
+# Purpose: Pydantic models for mcoc.app tierlist JSON
+# Public-API: MCOCAppImmunity, MCOCAppTierlistChampion, MCOCAppTierlistDocument, TierList, Immunity, Champion
+# Internal: None
+# Uses: typing, pydantic
+# Used-By: common/helpers/champion_index.py
+# Last-Modified: 2026-09-07
 from __future__ import annotations
 
 from typing import Any, Dict, List, Optional, Union
@@ -22,10 +31,7 @@ class MCOCAppImmunity(BaseModel):
             return cls.model_validate(value)
         raise TypeError(f"Unsupported immunity value: {value!r}")
 
-
 class MCOCAppTierlistChampion(BaseModel):
-    """Champion entry from the mcoc.app tierlist JSON."""
-
     model_config = ConfigDict(populate_by_name=True, extra="allow")
 
     name: str
@@ -38,7 +44,7 @@ class MCOCAppTierlistChampion(BaseModel):
     tags: List[str] = Field(default_factory=list)
     rank: int = 1
     portrait: Optional[str] = None
-    immunities: List[Union[str, MCOCAppImmunity]] = Field(default_factory=list)
+    immunities: List[MCOCAppImmunity] = Field(default_factory=list)
     inflicts: List[str] = Field(default_factory=list)
     class_rank: int = 0
 
@@ -46,10 +52,11 @@ class MCOCAppTierlistChampion(BaseModel):
     @classmethod
     def normalize_aliases(cls, values: Any) -> Any:
         if isinstance(values, dict):
-            if "class_name" not in values and "class_" in values and "class" not in values:
-                values["class"] = values["class_"]
+            # keep both "class" and "class_name" consistent
             if "class_name" not in values and "class" in values:
                 values["class_name"] = values["class"]
+            if "tier" in values and values["tier"] is not None:
+                values["tier"] = str(values["tier"])
         return values
 
     @field_validator("score", mode="before")
@@ -72,24 +79,37 @@ class MCOCAppTierlistChampion(BaseModel):
     @field_validator("portrait", mode="before")
     @classmethod
     def coerce_portrait(cls, value: Any) -> Optional[str]:
-        if value is None:
-            return ""
+        # prefer None for missing portraits
+        if value in (None, "", "null"):
+            return None
         return str(value)
 
     @field_validator("immunities", mode="before")
     @classmethod
-    def coerce_immunities(cls, value: Any) -> List[Union[str, MCOCAppImmunity]]:
+    def coerce_immunities(cls, value: Any) -> List[MCOCAppImmunity]:
         if value is None:
             return []
         if not isinstance(value, list):
-            return [value]
-        normalized: List[Union[str, MCOCAppImmunity]] = []
+            value = [value]
+        normalized: List[MCOCAppImmunity] = []
         for item in value:
-            if isinstance(item, dict):
+            if isinstance(item, MCOCAppImmunity):
+                normalized.append(item)
+            elif isinstance(item, dict):
                 normalized.append(MCOCAppImmunity.model_validate(item))
             else:
-                normalized.append(str(item))
+                # string form -> wrap into object
+                normalized.append(MCOCAppImmunity(type=str(item)))
         return normalized
+
+    @field_validator("inflicts", mode="before")
+    @classmethod
+    def coerce_inflicts(cls, value: Any) -> List[str]:
+        if value is None:
+            return []
+        if isinstance(value, list):
+            return [str(v) for v in value]
+        return [str(value)]
 
 
 class MCOCAppTierlistDocument(BaseModel):

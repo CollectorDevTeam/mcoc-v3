@@ -1,4 +1,4 @@
-# Path: mcoc/common/models/champion_autocomplete.py
+# Path: mcoc/common/models/cocpit/champions.py
 # File-Version: 1.0
 # File-Id: 3f9b2a6e-8c4b-4f2a-9d2b-1a2b3c4d5e6f
 # Purpose: Pydantic models for champion-autocomplete JSON used by autocomplete endpoints

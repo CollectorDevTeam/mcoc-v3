@@ -1,16 +1,21 @@
+# Path: mcoc/common/models/internal/champion.py
+# File-Version: 1.0
+# File-Id: 9f9b2a6e-8c4b-4f2a-9d2b-1a2b3c4d5e6f
+# Purpose: Internal canonical champion model used by bot logic and cache
+# Public-API: CollectorBotChampion
+# Internal: None
+# Uses: typing, pydantic
+# Used-By: common/helpers/champion_index.py
+# Last-Modified: 2026-09-07
 from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 class CollectorBotChampion(BaseModel):
-    """Internal canonical champion model used by bot logic and cache.
-
-    This deliberately normalizes the external MCOCHub payloads into a stable shape
-    that downstream business logic can consume without repeated key checking.
-    """
+    """Internal canonical champion model used by bot logic and cache."""
 
     model_config = ConfigDict(populate_by_name=True, extra="allow")
 
@@ -33,6 +38,18 @@ class CollectorBotChampion(BaseModel):
     abilities: List[Dict[str, Any]] = Field(default_factory=list)
     immunities: List[Dict[str, Any]] = Field(default_factory=list)
     raw: Optional[Dict[str, Any]] = None
+    raw_sources: Dict[str, Any] = Field(default_factory=dict)
+    source_map: Dict[str, Any] = Field(default_factory=dict)
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_aliases(cls, values: Any) -> Any:
+        if isinstance(values, dict):
+            if "class_name" not in values and "class" in values:
+                values["class_name"] = values["class"]
+            if "class_" not in values and values.get("class_name") is not None:
+                values["class_"] = values["class_name"]
+        return values
 
     @field_validator("class_name", mode="before")
     @classmethod
@@ -57,7 +74,13 @@ class CollectorBotChampion(BaseModel):
         if value is None:
             return []
         if isinstance(value, list):
-            return [dict(item) if isinstance(item, dict) else {"name": str(item)} for item in value]
+            normalized: List[Dict[str, Any]] = []
+            for item in value:
+                if isinstance(item, dict):
+                    normalized.append(dict(item))
+                else:
+                    normalized.append({"name": str(item)})
+            return normalized
         if isinstance(value, dict):
             return [dict(value)]
         return [{"name": str(value)}]
@@ -68,5 +91,6 @@ class CollectorBotChampion(BaseModel):
 
     @property
     def class_lower(self) -> Optional[str]:
-        return (self.class_name or self.class_ or "").lower() or None
+        value = self.class_name or self.class_ or ""
+        return str(value).lower() or None
 # Used-By: None
