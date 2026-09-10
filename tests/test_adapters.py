@@ -40,6 +40,7 @@ def test_source_adapters_return_canonical_champion_records():
 
     assert internal_from_mhub.id == "arcade"
     assert internal_from_mhub.class_lower == "tech"
+    assert internal_from_mhub.ability_tags
     assert internal_from_mhub.abilities[0]["id"]
     assert internal_from_mhub.immunities[0]["id"]
     assert internal_from_mhub.raw_sources["mcochub"] == mcochub
@@ -51,4 +52,8 @@ def test_source_adapters_return_canonical_champion_records():
     assert internal_from_cocpit.id == "arcade"
     assert internal_from_cocpit.raw_sources["cocpit"] == cocpit
     assert internal_from_cocpit.abilities
+    assert internal_from_cocpit.synergies == []
+    assert internal_from_cocpit.signature is not None
+    assert internal_from_cocpit.signature["name"]
+    assert internal_from_cocpit.ability_tags == ["bleed", "shock"] or internal_from_cocpit.ability_tags == ["shock", "bleed"]
     assert internal_from_cocpit.immunities

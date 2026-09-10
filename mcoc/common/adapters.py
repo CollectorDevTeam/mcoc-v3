@@ -21,6 +21,47 @@ def _stable_id(*parts: Any) -> str:
     return hashlib.sha1(joined.encode("utf-8")).hexdigest()[:12]
 
 
+def _dedupe_strings(values: Optional[List[Any]]) -> List[str]:
+    seen: set[str] = set()
+    out: List[str] = []
+    for value in values or []:
+        if value is None:
+            continue
+        if isinstance(value, dict):
+            candidate = value.get("name") or value.get("title") or value.get("id") or value.get("text")
+        else:
+            candidate = value
+        text = str(candidate).strip()
+        if not text:
+            continue
+        key = text.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(text)
+    return out
+
+
+def _extract_ability_tag(value: Any) -> str:
+    candidate = value
+    if isinstance(candidate, dict):
+        candidate = candidate.get("name") or candidate.get("title") or candidate.get("id") or candidate.get("text")
+    text = str(candidate or "").strip()
+    if not text:
+        return ""
+
+    match = re.search(r"(?:gain|gains|gained|inflict|inflicts|inflicted|applies?|grants?|causes?)\s+(?:the\s+)?([a-zA-Z][a-zA-Z0-9 _-]*)", text, flags=re.IGNORECASE)
+    if match:
+        tag = match.group(1).strip().rstrip(".")
+        if tag:
+            return tag
+
+    cleaned = re.sub(r"^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$", "", text)
+    if cleaned:
+        return cleaned
+    return text
+
+
 def _to_ability_dict(value: Any, fallback_name: str = "ability") -> Dict[str, Any]:
     if isinstance(value, dict):
         name = value.get("name") or value.get("title") or value.get("id") or fallback_name
@@ -88,19 +129,25 @@ def _extract_ability_entries(payload: Any) -> List[Dict[str, Any]]:
             elif isinstance(value, list):
                 for item in value:
                     if isinstance(item, AbilityEntry):
+                        tag_name = _extract_ability_tag(item.text or key)
                         entries.append({
                             "id": item.id or _stable_id(key, item.text or "ability", len(entries)),
-                            "name": item.text or key,
+                            "name": tag_name or (item.text or key),
                             "type": "full",
                             "source": "cocpit",
                             "note": item.text,
                         })
                     elif isinstance(item, dict):
-                        entries.append(_to_ability_dict(item, fallback_name=str(key)))
+                        note = item.get("text") or item.get("description") or item.get("name")
+                        entry = _to_ability_dict(item, fallback_name=str(key))
+                        entry["name"] = _extract_ability_tag(note or entry.get("name")) or entry.get("name")
+                        entry["note"] = note or entry.get("note")
+                        entries.append(entry)
             elif isinstance(value, AbilityEntry):
+                tag_name = _extract_ability_tag(value.text or key)
                 entries.append({
                     "id": value.id or _stable_id(key, value.text or "ability", len(entries)),
-                    "name": value.text or key,
+                    "name": tag_name or (value.text or key),
                     "type": "full",
                     "source": "cocpit",
                     "note": value.text,
@@ -108,15 +155,20 @@ def _extract_ability_entries(payload: Any) -> List[Dict[str, Any]]:
     elif isinstance(payload, list):
         for item in payload:
             if isinstance(item, AbilityEntry):
+                tag_name = _extract_ability_tag(item.text or "ability")
                 entries.append({
                     "id": item.id or _stable_id(item.text or "ability", len(entries)),
-                    "name": item.text or "ability",
+                    "name": tag_name or (item.text or "ability"),
                     "type": "full",
                     "source": "cocpit",
                     "note": item.text,
                 })
             elif isinstance(item, dict):
-                entries.append(_to_ability_dict(item))
+                note = item.get("text") or item.get("description") or item.get("name")
+                entry = _to_ability_dict(item)
+                entry["name"] = _extract_ability_tag(note or entry.get("name")) or entry.get("name")
+                entry["note"] = note or entry.get("note")
+                entries.append(entry)
     return entries
 
 
@@ -134,6 +186,7 @@ def mcochub_to_internal(raw: Mapping[str, Any]) -> CollectorBotChampion:
         else _to_immunity_dict(item)
         for item in (champion.immunities or [])
     ]
+    ability_tags = _dedupe_strings([item.get("name") for item in abilities if isinstance(item, dict)])
 
     record = CollectorBotChampion(
         id=champion.id,
@@ -141,6 +194,7 @@ def mcochub_to_internal(raw: Mapping[str, Any]) -> CollectorBotChampion:
         name=champion.name,
         class_name=champion.class_,
         tags=[str(tag) for tag in (champion.tags or [])],
+        ability_tags=ability_tags,
         abilities=abilities,
         immunities=immunities,
         raw=raw,
@@ -203,15 +257,23 @@ def mcoc_app_tierlist_to_internal(raw: Mapping[str, Any], doc: Optional[Mapping[
 
 def cocpit_to_internal(raw: Mapping[str, Any]) -> CollectorBotChampion:
     data = ChampionData.model_validate(raw)
-    flattened_abilities = _extract_ability_entries({
-        "coreAbilities": data.coreAbilities,
-        "sigAbilities": data.sigAbilities,
-    })
+    core_abilities = _extract_ability_entries(data.coreAbilities or {})
+    signature_abilities = _extract_ability_entries(data.sigAbilities or {})
+    synergies = []
+    if data.synergies:
+        synergies = [
+            {
+                "id": getattr(item, "id", None) or _stable_id(getattr(item, "title", None) or "synergy", len(synergies)),
+                "title": getattr(item, "title", None),
+                "description_parts": getattr(item, "description_parts", None),
+                "partners": getattr(item, "partners", None),
+                "raw_title": getattr(item, "raw_title", None),
+            }
+            for item in data.synergies
+        ]
 
-    # The Cocpit payload is rich enough to be the canonical descriptive source; we also
-    # preserve a few synthetic immunity entries so downstream callers can show filters.
     immunities = []
-    for item in flattened_abilities:
+    for item in core_abilities + signature_abilities:
         immunities.append({
             "id": _stable_id(item.get("name"), "cocpit-immunity"),
             "name": item.get("name"),
@@ -228,13 +290,24 @@ def cocpit_to_internal(raw: Mapping[str, Any]) -> CollectorBotChampion:
     if not champion_id:
         champion_id = _slugify(raw.get("id") if isinstance(raw, Mapping) else "champion")
 
+    signature_name = data.sigAbilityDisplayName or "Signature"
+    signature = {
+        "id": f"{champion_id}__signature__{_slugify(signature_name)}",
+        "name": signature_name,
+        "abilities": signature_abilities,
+    }
+
     record = CollectorBotChampion(
         id=champion_id,
         slug=_slugify(champion_id),
         name=str(champion_id).replace("-", " ").title(),
         class_name="unknown",
         tags=[],
-        abilities=flattened_abilities,
+        ability_tags=_dedupe_strings([item.get("name") for item in core_abilities + signature_abilities]),
+        abilities=core_abilities,
+        synergies=synergies,
+        signature=signature,
+        rotation_data=(data.rotationData if getattr(data, "rotationData", None) is not None else None),
         immunities=immunities,
         raw=raw,
         raw_sources={"cocpit": raw},

@@ -9,9 +9,30 @@
 # Last-Modified: 2026-09-07
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Iterable, List, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+
+
+def _dedupe_strings(values: Optional[Iterable[Any]]) -> List[str]:
+    seen: set[str] = set()
+    out: List[str] = []
+    for value in values or []:
+        if value is None:
+            continue
+        if isinstance(value, dict):
+            candidate = value.get("name") or value.get("title") or value.get("id") or value.get("text")
+        else:
+            candidate = value
+        text = str(candidate).strip()
+        if not text:
+            continue
+        key = text.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(text)
+    return out
 
 
 class CollectorBotChampion(BaseModel):
@@ -35,7 +56,11 @@ class CollectorBotChampion(BaseModel):
     aliases: List[str] = Field(default_factory=list)
     image_url: Optional[str] = None
     images: Optional[Dict[str, Any]] = None
+    ability_tags: List[str] = Field(default_factory=list)
     abilities: List[Dict[str, Any]] = Field(default_factory=list)
+    synergies: List[Dict[str, Any]] = Field(default_factory=list)
+    signature: Optional[Dict[str, Any]] = None
+    rotation_data: Optional[Dict[str, Any]] = None
     immunities: List[Dict[str, Any]] = Field(default_factory=list)
     raw: Optional[Dict[str, Any]] = None
     raw_sources: Dict[str, Any] = Field(default_factory=dict)
@@ -49,6 +74,10 @@ class CollectorBotChampion(BaseModel):
                 values["class_name"] = values["class"]
             if "class_" not in values and values.get("class_name") is not None:
                 values["class_"] = values["class_name"]
+            if "ability_tags" not in values and "abilities" in values:
+                values["ability_tags"] = _dedupe_strings(
+                    [item.get("name") if isinstance(item, dict) else item for item in (values["abilities"] or [])]
+                )
         return values
 
     @field_validator("class_name", mode="before")
@@ -67,6 +96,15 @@ class CollectorBotChampion(BaseModel):
         if isinstance(value, list):
             return [str(item) for item in value]
         return [str(value)]
+
+    @field_validator("ability_tags", mode="before")
+    @classmethod
+    def coerce_ability_tags(cls, value: Any) -> List[str]:
+        if value is None:
+            return []
+        if isinstance(value, list):
+            return _dedupe_strings(value)
+        return _dedupe_strings([value])
 
     @field_validator("immunities", mode="before")
     @classmethod
