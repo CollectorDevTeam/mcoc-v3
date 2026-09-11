@@ -14,7 +14,7 @@ a `register_with_group` function so the same commands can be attached to the
 main ///mcoc group via the registrar pattern.
 """
 
-from typing import Any, Optional
+from typing import Any, Dict, List, Optional
 import io
 import json
 import re
@@ -36,6 +36,7 @@ from mcoc.common.components.cache_status import CacheStatusPoster
 from mcoc.common.components.help_utils import send_or_brand_help
 from mcoc.common.components.prefix_utils import safe_send_ctx
 from mcoc.common.helpers.admin_status import collect_admin_status_snapshot, build_admin_status_page_specs
+from mcoc.common.adapters import cocpit_to_internal, mcochub_to_internal, mcoc_app_tierlist_to_internal
 
 
 
@@ -74,6 +75,45 @@ def _normalize_lookup_key(value: Any) -> str:
     text = text.replace("&", " and ")
     text = re.sub(r"[^a-z0-9]+", "", text)
     return text
+
+
+def _dedupe_strings(values: List[Any]) -> List[str]:
+    seen: set[str] = set()
+    out: List[str] = []
+    for value in values or []:
+        if value is None:
+            continue
+        text = str(value).strip()
+        if not text:
+            continue
+        key = text.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(text)
+    return out
+
+
+def _champion_candidates(champ: Dict[str, Any]) -> List[str]:
+    values = [
+        champ.get("id"),
+        champ.get("slug"),
+        champ.get("name"),
+        champ.get("title"),
+    ]
+    out: List[str] = []
+    for value in values:
+        if value is None:
+            continue
+        out.append(_normalize_lookup_key(value))
+    return [item for item in out if item]
+
+
+def _progression_value(champ: Dict[str, Any], key: str, default: int) -> int:
+    try:
+        return int(champ.get(key) if champ.get(key) is not None else default)
+    except Exception:
+        return default
 
 
 class MCOCAdminPrefix(commands.Cog):
@@ -654,7 +694,7 @@ class MCOCAdminPrefix(commands.Cog):
     @commands.is_owner()
     @admin.command(name="export-champions")
     async def export_champions(self, ctx):
-        """Export the normalized CDT champion cache as JSON for offline review."""
+        """Export merged canonical champion records for offline review."""
         core = getattr(ctx.bot, "mcoc_core", None)
         if not core or not getattr(core, "cache", None):
             await safe_send_ctx(ctx, "MCOC cache not initialized.")
@@ -662,10 +702,103 @@ class MCOCAdminPrefix(commands.Cog):
 
         cache = core.cache
         champions = cache.get_all_champions() or []
+        tierlist_doc = cache._load_file("tierlist") if hasattr(cache, "_load_file") else {}
+        tierlist_rows = tierlist_doc.get("champions", []) if isinstance(tierlist_doc, dict) else []
+        tier_index: Dict[str, Dict[str, Any]] = {}
+        for row in tierlist_rows:
+            if not isinstance(row, dict):
+                continue
+            for key in _champion_candidates(row):
+                tier_index[key] = row
+
+        api = getattr(core, "api", None)
+        cocpit_semaphore = asyncio.Semaphore(8)
+
+        async def _build_record(champ: Dict[str, Any]) -> Dict[str, Any]:
+            base = mcochub_to_internal(champ).model_dump(by_alias=True, exclude_none=True)
+            base.pop("class_", None)
+            base.setdefault("ability_tags", [])
+            base.setdefault("synergies", [])
+
+            tier_entry = None
+            for key in _champion_candidates(champ):
+                if key in tier_index:
+                    tier_entry = tier_index[key]
+                    break
+            if tier_entry:
+                try:
+                    tier_model = mcoc_app_tierlist_to_internal(tier_entry, tierlist_doc)
+                    tier_data = tier_model.model_dump(by_alias=True, exclude_none=True)
+                    base["tier"] = tier_data.get("tier") or base.get("tier")
+                    base["tags"] = _dedupe_strings((base.get("tags") or []) + (tier_data.get("tags") or []))
+                    inflict_tags = [
+                        str(item.get("name"))
+                        for item in (tier_data.get("abilities") or [])
+                        if isinstance(item, dict) and item.get("name")
+                    ]
+                    base["ability_tags"] = _dedupe_strings((base.get("ability_tags") or []) + inflict_tags)
+                    base.setdefault("raw_sources", {})
+                    base.setdefault("source_map", {})
+                    base["raw_sources"]["mcoc_app"] = tier_entry
+                    base["source_map"]["mcoc_app"] = tier_data.get("name") or tier_entry.get("name")
+                except Exception:
+                    log.exception("Failed to merge tierlist data into champion export for %s", champ.get("id") or champ.get("name"))
+
+            if api is not None and hasattr(api, "get_cocpit_champion_data"):
+                champ_ref = str(champ.get("id") or champ.get("slug") or "").strip()
+                if champ_ref:
+                    rarity = _progression_value(champ, "rarity", _progression_value(champ, "stars", 6))
+                    rank = _progression_value(champ, "rank", 1)
+                    sig = _progression_value(champ, "sig", 0)
+                    asc = _progression_value(champ, "ascended", 0)
+                    try:
+                        async with cocpit_semaphore:
+                            cocpit_raw = await api.get_cocpit_champion_data(champ_ref, rarity, rank, sig, asc)
+                        if isinstance(cocpit_raw, dict) and cocpit_raw:
+                            cocpit_model = cocpit_to_internal(cocpit_raw)
+                            cocpit_data = cocpit_model.model_dump(by_alias=True, exclude_none=True)
+                            base["abilities"] = cocpit_data.get("abilities") or base.get("abilities") or []
+                            base["synergies"] = cocpit_data.get("synergies") or []
+                            base["signature"] = cocpit_data.get("signature")
+                            if cocpit_data.get("rotation_data") is not None:
+                                base["rotation_data"] = cocpit_data.get("rotation_data")
+                            ability_names = [
+                                str(item.get("name"))
+                                for item in (base.get("abilities") or [])
+                                if isinstance(item, dict) and item.get("name")
+                            ]
+                            signature_names = [
+                                str(item.get("name"))
+                                for item in ((base.get("signature") or {}).get("abilities") or [])
+                                if isinstance(item, dict) and item.get("name")
+                            ]
+                            base["ability_tags"] = _dedupe_strings((base.get("ability_tags") or []) + ability_names + signature_names)
+                            base.setdefault("raw_sources", {})
+                            base.setdefault("source_map", {})
+                            base["raw_sources"]["cocpit"] = cocpit_raw
+                            base["source_map"]["cocpit"] = champ_ref
+                    except Exception:
+                        log.exception("Failed Cocpit enrich for champion export: %s", champ_ref)
+
+            return base
+
+        await safe_send_ctx(ctx, "Building canonical champion export (MCOCHub + tierlist + Cocpit)…")
+        records = await asyncio.gather(*[_build_record(champ) for champ in champions if isinstance(champ, dict)])
+        with_signature = sum(1 for item in records if isinstance(item.get("signature"), dict) and item.get("signature"))
+        with_synergies = sum(1 for item in records if item.get("synergies"))
+        with_rotation = sum(1 for item in records if item.get("rotation_data") is not None)
+
         payload = {
             "exported_at": datetime.datetime.utcnow().isoformat(),
-            "count": len(champions),
-            "champions": champions,
+            "count": len(records),
+            "champions": records,
+            "source_coverage": {
+                "mcochub": len(records),
+                "tierlist": len(tier_index),
+                "cocpit_signature": with_signature,
+                "cocpit_synergies": with_synergies,
+                "cocpit_rotation": with_rotation,
+            },
         }
 
         try:
