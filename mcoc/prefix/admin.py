@@ -616,13 +616,16 @@ class MCOCAdminPrefix(commands.Cog):
         Embed.add_field(ctx, emb=emb, name="Cache Directory", value=str(cache_dir), inline=False)
         Embed.add_field(ctx, emb=emb, name="Files to Remove", value=str(count), inline=True)
         Embed.add_field(ctx, emb=emb, name="Confirmation", value="Press the button below to delete the cache. This action cannot be undone.", inline=False)
-        await safe_send_ctx(ctx, None, embed=emb, view=CDTConfirm(timeout=30.0, confirm_label="Delete Cache", cancel_label="Cancel"))
 
-        # The confirmation view has a separate async wait loop; defer to a direct ephemeral confirmation style.
+        confirm_view = Confirm(timeout=30.0, confirm_label="Delete Cache", cancel_label="Cancel") if Confirm else None
+        if confirm_view is None:
+            await safe_send_ctx(ctx, "Cache wipe confirmation is unavailable in this runtime.")
+            return
+
+        await safe_send_ctx(ctx, None, embed=emb, view=confirm_view)
+
         try:
-            view = CDTConfirm(timeout=30.0, confirm_label="Delete Cache", cancel_label="Cancel")
-            await safe_send_ctx(ctx, None, embed=emb, view=view)
-            confirmed = await view.wait_result()
+            confirmed = await confirm_view.wait_result()
         except Exception:
             confirmed = False
 
