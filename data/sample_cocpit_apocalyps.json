@@ -1,0 +1,760 @@
+{
+    "availableRanks": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+    ],
+    "maxSigLevel": 200,
+    "baseStats": {
+        "Prestige": 22900,
+        "Attack": 5838,
+        "Health": 96063,
+        "Armor": 692,
+        "Crit Rate": 389,
+        "Crit Resist": 459,
+        "Crit Damage": 1104,
+        "Block Prof": 4428,
+        "NRG Resist": 0,
+        "Phys Resist": 0
+    },
+    "sigAbilityDisplayName": "SURVIVAL OF THE FITTEST",
+    "sigAbilities": {
+        "Passive": [
+            {
+                "id": "apo_sig_regen",
+                "iconFilename": "https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/r-114.svg",
+                "text": "When Apocalypse doesn't participate in a fight he enters his Rejuvenation Chamber to slumber. At the start of his next fight, he Regenerates <span style=\"color: #16982bff\">3711.73</span> health for each fight his teammates won while he slumbered. This can stack up to 2 times."
+            }
+        ]
+    },
+    "coreAbilities": {
+        "<span style=\"color: #37bfff\">Genetic Enhancement</span> - Max Stacks 4": [
+            {
+                "id": "apo_gcode_dummy",
+                "iconFilename": "https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/bullet-8226.svg",
+                "text": "Start each quest with <span style=\"color: #37bfff\">1 Persistent Genetic Code</span>. This becomes <span style=\"color: #37bfff\">2</span> if Defending, and <span style=\"color: #37bfff\">3</span> if Defending a final boss node."
+            },
+            {
+                "id": "apo_sb_gcode_on",
+                "iconFilename": "https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/bullet-8226.svg",
+                "text": "Knocking out a non-#Robot Opponent grants <span style=\"color: #37bfff\">1 Genetic Code</span>."
+            },
+            {
+                "id": "apo_gcode_pv",
+                "iconFilename": "https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/bullet-8226.svg",
+                "text": "Gain <span style=\"color: #37bfff\">2 Genetic Code</span> at the start of the fight when fighting a Mutant."
+            },
+            {
+                "id": "apo_gcode_prowess",
+                "iconFilename": "https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/uniE913-59667.svg",
+                "text": "At the start of the fight gain 1 indefinite Passive Prowess for each <span style=\"color: #37bfff\">Genetic Code</span>, each increasing Special Attack Damage by 40%."
+            },
+            {
+                "id": "apo_gcode_stnimm",
+                "iconFilename": "https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/bullet-8226.svg",
+                "text": "At <span style=\"color: #37bfff\">3+ Genetic Code</span>, become Stun Immune while striking."
+            },
+            {
+                "id": "apo_gcode_stn",
+                "iconFilename": "https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/s-115.svg",
+                "text": "At <span style=\"color: #37bfff\">4+ Genetic Code</span>, striking the Opponent's block with Light Attack inflicts a Stun Debuff for 0.80 seconds. Cooldown 12 seconds. This has no effect against Well-Timed Blocks."
+            }
+        ],
+        "Total Molecular Control": [
+            {
+                "id": "apo_bldimm_tm",
+                "iconFilename": "https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/bullet-8226.svg",
+                "text": "Develop immunity to Bleed, Incinerate and Disorient effects over 8 seconds while suffering from them. Once developed, these immunities persist for the entire quest."
+            },
+            {
+                "id": "apo_antievd_icon",
+                "iconFilename": "https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/e-101.svg",
+                "text": "Each time the Opponent Evades, gain +10% chance to bypass Evade. This is not affected by Ability Accuracy reduction and the chance to bypass Evade persists throughout the quest."
+            },
+            {
+                "id": "apo_purify_aa_dn",
+                "iconFilename": "https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/bullet-8226.svg",
+                "text": "Opponents suffer 100% Purify Ability Accuracy reduction."
+            }
+        ],
+        "Heavy Attacks": [
+            {
+                "id": "apo_hvy_bleed",
+                "iconFilename": "https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/b-98.svg",
+                "text": "Both hits inflict Bleed dealing <span style=\"color: #16982bff\">2043.3</span> Direct Damage over 7 seconds."
+            },
+            {
+                "id": "apo_hvy_refresh",
+                "iconFilename": "https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/bullet-8226.svg",
+                "text": "Refresh personal Weakness, Poison, Concussion and Degeneration effects on the Opponent."
+            }
+        ],
+        "Special Attacks": [
+            {
+                "id": "apo_extend_effects",
+                "iconFilename": "https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/bullet-8226.svg",
+                "text": "If the Opponent is suffering from a Damage Over Time effect, Special Attack Debuffs trigger on activation and last 30% longer."
+            },
+            {
+                "id": "apo_sp_dmg_burst",
+                "iconFilename": "https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/uniE744-59204.svg",
+                "text": "Each hit deals a burst of <span style=\"color: #16982bff\">1576.26</span> Physical Damage for each personal Weakness, Poison, Concussion or Degeneration on the Opponent."
+            }
+        ],
+        "Special Attack 1": [
+            {
+                "id": "apo_sp1_dummy",
+                "iconFilename": "https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/bullet-8226.svg",
+                "text": "Inflict a Debuff determined by the last Light or Medium Attack thrown. If fighting a Mutant, or if Apocalypse has <span style=\"color: #37bfff\">4 Genetic Code</span>, trigger both."
+            },
+            {
+                "id": "apo_famine",
+                "iconFilename": "https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/c-99.svg",
+                "text": "Light Attack - Inflict a non-stacking Weakness reducing Attack Rating by 25% for 25 seconds."
+            },
+            {
+                "id": "apo_pestilence",
+                "iconFilename": "https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/z-122.svg",
+                "text": "Medium Attack - Inflict a non-stacking Poison dealing <span style=\"color: #16982bff\">11676</span> Direct Damage and reduce health recovery by 30% over 25 seconds."
+            }
+        ],
+        "Special Attack 2": [
+            {
+                "id": "apo_sp2_dummy",
+                "iconFilename": "https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/bullet-8226.svg",
+                "text": "Inflict a Debuff determined by the last Light or Medium Attack thrown. If fighting a Mutant, or if Apocalypse has <span style=\"color: #37bfff\">4 Genetic Code</span>, trigger both."
+            },
+            {
+                "id": "apo_war",
+                "iconFilename": "https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/uniE434-58420.svg",
+                "text": "Light Attack - Inflict a non-stacking Concussion reducing Ability Accuracy by 35% for 25 seconds."
+            },
+            {
+                "id": "apo_death",
+                "iconFilename": "https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/asciicircum-94.svg",
+                "text": "Medium Attack - Inflict a non-stacking Degeneration dealing <span style=\"color: #16982bff\">20433</span> Direct Damage over 25 seconds."
+            }
+        ],
+        "Special Attack 3": [
+            {
+                "id": "apo_effect_potency",
+                "iconFilename": "https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/bullet-8226.svg",
+                "text": "All personal Weakness, Poison, Concussion and Degeneration effects on the Opponent are retriggered at +100% Potency and paused indefinitely. This Potency increase does not stack multiple times."
+            },
+            {
+                "id": "apo_sp3_random",
+                "iconFilename": "https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/bullet-8226.svg",
+                "text": "If no personal Weakness, Poison, Concussion or Degeneration effects are active, inflict 2 at random. These will not gain additional potency and will not be paused."
+            }
+        ],
+        "Horseman of Apocalypse - <span style=\"color: #ee9700ff\">Pre-Fight</span> and <span style=\"color: #d31e15ff\">Cross-Fight Ability</span>": [
+            {
+                "id": "apo_horseman_dummy_1",
+                "iconFilename": "https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/bullet-8226.svg",
+                "text": "Once Per Quest If Apocalypse has <span style=\"color: #37bfff\">4 Genetic Code</span> he can spend them in the <span style=\"color: #ee9700ff\">Pre-Fight</span> screen to place a <span class=\"tooltip\">Cross-Fight<span class=\"tooltiptext\"><img src=\"https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/W-87.svg\" class=\"tooltip-icon\"><span class=\"tooltip-title\">Cross-Fight Ability</span><br>Abilities that can be applied to either Attackers or Defenders and last for multiple fights within a Quest.</span></span> on the next fight. The next Mutant teammate excluding Apocalypse to enter this fight becomes a <span style=\"color: #d31e15ff\">Horseman of Apocalypse</span> for the rest of the quest."
+            },
+            {
+                "id": "apo_horseman_dummy_1b",
+                "iconFilename": "https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/bullet-8226.svg",
+                "text": "Horsemen gain the following abilities:"
+            },
+            {
+                "id": "apo_horseman_dummy_2",
+                "iconFilename": "https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/bullet-8226.svg",
+                "text": "+100% Bleed Resistance."
+            },
+            {
+                "id": "apo_horseman_dummy_3",
+                "iconFilename": "https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/bullet-8226.svg",
+                "text": "An indefinite Prowess increasing Special Attack Damage by 50%."
+            },
+            {
+                "id": "apo_horseman_dummy_4",
+                "iconFilename": "https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/bullet-8226.svg",
+                "text": "+30% Offensive Ability Accuracy."
+            },
+            {
+                "id": "apo_horseman_dummy_5",
+                "iconFilename": "https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/bullet-8226.svg",
+                "text": "Go Unblockable for 2 seconds when the Opponent Purifies a Debuff."
+            },
+            {
+                "id": "apo_horseman_dummy_6",
+                "iconFilename": "https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/bullet-8226.svg",
+                "text": "Once per fight go Unstoppable for 3 seconds when struck."
+            }
+        ]
+    },
+    "rotationData": {
+        "champion_id": "apocalypse",
+        "video_url": "https://www.youtube.com/watch?v=gGfHD0Gp0to",
+        "source_channel": "Marvel Contest of Champions",
+        "summary_parts": [
+            "Build to near 2 bars of power, do a medium-ending combo, then parry and heavy-cancel after the first hit into an SP2 to inflict Degen. Keep using heavies to refresh the degen, and when near a bar of power, do a medium-ending combo, parry, and heavy-cancel into SP1 to add <span class=\"tooltip\">Poison<span class=\"tooltiptext\"><img src=\"https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/z-122.svg\" class=\"tooltip-icon\"><span class=\"tooltip-title\">Poison</span><br>While active, deals Direct Damage and reduces Regeneration Rate by 30% of its current value.</span></span>.",
+            "For longer fights, build all four debuff types by throwing SP1 and SP2 twice each, once preceded by a light attack, and once preceded by a medium. Maintain the debuff uptime with heavies until reaching 3 bars of power, then throw SP3 to retrigger them at higher potency and lock them in indefinitely."
+        ]
+    },
+    "synergies": [
+        {
+            "title": "THE FIRST ONE",
+            "icon_filename": "https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/k-107.svg",
+            "description_parts": [
+                "<span style=\"color: #64acff\">Apocalypse:</span> Gain +15% Attack Rating for each Mutant on the team excluding himself.",
+                "<span style=\"color: #f79f0e\">Unique Synergy:</span> Does not stack with duplicate synergies."
+            ],
+            "partners": [
+                {
+                    "champName": "apocalypse",
+                    "champPortraitName": "apocalypse",
+                    "champDisplayName": "APOCALYPSE",
+                    "rarities": ""
+                }
+            ]
+        },
+        {
+            "title": "YOUR FATE IS MINE",
+            "icon_filename": "https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/asciicircum-94.svg",
+            "description_parts": [
+                "<span style=\"color: #64acff\">Apocalypse:</span> Start the first fight in a quest with maximum <span style=\"color: #37bfff\">Genetic Code</span>. <span style=\"color: #64acff\">Kang:</span> Every 4 seconds, Kang Gains an indefinite Fury Buff granting 20% Attack Rating. This ends when reaching 20 stacks of Fury. <span style=\"color: #64acff\">Mister Sinister:</span> Degeneration Debuffs gain +50% Potency. <span style=\"color: #64acff\">Cable:</span> Incinerate effects gain 150% increased potency. Additionally, Cable reduces the Opponent's chance to Purify Debuffs by 100%. <span style=\"color: #f79f0e\">Unique Synergy:</span> Does not stack with duplicate synergies."
+            ],
+            "partners": [
+                {
+                    "champName": "cable",
+                    "champPortraitName": "cable",
+                    "champDisplayName": "CABLE",
+                    "rarities": ""
+                },
+                {
+                    "champName": "kang",
+                    "champPortraitName": "kang",
+                    "champDisplayName": "KANG",
+                    "rarities": ""
+                },
+                {
+                    "champName": "mistersinister",
+                    "champPortraitName": "mistersinister",
+                    "champDisplayName": "MISTER SINISTER",
+                    "rarities": ""
+                }
+            ]
+        },
+        {
+            "title": "IMPENDING STORM",
+            "icon_filename": "https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/O-79.svg",
+            "description_parts": [
+                "<span style=\"color: #64acff\">Storm:</span> Each hit of a Heavy Attack into a Shocked Opponent has a 60% chance to inflict an additional Shock Debuff, dealing 70% of modified attack over 8 seconds.",
+                "If this champion is a <span style=\"color: #d31e15ff\">Horseman of Apocalypse</span> Shock effects last +50% longer and Heavy Attacks refresh all Shock Debuffs on the Opponent.",
+                "<span style=\"color: #f79f0e\">Unique Synergy:</span> Does not stack with duplicate synergies."
+            ],
+            "partners": [
+                {
+                    "champName": "storm",
+                    "champPortraitName": "storm",
+                    "champDisplayName": "STORM",
+                    "rarities": ""
+                }
+            ]
+        },
+        {
+            "title": "GUARDIAN OF THE PYRAMID",
+            "icon_filename": "https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/S-83.svg",
+            "description_parts": [
+                "<span style=\"color: #64acff\">Storm (Pyramid X):</span> After charging her dormant Prowess, Storm has a 70% chance to trigger a Passive Prowess for each Prowess Buff that is already active, each increasing Special Damage by 15% for 6 seconds.",
+                "If this champion is a <span style=\"color: #d31e15ff\">Horseman of Apocalypse</span>, gain +30% Critical Rating and +20% Prowess potency.",
+                "<span style=\"color: #f79f0e\">Unique Synergy:</span> Does not stack with duplicate synergies."
+            ],
+            "partners": [
+                {
+                    "champName": "storm_realm",
+                    "champPortraitName": "storm_realm",
+                    "champDisplayName": "STORM (PYRAMID X)",
+                    "rarities": ""
+                }
+            ]
+        },
+        {
+            "title": "BRINGER OF DEATH - I",
+            "icon_filename": "https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/Adieresis-196.svg",
+            "description_parts": [
+                "<span style=\"color: #64acff\">Psylocke:</span> Basic Attacks have a 30% chance to grant a psi-charge and each psi-charge grants +5% Critical Rating. ",
+                "If this champion is a <span style=\"color: #d31e15ff\">Horseman of Apocalypse</span> Gain +50% Critical Damage Rating and +50% Attack Rating when striking an Opponent at 0 Power.",
+                "<span style=\"color: #f79f0e\">Unique Synergy:</span> Does not stack with duplicate synergies."
+            ],
+            "partners": [
+                {
+                    "champName": "psylocke",
+                    "champPortraitName": "psylocke",
+                    "champDisplayName": "PSYLOCKE",
+                    "rarities": ""
+                }
+            ]
+        },
+        {
+            "title": "BRINGER OF DEATH - II",
+            "icon_filename": "https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/A-65.svg",
+            "description_parts": [
+                "<span style=\"color: #64acff\">Gambit:</span> Each time a Kinetic Charge is gained there is a 70% chance to gain an additional one. Cooldown 0.8 seconds.",
+                "If this champion is a <span style=\"color: #d31e15ff\">Horseman of Apocalypse</span> Each Kinetic Charge grants 10% Perfect Block Chance up to a max of 100%.",
+                "<span style=\"color: #f79f0e\">Unique Synergy:</span> Does not stack with duplicate synergies."
+            ],
+            "partners": [
+                {
+                    "champName": "gambit",
+                    "champPortraitName": "gambit",
+                    "champDisplayName": "GAMBIT",
+                    "rarities": ""
+                }
+            ]
+        },
+        {
+            "title": "BRINGER OF DEATH - III",
+            "icon_filename": "https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/G-71.svg",
+            "description_parts": [
+                "<span style=\"color: #64acff\">Wolverine:</span> Personal Bleeds have a chance based on Critical Rating to be Critical Bleeds dealing damage based on Critical Damage Rating.",
+                "If this champion is a <span style=\"color: #d31e15ff\">Horseman of Apocalypse</span> Gain +30% Critical Rating and +40% Critical Damage Rating.",
+                "<span style=\"color: #f79f0e\">Unique Synergy:</span> Does not stack with duplicate synergies."
+            ],
+            "partners": [
+                {
+                    "champName": "wolverine",
+                    "champPortraitName": "wolverine",
+                    "champDisplayName": "WOLVERINE",
+                    "rarities": ""
+                }
+            ]
+        },
+        {
+            "title": "BRINGER OF DEATH - IV",
+            "icon_filename": "https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/p-112.svg",
+            "description_parts": [
+                "<span style=\"color: #64acff\">Archangel:</span> Each hit of a Heavy Attack into a Stunned Opponent has a 10% chance to pause all Neurotoxins for 3 second(s). ",
+                "If this champion is a <span style=\"color: #d31e15ff\">Horseman of Apocalypse</span> Neurotoxin stun duration is increased by 30%.",
+                "<span style=\"color: #f79f0e\">Unique Synergy:</span> Does not stack with duplicate synergies."
+            ],
+            "partners": [
+                {
+                    "champName": "archangel",
+                    "champPortraitName": "archangel",
+                    "champDisplayName": "ARCHANGEL",
+                    "rarities": ""
+                }
+            ]
+        },
+        {
+            "title": "HORRIBLE CURSED NIGHT",
+            "icon_filename": "https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/uniE774-59252.svg",
+            "description_parts": [
+                "<span style=\"color: #64acff\">Annihilus:</span> Gain +10% Special Damage.",
+                "<span style=\"color: #64acff\">Medusa:</span> Gain +20% <span class=\"tooltip\">Combat Adrenaline<span class=\"tooltiptext\"><img src=\"https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/uniE591-58769.svg\" class=\"tooltip-icon\"><span class=\"tooltip-title\">Combat Adrenaline</span><br>How much incoming hit damage is stored as Adrenaline. By default, this is 30% for Attackers at 6-star and higher rarities, and 0% for all other Champions.</span></span>.",
+                "<span style=\"color: #64acff\">Apocalypse:</span> Gain +500 Armor Rating.",
+                "<span style=\"color: #64acff\">Franken-Castle:</span> Gain +10% Attack Rating.",
+                "<span style=\"color: #64acff\">Archangel:</span> Gain +200 Critical Rating.",
+                "<span style=\"color: #64acff\">Dracula:</span> Gain the bonuses of other present Synergy Champions.",
+                "<span style=\"color: #f79f0e\">Unique Synergy:</span> Does not stack with duplicate synergies."
+            ],
+            "partners": [
+                {
+                    "champName": "dracula",
+                    "champPortraitName": "dracula",
+                    "champDisplayName": "DRACULA",
+                    "rarities": "3\u2b50\u2b06\ufe0f"
+                }
+            ]
+        },
+        {
+            "title": "RE: THE APOCALYPSE",
+            "icon_filename": "https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/uniE581-58753.svg",
+            "description_parts": [
+                "<span style=\"color: #64acff\">Synergy Champions:</span> The duration of personal Damaging effects is increased by 2 seconds.",
+                "<span style=\"color: #f79f0e\">Unique Synergy:</span> Does not stack with duplicate synergies."
+            ],
+            "partners": [
+                {
+                    "champName": "spiral",
+                    "champPortraitName": "spiral",
+                    "champDisplayName": "SPIRAL",
+                    "rarities": "4\u2b50\u2b06\ufe0f"
+                }
+            ]
+        },
+        {
+            "title": "FINAL BOSS",
+            "icon_filename": "https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/uniE724-59172.svg",
+            "description_parts": [
+                "<span style=\"color: #64acff\">Onslaught:</span> When Onslaught's Combo Meter passes a multiple of 20, gain a non-stacking Crush Charge.",
+                "<span style=\"color: #f79f0e\">Solo Synergy:</span> Only affects this Champion and does not stack."
+            ],
+            "partners": [
+                {
+                    "champName": "onslaught",
+                    "champPortraitName": "onslaught",
+                    "champDisplayName": "ONSLAUGHT",
+                    "rarities": "3\u2b50\u2b06\ufe0f"
+                }
+            ]
+        },
+        {
+            "title": "BUNKER PUNKS",
+            "icon_filename": "https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/a-97.svg",
+            "description_parts": [
+                "<span style=\"color: #64acff\">Silk:</span> Gain +500 Armor Rating and Block Proficiency.",
+                "<span style=\"color: #f79f0e\">Solo Synergy:</span> Only affects this Champion and does not stack."
+            ],
+            "partners": [
+                {
+                    "champName": "silk",
+                    "champPortraitName": "silk",
+                    "champDisplayName": "SILK",
+                    "rarities": "3\u2b50\u2b06\ufe0f"
+                }
+            ]
+        },
+        {
+            "title": "GROW BIG OR GO HOME",
+            "icon_filename": "https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/uniE572-58738.svg",
+            "description_parts": [
+                "<span style=\"color: #64acff\">Synergy Champions:</span> Gain +6% Block Proficiency and Block Penetration for each Synergy Champion present."
+            ],
+            "partners": [
+                {
+                    "champName": "cassielang",
+                    "champPortraitName": "cassielang",
+                    "champDisplayName": "CASSIE LANG",
+                    "rarities": "3\u2b50\u2b06\ufe0f"
+                }
+            ]
+        },
+        {
+            "title": "INVASION OF THE BODY SNATCHERS",
+            "icon_filename": "https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/Uacute-218.svg",
+            "description_parts": [
+                "<span style=\"color: #64acff\">Synergy Champions:</span> Gain +300 Critical Rating when fighting Skill or Cosmic Opponents, +300 Block Proficiency when fighting Science or Tech Opponents, and +30% Regeneration Rate when fighting Mystic or Mutant Opponents. Gain all bonuses when fighting Superior Opponents.",
+                "<span style=\"color: #f79f0e\">Unique Synergy:</span> Does not stack with duplicate synergies."
+            ],
+            "partners": [
+                {
+                    "champName": "baronzemo",
+                    "champPortraitName": "baronzemo",
+                    "champDisplayName": "BARON ZEMO",
+                    "rarities": "3\u2b50\u2b06\ufe0f"
+                }
+            ]
+        },
+        {
+            "title": "PYRAMID X",
+            "icon_filename": "https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/P-80.svg",
+            "description_parts": [
+                "<span style=\"color: #64acff\">Synergy Champions:</span> Gain a Precision Buff during Special Attacks for each Damage over Time Debuff and <span class=\"tooltip\">Stagger<span class=\"tooltiptext\"><img src=\"https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/quoteleft-8216.svg\" class=\"tooltip-icon\"><span class=\"tooltip-title\">Stagger</span><br>When a Champion with Stagger is inflicted with a Buff, one Buff on them is then removed, along with the Stagger.</span></span> Passive on the Opponent, each increasing Critical Rating by +375. ",
+                "<span style=\"color: #f79f0e\">Unique Synergy:</span> Does not stack with duplicate synergies."
+            ],
+            "partners": [
+                {
+                    "champName": "blackpanther_realm",
+                    "champPortraitName": "black_panther_realm",
+                    "champDisplayName": "JABARI PANTHER",
+                    "rarities": "3\u2b50\u2b06\ufe0f"
+                }
+            ]
+        },
+        {
+            "title": "BIG BAD DAD",
+            "icon_filename": "https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/period-46.svg",
+            "description_parts": [
+                "<span style=\"color: #64acff\">Stryfe:</span> The final hit of Special Attack 2 pauses all Shock effects on the Opponent for 4 seconds.",
+                "If this champion is a <span style=\"color: #d31e15ff\">Horseman of Apocalypse</span> become Passively Unblockable as long as 20 <span style=\"color: #cf38ff\">Telepathic Charges</span> are active.",
+                "<span style=\"color: #64acff\">Apocalypse:</span> Activating Special Attack 1 or 2 increases the potency of personal burst damage by +25%, this can stack up to +300% max.",
+                "<span style=\"color: #f79f0e\">Unique Synergy:</span> Does not stack with duplicate synergies."
+            ],
+            "partners": [
+                {
+                    "champName": "stryfe",
+                    "champPortraitName": "stryfe",
+                    "champDisplayName": "STRYFE",
+                    "rarities": "5\u2b50\u2b06\ufe0f"
+                }
+            ]
+        },
+        {
+            "title": "ENEMIES Lv. 3",
+            "icon_filename": "https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/P-80.svg",
+            "description_parts": [
+                "All Champions gain +155 Critical Rating."
+            ],
+            "partners": [
+                {
+                    "champName": "gambit",
+                    "champPortraitName": "gambit",
+                    "champDisplayName": "GAMBIT",
+                    "rarities": "4\u2b50\u2b06\ufe0f"
+                }
+            ]
+        },
+        {
+            "title": "RIVALS Lv. 1",
+            "icon_filename": "https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/D-68.svg",
+            "description_parts": [
+                "All Champions gain +65 Critical Damage Rating."
+            ],
+            "partners": [
+                {
+                    "champName": "magneto",
+                    "champPortraitName": "magneto",
+                    "champDisplayName": "MAGNETO",
+                    "rarities": "2\u2b50"
+                }
+            ]
+        },
+        {
+            "title": "RIVALS Lv. 2",
+            "icon_filename": "https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/D-68.svg",
+            "description_parts": [
+                "All Champions gain +90 Critical Damage Rating."
+            ],
+            "partners": [
+                {
+                    "champName": "magneto",
+                    "champPortraitName": "magneto",
+                    "champDisplayName": "MAGNETO",
+                    "rarities": "3\u2b50"
+                }
+            ]
+        },
+        {
+            "title": "RIVALS Lv. 3",
+            "icon_filename": "https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/D-68.svg",
+            "description_parts": [
+                "All Champions gain +115 Critical Damage Rating."
+            ],
+            "partners": [
+                {
+                    "champName": "magneto",
+                    "champPortraitName": "magneto",
+                    "champDisplayName": "MAGNETO",
+                    "rarities": "4\u2b50\u2b06\ufe0f"
+                }
+            ]
+        },
+        {
+            "title": "RISE AGAINST THE CONTEST",
+            "icon_filename": "https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/circumflex-710.svg",
+            "description_parts": [
+                "<span style=\"color: #64acff\">Professor X:</span> All of Professor X's Prowess Buffs gain 20% duration.",
+                "<span style=\"color: #64acff\">Apocalypse:</span> <span style=\"color: #d31e15ff\">Horsemen</span> gain +30% Prowess potency.",
+                "<span style=\"color: #64acff\">Magneto (House of X):</span> +5% Attack Rating during the fight and Magneto's Atonement Synergy gains +25% potency.",
+                "<span style=\"color: #f79f0e\">Unique Synergy:</span> Does not stack with duplicate Synergies."
+            ],
+            "partners": [
+                {
+                    "champName": "magneto_marvelnow",
+                    "champPortraitName": "magneto_white",
+                    "champDisplayName": "MAGNETO (HOUSE OF X)",
+                    "rarities": "4\u2b50\u2b06\ufe0f"
+                }
+            ]
+        }
+    ],
+    "duelTargets": [
+        {
+            "summonerName": "S2PID",
+            "rarity": 7
+        },
+        {
+            "summonerName": "Troy91",
+            "rarity": 7
+        },
+        {
+            "summonerName": "Lord chrizzy",
+            "rarity": 7
+        }
+    ],
+    "attackMoves": {
+        "id": "apocalypse",
+        "baseDamage": [
+            "contact",
+            "physical"
+        ],
+        "attacks": {
+            "l1": [
+                {
+                    "damageTypes": [
+                        "contact",
+                        "physical"
+                    ],
+                    "damage": 1488.69
+                }
+            ],
+            "l2": [
+                {
+                    "damageTypes": [
+                        "contact",
+                        "physical"
+                    ],
+                    "damage": 1488.69
+                }
+            ],
+            "l3": [
+                {
+                    "damageTypes": [
+                        "contact",
+                        "physical"
+                    ],
+                    "damage": 1488.69
+                }
+            ],
+            "l4": [
+                {
+                    "damageTypes": [
+                        "contact",
+                        "physical"
+                    ],
+                    "damage": 1488.69
+                }
+            ],
+            "m1": [
+                {
+                    "damageTypes": [
+                        "contact",
+                        "physical"
+                    ],
+                    "damage": 2322.3564
+                }
+            ],
+            "m2": [
+                {
+                    "damageTypes": [
+                        "contact",
+                        "physical"
+                    ],
+                    "damage": 2322.3564
+                }
+            ],
+            "h": [
+                {
+                    "damageTypes": [
+                        "contact",
+                        "physical"
+                    ],
+                    "damage": 1984.9200297738003
+                },
+                {
+                    "damageTypes": [
+                        "contact",
+                        "physical"
+                    ],
+                    "damage": 2977.3801190952
+                }
+            ],
+            "s1": [
+                {
+                    "damageTypes": [
+                        "contact",
+                        "physical"
+                    ],
+                    "damage": 1751.4000262710001
+                },
+                {
+                    "damageTypes": [
+                        "contact",
+                        "physical"
+                    ],
+                    "damage": 875.7000087570001
+                },
+                {
+                    "damageTypes": [
+                        "contact",
+                        "physical"
+                    ],
+                    "damage": 875.7000087570001
+                },
+                {
+                    "damageTypes": [
+                        "projectile",
+                        "energy"
+                    ],
+                    "damage": 1751.4000262710001
+                },
+                {
+                    "damageTypes": [
+                        "projectile",
+                        "energy"
+                    ],
+                    "damage": 1751.4000262710001
+                },
+                {
+                    "damageTypes": [
+                        "projectile",
+                        "energy"
+                    ],
+                    "damage": 1751.4000262710001
+                }
+            ],
+            "s2": [
+                {
+                    "damageTypes": [
+                        "contact",
+                        "physical"
+                    ],
+                    "damage": 1634.6399885086464
+                },
+                {
+                    "damageTypes": [
+                        "contact",
+                        "physical"
+                    ],
+                    "damage": 2451.960056321768
+                },
+                {
+                    "damageTypes": [
+                        "projectile",
+                        "energy"
+                    ],
+                    "damage": 1634.6399885086464
+                },
+                {
+                    "damageTypes": [
+                        "projectile",
+                        "energy"
+                    ],
+                    "damage": 1634.6399885086464
+                },
+                {
+                    "damageTypes": [
+                        "projectile",
+                        "energy"
+                    ],
+                    "damage": 1634.6399885086464
+                },
+                {
+                    "damageTypes": [
+                        "contact",
+                        "physical"
+                    ],
+                    "damage": 2451.960056321768
+                },
+                {
+                    "damageTypes": [
+                        "contact",
+                        "physical"
+                    ],
+                    "damage": 2451.960056321768
+                },
+                {
+                    "damageTypes": [
+                        "contact",
+                        "physical"
+                    ],
+                    "damage": 2451.960056321768
+                }
+            ],
+            "s3": [
+                {
+                    "damageTypes": [],
+                    "damage": 20082.72033405304
+                }
+            ]
+        }
+    }
+}

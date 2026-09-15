@@ -151,6 +151,7 @@ class MCOCAdminPrefix(commands.Cog):
                 "dump",
                 "inspect",
                 "export-champions",
+                "wipe-cache",
             ]
             emb = Embed.embed(ctx, title="MCOC Admin Help", description="Owner/admin utilities for the MCOC bot.")
             Embed.add_field(ctx, emb=emb, name="Available Commands", value="\n".join(f"• `{cmd}`" for cmd in subcommands), inline=False)
@@ -159,7 +160,7 @@ class MCOCAdminPrefix(commands.Cog):
             return
 
         if not args:
-            subcommands = ["status", "sync", "force-sync", "prestige_sync", "key", "features", "export-champions"]
+            subcommands = ["status", "sync", "force-sync", "prestige_sync", "key", "features", "export-champions", "wipe-cache"]
             emb = Embed.embed(ctx, title="MCOC Admin", description="Owner/admin utilities for the MCOC bot.")
             Embed.add_field(ctx, emb=emb, name="Common Commands", value="\n".join(f"• `{cmd}`" for cmd in subcommands), inline=False)
             Embed.add_field(ctx, emb=emb, name="Example", value="`///mcocadmin status`", inline=False)
@@ -585,6 +586,53 @@ class MCOCAdminPrefix(commands.Cog):
             except Exception:
                 pass
             await safe_send_ctx(ctx, f"Prestige update failed: {e}")
+
+    @commands.is_owner()
+    @admin.command(name="wipe-cache", aliases=["wipecache"])
+    async def wipe_cache(self, ctx):
+        """Delete the local cache and reset metadata after a confirmation prompt."""
+        parent = getattr(self, "parent", None)
+        cache = getattr(parent, "cache", None) if parent else None
+        if not cache:
+            await safe_send_ctx(ctx, "MCOC cache not initialized.")
+            return
+
+        cache_dir = getattr(cache, "cache_dir", None)
+        files = sorted((cache_dir.glob("*.json") if cache_dir and cache_dir.exists() else []), key=lambda p: p.name)
+        count = len(files)
+        if count == 0:
+            await safe_send_ctx(ctx, "No cached JSON files were found; there is nothing to wipe.")
+            return
+
+        emb = Embed.embed(
+            ctx,
+            title="⚠️ Wipe CDT Cache",
+            description=(
+                "This will permanently delete all cached CDT JSON files and reset the cache metadata. "
+                "The bot will need a fresh sync before champion data is available again."
+            ),
+            color=discord.Color.orange(),
+        )
+        Embed.add_field(ctx, emb=emb, name="Cache Directory", value=str(cache_dir), inline=False)
+        Embed.add_field(ctx, emb=emb, name="Files to Remove", value=str(count), inline=True)
+        Embed.add_field(ctx, emb=emb, name="Confirmation", value="Press the button below to delete the cache. This action cannot be undone.", inline=False)
+        await safe_send_ctx(ctx, None, embed=emb, view=CDTConfirm(timeout=30.0, confirm_label="Delete Cache", cancel_label="Cancel"))
+
+        # The confirmation view has a separate async wait loop; defer to a direct ephemeral confirmation style.
+        try:
+            view = CDTConfirm(timeout=30.0, confirm_label="Delete Cache", cancel_label="Cancel")
+            await safe_send_ctx(ctx, None, embed=emb, view=view)
+            confirmed = await view.wait_result()
+        except Exception:
+            confirmed = False
+
+        if not confirmed:
+            await safe_send_ctx(ctx, "Cache wipe cancelled. No files were removed.")
+            return
+
+        result = cache.wipe_cache()
+        removed = result.get("removed", 0)
+        await safe_send_ctx(ctx, f"✅ Cache wiped. Removed **{removed}** cached file(s) and reset metadata. Run `///mcocadmin sync` to rebuild it.")
 
     def _lookup_cache_object(self, cache: Any, kind: str, key: str):
         """Resolve a champion/ability/immunity/tag by exact or normalized lookup."""

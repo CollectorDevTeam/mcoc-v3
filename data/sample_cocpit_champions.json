@@ -1,0 +1,7333 @@
+[
+    {
+        "id": "abomination",
+        "name": "ABOMINATION",
+        "aliases": [
+            "abom"
+        ],
+        "img": "abomination.png",
+        "className": "Science",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "abomination_immortal",
+        "name": "ABOMINATION (IMMORTAL)",
+        "aliases": [
+            "ibom",
+            "Abomination"
+        ],
+        "img": "abomination_immortal.png",
+        "className": "Science",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 2
+        }
+    },
+    {
+        "id": "absorbingman",
+        "name": "ABSORBING MAN",
+        "aliases": [
+            "abs man"
+        ],
+        "img": "absorbingman.png",
+        "className": "Mystic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "adamwarlock",
+        "name": "ADAM WARLOCK",
+        "aliases": [
+            "adam"
+        ],
+        "img": "adamwarlock.png",
+        "className": "Cosmic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 2
+        }
+    },
+    {
+        "id": "aegon",
+        "name": "ÆGON",
+        "aliases": [
+            "aegon"
+        ],
+        "img": "aegon.png",
+        "className": "Skill",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "agathaharkness",
+        "name": "AGATHA HARKNESS",
+        "aliases": [
+            "agatha"
+        ],
+        "img": "agathaharkness.png",
+        "className": "Mystic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 2
+        }
+    },
+    {
+        "id": "agentvenom",
+        "name": "AGENT VENOM",
+        "aliases": [
+            "agent v."
+        ],
+        "img": "agent_venom.png",
+        "className": "Skill",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "airwalker",
+        "name": "AIR-WALKER",
+        "aliases": [],
+        "img": "airwalker.png",
+        "className": "Cosmic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "americachavez",
+        "name": "AMERICA CHAVEZ",
+        "aliases": [
+            "america"
+        ],
+        "img": "americachavez.png",
+        "className": "Mystic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 2
+        }
+    },
+    {
+        "id": "angela",
+        "name": "ANGELA",
+        "aliases": [],
+        "img": "angela.png",
+        "className": "Cosmic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "annihilus",
+        "name": "ANNIHILUS",
+        "aliases": [
+            "anni"
+        ],
+        "img": "annihilus.png",
+        "className": "Cosmic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "antivenom",
+        "name": "ANTI-VENOM",
+        "aliases": [],
+        "img": "antivenom.png",
+        "className": "Science",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "antivenomoid_cosmic",
+        "name": "ANTI-VENOMOID (COSMIC)",
+        "aliases": [
+            "avo cos",
+            "Anti-Venomoid"
+        ],
+        "img": "antivenomoid_cosmic.png",
+        "className": "Cosmic",
+        "availableRarities": [
+            2
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "antivenomoid_mutant",
+        "name": "ANTI-VENOMOID (MUTANT)",
+        "aliases": [
+            "avo mut",
+            "Anti-Venomoid"
+        ],
+        "img": "antivenomoid_mutant.png",
+        "className": "Mutant",
+        "availableRarities": [
+            2
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "antivenomoid_mystic",
+        "name": "ANTI-VENOMOID (MYSTIC)",
+        "aliases": [
+            "avo mys",
+            "Anti-Venomoid"
+        ],
+        "img": "antivenomoid_mystic.png",
+        "className": "Mystic",
+        "availableRarities": [
+            2
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "antivenomoid_science",
+        "name": "ANTI-VENOMOID (SCIENCE)",
+        "aliases": [
+            "avo sci",
+            "Anti-Venomoid"
+        ],
+        "img": "antivenomoid_science.png",
+        "className": "Science",
+        "availableRarities": [
+            2
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "antivenomoid_skill",
+        "name": "ANTI-VENOMOID (SKILL)",
+        "aliases": [
+            "avo skl",
+            "Anti-Venomoid"
+        ],
+        "img": "antivenomoid_trained.png",
+        "className": "Skill",
+        "availableRarities": [
+            2
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "antivenomoid_tech",
+        "name": "ANTI-VENOMOID (TECH)",
+        "aliases": [
+            "avo tec",
+            "Anti-Venomoid"
+        ],
+        "img": "antivenomoid_tech.png",
+        "className": "Tech",
+        "availableRarities": [
+            2
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "antman",
+        "name": "ANT-MAN",
+        "aliases": [
+            "ant man"
+        ],
+        "img": "antman.png",
+        "className": "Science",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "antman_future",
+        "name": "ANT-MAN (FUTURE)",
+        "aliases": [
+            "fanta",
+            "Ant-Man"
+        ],
+        "img": "antman_future.png",
+        "className": "Tech",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "apocalypse",
+        "name": "APOCALYPSE",
+        "aliases": [
+            "apoc"
+        ],
+        "img": "apocalypse.png",
+        "className": "Mutant",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "arcade",
+        "name": "ARCADE",
+        "aliases": [],
+        "img": "arcade.png",
+        "className": "Tech",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 2
+        }
+    },
+    {
+        "id": "archangel",
+        "name": "ARCHANGEL",
+        "aliases": [
+            "angel"
+        ],
+        "img": "archangel.png",
+        "className": "Mutant",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "arnimzola",
+        "name": "ARNIM ZOLA",
+        "aliases": [
+            "zola"
+        ],
+        "img": "arnimzola.png",
+        "className": "Tech",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 2
+        }
+    },
+    {
+        "id": "attuma",
+        "name": "ATTUMA",
+        "aliases": [],
+        "img": "attuma.png",
+        "className": "Skill",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 2
+        }
+    },
+    {
+        "id": "baronzemo",
+        "name": "BARON ZEMO",
+        "aliases": [
+            "zemo"
+        ],
+        "img": "baronzemo.png",
+        "className": "Skill",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 2
+        }
+    },
+    {
+        "id": "bastion",
+        "name": "BASTION",
+        "aliases": [],
+        "img": "bastion.png",
+        "className": "Tech",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "beast",
+        "name": "BEAST",
+        "aliases": [],
+        "img": "beast_allnew.png",
+        "className": "Mutant",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "betaraybill",
+        "name": "BETA RAY BILL",
+        "aliases": [
+            "beta ray"
+        ],
+        "img": "betaraybill.png",
+        "className": "Cosmic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "bishop",
+        "name": "BISHOP",
+        "aliases": [],
+        "img": "bishop.png",
+        "className": "Mutant",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 2
+        }
+    },
+    {
+        "id": "blackbolt",
+        "name": "BLACK BOLT",
+        "aliases": [],
+        "img": "black_bolt.png",
+        "className": "Cosmic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "blackcat",
+        "name": "BLACK CAT",
+        "aliases": [],
+        "img": "blackcat.png",
+        "className": "Skill",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "blackpanther",
+        "name": "BLACK PANTHER",
+        "aliases": [
+            "og bp"
+        ],
+        "img": "black_panther.png",
+        "className": "Skill",
+        "availableRarities": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "blackpanther_cw",
+        "name": "BLACK PANTHER (CIVIL WAR)",
+        "aliases": [
+            "bpcw",
+            "Black Panther"
+        ],
+        "img": "black_panther_cw.png",
+        "className": "Skill",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 2
+        }
+    },
+    {
+        "id": "blackpanther_realm",
+        "name": "JABARI PANTHER",
+        "aliases": [
+            "jabari"
+        ],
+        "img": "black_panther_realm.png",
+        "className": "Skill",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 2
+        }
+    },
+    {
+        "id": "blacktarantula",
+        "name": "BLACK TARANTULA",
+        "aliases": [
+            "tarantula"
+        ],
+        "img": "black_tarantula.png",
+        "className": "Skill",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 2
+        }
+    },
+    {
+        "id": "blackwidow",
+        "name": "BLACK WIDOW",
+        "aliases": [
+            "widow"
+        ],
+        "img": "black_widow.png",
+        "className": "Skill",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "blackwidow_movie",
+        "name": "BLACK WIDOW (DEADLY ORIGIN)",
+        "aliases": [
+            "bwdo",
+            "Black Widow"
+        ],
+        "img": "black_widow_movie.png",
+        "className": "Skill",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "blackwidow_timely",
+        "name": "BLACK WIDOW (CLAIRE VOYANT)",
+        "aliases": [
+            "bwcv",
+            "Black Widow"
+        ],
+        "img": "black_widow_timely.png",
+        "className": "Mystic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "blade",
+        "name": "BLADE",
+        "aliases": [],
+        "img": "blade.png",
+        "className": "Skill",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "blade_stellar",
+        "name": "BLADE (STELLAR-FORGED)",
+        "aliases": [
+            "blade sf",
+            "Blade (Stellar)"
+        ],
+        "img": "blade_stellar.png",
+        "className": "Mystic",
+        "availableRarities": [
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 2
+        }
+    },
+    {
+        "id": "bluemarvel",
+        "name": "BLUE MARVEL",
+        "aliases": [
+            "bluemarvel"
+        ],
+        "img": "bluemarvel.png",
+        "className": "Science",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 2
+        }
+    },
+    {
+        "id": "brothervoodoo",
+        "name": "DOCTOR VOODOO",
+        "aliases": [
+            "doc v"
+        ],
+        "img": "brother_voodoo.png",
+        "className": "Mystic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "bullseye",
+        "name": "BULLSEYE",
+        "aliases": [],
+        "img": "bullseye.png",
+        "className": "Skill",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "cable",
+        "name": "CABLE",
+        "aliases": [],
+        "img": "cable.png",
+        "className": "Mutant",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "captainamerica",
+        "name": "CAPTAIN AMERICA",
+        "aliases": [
+            "og cap"
+        ],
+        "img": "captain_america.png",
+        "className": "Science",
+        "availableRarities": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "captainamerica_movie",
+        "name": "CAPTAIN AMERICA (INFINITY WAR)",
+        "aliases": [
+            "cap iw",
+            "Captain America"
+        ],
+        "img": "captainamerica_infinitywar.png",
+        "className": "Science",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "captainamerica_samwilson",
+        "name": "CAPTAIN AMERICA (SAM WILSON)",
+        "aliases": [
+            "cap sam",
+            "Captain America"
+        ],
+        "img": "captainamerica_samwilson.png",
+        "className": "Tech",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 2
+        }
+    },
+    {
+        "id": "captainamerica_ww2",
+        "name": "CAPTAIN AMERICA (WWII)",
+        "aliases": [
+            "cap wwii",
+            "Captain America"
+        ],
+        "img": "capamerica_wwii.png",
+        "className": "Science",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "captainbritain",
+        "name": "CAPTAIN BRITAIN",
+        "aliases": [
+            "cap brit"
+        ],
+        "img": "captainbritain.png",
+        "className": "Mutant",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "captainmarvel",
+        "name": "CAPTAIN MARVEL (CLASSIC)",
+        "aliases": [
+            "cap marvel",
+            "Captain Marvel"
+        ],
+        "img": "captain_marvel.png",
+        "className": "Cosmic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "captainmarvel_movie",
+        "name": "CAPTAIN MARVEL",
+        "aliases": [
+            "cmm"
+        ],
+        "img": "captain_marvel_movie.png",
+        "className": "Cosmic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "carnage",
+        "name": "CARNAGE",
+        "aliases": [],
+        "img": "carnage.png",
+        "className": "Cosmic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "cassandranova",
+        "name": "CASSANDRA NOVA",
+        "aliases": [
+            "casanova"
+        ],
+        "img": "cassandranova.png",
+        "className": "Mutant",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "cassielang",
+        "name": "CASSIE LANG",
+        "aliases": [
+            "cassie"
+        ],
+        "img": "cassielang.png",
+        "className": "Science",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "champion",
+        "name": "THE CHAMPION",
+        "aliases": [
+            "champion"
+        ],
+        "img": "champion.png",
+        "className": "Cosmic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "cheeilth",
+        "name": "CHEE'ILTH",
+        "aliases": [
+            "cheeilth"
+        ],
+        "img": "cheeilth.png",
+        "className": "Skill",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "civilwarrior",
+        "name": "CIVIL WARRIOR",
+        "aliases": [
+            "cw"
+        ],
+        "img": "civilwarrior.png",
+        "className": "Tech",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "colossus",
+        "name": "COLOSSUS",
+        "aliases": [],
+        "img": "colossus.png",
+        "className": "Mutant",
+        "availableRarities": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 2
+        }
+    },
+    {
+        "id": "colossus_unstoppable",
+        "name": "UNSTOPPABLE COLOSSUS",
+        "aliases": [
+            "u. colossus",
+            "Unst. Colossus"
+        ],
+        "img": "colossus_unstoppable.png",
+        "className": "Mystic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "corvusglaive",
+        "name": "CORVUS GLAIVE",
+        "aliases": [
+            "corvus"
+        ],
+        "img": "corvusglaive.png",
+        "className": "Cosmic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 2
+        }
+    },
+    {
+        "id": "countnefaria",
+        "name": "COUNT NEFARIA",
+        "aliases": [
+            "nefaria"
+        ],
+        "img": "countnefaria.png",
+        "className": "Science",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "crossbones",
+        "name": "CROSSBONES",
+        "aliases": [
+            "xbones"
+        ],
+        "img": "crossbones.png",
+        "className": "Skill",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "cullobsidian",
+        "name": "CULL OBSIDIAN",
+        "aliases": [
+            "cull"
+        ],
+        "img": "cullobsidian.png",
+        "className": "Cosmic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "cyclops",
+        "name": "CYCLOPS (NEW XAVIER SCHOOL)",
+        "aliases": [
+            "cyclops"
+        ],
+        "img": "cyclops.png",
+        "className": "Mutant",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "cyclops_90s",
+        "name": "CYCLOPS (BLUE TEAM)",
+        "aliases": [
+            "blueclops",
+            "Cyclops"
+        ],
+        "img": "cyclops_90s.png",
+        "className": "Mutant",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "danimoonstar",
+        "name": "DANI MOONSTAR",
+        "aliases": [
+            "dani"
+        ],
+        "img": "danimoonstar.png",
+        "className": "Mutant",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 2
+        }
+    },
+    {
+        "id": "daredevil",
+        "name": "DAREDEVIL (CLASSIC)",
+        "aliases": [
+            "og dd",
+            "Daredevil"
+        ],
+        "img": "daredevil.png",
+        "className": "Skill",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "daredevil_netflix",
+        "name": "DAREDEVIL (HELL'S KITCHEN)",
+        "aliases": [
+            "dd nf",
+            "Daredevil (H.K.)"
+        ],
+        "img": "daredevil_netflix.png",
+        "className": "Skill",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "darkhawk",
+        "name": "DARKHAWK",
+        "aliases": [],
+        "img": "darkhawk.png",
+        "className": "Tech",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "dazzler",
+        "name": "DAZZLER",
+        "aliases": [],
+        "img": "dazzler.png",
+        "className": "Mutant",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "deadpool",
+        "name": "DEADPOOL",
+        "aliases": [],
+        "img": "deadpool.png",
+        "className": "Mutant",
+        "availableRarities": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 2
+        }
+    },
+    {
+        "id": "deadpool_gold",
+        "name": "GOLDPOOL",
+        "aliases": [],
+        "img": "deadpool_gold.png",
+        "className": "Mutant",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "deadpool_platinum",
+        "name": "PLATINUMPOOL",
+        "aliases": [
+            "platpool"
+        ],
+        "img": "deadpool_platinum.png",
+        "className": "Mutant",
+        "availableRarities": [
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "deadpool_xforce",
+        "name": "DEADPOOL (X-FORCE)",
+        "aliases": [
+            "dpx",
+            "Deadpool"
+        ],
+        "img": "deadpool_xforce.png",
+        "className": "Mutant",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "destroyer",
+        "name": "THE DESTROYER",
+        "aliases": [
+            "destroyer"
+        ],
+        "img": "destroyer.png",
+        "className": "Mystic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 2
+        }
+    },
+    {
+        "id": "diablo",
+        "name": "DIABLO",
+        "aliases": [],
+        "img": "diablo.png",
+        "className": "Mystic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "doc_ock",
+        "name": "DOCTOR OCTOPUS",
+        "aliases": [
+            "doc ock"
+        ],
+        "img": "doc_ock.png",
+        "className": "Tech",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "doctorbong",
+        "name": "DOCTOR BONG",
+        "aliases": [
+            "dr bong"
+        ],
+        "img": "doctorbong.png",
+        "className": "Skill",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 2
+        }
+    },
+    {
+        "id": "doctordoom",
+        "name": "DOCTOR DOOM",
+        "aliases": [
+            "dr doom"
+        ],
+        "img": "doctordoom.png",
+        "className": "Mystic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "domino",
+        "name": "DOMINO",
+        "aliases": [],
+        "img": "domino.png",
+        "className": "Mutant",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "doombot_cosmic",
+        "name": "DOOMBOT (COSMIC)",
+        "aliases": [
+            "db cos",
+            "Doombot"
+        ],
+        "img": "doombot_cosmic.png",
+        "className": "Cosmic",
+        "availableRarities": [
+            2
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "doombot_mutant",
+        "name": "DOOMBOT (MUTANT)",
+        "aliases": [
+            "db mut",
+            "Doombot"
+        ],
+        "img": "doombot_mutant.png",
+        "className": "Mutant",
+        "availableRarities": [
+            2
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "doombot_mystic",
+        "name": "DOOMBOT (MYSTIC)",
+        "aliases": [
+            "db mys",
+            "Doombot"
+        ],
+        "img": "doombot_mystic.png",
+        "className": "Mystic",
+        "availableRarities": [
+            2
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "doombot_science",
+        "name": "DOOMBOT (SCIENCE)",
+        "aliases": [
+            "db sci",
+            "Doombot"
+        ],
+        "img": "doombot_science.png",
+        "className": "Science",
+        "availableRarities": [
+            2
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "doombot_skill",
+        "name": "DOOMBOT (SKILL)",
+        "aliases": [
+            "db skl",
+            "Doombot"
+        ],
+        "img": "doombot_skill.png",
+        "className": "Skill",
+        "availableRarities": [
+            2
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "doombot_tech",
+        "name": "DOOMBOT (TECH)",
+        "aliases": [
+            "db tec",
+            "Doombot"
+        ],
+        "img": "doombot_tech.png",
+        "className": "Tech",
+        "availableRarities": [
+            2
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "dormammu",
+        "name": "DORMAMMU",
+        "aliases": [],
+        "img": "dormammu.png",
+        "className": "Mystic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "dracula",
+        "name": "DRACULA",
+        "aliases": [],
+        "img": "dracula.png",
+        "className": "Mystic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "dragonman",
+        "name": "DRAGON MAN",
+        "aliases": [],
+        "img": "dragonman.png",
+        "className": "Mystic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 2
+        }
+    },
+    {
+        "id": "drax",
+        "name": "DRAX",
+        "aliases": [],
+        "img": "drax.png",
+        "className": "Cosmic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "drstrange",
+        "name": "DOCTOR STRANGE",
+        "aliases": [
+            "dr strange"
+        ],
+        "img": "doctor_strange.png",
+        "className": "Mystic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 2
+        }
+    },
+    {
+        "id": "drstrange_realm",
+        "name": "SORCERER SUPREME",
+        "aliases": [
+            "sorc sup"
+        ],
+        "img": "drstrange_realm.png",
+        "className": "Mystic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "dust",
+        "name": "DUST",
+        "aliases": [],
+        "img": "dust.png",
+        "className": "Mutant",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 2
+        }
+    },
+    {
+        "id": "ebonymaw",
+        "name": "EBONY MAW",
+        "aliases": [
+            "maw"
+        ],
+        "img": "ebonymaw.png",
+        "className": "Mystic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "electro",
+        "name": "ELECTRO",
+        "aliases": [],
+        "img": "electro.png",
+        "className": "Science",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "elektra",
+        "name": "ELEKTRA",
+        "aliases": [],
+        "img": "elektra.png",
+        "className": "Skill",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "elsabloodstone",
+        "name": "ELSA BLOODSTONE",
+        "aliases": [
+            "elsa"
+        ],
+        "img": "elsabloodstone.png",
+        "className": "Skill",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "emmafrost",
+        "name": "EMMA FROST",
+        "aliases": [
+            "emma"
+        ],
+        "img": "emmafrost.png",
+        "className": "Mutant",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 2
+        }
+    },
+    {
+        "id": "enchantress",
+        "name": "ENCHANTRESS",
+        "aliases": [
+            "ench."
+        ],
+        "img": "enchantress.png",
+        "className": "Mystic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "falcon",
+        "name": "FALCON",
+        "aliases": [],
+        "img": "falcon.png",
+        "className": "Skill",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "falcon_joaquintorres",
+        "name": "FALCON (JOAQUIN TORRES)",
+        "aliases": [
+            "falcon (jt)"
+        ],
+        "img": "falcon_joaquintorres.png",
+        "className": "Science",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "frankencastle",
+        "name": "FRANKEN-CASTLE",
+        "aliases": [
+            "frankenc."
+        ],
+        "img": "frankencastle.png",
+        "className": "Skill",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "galan",
+        "name": "GALAN",
+        "aliases": [],
+        "img": "galan.png",
+        "className": "Cosmic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "gambit",
+        "name": "GAMBIT",
+        "aliases": [],
+        "img": "gambit.png",
+        "className": "Mutant",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "gamora",
+        "name": "GAMORA",
+        "aliases": [],
+        "img": "gamora.png",
+        "className": "Cosmic",
+        "availableRarities": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "gentle",
+        "name": "GENTLE",
+        "aliases": [],
+        "img": "gentle.png",
+        "className": "Mutant",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 2
+        }
+    },
+    {
+        "id": "ghost",
+        "name": "GHOST",
+        "aliases": [],
+        "img": "ghost.png",
+        "className": "Tech",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "ghostrider",
+        "name": "GHOST RIDER",
+        "aliases": [
+            "g. rider"
+        ],
+        "img": "ghost_rider.png",
+        "className": "Mystic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 2
+        }
+    },
+    {
+        "id": "ghostrider_cosmic",
+        "name": "COSMIC GHOST RIDER",
+        "aliases": [
+            "cgr"
+        ],
+        "img": "ghost_rider_cosmic.png",
+        "className": "Cosmic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "gladiator",
+        "name": "GLADIATOR",
+        "aliases": [],
+        "img": "gladiator.png",
+        "className": "Cosmic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "gorr",
+        "name": "GORR",
+        "aliases": [],
+        "img": "gorr.png",
+        "className": "Cosmic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 2
+        }
+    },
+    {
+        "id": "green_goblin",
+        "name": "GREEN GOBLIN",
+        "aliases": [
+            "g. goblin"
+        ],
+        "img": "green_goblin.png",
+        "className": "Tech",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "groot",
+        "name": "GROOT",
+        "aliases": [],
+        "img": "groot.png",
+        "className": "Cosmic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "groot_king",
+        "name": "KING GROOT",
+        "aliases": [],
+        "img": "groot_king.png",
+        "className": "Cosmic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "groot_king_deathless",
+        "name": "KING GROOT (DEATHLESS)",
+        "aliases": [
+            "death tree"
+        ],
+        "img": "groot_king_blackorder.png",
+        "className": "Cosmic",
+        "availableRarities": [
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "guardian",
+        "name": "GUARDIAN",
+        "aliases": [],
+        "img": "guardian.png",
+        "className": "Tech",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "guillotine",
+        "name": "GUILLOTINE",
+        "aliases": [
+            "og guilly"
+        ],
+        "img": "guillotine.png",
+        "className": "Mystic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "guillotine_2099",
+        "name": "GUILLOTINE 2099",
+        "aliases": [
+            "g2099"
+        ],
+        "img": "guillotine_2099.png",
+        "className": "Tech",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 2
+        }
+    },
+    {
+        "id": "guillotine_nameless",
+        "name": "GUILLOTINE (DEATHLESS)",
+        "aliases": [
+            "d. guilly"
+        ],
+        "img": "guillotine_blackorder.png",
+        "className": "Mystic",
+        "availableRarities": [
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "gwenpool",
+        "name": "GWENPOOL",
+        "aliases": [],
+        "img": "gwenpool.png",
+        "className": "Skill",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "havok",
+        "name": "HAVOK",
+        "aliases": [],
+        "img": "havok.png",
+        "className": "Mutant",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "hawkeye",
+        "name": "HAWKEYE",
+        "aliases": [],
+        "img": "hawkeye.png",
+        "className": "Skill",
+        "availableRarities": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "heimdall",
+        "name": "HEIMDALL",
+        "aliases": [],
+        "img": "heimdall.png",
+        "className": "Cosmic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "hela",
+        "name": "HELA",
+        "aliases": [],
+        "img": "hela.png",
+        "className": "Cosmic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "hercules",
+        "name": "HERCULES",
+        "aliases": [],
+        "img": "hercules.png",
+        "className": "Cosmic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "highevolutionary",
+        "name": "HIGH EVOLUTIONARY",
+        "aliases": [
+            "hevo"
+        ],
+        "img": "high_evolutionary.png",
+        "className": "Science",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 2
+        }
+    },
+    {
+        "id": "hitmonkey",
+        "name": "HIT-MONKEY",
+        "aliases": [],
+        "img": "hitmonkey.png",
+        "className": "Skill",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 2
+        }
+    },
+    {
+        "id": "hobgoblin_philurich",
+        "name": "HOBGOBLIN (PHIL URICH)",
+        "aliases": [
+            "hobgoblin"
+        ],
+        "img": "hobgoblin_philurich.png",
+        "className": "Tech",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 2
+        }
+    },
+    {
+        "id": "hood",
+        "name": "THE HOOD",
+        "aliases": [
+            "hood"
+        ],
+        "img": "hood.png",
+        "className": "Mystic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "howardmech",
+        "name": "HOWARD THE DUCK",
+        "aliases": [
+            "howard"
+        ],
+        "img": "howardmech.png",
+        "className": "Tech",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 2
+        }
+    },
+    {
+        "id": "hulk",
+        "name": "HULK",
+        "aliases": [
+            "og hulk"
+        ],
+        "img": "hulk.png",
+        "className": "Science",
+        "availableRarities": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "hulk_immortal",
+        "name": "HULK (IMMORTAL)",
+        "aliases": [
+            "ihulk",
+            "Hulk"
+        ],
+        "img": "hulk_immortal.png",
+        "className": "Science",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "hulk_ragnarok",
+        "name": "HULK (RAGNAROK)",
+        "aliases": [
+            "hulk rags",
+            "Hulk"
+        ],
+        "img": "hulk_ragnarok.png",
+        "className": "Science",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "hulk_red",
+        "name": "RED HULK",
+        "aliases": [],
+        "img": "hulk_red.png",
+        "className": "Science",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "hulkbuster_movie",
+        "name": "HULKBUSTER",
+        "aliases": [],
+        "img": "hulkbuster_movie.png",
+        "className": "Tech",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "hulkling",
+        "name": "HULKLING",
+        "aliases": [],
+        "img": "hulkling.png",
+        "className": "Cosmic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "humantorch",
+        "name": "HUMAN TORCH",
+        "aliases": [
+            "torch"
+        ],
+        "img": "johnnystorm.png",
+        "className": "Science",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "hyperion",
+        "name": "HYPERION",
+        "aliases": [
+            "hype"
+        ],
+        "img": "hyperion.png",
+        "className": "Cosmic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "iceman",
+        "name": "ICEMAN",
+        "aliases": [],
+        "img": "iceman.png",
+        "className": "Mutant",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "ikaris",
+        "name": "IKARIS",
+        "aliases": [],
+        "img": "ikaris.png",
+        "className": "Cosmic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "imperiosa",
+        "name": "IMPERIOSA",
+        "aliases": [],
+        "img": "imperiosa.png",
+        "className": "Cosmic",
+        "availableRarities": [
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "invisiblewoman",
+        "name": "INVISIBLE WOMAN",
+        "aliases": [
+            "sue storm"
+        ],
+        "img": "invisiblewoman.png",
+        "className": "Science",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "ironfist",
+        "name": "IRON FIST",
+        "aliases": [],
+        "img": "iron_fist.png",
+        "className": "Mystic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "ironfist_white",
+        "name": "IRON FIST (IMMORTAL)",
+        "aliases": [
+            "imm. if",
+            "Iron Fist"
+        ],
+        "img": "iron_fist_white.png",
+        "className": "Mystic",
+        "availableRarities": [
+            3,
+            4,
+            5,
+            6
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "ironheart",
+        "name": "IRONHEART",
+        "aliases": [
+            "riri"
+        ],
+        "img": "ironheart.png",
+        "className": "Tech",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "ironman",
+        "name": "IRON MAN",
+        "aliases": [
+            "og im"
+        ],
+        "img": "iron_man.png",
+        "className": "Tech",
+        "availableRarities": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 2
+        }
+    },
+    {
+        "id": "ironman_infamous",
+        "name": "IRON MAN (INFAMOUS)",
+        "aliases": [
+            "idoom",
+            "Infamous Iron Man"
+        ],
+        "img": "ironman_infamous.png",
+        "className": "Tech",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 2
+        }
+    },
+    {
+        "id": "ironman_movie",
+        "name": "IRON MAN (INFINITY WAR)",
+        "aliases": [
+            "imiw",
+            "Iron Man"
+        ],
+        "img": "ironman_movie.png",
+        "className": "Tech",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "ironman_silvercenturion",
+        "name": "SILVER CENTURION",
+        "aliases": [
+            "silver cent"
+        ],
+        "img": "ironman_silvercenturion.png",
+        "className": "Tech",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "ironman_superior",
+        "name": "SUPERIOR IRON MAN",
+        "aliases": [
+            "sup im",
+            "Super. Iron Man"
+        ],
+        "img": "ironman_superior.png",
+        "className": "Cosmic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "ironpatriot",
+        "name": "IRON PATRIOT",
+        "aliases": [
+            "iron pat"
+        ],
+        "img": "ironpatriot.png",
+        "className": "Tech",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "isophyne",
+        "name": "ISOPHYNE",
+        "aliases": [],
+        "img": "isophyne.png",
+        "className": "Mystic",
+        "availableRarities": [
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "jackolantern",
+        "name": "JACK O'LANTERN",
+        "aliases": [
+            "jack"
+        ],
+        "img": "jackolantern.png",
+        "className": "Tech",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "jeangrey_current",
+        "name": "JEAN GREY",
+        "aliases": [],
+        "img": "jean_grey_current.png",
+        "className": "Mutant",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "jessicajones_current",
+        "name": "JESSICA JONES",
+        "aliases": [
+            "jess jones"
+        ],
+        "img": "jessica_jones.png",
+        "className": "Science",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "jjj_spiderslayer",
+        "name": "SPIDER-SLAYER (J. JONAH JAMESON)",
+        "aliases": [
+            "spider-slayer",
+            "Spider-Slayer (J. J. J.)"
+        ],
+        "img": "jjj_spiderslayer.png",
+        "className": "Tech",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 2
+        }
+    },
+    {
+        "id": "joefixit",
+        "name": "JOE FIXIT",
+        "aliases": [],
+        "img": "joefixit.png",
+        "className": "Science",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "jubilee",
+        "name": "JUBILEE",
+        "aliases": [],
+        "img": "jubilee.png",
+        "className": "Mutant",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "juggernaut",
+        "name": "JUGGERNAUT",
+        "aliases": [
+            "juggs"
+        ],
+        "img": "juggernaut.png",
+        "className": "Mystic",
+        "availableRarities": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "kang",
+        "name": "KANG",
+        "aliases": [],
+        "img": "kang.png",
+        "className": "Tech",
+        "availableRarities": [
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "karlmordo",
+        "name": "MORDO",
+        "aliases": [],
+        "img": "karl_mordo.png",
+        "className": "Mystic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "karnak",
+        "name": "KARNAK",
+        "aliases": [],
+        "img": "karnak.png",
+        "className": "Skill",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "karolinadean",
+        "name": "KAROLINA DEAN",
+        "aliases": [
+            "karolina"
+        ],
+        "img": "karolinadean.png",
+        "className": "Cosmic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "katebishop",
+        "name": "KATE BISHOP",
+        "aliases": [
+            "kate"
+        ],
+        "img": "katebishop.png",
+        "className": "Skill",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "killmonger",
+        "name": "KILLMONGER",
+        "aliases": [],
+        "img": "killmonger.png",
+        "className": "Skill",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "kindred",
+        "name": "KINDRED",
+        "aliases": [],
+        "img": "kindred.png",
+        "className": "Mystic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 2
+        }
+    },
+    {
+        "id": "kingpin",
+        "name": "KINGPIN",
+        "aliases": [],
+        "img": "kingpin.png",
+        "className": "Skill",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "kittypryde",
+        "name": "KITTY PRYDE",
+        "aliases": [
+            "kitty"
+        ],
+        "img": "kittypryde.png",
+        "className": "Mutant",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "knull",
+        "name": "KNULL",
+        "aliases": [],
+        "img": "knull.png",
+        "className": "Cosmic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 2
+        }
+    },
+    {
+        "id": "korg",
+        "name": "KORG",
+        "aliases": [],
+        "img": "korg_movie.png",
+        "className": "Skill",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 2
+        }
+    },
+    {
+        "id": "kraven",
+        "name": "KRAVEN",
+        "aliases": [],
+        "img": "kraven.png",
+        "className": "Skill",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "kushala",
+        "name": "KUSHALA",
+        "aliases": [],
+        "img": "kushala.png",
+        "className": "Mystic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "ladydeathstrike",
+        "name": "LADY DEATHSTRIKE",
+        "aliases": [
+            "lady d"
+        ],
+        "img": "ladydeathstrike.png",
+        "className": "Tech",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 2
+        }
+    },
+    {
+        "id": "leader",
+        "name": "THE LEADER",
+        "aliases": [
+            "leader"
+        ],
+        "img": "leader.png",
+        "className": "Science",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "lizard",
+        "name": "LIZARD",
+        "aliases": [],
+        "img": "lizard.png",
+        "className": "Science",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 2
+        }
+    },
+    {
+        "id": "loki",
+        "name": "LOKI",
+        "aliases": [],
+        "img": "loki.png",
+        "className": "Mystic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "longshot",
+        "name": "LONGSHOT",
+        "aliases": [
+            "long-shot"
+        ],
+        "img": "longshot.png",
+        "className": "Mystic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "lukecage",
+        "name": "LUKE CAGE",
+        "aliases": [],
+        "img": "luke_cage.png",
+        "className": "Science",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "lumatrix",
+        "name": "LUMATRIX",
+        "aliases": [],
+        "img": "lumatrix.png",
+        "className": "Skill",
+        "availableRarities": [
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "madelynepryor",
+        "name": "MADELYNE PRYOR",
+        "aliases": [
+            "madelyne"
+        ],
+        "img": "madelynepryor.png",
+        "className": "Mystic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 2
+        }
+    },
+    {
+        "id": "maestro_overseer",
+        "name": "THE OVERSEER",
+        "aliases": [
+            "overseer"
+        ],
+        "img": "maestro_overseer.png",
+        "className": "Science",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "maestro_trophy",
+        "name": "MAESTRO",
+        "aliases": [],
+        "img": "maestro.png",
+        "className": "Cosmic",
+        "availableRarities": [
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 2
+        }
+    },
+    {
+        "id": "magik",
+        "name": "MAGIK",
+        "aliases": [],
+        "img": "magik.png",
+        "className": "Mystic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "magneto",
+        "name": "MAGNETO",
+        "aliases": [],
+        "img": "magneto.png",
+        "className": "Mutant",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "magneto_marvelnow",
+        "name": "MAGNETO (HOUSE OF X)",
+        "aliases": [
+            "w. mags",
+            "Magneto"
+        ],
+        "img": "magneto_white.png",
+        "className": "Mutant",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "maker",
+        "name": "THE MAKER",
+        "aliases": [
+            "maker"
+        ],
+        "img": "maker.png",
+        "className": "Tech",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "mangog",
+        "name": "MANGOG",
+        "aliases": [],
+        "img": "mangog.png",
+        "className": "Mystic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "manthing",
+        "name": "MAN-THING",
+        "aliases": [],
+        "img": "manthing.png",
+        "className": "Mystic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 2
+        }
+    },
+    {
+        "id": "mantis",
+        "name": "MANTIS",
+        "aliases": [],
+        "img": "mantis.png",
+        "className": "Skill",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "masacre",
+        "name": "MASACRE",
+        "aliases": [],
+        "img": "masacre.png",
+        "className": "Skill",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "mbaku",
+        "name": "M'BAKU",
+        "aliases": [
+            "mbaku"
+        ],
+        "img": "mbaku.png",
+        "className": "Skill",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 2
+        }
+    },
+    {
+        "id": "medusa",
+        "name": "MEDUSA",
+        "aliases": [],
+        "img": "medusa.png",
+        "className": "Cosmic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "mephisto",
+        "name": "MEPHISTO",
+        "aliases": [],
+        "img": "mephisto.png",
+        "className": "Mystic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "misterknight",
+        "name": "MR. KNIGHT",
+        "aliases": [
+            "mr knight"
+        ],
+        "img": "misterknight.png",
+        "className": "Skill",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "misternegative",
+        "name": "MISTER NEGATIVE",
+        "aliases": [
+            "mr. negs"
+        ],
+        "img": "misternegative.png",
+        "className": "Science",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 2
+        }
+    },
+    {
+        "id": "mistersinister",
+        "name": "MISTER SINISTER",
+        "aliases": [
+            "mr. sinister"
+        ],
+        "img": "mistersinister.png",
+        "className": "Mutant",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "mistyknight",
+        "name": "MISTY KNIGHT",
+        "aliases": [
+            "misty"
+        ],
+        "img": "mistyknight.png",
+        "className": "Skill",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "modok",
+        "name": "M.O.D.O.K.",
+        "aliases": [
+            "modok"
+        ],
+        "img": "modok.png",
+        "className": "Science",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "mojo",
+        "name": "MOJO",
+        "aliases": [],
+        "img": "mojo.png",
+        "className": "Mystic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 2
+        }
+    },
+    {
+        "id": "moleman",
+        "name": "MOLE MAN",
+        "aliases": [
+            "moleman"
+        ],
+        "img": "moleman.png",
+        "className": "Skill",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "moondragon",
+        "name": "MOONDRAGON",
+        "aliases": [
+            "moon lady"
+        ],
+        "img": "moondragon.png",
+        "className": "Skill",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 2
+        }
+    },
+    {
+        "id": "moonknight",
+        "name": "MOON KNIGHT",
+        "aliases": [],
+        "img": "moonknight.png",
+        "className": "Skill",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "morbius",
+        "name": "MORBIUS",
+        "aliases": [],
+        "img": "morbius.png",
+        "className": "Science",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "morningstar",
+        "name": "MORNINGSTAR",
+        "aliases": [
+            "mstar"
+        ],
+        "img": "morningstar.png",
+        "className": "Mystic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "mrfantastic",
+        "name": "MISTER FANTASTIC",
+        "aliases": [
+            "mr. f"
+        ],
+        "img": "mrfantastic.png",
+        "className": "Science",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 2
+        }
+    },
+    {
+        "id": "msmarvel",
+        "name": "MS. MARVEL",
+        "aliases": [
+            "ms marvel"
+        ],
+        "img": "msmarvel.png",
+        "className": "Cosmic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "msmarvel_kamala",
+        "name": "MS. MARVEL (KAMALA KHAN)",
+        "aliases": [
+            "kamala",
+            "Ms. Marvel"
+        ],
+        "img": "msmarvel_kamala.png",
+        "className": "Cosmic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "mysterio",
+        "name": "MYSTERIO",
+        "aliases": [],
+        "img": "mysterio.png",
+        "className": "Tech",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 2
+        }
+    },
+    {
+        "id": "namor",
+        "name": "NAMOR",
+        "aliases": [],
+        "img": "namor.png",
+        "className": "Mutant",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "nebula",
+        "name": "NEBULA",
+        "aliases": [],
+        "img": "nebula.png",
+        "className": "Tech",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "negasonicteenagewarhead",
+        "name": "NEGASONIC TEENAGE WARHEAD",
+        "aliases": [
+            "negasonic"
+        ],
+        "img": "negasonicteenagewarhead.png",
+        "className": "Mutant",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "nickfury",
+        "name": "NICK FURY",
+        "aliases": [],
+        "img": "nickfury.png",
+        "className": "Skill",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "nicominoru",
+        "name": "NICO MINORU",
+        "aliases": [
+            "nico"
+        ],
+        "img": "nicominoru.png",
+        "className": "Mystic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "nightcrawler",
+        "name": "NIGHTCRAWLER",
+        "aliases": [
+            "kurt"
+        ],
+        "img": "nightcrawler.png",
+        "className": "Mutant",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "nightthrasher",
+        "name": "NIGHT THRASHER",
+        "aliases": [
+            "n. thrasher"
+        ],
+        "img": "nightthrasher.png",
+        "className": "Skill",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "nimrod",
+        "name": "NIMROD",
+        "aliases": [],
+        "img": "nimrod.png",
+        "className": "Tech",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "northstar",
+        "name": "NORTHSTAR",
+        "aliases": [],
+        "img": "northstar.png",
+        "className": "Mutant",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "nova",
+        "name": "NOVA",
+        "aliases": [],
+        "img": "nova.png",
+        "className": "Cosmic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 2
+        }
+    },
+    {
+        "id": "odin",
+        "name": "ODIN",
+        "aliases": [],
+        "img": "odin.png",
+        "className": "Cosmic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "okoye",
+        "name": "OKOYE",
+        "aliases": [],
+        "img": "okoye.png",
+        "className": "Skill",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "omegared",
+        "name": "OMEGA RED",
+        "aliases": [],
+        "img": "omegared.png",
+        "className": "Mutant",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "omegasentinel",
+        "name": "OMEGA SENTINEL",
+        "aliases": [
+            "omega s."
+        ],
+        "img": "omegasentinel.png",
+        "className": "Tech",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "onslaught",
+        "name": "ONSLAUGHT",
+        "aliases": [],
+        "img": "onslaught.png",
+        "className": "Mutant",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "patriot",
+        "name": "PATRIOT",
+        "aliases": [],
+        "img": "patriot.png",
+        "className": "Skill",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 2
+        }
+    },
+    {
+        "id": "peniparker",
+        "name": "PENI PARKER",
+        "aliases": [
+            "peni"
+        ],
+        "img": "peniparker.png",
+        "className": "Tech",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 2
+        }
+    },
+    {
+        "id": "phoenix",
+        "name": "PHOENIX",
+        "aliases": [],
+        "img": "phoenix.png",
+        "className": "Cosmic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "phoenix_dark",
+        "name": "DARK PHOENIX",
+        "aliases": [
+            "d. phoenix"
+        ],
+        "img": "phoenix_dark.png",
+        "className": "Cosmic",
+        "availableRarities": [
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "photon",
+        "name": "PHOTON",
+        "aliases": [],
+        "img": "photon.png",
+        "className": "Science",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "phylavell",
+        "name": "PHYLA-VELL",
+        "aliases": [],
+        "img": "phylavell.png",
+        "className": "Cosmic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 2
+        }
+    },
+    {
+        "id": "pixie",
+        "name": "PIXIE",
+        "aliases": [],
+        "img": "pixie.png",
+        "className": "Mutant",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 2
+        }
+    },
+    {
+        "id": "professorx",
+        "name": "PROFESSOR X",
+        "aliases": [
+            "prof x"
+        ],
+        "img": "professorx.png",
+        "className": "Mutant",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "prowler",
+        "name": "PROWLER",
+        "aliases": [],
+        "img": "prowler.png",
+        "className": "Tech",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "proximamidnight",
+        "name": "PROXIMA MIDNIGHT",
+        "aliases": [
+            "proxima"
+        ],
+        "img": "proximamidnight.png",
+        "className": "Cosmic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "psychoman",
+        "name": "PSYCHO-MAN",
+        "aliases": [
+            "psycho"
+        ],
+        "img": "psychoman.png",
+        "className": "Tech",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "psylocke",
+        "name": "PSYLOCKE",
+        "aliases": [],
+        "img": "psylocke.png",
+        "className": "Mutant",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "punisher",
+        "name": "PUNISHER",
+        "aliases": [],
+        "img": "punisher.png",
+        "className": "Skill",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "punisher_2099",
+        "name": "PUNISHER 2099",
+        "aliases": [
+            "p2099"
+        ],
+        "img": "punisher_2099.png",
+        "className": "Tech",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "purgatory",
+        "name": "PURGATORY",
+        "aliases": [
+            "purgs"
+        ],
+        "img": "purgatory.png",
+        "className": "Mystic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "quake",
+        "name": "QUAKE",
+        "aliases": [],
+        "img": "quake.png",
+        "className": "Science",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "quicksilver",
+        "name": "QUICKSILVER",
+        "aliases": [],
+        "img": "quicksilver.png",
+        "className": "Science",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "red_goblin",
+        "name": "RED GOBLIN",
+        "aliases": [
+            "roblin"
+        ],
+        "img": "red_goblin.png",
+        "className": "Cosmic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "redguardian",
+        "name": "RED GUARDIAN",
+        "aliases": [
+            "red guard"
+        ],
+        "img": "redguardian.png",
+        "className": "Science",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "redskull",
+        "name": "RED SKULL",
+        "aliases": [],
+        "img": "redskull.png",
+        "className": "Tech",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "rhino",
+        "name": "RHINO",
+        "aliases": [],
+        "img": "rhino.png",
+        "className": "Science",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "rintrah",
+        "name": "RINTRAH",
+        "aliases": [],
+        "img": "rintrah.png",
+        "className": "Mystic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "rocket",
+        "name": "ROCKET RACCOON",
+        "aliases": [
+            "rocket"
+        ],
+        "img": "rocket.png",
+        "className": "Tech",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "rogue",
+        "name": "ROGUE",
+        "aliases": [],
+        "img": "rogue.png",
+        "className": "Mutant",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "ronan",
+        "name": "RONAN",
+        "aliases": [],
+        "img": "ronan.png",
+        "className": "Cosmic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "ronin",
+        "name": "RONIN",
+        "aliases": [],
+        "img": "ronin.png",
+        "className": "Skill",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "rubythursday",
+        "name": "RUBY THURSDAY",
+        "aliases": [
+            "ruby thu"
+        ],
+        "img": "rubythursday.png",
+        "className": "Tech",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 2
+        }
+    },
+    {
+        "id": "sabretooth",
+        "name": "SABRETOOTH",
+        "aliases": [],
+        "img": "sabretooth.png",
+        "className": "Mutant",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "sandman",
+        "name": "SANDMAN",
+        "aliases": [],
+        "img": "sandman.png",
+        "className": "Science",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 2
+        }
+    },
+    {
+        "id": "sasquatch",
+        "name": "SASQUATCH",
+        "aliases": [
+            "sassy"
+        ],
+        "img": "sasquatch.png",
+        "className": "Mystic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 2
+        }
+    },
+    {
+        "id": "sauron",
+        "name": "SAURON",
+        "aliases": [],
+        "img": "sauron.png",
+        "className": "Mutant",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "scarletwitch",
+        "name": "SCARLET WITCH (CLASSIC)",
+        "aliases": [
+            "witch",
+            "Scarlet Witch"
+        ],
+        "img": "scarlet_witch.png",
+        "className": "Mystic",
+        "availableRarities": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "scarletwitch_current",
+        "name": "SCARLET WITCH",
+        "aliases": [
+            "sigil witch"
+        ],
+        "img": "scarlet_witch_current.png",
+        "className": "Mystic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 2
+        }
+    },
+    {
+        "id": "scorpion",
+        "name": "SCORPION",
+        "aliases": [],
+        "img": "scorpion.png",
+        "className": "Science",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "scream",
+        "name": "SCREAM",
+        "aliases": [],
+        "img": "scream.png",
+        "className": "Cosmic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 2
+        }
+    },
+    {
+        "id": "sentinel",
+        "name": "SENTINEL",
+        "aliases": [],
+        "img": "sentinel.png",
+        "className": "Tech",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "sentinelbot_cosmic",
+        "name": "SENTINELBOT (COSMIC)",
+        "aliases": [
+            "sb cos",
+            "Sentinelbot"
+        ],
+        "img": "sentinel_cosmic.png",
+        "className": "Cosmic",
+        "availableRarities": [
+            2
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "sentinelbot_mutant",
+        "name": "SENTINELBOT (MUTANT)",
+        "aliases": [
+            "sb mut",
+            "Sentinelbot"
+        ],
+        "img": "sentinel_mutant.png",
+        "className": "Mutant",
+        "availableRarities": [
+            2
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "sentinelbot_mystic",
+        "name": "SENTINELBOT (MYSTIC)",
+        "aliases": [
+            "sb mys",
+            "Sentinelbot"
+        ],
+        "img": "sentinel_magic.png",
+        "className": "Mystic",
+        "availableRarities": [
+            2
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "sentinelbot_science",
+        "name": "SENTINELBOT (SCIENCE)",
+        "aliases": [
+            "sb sci",
+            "Sentinelbot"
+        ],
+        "img": "sentinel_chemical.png",
+        "className": "Science",
+        "availableRarities": [
+            2
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "sentinelbot_skill",
+        "name": "SENTINELBOT (SKILL)",
+        "aliases": [
+            "sb skl",
+            "Sentinelbot"
+        ],
+        "img": "sentinel_training.png",
+        "className": "Skill",
+        "availableRarities": [
+            2
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "sentinelbot_tech",
+        "name": "SENTINELBOT (TECH)",
+        "aliases": [
+            "sb tec",
+            "Sentinelbot"
+        ],
+        "img": "sentinel_tech.png",
+        "className": "Tech",
+        "availableRarities": [
+            2
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "sentry",
+        "name": "SENTRY",
+        "aliases": [],
+        "img": "sentry_current.png",
+        "className": "Science",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "serpent",
+        "name": "THE SERPENT",
+        "aliases": [
+            "serpent"
+        ],
+        "img": "serpent.png",
+        "className": "Cosmic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "sersi",
+        "name": "SERSI",
+        "aliases": [],
+        "img": "sersi.png",
+        "className": "Cosmic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 2
+        }
+    },
+    {
+        "id": "shangchi",
+        "name": "SHANG-CHI",
+        "aliases": [
+            "shang chi"
+        ],
+        "img": "shangchi.png",
+        "className": "Skill",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "shathra",
+        "name": "SHATHRA",
+        "aliases": [],
+        "img": "shathra.png",
+        "className": "Mystic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "shatterstar",
+        "name": "SHATTERSTAR",
+        "aliases": [],
+        "img": "shatterstar.png",
+        "className": "Mutant",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 2
+        }
+    },
+    {
+        "id": "shehulk",
+        "name": "SHE-HULK",
+        "aliases": [],
+        "img": "shehulk.png",
+        "className": "Science",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "shehulk_deathless",
+        "name": "SHE-HULK (DEATHLESS)",
+        "aliases": [
+            "d. she-hulk"
+        ],
+        "img": "shehulk_deathless.png",
+        "className": "Science",
+        "availableRarities": [
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "shocker",
+        "name": "SHOCKER",
+        "aliases": [],
+        "img": "shocker.png",
+        "className": "Tech",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "shuri",
+        "name": "SHURI",
+        "aliases": [],
+        "img": "shuri.png",
+        "className": "Tech",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "silk",
+        "name": "SILK",
+        "aliases": [],
+        "img": "silk.png",
+        "className": "Science",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "silversable",
+        "name": "SILVER SABLE",
+        "aliases": [
+            "s. sable"
+        ],
+        "img": "silversable.png",
+        "className": "Skill",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "silversamurai",
+        "name": "SILVER SAMURAI",
+        "aliases": [
+            "s. samurai"
+        ],
+        "img": "silversamurai.png",
+        "className": "Mutant",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "silversurfer",
+        "name": "SILVER SURFER",
+        "aliases": [
+            "surfer"
+        ],
+        "img": "silversurfer.png",
+        "className": "Cosmic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "skrull_super",
+        "name": "SUPER-SKRULL",
+        "aliases": [
+            "s. skrull"
+        ],
+        "img": "skrull_super.png",
+        "className": "Cosmic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "solvarch",
+        "name": "SOLVARCH",
+        "aliases": [],
+        "img": "solvarch.png",
+        "className": "Tech",
+        "availableRarities": [
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "spidergwen",
+        "name": "SPIDER-GWEN",
+        "aliases": [],
+        "img": "spidergwen.png",
+        "className": "Science",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "spiderham",
+        "name": "SPIDER-HAM",
+        "aliases": [],
+        "img": "spiderham.png",
+        "className": "Science",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 2
+        }
+    },
+    {
+        "id": "spiderman",
+        "name": "SPIDER-MAN (CLASSIC)",
+        "aliases": [
+            "og spidey",
+            "Spider-Man"
+        ],
+        "img": "spider_man.png",
+        "className": "Science",
+        "availableRarities": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 2
+        }
+    },
+    {
+        "id": "spiderman_2099",
+        "name": "SPIDER-MAN 2099",
+        "aliases": [
+            "spidey 2099",
+            "Spider-Man"
+        ],
+        "img": "spiderman_2099.png",
+        "className": "Science",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "spiderman_black",
+        "name": "SPIDER-MAN (SYMBIOTE)",
+        "aliases": [
+            "black suit",
+            "Spider-Man"
+        ],
+        "img": "spiderman_black.png",
+        "className": "Cosmic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 2
+        }
+    },
+    {
+        "id": "spiderman_morales",
+        "name": "SPIDER-MAN (MILES MORALES)",
+        "aliases": [
+            "miles",
+            "Spider-Man"
+        ],
+        "img": "spiderman_morales.png",
+        "className": "Science",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "spiderman_movie",
+        "name": "SPIDER-MAN (STARK ENHANCED)",
+        "aliases": [
+            "starky",
+            "Spider-Man"
+        ],
+        "img": "spiderman_movie.png",
+        "className": "Tech",
+        "availableRarities": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "spiderman_pavitr",
+        "name": "SPIDER-MAN (PAVITR PRABHAKAR)",
+        "aliases": [
+            "pavitr",
+            "Spider-Man"
+        ],
+        "img": "spiderman_pavitr.png",
+        "className": "Mystic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 2
+        }
+    },
+    {
+        "id": "spiderman_stealth",
+        "name": "SPIDER-MAN (STEALTH SUIT)",
+        "aliases": [
+            "stealthy",
+            "Spider-Man"
+        ],
+        "img": "spiderman_stealth.png",
+        "className": "Skill",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "spiderman_supreme",
+        "name": "SPIDER-MAN (SUPREME)",
+        "aliases": [
+            "spidey sup",
+            "Spider-Man"
+        ],
+        "img": "spiderman_supreme.png",
+        "className": "Mystic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "spiderpunk",
+        "name": "SPIDER-PUNK",
+        "aliases": [],
+        "img": "spiderpunk.png",
+        "className": "Science",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 2
+        }
+    },
+    {
+        "id": "spiderwoman",
+        "name": "SPIDER-WOMAN (JESSICA DREW)",
+        "aliases": [
+            "jess drew",
+            "Spider-Woman"
+        ],
+        "img": "spiderwoman.png",
+        "className": "Science",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "spiral",
+        "name": "SPIRAL",
+        "aliases": [],
+        "img": "spiral.png",
+        "className": "Mystic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 2
+        }
+    },
+    {
+        "id": "spot",
+        "name": "SPOT",
+        "aliases": [],
+        "img": "spot.png",
+        "className": "Science",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 2
+        }
+    },
+    {
+        "id": "squirrelgirl",
+        "name": "SQUIRREL GIRL",
+        "aliases": [
+            "squirrel g"
+        ],
+        "img": "squirrelgirl.png",
+        "className": "Skill",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "starlord",
+        "name": "STAR-LORD",
+        "aliases": [],
+        "img": "star_lord.png",
+        "className": "Tech",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "starlord_stellar",
+        "name": "STAR-LORD (STELLAR-FORGED)",
+        "aliases": [
+            "starlord sf",
+            "Star-Lord (Stellar)"
+        ],
+        "img": "starlord_stellar.png",
+        "className": "Skill",
+        "availableRarities": [
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 2
+        }
+    },
+    {
+        "id": "storm",
+        "name": "STORM",
+        "aliases": [
+            "og storm"
+        ],
+        "img": "storm.png",
+        "className": "Mutant",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "storm_realm",
+        "name": "STORM (PYRAMID X)",
+        "aliases": [
+            "storm px",
+            "Storm"
+        ],
+        "img": "storm_realm.png",
+        "className": "Mutant",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 2
+        }
+    },
+    {
+        "id": "stryfe",
+        "name": "STRYFE",
+        "aliases": [],
+        "img": "stryfe.png",
+        "className": "Mutant",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "sunspot",
+        "name": "SUNSPOT",
+        "aliases": [],
+        "img": "sunspot.png",
+        "className": "Mutant",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "symbioid_cos",
+        "name": "SYMBIOID (COSMIC)",
+        "aliases": [
+            "sym cos",
+            "Symbioid"
+        ],
+        "img": "symbioid_cosmic.png",
+        "className": "Cosmic",
+        "availableRarities": [
+            2
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "symbioid_mut",
+        "name": "SYMBIOID (MUTANT)",
+        "aliases": [
+            "sym mut",
+            "Symbioid"
+        ],
+        "img": "symbioid_mutant.png",
+        "className": "Mutant",
+        "availableRarities": [
+            2
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "symbioid_mys",
+        "name": "SYMBIOID (MYSTIC)",
+        "aliases": [
+            "sym mys",
+            "Symbioid"
+        ],
+        "img": "symbioid_mystic.png",
+        "className": "Mystic",
+        "availableRarities": [
+            2
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "symbioid_sci",
+        "name": "SYMBIOID (SCIENCE)",
+        "aliases": [
+            "sym sci",
+            "Symbioid"
+        ],
+        "img": "symbioid_science.png",
+        "className": "Science",
+        "availableRarities": [
+            2
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "symbioid_skl",
+        "name": "SYMBIOID (SKILL)",
+        "aliases": [
+            "sym skl",
+            "Symbioid"
+        ],
+        "img": "symbioid_trained.png",
+        "className": "Skill",
+        "availableRarities": [
+            2
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "symbioid_tch",
+        "name": "SYMBIOID (TECH)",
+        "aliases": [
+            "sym tec",
+            "Symbioid"
+        ],
+        "img": "symbioid_tech.png",
+        "className": "Tech",
+        "availableRarities": [
+            2
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "symbiotesupreme",
+        "name": "SYMBIOTE SUPREME",
+        "aliases": [
+            "sym supreme"
+        ],
+        "img": "symbiote_supreme.png",
+        "className": "Mystic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "taskmaster",
+        "name": "TASKMASTER",
+        "aliases": [],
+        "img": "taskmaster.png",
+        "className": "Skill",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "terrax",
+        "name": "TERRAX",
+        "aliases": [],
+        "img": "terrax.png",
+        "className": "Cosmic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 2
+        }
+    },
+    {
+        "id": "thanos",
+        "name": "THANOS",
+        "aliases": [],
+        "img": "thanos.png",
+        "className": "Cosmic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "thanos_deathless_trophy",
+        "name": "THANOS (DEATHLESS)",
+        "aliases": [
+            "d. thanos"
+        ],
+        "img": "thanos_nameless.png",
+        "className": "Cosmic",
+        "availableRarities": [
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "thing",
+        "name": "THING",
+        "aliases": [],
+        "img": "thing.png",
+        "className": "Science",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "thor",
+        "name": "THOR",
+        "aliases": [],
+        "img": "thor.png",
+        "className": "Cosmic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "thor_janefoster",
+        "name": "THOR (JANE FOSTER)",
+        "aliases": [
+            "lady thor",
+            "Thor"
+        ],
+        "img": "thor_janefoster.png",
+        "className": "Mystic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "thor_ragnarok",
+        "name": "THOR (RAGNAROK)",
+        "aliases": [
+            "thor rags",
+            "Thor"
+        ],
+        "img": "thor_ragnarok.png",
+        "className": "Skill",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 2
+        }
+    },
+    {
+        "id": "tigra",
+        "name": "TIGRA",
+        "aliases": [],
+        "img": "tigra.png",
+        "className": "Mystic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "titania",
+        "name": "TITANIA",
+        "aliases": [],
+        "img": "titania.png",
+        "className": "Science",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "toad",
+        "name": "TOAD",
+        "aliases": [],
+        "img": "toad.png",
+        "className": "Mutant",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 2
+        }
+    },
+    {
+        "id": "ultron",
+        "name": "ULTRON (CLASSIC)",
+        "aliases": [
+            "labtron",
+            "Ultron"
+        ],
+        "img": "ultron.png",
+        "className": "Tech",
+        "availableRarities": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "ultron_prime",
+        "name": "ULTRON",
+        "aliases": [],
+        "img": "ultron_prime.png",
+        "className": "Tech",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "valkyrie",
+        "name": "VALKYRIE",
+        "aliases": [],
+        "img": "valkyrie.png",
+        "className": "Skill",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "venom",
+        "name": "VENOM",
+        "aliases": [],
+        "img": "venom.png",
+        "className": "Cosmic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "venompool",
+        "name": "VENOMPOOL",
+        "aliases": [
+            "vpool"
+        ],
+        "img": "venompool.png",
+        "className": "Cosmic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "venomtheduck",
+        "name": "VENOM THE DUCK",
+        "aliases": [
+            "vtd"
+        ],
+        "img": "venomtheduck.png",
+        "className": "Cosmic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "vision",
+        "name": "VISION",
+        "aliases": [
+            "og vision"
+        ],
+        "img": "vision.png",
+        "className": "Tech",
+        "availableRarities": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "vision_deathless",
+        "name": "VISION (DEATHLESS)",
+        "aliases": [
+            "d. vision"
+        ],
+        "img": "vision_blackorder.png",
+        "className": "Tech",
+        "availableRarities": [
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "vision_movie",
+        "name": "VISION (AGE OF ULTRON)",
+        "aliases": [
+            "vision"
+        ],
+        "img": "vision_movie.png",
+        "className": "Tech",
+        "availableRarities": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "vision_timely",
+        "name": "VISION (AARKUS)",
+        "aliases": [
+            "aarkus",
+            "Vision"
+        ],
+        "img": "vision_timely.png",
+        "className": "Cosmic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 2
+        }
+    },
+    {
+        "id": "vivvision",
+        "name": "VIV VISION",
+        "aliases": [],
+        "img": "vivvision.png",
+        "className": "Tech",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "void",
+        "name": "VOID",
+        "aliases": [],
+        "img": "void_current.png",
+        "className": "Science",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "vox",
+        "name": "VOX",
+        "aliases": [],
+        "img": "vox.png",
+        "className": "Cosmic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "vulture_movie",
+        "name": "VULTURE",
+        "aliases": [],
+        "img": "vulture_movie.png",
+        "className": "Tech",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "warlock",
+        "name": "WARLOCK",
+        "aliases": [],
+        "img": "warlock.png",
+        "className": "Tech",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 2
+        }
+    },
+    {
+        "id": "warmachine",
+        "name": "WAR MACHINE",
+        "aliases": [
+            "war mach"
+        ],
+        "img": "warmachine.png",
+        "className": "Tech",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "wasp",
+        "name": "WASP",
+        "aliases": [],
+        "img": "wasp.png",
+        "className": "Science",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "wave",
+        "name": "WAVE",
+        "aliases": [],
+        "img": "wave.png",
+        "className": "Science",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 2
+        }
+    },
+    {
+        "id": "werewolfbynight",
+        "name": "WEREWOLF BY NIGHT",
+        "aliases": [
+            "wolfie"
+        ],
+        "img": "werewolfbynight.png",
+        "className": "Mystic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "whitetiger",
+        "name": "WHITE TIGER",
+        "aliases": [
+            "w. tiger"
+        ],
+        "img": "whitetiger.png",
+        "className": "Mystic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 2
+        }
+    },
+    {
+        "id": "wiccan",
+        "name": "WICCAN",
+        "aliases": [],
+        "img": "wiccan.png",
+        "className": "Mystic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "wintersoldier",
+        "name": "WINTER SOLDIER",
+        "aliases": [
+            "bucky"
+        ],
+        "img": "winter_soldier.png",
+        "className": "Skill",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "wolverine",
+        "name": "WOLVERINE",
+        "aliases": [],
+        "img": "wolverine.png",
+        "className": "Mutant",
+        "availableRarities": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "wolverine_oldman",
+        "name": "OLD MAN LOGAN",
+        "aliases": [
+            "oml"
+        ],
+        "img": "wolverine_oldman.png",
+        "className": "Mutant",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "wolverine_weaponx",
+        "name": "WOLVERINE (WEAPON X)",
+        "aliases": [
+            "weapon x",
+            "Wolverine X"
+        ],
+        "img": "wolverine_weaponx.png",
+        "className": "Mutant",
+        "availableRarities": [
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "wong",
+        "name": "WONG",
+        "aliases": [],
+        "img": "wong.png",
+        "className": "Mystic",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "x23",
+        "name": "WOLVERINE (X-23)",
+        "aliases": [
+            "x23",
+            "Wolverine"
+        ],
+        "img": "x23.png",
+        "className": "Mutant",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "yelenabelova",
+        "name": "YELENA BELOVA",
+        "aliases": [
+            "yelena"
+        ],
+        "img": "yelenabelova.png",
+        "className": "Skill",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "yellowjacket",
+        "name": "YELLOWJACKET",
+        "aliases": [
+            "yj"
+        ],
+        "img": "yellowjacket.png",
+        "className": "Science",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    },
+    {
+        "id": "yondu",
+        "name": "YONDU",
+        "aliases": [],
+        "img": "yondu.png",
+        "className": "Tech",
+        "availableRarities": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+        ],
+        "ascensionMaxByRarity": {
+            "4": 1,
+            "5": 1,
+            "6": 1
+        }
+    }
+]

@@ -1174,6 +1174,36 @@ class CacheManager:
             "details": details,
         }
 
+    def wipe_cache(self) -> Dict[str, Any]:
+        """Delete all cached CDT JSON files and reset the in-memory metadata state.
+
+        This is a destructive operation and is intended for explicit admin use when
+        the bot needs to rebuild its cache from a clean slate.
+        """
+        removed: List[str] = []
+        if self.cache_dir is not None:
+            self.cache_dir.mkdir(parents=True, exist_ok=True)
+            for path in sorted(self.cache_dir.glob("*.json")):
+                try:
+                    path.unlink()
+                    removed.append(path.name)
+                except Exception:
+                    log.exception("Failed to delete cache file %s during full wipe", path)
+
+        self.metadata = {"versions": {}, "last_sync": None}
+        metadata_file = getattr(self, "metadata_file", self.cache_dir / "metadata.json")
+        if metadata_file.exists():
+            try:
+                metadata_file.unlink()
+            except Exception:
+                log.exception("Failed to delete metadata file %s during full wipe", metadata_file)
+
+        return {
+            "removed": len(removed),
+            "files": removed,
+            "metadata_reset": True,
+        }
+
     def cleanup_stale_cache(self) -> Dict[str, Any]:
         health = self.health_check()
         removed: List[str] = []
