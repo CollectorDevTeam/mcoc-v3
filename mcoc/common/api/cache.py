@@ -20,7 +20,7 @@ from typing import Optional, Callable, Awaitable, Any, Dict, List, Tuple
 from .cacheindex import CacheIndex
 from pathlib import Path
 from redbot.core import data_manager
-from mcoc.common.helpers.types import normalize_champion_progression
+from mcoc.common.helpers.types import CHAMPION_TIER_LIMITS, normalize_champion_progression
 from mcoc.common.models import (
     AbilityList,
     ChampionList,
@@ -81,6 +81,7 @@ class CacheManager:
                         "aw": None,
                         "champions": None,
                         "champions_map": None,
+                        "champstats": None,
                         "glossary": None,
                         "immunities": None,
                         "prestige": None,
@@ -99,10 +100,11 @@ class CacheManager:
                         "aw": None,
                         "champions": None,
                         "champions_map": None,
+                        "champstats": None,
                         "glossary": None,
                         "immunities": None,
                         "prestige": None,
-                        "tags": None
+                        "tags": None,
                     },
                     "last_sync": None,
                 }
@@ -116,6 +118,7 @@ class CacheManager:
                     "aw": None,
                     "champions": None,
                     "champions_map": None,
+                    "champstats": None,
                     "glossary": None,
                     "immunities": None,
                     "prestige": None,
@@ -132,6 +135,7 @@ class CacheManager:
                     "aw": None,
                     "champions": None,
                     "champions_map": None,
+                    "champstats": None,
                     "glossary": None,
                     "immunities": None,
                     "prestige": None,
@@ -148,6 +152,7 @@ class CacheManager:
                     "aw": None,
                     "champions": None,
                     "champions_map": None,
+                    "champstats": None,
                     "glossary": None,
                     "immunities": None,
                     "prestige": None,
@@ -530,6 +535,144 @@ class CacheManager:
         normalized.update(metadata)
         return normalized
 
+    @staticmethod
+    def _cocpit_sig_levels(max_sig: int) -> List[int]:
+        values = {0}
+        if max_sig >= 1:
+            values.add(1)
+        value = 10
+        while value <= max_sig:
+            values.add(value)
+            value += 10
+        if max_sig > 0 and max_sig not in values:
+            values.add(max_sig)
+        return sorted(values)
+
+    def normalize_cocpit_champion_stats_payload(self, payload: Any) -> Optional[Dict[str, Any]]:
+        if not isinstance(payload, dict):
+            return None
+
+        entries = payload.get("entries") or []
+        if not isinstance(entries, list):
+            return None
+
+        normalized_entries: List[Dict[str, Any]] = []
+        for entry in entries:
+            if not isinstance(entry, dict):
+                continue
+            champion_id = entry.get("champion_id") or entry.get("championId") or entry.get("id")
+            if not champion_id:
+                continue
+            normalized_entries.append({
+                "champion_id": str(champion_id),
+                "champion_name": entry.get("champion_name") or entry.get("championName") or entry.get("name"),
+                "rarity": int(entry.get("rarity", payload.get("rarity") or 0) or 0),
+                "rank": int(entry.get("rank", payload.get("rank") or 0) or 0),
+                "sig_level": int(entry.get("sig_level", payload.get("sig_level") or 0) or 0),
+                "ascension_level": int(entry.get("ascension_level", payload.get("ascension_level") or 0) or 0),
+                "attack": entry.get("attack"),
+                "health": entry.get("health"),
+                "prestige": entry.get("prestige"),
+            })
+
+        if not normalized_entries:
+            return None
+
+        total_count = int(payload.get("total_count") or len(normalized_entries))
+        return {
+            "version": self._hash(payload),
+            "rarity": int(payload.get("rarity") or 0),
+            "rank": int(payload.get("rank") or 0),
+            "sig_level": int(payload.get("sig_level") or 0),
+            "ascension_level": int(payload.get("ascension_level") or 0),
+            "page": int(payload.get("page") or 1),
+            "page_size": int(payload.get("page_size") or len(normalized_entries)),
+            "has_more": bool(payload.get("has_more", False)),
+            "entries": normalized_entries,
+            "totals": {
+                "total_count": total_count,
+                "page_count": int(payload.get("page_count") or 1),
+                "has_more": bool(payload.get("has_more", False)),
+            },
+        }
+
+    async def harvest_cocpit_champion_stats(self, api: Any, *, progress: Optional[Callable[[str], Awaitable[None]]] = None) -> Dict[str, Any]:
+        async def _report(msg: str):
+            if progress:
+                try:
+                    await progress(msg)
+                except Exception:
+                    log.exception("Progress callback failed while harvesting Cocpit stats")
+
+        if api is None or not hasattr(api, "get_cocpit_champion_stats"):
+            return {"count": 0, "updated": False, "files": [], "error": "api missing get_cocpit_champion_stats"}
+
+        rows: List[Dict[str, Any]] = []
+        seen: set[str] = set()
+        per_tier = 0
+
+        for rarity, limits in CHAMPION_TIER_LIMITS.items():
+            for rank in range(1, int(limits.max_rank) + 1):
+                for ascension_level in range(0, int(limits.max_ascended) + 1):
+                    for sig_level in self._cocpit_sig_levels(int(limits.max_sig)):
+                        page = 1
+                        while True:
+                            payload = await api.get_cocpit_champion_stats(
+                                rarity=rarity,
+                                rank=rank,
+                                sig_level=sig_level,
+                                ascension_level=ascension_level,
+                                page=page,
+                                page_size=50,
+                            )
+                            if not payload:
+                                break
+
+                            normalized = self.normalize_cocpit_champion_stats_payload(payload)
+                            if normalized is None:
+                                break
+
+                            for item in normalized["entries"]:
+                                key = str(item.get("champion_id") or "").strip()
+                                if not key or key in seen:
+                                    continue
+                                seen.add(key)
+                                rows.append(item)
+                                per_tier += 1
+
+                            if not normalized.get("has_more") or not normalized.get("totals", {}).get("has_more"):
+                                break
+                            page += 1
+                            if page > 20:
+                                break
+
+        release_date = None
+        if hasattr(api, "get_cocpit_release_date"):
+            try:
+                release_date = await api.get_cocpit_release_date()
+            except Exception:
+                log.exception("Failed to read Cocpit release date for champstats version stamp")
+        if not release_date:
+            release_date = datetime.datetime.utcnow().strftime("%Y.%m.%d")
+
+        version = release_date
+        artifact = {
+            "version": version,
+            "updated_at": datetime.datetime.utcnow().isoformat(),
+            "entries": rows,
+        }
+        output_path = self.cache_dir / "champstats.json"
+        self._atomic_write_json_blocking(output_path, artifact)
+        self.metadata.setdefault("versions", {})["champstats"] = version
+        self.metadata["last_sync"] = datetime.datetime.utcnow().isoformat()
+        try:
+            self._atomic_write_json_blocking(self.metadata_file, self.metadata)
+        except Exception:
+            log.exception("Failed to write metadata after Cocpit stats harvest")
+
+        await _report(f"Cocpit champion stats harvested: {len(rows)} champions")
+        return {"count": len(rows), "updated": True, "files": ["champstats.json"], "version": version}
+
     def normalize_champions_map_payload(self, payload: Any) -> Optional[Dict[str, Any]]:
         """
         Canonicalize champions_map payload into:
@@ -606,6 +749,8 @@ class CacheManager:
         # Normalize list-shaped payloads into canonical dicts
         if name == "champions":
             new_data = self.normalize_champions_payload(new_data)
+        elif name == "champstats":
+            new_data = self.normalize_cocpit_champion_stats_payload(new_data)
         elif name == "abilities":
             new_data = self.normalize_abilities_payload(new_data)
         elif name == "aw":
@@ -731,6 +876,11 @@ class CacheManager:
 
                 await _report("Saving champions_map...")
                 updated |= await self._diff_and_save("champions_map", champions_map)
+
+                if hasattr(api, "get_cocpit_champion_stats"):
+                    await _report("Harvesting Cocpit champion stats...")
+                    stats_result = await self.harvest_cocpit_champion_stats(api, progress=_report)
+                    updated |= bool(stats_result.get("updated"))
 
                 await _report("Fetching glossary...")
                 glossary = await api.get_glossary()
@@ -1081,6 +1231,7 @@ class CacheManager:
     def _cache_file_schema(self, name: str) -> Optional[str]:
         return {
             "champions": "champions",
+            "champstats": "entries",
             "abilities": "abilities",
             "tags": "tags",
             "immunities": "immunities",
@@ -1126,6 +1277,7 @@ class CacheManager:
         details: Dict[str, Dict[str, Any]] = {}
         for name in [
             "champions",
+            "champstats",
             "abilities",
             "tags",
             "immunities",

@@ -1,0 +1,210 @@
+{
+  "ascension_level": 0,
+  "entries": [
+    {
+      "ascension_level": 0,
+      "attack": 7515,
+      "champion_id": "venompool",
+      "champion_name": "VENOMPOOL",
+      "health": 104889,
+      "prestige": 33060,
+      "rank": 4,
+      "rarity": 7,
+      "sig_level": 200
+    },
+    {
+      "ascension_level": 0,
+      "attack": 7798,
+      "champion_id": "vision",
+      "champion_name": "VISION",
+      "health": 106319,
+      "prestige": 32470,
+      "rank": 4,
+      "rarity": 7,
+      "sig_level": 200
+    },
+    {
+      "ascension_level": 0,
+      "attack": 7198,
+      "champion_id": "vision_timely",
+      "champion_name": "VISION (AARKUS)",
+      "health": 98214,
+      "prestige": 33010,
+      "rank": 4,
+      "rarity": 7,
+      "sig_level": 200
+    },
+    {
+      "ascension_level": 0,
+      "attack": 7374,
+      "champion_id": "vision_deathless",
+      "champion_name": "VISION (DEATHLESS)",
+      "health": 101075,
+      "prestige": 32470,
+      "rank": 4,
+      "rarity": 7,
+      "sig_level": 200
+    },
+    {
+      "ascension_level": 0,
+      "attack": 7621,
+      "champion_id": "vivvision",
+      "champion_name": "VIV VISION",
+      "health": 77236,
+      "prestige": 33170,
+      "rank": 4,
+      "rarity": 7,
+      "sig_level": 200
+    },
+    {
+      "ascension_level": 0,
+      "attack": 6845,
+      "champion_id": "void",
+      "champion_name": "VOID",
+      "health": 114901,
+      "prestige": 32580,
+      "rank": 4,
+      "rarity": 7,
+      "sig_level": 200
+    },
+    {
+      "ascension_level": 0,
+      "attack": 7692,
+      "champion_id": "vox",
+      "champion_name": "VOX",
+      "health": 114901,
+      "prestige": 33230,
+      "rank": 4,
+      "rarity": 7,
+      "sig_level": 200
+    },
+    {
+      "ascension_level": 0,
+      "attack": 7198,
+      "champion_id": "warmachine",
+      "champion_name": "WAR MACHINE",
+      "health": 98214,
+      "prestige": 32530,
+      "rank": 4,
+      "rarity": 7,
+      "sig_level": 200
+    },
+    {
+      "ascension_level": 0,
+      "attack": 7198,
+      "champion_id": "warlock",
+      "champion_name": "WARLOCK",
+      "health": 97261,
+      "prestige": 33130,
+      "rank": 4,
+      "rarity": 7,
+      "sig_level": 200
+    },
+    {
+      "ascension_level": 0,
+      "attack": 8115,
+      "champion_id": "wave",
+      "champion_name": "WAVE",
+      "health": 91539,
+      "prestige": 33740,
+      "rank": 4,
+      "rarity": 7,
+      "sig_level": 200
+    },
+    {
+      "ascension_level": 0,
+      "attack": 7268,
+      "champion_id": "werewolfbynight",
+      "champion_name": "WEREWOLF BY NIGHT",
+      "health": 118238,
+      "prestige": 33430,
+      "rank": 4,
+      "rarity": 7,
+      "sig_level": 200
+    },
+    {
+      "ascension_level": 0,
+      "attack": 8891,
+      "champion_id": "whitetiger",
+      "champion_name": "WHITE TIGER",
+      "health": 95353,
+      "prestige": 33420,
+      "rank": 4,
+      "rarity": 7,
+      "sig_level": 200
+    },
+    {
+      "ascension_level": 0,
+      "attack": 8256,
+      "champion_id": "wiccan",
+      "champion_name": "WICCAN",
+      "health": 76283,
+      "prestige": 33230,
+      "rank": 4,
+      "rarity": 7,
+      "sig_level": 200
+    },
+    {
+      "ascension_level": 0,
+      "attack": 7551,
+      "champion_id": "wolverine_weaponx",
+      "champion_name": "WOLVERINE (WEAPON X)",
+      "health": 98214,
+      "prestige": 32600,
+      "rank": 4,
+      "rarity": 7,
+      "sig_level": 200
+    },
+    {
+      "ascension_level": 0,
+      "attack": 7515,
+      "champion_id": "x23",
+      "champion_name": "WOLVERINE (X-23)",
+      "health": 92970,
+      "prestige": 32440,
+      "rank": 4,
+      "rarity": 7,
+      "sig_level": 200
+    },
+    {
+      "ascension_level": 0,
+      "attack": 8044,
+      "champion_id": "wong",
+      "champion_name": "WONG",
+      "health": 99644,
+      "prestige": 33170,
+      "rank": 4,
+      "rarity": 7,
+      "sig_level": 200
+    },
+    {
+      "ascension_level": 0,
+      "attack": 7692,
+      "champion_id": "yelenabelova",
+      "champion_name": "YELENA BELOVA",
+      "health": 102028,
+      "prestige": 34210,
+      "rank": 4,
+      "rarity": 7,
+      "sig_level": 200
+    },
+    {
+      "ascension_level": 0,
+      "attack": 7268,
+      "champion_id": "yondu",
+      "champion_name": "YONDU",
+      "health": 98691,
+      "prestige": 33240,
+      "rank": 4,
+      "rarity": 7,
+      "sig_level": 200
+    }
+  ],
+  "has_more": false,
+  "page": 6,
+  "page_size": 50,
+  "rank": 4,
+  "rarity": 7,
+  "sig_level": 200,
+  "total_count": 268
+}

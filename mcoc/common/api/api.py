@@ -11,6 +11,7 @@ import aiohttp
 import asyncio
 import logging
 import random
+import re
 from typing import Optional, Callable, Awaitable, Any
 from yarl import URL
 
@@ -29,6 +30,24 @@ class MCOCHubAPI:
     CHAMPIONS_MAP_URL = "https://summoners-hub.shared.mcoc-cdn.net/production/champions_map.json"
     GLOSSARY_URL = "https://playcontestofchampions.com/wp-json/kabam/v1/glossary/"
     COCPIT_CHAMPION_URL = "https://cocpit.org/champion-abilities"
+    COCPIT_CHAMPION_AUTOCOMPLETE_URL = "https://cocpit.org/api/champion-autocomplete"
+    COCPIT_CHAMP_STATS_URL = "https://cocpit.org/api/champstats"
+
+    @staticmethod
+    def extract_cocpit_release_date(html: str) -> Optional[str]:
+        """Return the site asset date from Cocpit's CDN URLs, e.g. 2026.09.09."""
+        if not html:
+            return None
+
+        match = re.search(r"https?://cocpit-cdn\.nyc3\.cdn\.digitaloceanspaces\.com/([0-9]{4}\.[0-9]{2}\.[0-9]{2})/", html)
+        if match:
+            return match.group(1)
+
+        match = re.search(r"https?://[^\s\"']*?/([0-9]{4}\.[0-9]{2}\.[0-9]{2})/(?:images|fonts|css|js)/", html)
+        if match:
+            return match.group(1)
+
+        return None
 
     def __init__(
         self,
@@ -291,6 +310,51 @@ class MCOCHubAPI:
         }
         return await self._fetch_public_json(self.COCPIT_CHAMPION_URL, params=params)
 
+    async def get_cocpit_champion_autocomplete(self) -> Optional[Any]:
+        log.debug("Fetching Cocpit champion autocomplete data")
+        return await self._fetch_public_json(self.COCPIT_CHAMPION_AUTOCOMPLETE_URL)
+
+    async def get_cocpit_release_date(self) -> Optional[str]:
+        """Fetch the Cocpit site asset date from the HTML head and use it as the update stamp."""
+        try:
+            async with self._request_semaphore:
+                session = await self._ensure_session()
+                async with session.get("https://cocpit.org", timeout=self._timeout) as resp:
+                    text = await resp.text()
+                    if resp.status != 200:
+                        return None
+                    return self.extract_cocpit_release_date(text)
+        except Exception:
+            log.exception("Failed to read Cocpit site metadata")
+            return None
+
+    async def get_cocpit_champion_stats(
+        self,
+        rarity: int,
+        rank: int,
+        sig_level: int,
+        ascension_level: int = 0,
+        page: int = 1,
+        page_size: int = 50,
+    ) -> Optional[Any]:
+        log.debug(
+            "Fetching Cocpit champion stats for rarity=%s rank=%s sig=%s asc=%s page=%s page_size=%s",
+            rarity,
+            rank,
+            sig_level,
+            ascension_level,
+            page,
+            page_size,
+        )
+        params = {
+            "rarity": int(rarity),
+            "rank": int(rank),
+            "sig_level": int(sig_level),
+            "ascension_level": int(ascension_level or 0),
+            "page": int(page),
+            "page_size": int(page_size),
+        }
+        return await self._fetch_public_json(self.COCPIT_CHAMP_STATS_URL, params=params)
 
     # -----------------------------
     # Cleanup
