@@ -114,7 +114,7 @@ class ChampionData(BaseModel):
                 if not entry.id:
                     entry.id = f"{group_key}_{i}"
                 normalized_entries.append(entry)
-            normalized_core[group_key] = normalized_entries
+            normalized_core[str(title)] = normalized_entries
         if normalized_core:
             self.coreAbilities = normalized_core
 

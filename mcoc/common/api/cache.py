@@ -16,7 +16,7 @@ import logging
 import tempfile
 import os
 import asyncio
-from typing import Optional, Callable, Awaitable, Any, Dict, List, Tuple
+from typing import Optional, Callable, Awaitable, Any, Dict, List, Tuple, Mapping
 from .cacheindex import CacheIndex
 from pathlib import Path
 from redbot.core import data_manager
@@ -24,6 +24,8 @@ from mcoc.common.helpers.types import CHAMPION_TIER_LIMITS, normalize_champion_p
 from mcoc.common.models import (
     AbilityList,
     ChampionList,
+    ChampionAutocompleteList,
+    CocpitChampionData,
     CollectorBotAccount,
     ImmunityList,
     MCOCHubAbility,
@@ -80,6 +82,8 @@ class CacheManager:
                         "abilities": None,
                         "aw": None,
                         "champions": None,
+                        "cocpit_abilities": None,
+                        "cocpit_champions": None,
                         "champions_map": None,
                         "champstats": None,
                         "glossary": None,
@@ -99,6 +103,8 @@ class CacheManager:
                         "abilities": None,
                         "aw": None,
                         "champions": None,
+                        "cocpit_abilities": None,
+                        "cocpit_champions": None,
                         "champions_map": None,
                         "champstats": None,
                         "glossary": None,
@@ -117,6 +123,8 @@ class CacheManager:
                     "abilities": None,
                     "aw": None,
                     "champions": None,
+                    "cocpit_abilities": None,
+                    "cocpit_champions": None,
                     "champions_map": None,
                     "champstats": None,
                     "glossary": None,
@@ -125,6 +133,10 @@ class CacheManager:
                     "tags": None,
                 },
             )
+            versions = data.get("versions")
+            if isinstance(versions, dict):
+                versions.setdefault("cocpit_abilities", None)
+                versions.setdefault("cocpit_champions", None)
             data.setdefault("last_sync", None)
             return data
         except Exception:
@@ -134,6 +146,8 @@ class CacheManager:
                     "abilities": None,
                     "aw": None,
                     "champions": None,
+                    "cocpit_abilities": None,
+                    "cocpit_champions": None,
                     "champions_map": None,
                     "champstats": None,
                     "glossary": None,
@@ -151,6 +165,8 @@ class CacheManager:
                     "abilities": None,
                     "aw": None,
                     "champions": None,
+                    "cocpit_abilities": None,
+                    "cocpit_champions": None,
                     "champions_map": None,
                     "champstats": None,
                     "glossary": None,
@@ -596,6 +612,194 @@ class CacheManager:
             },
         }
 
+    def normalize_cocpit_champions_payload(self, payload: Any) -> Optional[Dict[str, Any]]:
+        if isinstance(payload, dict):
+            items = payload.get("champions")
+        else:
+            items = payload
+        if not isinstance(items, list):
+            return None
+
+        model = ChampionAutocompleteList.from_list(items)
+        champions: List[Dict[str, Any]] = []
+        for champ in model.champions:
+            data = champ.model_dump(by_alias=True, exclude_none=True)
+            champ_id = str(data.get("id") or "").strip()
+            if not champ_id:
+                continue
+            name = str(data.get("name") or "").strip()
+            slug = self._normalize_lookup_token(champ_id or name)
+            champions.append({
+                "id": champ_id,
+                "slug": slug,
+                "name": name,
+                "aliases": [str(v).strip() for v in (data.get("aliases") or []) if str(v).strip()],
+                "img": data.get("img"),
+                "class_name": data.get("className") or data.get("class_name"),
+                "available_rarities": [int(v) for v in (data.get("availableRarities") or data.get("available_rarities") or []) if str(v).isdigit()],
+                "ascension_max_by_rarity": data.get("ascensionMaxByRarity") or data.get("ascension_max_by_rarity") or {},
+            })
+
+        if not champions:
+            return None
+
+        return {
+            "version": self._hash(champions),
+            "updated_at": datetime.datetime.utcnow().isoformat(),
+            "champions": champions,
+        }
+
+    def normalize_cocpit_champion_abilities_payload(self, champion: Mapping[str, Any], payload: Any) -> Optional[Dict[str, Any]]:
+        if not isinstance(champion, Mapping) or not isinstance(payload, dict):
+            return None
+
+        model = CocpitChampionData.model_validate(payload)
+        champion_id = str(champion.get("id") or "").strip()
+        champion_name = str(champion.get("name") or champion_id).strip()
+        champion_slug = str(champion.get("slug") or self._normalize_lookup_token(champion_id or champion_name)).strip()
+
+        core_out: List[Dict[str, Any]] = []
+        for section, entries in (model.coreAbilities or {}).items():
+            for index, entry in enumerate(entries or []):
+                if not entry:
+                    continue
+                text = str(getattr(entry, "text", "") or "").strip()
+                if not text:
+                    continue
+                entry_id = getattr(entry, "id", None) or f"{champion_slug}_{self._normalize_lookup_token(section)}_{index}"
+                core_out.append({
+                    "id": str(entry_id),
+                    "title": str(section),
+                    "text": text,
+                    "iconFilename": getattr(entry, "icon_filename", None),
+                })
+
+        sig_out: List[Dict[str, Any]] = []
+        for section, entries in (model.sigAbilities or {}).items():
+            for index, entry in enumerate(entries or []):
+                if not entry:
+                    continue
+                text = str(getattr(entry, "text", "") or "").strip()
+                if not text:
+                    continue
+                entry_id = getattr(entry, "id", None) or f"{champion_slug}_sig_{self._normalize_lookup_token(section)}_{index}"
+                sig_out.append({
+                    "id": str(entry_id),
+                    "title": str(section),
+                    "text": text,
+                    "iconFilename": getattr(entry, "icon_filename", None),
+                })
+
+        return {
+            "champion_id": champion_id,
+            "champion_slug": champion_slug,
+            "champion_name": champion_name,
+            "sig_ability_display_name": model.sigAbilityDisplayName,
+            "core_abilities": core_out,
+            "signature_abilities": sig_out,
+            "raw": payload,
+        }
+
+    async def harvest_cocpit_champions(self, api: Any, *, progress: Optional[Callable[[str], Awaitable[None]]] = None) -> Dict[str, Any]:
+        async def _report(msg: str):
+            if progress:
+                try:
+                    await progress(msg)
+                except Exception:
+                    log.exception("Progress callback failed while harvesting Cocpit champions")
+
+        if api is None or not hasattr(api, "get_cocpit_champion_autocomplete"):
+            return {"count": 0, "updated": False, "files": [], "error": "api missing get_cocpit_champion_autocomplete"}
+
+        payload = await api.get_cocpit_champion_autocomplete()
+        normalized = self.normalize_cocpit_champions_payload(payload)
+        if not normalized:
+            return {"count": 0, "updated": False, "files": [], "error": "invalid cocpit champion payload"}
+
+        release_date = None
+        if hasattr(api, "get_cocpit_release_date"):
+            try:
+                release_date = await api.get_cocpit_release_date()
+            except Exception:
+                log.exception("Failed to read Cocpit release date while harvesting champions")
+        if release_date:
+            normalized["version"] = release_date
+
+        self._atomic_write_json_blocking(self.cache_dir / "cocpit_champions.json", normalized)
+        self.metadata.setdefault("versions", {})["cocpit_champions"] = normalized.get("version")
+        self.metadata["last_sync"] = datetime.datetime.utcnow().isoformat()
+        try:
+            self._atomic_write_json_blocking(self.metadata_file, self.metadata)
+        except Exception:
+            log.exception("Failed to write metadata after Cocpit champions harvest")
+
+        await _report(f"Cocpit champions harvested: {len(normalized.get('champions', []))} champions")
+        return {"count": len(normalized.get("champions", [])), "updated": True, "files": ["cocpit_champions.json"], "version": normalized.get("version")}
+
+    async def harvest_cocpit_champion_abilities(self, api: Any, *, progress: Optional[Callable[[str], Awaitable[None]]] = None) -> Dict[str, Any]:
+        async def _report(msg: str):
+            if progress:
+                try:
+                    await progress(msg)
+                except Exception:
+                    log.exception("Progress callback failed while harvesting Cocpit abilities")
+
+        if api is None or not hasattr(api, "get_cocpit_champion_data"):
+            return {"count": 0, "updated": False, "files": [], "error": "api missing get_cocpit_champion_data"}
+
+        champions_doc = self._load_file("cocpit_champions")
+        champions = champions_doc.get("champions") if isinstance(champions_doc, dict) else None
+        if not isinstance(champions, list) or not champions:
+            return {"count": 0, "updated": False, "files": [], "error": "cocpit champions cache missing"}
+
+        rows: List[Dict[str, Any]] = []
+        for idx, champion in enumerate(champions, start=1):
+            champ_id = str(champion.get("id") or "").strip()
+            if not champ_id:
+                continue
+            rarities = [int(v) for v in (champion.get("available_rarities") or []) if isinstance(v, int) or str(v).isdigit()]
+            rarity = max(rarities) if rarities else 7
+            limits = CHAMPION_TIER_LIMITS.get(rarity)
+            rank = int(limits.max_rank) if limits else 1
+            sig = int(limits.max_sig) if limits else 0
+            asc = int(limits.max_ascended) if limits else 0
+            try:
+                payload = await api.get_cocpit_champion_data(champ_id, rarity, rank, sig, asc)
+            except Exception:
+                log.exception("Failed to fetch Cocpit champion abilities for %s", champ_id)
+                continue
+            normalized = self.normalize_cocpit_champion_abilities_payload(champion, payload)
+            if normalized is None:
+                continue
+            rows.append(normalized)
+            if idx % 25 == 0:
+                await _report(f"Cocpit abilities progress: {idx}/{len(champions)} champions")
+
+        release_date = None
+        if hasattr(api, "get_cocpit_release_date"):
+            try:
+                release_date = await api.get_cocpit_release_date()
+            except Exception:
+                log.exception("Failed to read Cocpit release date while harvesting abilities")
+        if not release_date:
+            release_date = datetime.datetime.utcnow().strftime("%Y.%m.%d")
+
+        artifact = {
+            "version": release_date,
+            "updated_at": datetime.datetime.utcnow().isoformat(),
+            "entries": rows,
+        }
+        self._atomic_write_json_blocking(self.cache_dir / "cocpit_abilities.json", artifact)
+        self.metadata.setdefault("versions", {})["cocpit_abilities"] = artifact.get("version")
+        self.metadata["last_sync"] = datetime.datetime.utcnow().isoformat()
+        try:
+            self._atomic_write_json_blocking(self.metadata_file, self.metadata)
+        except Exception:
+            log.exception("Failed to write metadata after Cocpit abilities harvest")
+
+        await _report(f"Cocpit abilities harvested: {len(rows)} champions")
+        return {"count": len(rows), "updated": True, "files": ["cocpit_abilities.json"], "version": artifact.get("version")}
+
     async def harvest_cocpit_champion_stats(self, api: Any, *, progress: Optional[Callable[[str], Awaitable[None]]] = None) -> Dict[str, Any]:
         async def _report(msg: str):
             if progress:
@@ -609,7 +813,6 @@ class CacheManager:
 
         rows: List[Dict[str, Any]] = []
         seen: set[str] = set()
-        per_tier = 0
 
         for rarity, limits in CHAMPION_TIER_LIMITS.items():
             for rank in range(1, int(limits.max_rank) + 1):
@@ -633,12 +836,17 @@ class CacheManager:
                                 break
 
                             for item in normalized["entries"]:
-                                key = str(item.get("champion_id") or "").strip()
+                                key = "|".join([
+                                    str(item.get("champion_id") or "").strip().lower(),
+                                    str(item.get("rarity") or ""),
+                                    str(item.get("rank") or ""),
+                                    str(item.get("sig_level") or ""),
+                                    str(item.get("ascension_level") or ""),
+                                ])
                                 if not key or key in seen:
                                     continue
                                 seen.add(key)
                                 rows.append(item)
-                                per_tier += 1
 
                             if not normalized.get("has_more") or not normalized.get("totals", {}).get("has_more"):
                                 break
@@ -877,6 +1085,16 @@ class CacheManager:
                 await _report("Saving champions_map...")
                 updated |= await self._diff_and_save("champions_map", champions_map)
 
+                if hasattr(api, "get_cocpit_champion_autocomplete"):
+                    await _report("Harvesting Cocpit champions...")
+                    cocpit_champions_result = await self.harvest_cocpit_champions(api, progress=_report)
+                    updated |= bool(cocpit_champions_result.get("updated"))
+
+                if hasattr(api, "get_cocpit_champion_data"):
+                    await _report("Harvesting Cocpit champion abilities...")
+                    cocpit_abilities_result = await self.harvest_cocpit_champion_abilities(api, progress=_report)
+                    updated |= bool(cocpit_abilities_result.get("updated"))
+
                 if hasattr(api, "get_cocpit_champion_stats"):
                     await _report("Harvesting Cocpit champion stats...")
                     stats_result = await self.harvest_cocpit_champion_stats(api, progress=_report)
@@ -1111,6 +1329,98 @@ class CacheManager:
             return champs
         return []
 
+    def get_all_cocpit_champions(self) -> list:
+        data = self._load_file("cocpit_champions")
+        champs = data.get("champions", []) if isinstance(data, dict) else []
+        if isinstance(champs, list):
+            return champs
+        return []
+
+    def get_cocpit_champion(self, id_or_name: str) -> Optional[Dict[str, Any]]:
+        if id_or_name is None:
+            return None
+        raw = str(id_or_name).strip()
+        if not raw:
+            return None
+        needle = self._normalize_lookup_token(raw)
+
+        for champ in self.get_all_cocpit_champions():
+            if not isinstance(champ, dict):
+                continue
+            candidates = [
+                champ.get("id"),
+                champ.get("slug"),
+                champ.get("name"),
+                *(champ.get("aliases") or []),
+            ]
+            for candidate in candidates:
+                if candidate is None:
+                    continue
+                if self._normalize_lookup_token(candidate) == needle:
+                    return champ
+        return None
+
+    def get_cocpit_abilities(self, id_or_name: str) -> Optional[Dict[str, Any]]:
+        champion = self.get_cocpit_champion(id_or_name)
+        if not champion:
+            return None
+        champ_id = str(champion.get("id") or "").strip().lower()
+        champ_slug = str(champion.get("slug") or "").strip().lower()
+        champ_name_norm = self._normalize_lookup_token(champion.get("name") or "")
+
+        data = self._load_file("cocpit_abilities")
+        rows = data.get("entries", []) if isinstance(data, dict) else []
+        if not isinstance(rows, list):
+            return None
+        for row in rows:
+            if not isinstance(row, dict):
+                continue
+            row_id = str(row.get("champion_id") or "").strip().lower()
+            row_slug = str(row.get("champion_slug") or "").strip().lower()
+            row_name_norm = self._normalize_lookup_token(row.get("champion_name") or "")
+            if row_id == champ_id or row_slug == champ_slug or row_name_norm == champ_name_norm:
+                return row
+        return None
+
+    def get_cocpit_champion_stats(self, id_or_name: str, rarity: int, rank: int, sig_level: int, ascension_level: int = 0) -> Optional[Dict[str, Any]]:
+        champion = self.get_cocpit_champion(id_or_name)
+        if not champion:
+            return None
+
+        champ_id = str(champion.get("id") or "").strip().lower()
+        data = self._load_file("champstats")
+        rows = data.get("entries", []) if isinstance(data, dict) else []
+        if not isinstance(rows, list):
+            return None
+
+        requested_sig = int(sig_level)
+        exact: Optional[Dict[str, Any]] = None
+        nearest: Optional[Tuple[int, Dict[str, Any]]] = None
+        for row in rows:
+            if not isinstance(row, dict):
+                continue
+            row_id = str(row.get("champion_id") or "").strip().lower()
+            if row_id != champ_id:
+                continue
+            if int(row.get("rarity") or 0) != int(rarity):
+                continue
+            if int(row.get("rank") or 0) != int(rank):
+                continue
+            if int(row.get("ascension_level") or 0) != int(ascension_level):
+                continue
+
+            row_sig = int(row.get("sig_level") or 0)
+            if row_sig == requested_sig:
+                exact = row
+                break
+            distance = abs(row_sig - requested_sig)
+            if nearest is None or distance < nearest[0]:
+                nearest = (distance, row)
+
+        if exact is not None:
+            return exact
+        return nearest[1] if nearest is not None else None
+
     def get_champion_map_entry(self, id_or_name: str) -> Optional[Dict[str, Any]]:
         if id_or_name is None:
             return None
@@ -1231,6 +1541,8 @@ class CacheManager:
     def _cache_file_schema(self, name: str) -> Optional[str]:
         return {
             "champions": "champions",
+            "cocpit_champions": "champions",
+            "cocpit_abilities": "entries",
             "champstats": "entries",
             "abilities": "abilities",
             "tags": "tags",
@@ -1260,6 +1572,14 @@ class CacheManager:
             champions = payload.get("champions")
             return isinstance(champions, list)
 
+        if name == "cocpit_champions":
+            champions = payload.get("champions")
+            return isinstance(champions, list)
+
+        if name == "cocpit_abilities":
+            entries = payload.get("entries")
+            return isinstance(entries, list)
+
         if name == "aw":
             aw_payload = payload.get("aw")
             return isinstance(aw_payload, dict)
@@ -1277,6 +1597,8 @@ class CacheManager:
         details: Dict[str, Dict[str, Any]] = {}
         for name in [
             "champions",
+            "cocpit_champions",
+            "cocpit_abilities",
             "champstats",
             "abilities",
             "tags",

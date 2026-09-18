@@ -22,6 +22,11 @@ async def collect_admin_status_snapshot(parent: Any, cache: Any, health_summary:
     aw_rows = cache.get_all_aw() or []
     champion_map_rows = cache.get_all_champions_map() or []
     glossary_rows = cache.get_all_glossary_terms() or []
+    cocpit_champions = cache.get_all_cocpit_champions() if hasattr(cache, "get_all_cocpit_champions") else []
+    cocpit_abilities_data = cache._load_file("cocpit_abilities") or {}
+    cocpit_abilities_rows = cocpit_abilities_data.get("entries", []) if isinstance(cocpit_abilities_data, dict) else []
+    champstats_data = cache._load_file("champstats") or {}
+    champstats_rows = champstats_data.get("entries", []) if isinstance(champstats_data, dict) else []
 
     prestige_data = cache._load_file("prestige") or {}
     prestige_rows = prestige_data.get("rows", []) if isinstance(prestige_data, dict) else []
@@ -101,6 +106,9 @@ async def collect_admin_status_snapshot(parent: Any, cache: Any, health_summary:
         "aw_rows": aw_rows,
         "champion_map_rows": champion_map_rows,
         "glossary_rows": glossary_rows,
+        "cocpit_champions": cocpit_champions,
+        "cocpit_abilities_rows": cocpit_abilities_rows,
+        "champstats_rows": champstats_rows,
         "prestige_rows": prestige_rows,
         "tierlist_champions": tierlist_champions,
         "tierlist_order": tierlist_order,
@@ -125,6 +133,9 @@ def build_admin_status_page_specs(snapshot: Dict[str, Any]) -> List[Dict[str, st
     aw_rows = snapshot.get("aw_rows", []) or []
     champion_map_rows = snapshot.get("champion_map_rows", []) or []
     glossary_rows = snapshot.get("glossary_rows", []) or []
+    cocpit_champions = snapshot.get("cocpit_champions", []) or []
+    cocpit_abilities_rows = snapshot.get("cocpit_abilities_rows", []) or []
+    champstats_rows = snapshot.get("champstats_rows", []) or []
     prestige_rows = snapshot.get("prestige_rows", []) or []
     tierlist_champions = snapshot.get("tierlist_champions", []) or []
     tierlist_order = snapshot.get("tierlist_order", []) or []
@@ -145,6 +156,9 @@ def build_admin_status_page_specs(snapshot: Dict[str, Any]) -> List[Dict[str, st
         f"Immunities: {len(immunities)} ({'OK' if health_details_map.get('immunities', {}).get('valid', True) else 'BAD'})",
         f"Champions Map: {len(champion_map_rows)}",
         f"Glossary: {len(glossary_rows)}",
+        f"Cocpit champions: {len(cocpit_champions)} ({'OK' if health_details_map.get('cocpit_champions', {}).get('valid', True) else 'BAD'})",
+        f"Cocpit abilities: {len(cocpit_abilities_rows)} ({'OK' if health_details_map.get('cocpit_abilities', {}).get('valid', True) else 'BAD'})",
+        f"Cocpit champstats: {len(champstats_rows)} ({'OK' if health_details_map.get('champstats', {}).get('valid', True) else 'BAD'})",
         f"Prestige rows: {len(prestige_rows)}",
         "Export: ///mcocadmin export-champions",
     ]
@@ -190,10 +204,14 @@ def build_admin_status_page_specs(snapshot: Dict[str, Any]) -> List[Dict[str, st
     ]
 
     cocpit_lines = [
-        "On-demand descriptive source for champion abilities and synergies.",
+        "Cocpit canonical source for champions, abilities, and progression stats.",
         "",
         f"Endpoint: {snapshot.get('cocpit_url')}",
-        "Fetch mode: live per champion, not cached in the current cache manager",
+        "Fetch mode: harvested into cache artifacts",
+        f"Champions rows: {len(cocpit_champions)}",
+        f"Abilities rows: {len(cocpit_abilities_rows)}",
+        f"Champstats rows: {len(champstats_rows)}",
+        f"Version hashes: cocpit_champions={_truncate_version(versions.get('cocpit_champions'), 16)} cocpit_abilities={_truncate_version(versions.get('cocpit_abilities'), 16)} champstats={_truncate_version(versions.get('champstats'), 16)}",
         "",
         "Preferred detail fields:",
         "- sigAbilityDisplayName",
@@ -206,9 +224,9 @@ def build_admin_status_page_specs(snapshot: Dict[str, Any]) -> List[Dict[str, st
         "- baseStats.Prestige",
         "",
         "Model status:",
-        "- Cocpit champion detail model registered",
         "- Cocpit champion autocomplete model registered",
-        "- champ abilities and synergies now prefer Cocpit text",
+        "- Cocpit champion detail model registered",
+        "- champ abilities and stats commands now prefer Cocpit cached rows",
     ]
 
     if cocpit_probe.get("ok"):
@@ -235,11 +253,11 @@ def build_admin_status_page_specs(snapshot: Dict[str, Any]) -> List[Dict[str, st
     rows = [
         ("name/id/slug", "champions.id,name", "champions.name/id", "champ_name input", "Champion.slug,name"),
         ("class", "champions.class", "champions.class", "className", "Champion.class_name"),
-        ("abilities", "abilities + champ refs", "champion tags only", "coreAbilities,sigAbilities", "Champion.abilities"),
+        ("abilities", "abilities + champ refs", "champion tags only", "cocpit_abilities.core/signature", "Champion.abilities"),
         ("immunities", "champions/immunities", "immunity_map,immunity_types", "embedded text only", "Champion.immunities"),
         ("inflicts", "derived from abilities", "debuff_map,debuff_types", "embedded text only", "Champion.inflicts"),
         ("synergies", "partial notes", "not modeled", "synergies.title/parts/partners", "detail helpers"),
-        ("prestige", "prestige rows,map", "discarded from tierlist", "baseStats.Prestige", "Champion.prestige"),
+        ("prestige", "prestige rows,map", "discarded from tierlist", "champstats.prestige", "Champion.prestige"),
     ]
     header = "Property         | MCOCHub              | mcoc.app                | Cocpit                    | CDT Internal"
     divider = "---------------- | -------------------- | ----------------------- | ------------------------- | --------------------"
@@ -257,6 +275,7 @@ def build_admin_status_page_specs(snapshot: Dict[str, Any]) -> List[Dict[str, st
         f"- CDT champions with immunities: {field_coverage.get('immunities', 0)}/{len(champions)}",
         f"- CDT champions with inflicts: {field_coverage.get('inflicts', 0)}/{len(champions)}",
         f"- mcoc.app metadata counts: tags={len(tierlist_tag_labels) if isinstance(tierlist_tag_labels, dict) else 0}, immunities={len(tierlist_immunity_types)}, debuffs={len(tierlist_debuff_types)}",
+        f"- Cocpit cache counts: champions={len(cocpit_champions)}, abilities={len(cocpit_abilities_rows)}, champstats={len(champstats_rows)}",
         f"- Cocpit live probe: sig={cocpit_probe.get('sig_sections', 0)} core={cocpit_probe.get('core_sections', 0)} synergies={cocpit_probe.get('synergies', 0)}",
     ]
 

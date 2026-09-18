@@ -25,6 +25,7 @@ from typing import Any, Dict, List, Optional, Tuple, Mapping
 import logging
 import asyncio
 import re
+import html
 from collections import defaultdict
 
 from mcoc.common.components.componentsV2 import CDTEmbed, CDTPagesMenu, discord
@@ -249,8 +250,68 @@ def _clean_cocpit_text(value: Any) -> str:
     if not text:
         return ""
     text = re.sub(r"!\[Image\]\([^)]*\)", "", text)
-    text = re.sub(r"\s+", " ", text)
-    return text.strip()
+    text = re.sub(r"<br\s*/?>", "\n", text, flags=re.IGNORECASE)
+    text = re.sub(r"</?p[^>]*>", "\n", text, flags=re.IGNORECASE)
+    text = re.sub(r"<[^>]+>", "", text)
+    text = html.unescape(text)
+    lines = [re.sub(r"\s+", " ", line).strip() for line in text.splitlines()]
+    lines = [line for line in lines if line]
+    return "\n".join(lines).strip()
+
+
+def _ability_title_from_text(default_title: str, text: str, fallback_id: str) -> str:
+    cleaned = _clean_cocpit_text(text)
+    if cleaned:
+        first_line = cleaned.split("\n", 1)[0]
+        if ":" in first_line:
+            maybe_title = first_line.split(":", 1)[0].strip()
+            if 1 <= len(maybe_title) <= 80:
+                return maybe_title
+    if default_title:
+        return str(default_title)
+    return _titleize_token(fallback_id)
+
+
+def build_cocpit_core_ability_fields(cocpit_data: Mapping[str, Any]) -> List[Tuple[str, str]]:
+    fields: List[Tuple[str, str]] = []
+    core = cocpit_data.get("coreAbilities") or {}
+    if not isinstance(core, Mapping):
+        return fields
+
+    for section, items in core.items():
+        if not isinstance(items, list):
+            continue
+        for item in items:
+            if not isinstance(item, Mapping):
+                continue
+            raw_text = item.get("text")
+            text = _clean_cocpit_text(raw_text)
+            if not text:
+                continue
+            entry_id = str(item.get("id") or "ability")
+            title = _ability_title_from_text(str(section), str(raw_text or ""), entry_id)
+            if len(title) > 256:
+                title = title[:253] + "..."
+            if len(text) > 1024:
+                text = text[:1021] + "..."
+            fields.append((title, text))
+
+    return fields
+
+
+def chunk_embed_fields(fields: List[Tuple[str, str]], *, max_fields: int = 25) -> List[List[Tuple[str, str]]]:
+    if not fields:
+        return []
+    pages: List[List[Tuple[str, str]]] = []
+    current: List[Tuple[str, str]] = []
+    for field in fields:
+        if len(current) >= max_fields:
+            pages.append(current)
+            current = []
+        current.append(field)
+    if current:
+        pages.append(current)
+    return pages
 
 
 def _titleize_partner_name(partner: Mapping[str, Any], cache: Any = None) -> str:
@@ -312,6 +373,36 @@ async def get_cocpit_champion_data(core: Any, champ: Mapping[str, Any], *, rarit
         return payload if isinstance(payload, dict) else None
     except Exception:
         log.exception("Failed to fetch Cocpit champion data for %s", champ_name)
+        return None
+
+
+def get_cocpit_cached_abilities(core: Any, champ: Mapping[str, Any]) -> Optional[Dict[str, Any]]:
+    if not core or not isinstance(champ, Mapping):
+        return None
+    cache = getattr(core, "cache", None)
+    if cache is None or not hasattr(cache, "get_cocpit_abilities"):
+        return None
+    champion_ref = champ.get("id") or champ.get("slug") or champ.get("name")
+    try:
+        result = cache.get_cocpit_abilities(champion_ref)
+        return result if isinstance(result, dict) else None
+    except Exception:
+        log.exception("Failed to read cached Cocpit abilities for %s", champion_ref)
+        return None
+
+
+def get_cocpit_cached_stats(core: Any, champ: Mapping[str, Any], rarity: int, rank: int, sig: int, ascended: int = 0) -> Optional[Dict[str, Any]]:
+    if not core or not isinstance(champ, Mapping):
+        return None
+    cache = getattr(core, "cache", None)
+    if cache is None or not hasattr(cache, "get_cocpit_champion_stats"):
+        return None
+    champion_ref = champ.get("id") or champ.get("slug") or champ.get("name")
+    try:
+        result = cache.get_cocpit_champion_stats(champion_ref, rarity, rank, sig, ascended)
+        return result if isinstance(result, dict) else None
+    except Exception:
+        log.exception("Failed to read cached Cocpit stats for %s", champion_ref)
         return None
 
 

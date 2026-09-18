@@ -1,4 +1,4 @@
-from mcoc.common.helpers.champions import _champion_matches_filters, build_tier_pages, build_filter_flow_state, build_filter_picker_sections, _filter_picker_page_values, build_cocpit_ability_lines, build_cocpit_synergy_intersection_lines
+from mcoc.common.helpers.champions import _champion_matches_filters, build_tier_pages, build_filter_flow_state, build_filter_picker_sections, _filter_picker_page_values, build_cocpit_ability_lines, build_cocpit_core_ability_fields, build_cocpit_synergy_intersection_lines
 from mcoc.common.helpers.roster import filter_roster_entries, _build_selection_option_label, parse_cocpit_roster_csv, import_roster_entries
 from mcoc.common.utilities.formatters import format_tierlist_champion_line, format_champion_line
 from mcoc.common.helpers.types import MCOCAPP_TIERS, champion_from_dict
@@ -423,3 +423,22 @@ def test_build_cocpit_synergy_intersection_only_returns_active_synergies():
     assert "TWISTED INSIGHT" in text
     assert "VISION (DEATHLESS)" in text
     assert "IRON HEEL" not in text
+
+
+def test_build_cocpit_core_ability_fields_strips_html_span_markup():
+    fields = build_cocpit_core_ability_fields({
+        "coreAbilities": {
+            "Special": [
+                {
+                    "id": "amcha_infopage_negzone",
+                    "text": "<span style=\"color: #ffe030\">Negative Zone:</span> Reduce Opponents <span class=\"tooltip\">Ability Power Rate</span> by 60%",
+                }
+            ]
+        }
+    })
+
+    assert len(fields) == 1
+    title, text = fields[0]
+    assert title == "Negative Zone"
+    assert "<span" not in text
+    assert "Ability Power Rate" in text

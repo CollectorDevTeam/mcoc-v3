@@ -527,8 +527,38 @@ class ChampionsPrefix(commands.Cog):
             return
 
         try:
-            cocpit = await Champions.get_cocpit_champion_data(self.parent, champ_obj)
-            lines = Champions.build_cocpit_ability_lines(cocpit) if cocpit else []
+            cocpit_cached = Champions.get_cocpit_cached_abilities(self.parent, champ_obj)
+            field_source = None
+            if cocpit_cached:
+                field_source = {
+                    "coreAbilities": {
+                        item.get("title") or "Core Ability": [{"id": item.get("id"), "text": item.get("text")}]
+                        for item in (cocpit_cached.get("core_abilities") or [])
+                        if isinstance(item, dict)
+                    }
+                }
+            else:
+                field_source = await Champions.get_cocpit_champion_data(self.parent, champ_obj)
+
+            fields = Champions.build_cocpit_core_ability_fields(field_source or {})
+            if fields:
+                field_pages = Champions.chunk_embed_fields(fields)
+                embeds = []
+                total_pages = max(1, len(field_pages))
+                for index, page_fields in enumerate(field_pages, start=1):
+                    embed = Embed.embed(ctx.author, title=f"{champ_obj.get('name') or champ_obj.get('slug')}'s Core Abilities", description="")
+                    for field_name, field_value in page_fields:
+                        embed.add_field(name=field_name, value=field_value, inline=False)
+                    embed.set_footer(text=f"Page {index}/{total_pages}")
+                    embeds.append(embed)
+                if len(embeds) == 1:
+                    await ctx.send(embed=embeds[0])
+                    return
+                pager = PagesMenu(embeds, author=ctx.author)
+                await pager.start(ctx)
+                return
+
+            lines = Champions.build_cocpit_ability_lines(field_source) if field_source else []
             if not lines:
                 lines = Champions.build_champion_ability_lines(champ_obj, cache=cache)
             if not lines:
@@ -713,8 +743,8 @@ class ChampionsPrefix(commands.Cog):
             await safe_send_ctx(ctx, "Champion signature ability unavailable.")
 
     @champ.command(name="stats")
-    async def champ_stats(self, ctx, *, name: str):
-        """Show the stats of the specified champion."""
+    async def champ_stats(self, ctx, rarity: int, rank: int, champion: str, sig: int = 0, asc: int = 0):
+        """Show Cocpit stats for a champion at rarity/rank/sig/ascension."""
         if not await self._require_parent(ctx):
             return
 
@@ -722,10 +752,10 @@ class ChampionsPrefix(commands.Cog):
         champ_obj = None
         try:
             if cache:
-                champ_obj = cache.get_champion(name)
+                champ_obj = cache.get_champion(champion)
                 if not champ_obj:
                     for c in (cache.get_all_champions() or []):
-                        if (c.get("name") or "").lower() == name.lower() or (c.get("slug") or "").lower() == name.lower():
+                        if (c.get("name") or "").lower() == champion.lower() or (c.get("slug") or "").lower() == champion.lower():
                             champ_obj = c
                             break
         except Exception:
@@ -736,10 +766,32 @@ class ChampionsPrefix(commands.Cog):
             return
 
         try:
-            stats = champ_obj.get("stats") or "Stats unavailable."
-            await ctx.send(embed=Embed.embed(ctx.author, title=f"{champ_obj.get('name') or champ_obj.get('slug')}'s Stats", description=stats))
+            row = Champions.get_cocpit_cached_stats(self.parent, champ_obj, rarity, rank, sig, asc)
+            title = f"{champ_obj.get('name') or champ_obj.get('slug')} — {rarity}★ R{rank} Sig {sig} Asc {asc}"
+            if row:
+                desc = "\n".join([
+                    f"**Attack:** {row.get('attack', 'N/A')}",
+                    f"**Health:** {row.get('health', 'N/A')}",
+                    f"**Prestige:** {row.get('prestige', 'N/A')}",
+                ])
+                if int(row.get("sig_level") or 0) != int(sig):
+                    desc += f"\n**Sig Note:** Closest cached sig: {row.get('sig_level')}"
+                await ctx.send(embed=Embed.embed(ctx.author, title=title, description=desc))
+                return
+
+            statline = Champions.lookup_stat(champ_obj, rarity, rank, asc)
+            if statline:
+                desc = "\n".join([
+                    f"**Attack:** {statline.get('attack', 'N/A')}",
+                    f"**Health:** {statline.get('health', 'N/A')}",
+                    "**Prestige:** N/A",
+                ])
+                await ctx.send(embed=Embed.embed(ctx.author, title=title, description=desc))
+                return
+
+            await safe_send_ctx(ctx, "No Cocpit stats available for that champion/progression combination.")
         except Exception:
-            log.exception("Failed to render champion stats for %s", name)
+            log.exception("Failed to render champion stats for %s", champion)
             await safe_send_ctx(ctx, "Champion stats unavailable.")
 
 

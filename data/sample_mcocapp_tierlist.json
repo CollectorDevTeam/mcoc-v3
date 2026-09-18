@@ -1,0 +1,573 @@
+{
+    "champions": [
+        {
+            "name": "Archangel",
+            "class": "Mutant",
+            "tier": "S+",
+            "score": 100,
+            "awakened": true,
+            "high_sig": true,
+            "no7star": false,
+            "tags": [
+                "recoil"
+            ],
+            "rank": 1,
+            "portrait": "/portraits/f896e96f5a.png",
+            "immunities": [],
+            "inflicts": [
+                "Bleed",
+                "Heal Block",
+                "Poison",
+                "Stun"
+            ],
+            "class_rank": 1
+        },
+        {
+            "name": "Green Goblin",
+            "class": "Tech",
+            "tier": "F",
+            "score": 18,
+            "awakened": false,
+            "high_sig": false,
+            "no7star": false,
+            "tags": [],
+            "rank": 329,
+            "portrait": "/portraits/6cea9312d0.png",
+            "immunities": [],
+            "inflicts": [
+                "Incinerate",
+                "Poison",
+                "Power Drain",
+                "Weakness"
+            ],
+            "class_rank": 53
+        }
+    ],
+    "by_class": {
+        "Mutant": [
+            {
+                "name": "Archangel",
+                "class": "Mutant",
+                "tier": "S+",
+                "score": 100,
+                "awakened": true,
+                "high_sig": true,
+                "no7star": false,
+                "tags": [
+                    "recoil"
+                ],
+                "rank": 1,
+                "portrait": "/portraits/f896e96f5a.png",
+                "immunities": [],
+                "inflicts": [
+                    "Bleed",
+                    "Heal Block",
+                    "Poison",
+                    "Stun"
+                ],
+                "class_rank": 1
+            },
+            {
+                "name": "Captain America",
+                "class": "Science",
+                "tier": "F",
+                "score": 20,
+                "awakened": false,
+                "high_sig": false,
+                "no7star": false,
+                "tags": [],
+                "rank": 304,
+                "portrait": "/portraits/26d1386d5f.png",
+                "immunities": [],
+                "inflicts": [
+                    "Fatigue",
+                    "Stun"
+                ],
+                "class_rank": 52
+            },
+            {
+                "name": "Captain America (WWII)",
+                "class": "Science",
+                "tier": "F",
+                "score": 20,
+                "awakened": false,
+                "high_sig": false,
+                "no7star": false,
+                "tags": [],
+                "rank": 305,
+                "portrait": "/portraits/7e5b4e77be.png",
+                "immunities": [],
+                "inflicts": [
+                    "Bleed",
+                    "Nullify",
+                    "Stagger",
+                    "Stun"
+                ],
+                "class_rank": 53
+            },
+            {
+                "name": "Yellowjacket",
+                "class": "Science",
+                "tier": "F",
+                "score": 19,
+                "awakened": true,
+                "high_sig": false,
+                "no7star": false,
+                "tags": [
+                    "defense"
+                ],
+                "rank": 327,
+                "portrait": "/portraits/a359006ce8.png",
+                "immunities": [],
+                "inflicts": [
+                    "Petrify",
+                    "Power Sting",
+                    "Slow",
+                    "Stun"
+                ],
+                "class_rank": 54
+            }
+        ]
+    },
+    "sources": [
+        {
+            "name": "Vega",
+            "type": "YouTube"
+        },
+        {
+            "name": "Lagacy",
+            "type": "YouTube"
+        },
+        {
+            "name": "MetalSonicDude",
+            "type": "YouTube"
+        },
+        {
+            "name": "Seatin",
+            "type": "YouTube"
+        }
+    ],
+    "class_colors": {
+        "Cosmic": "#7dd3fc",
+        "Tech": "#6366f1",
+        "Mutant": "#eab308",
+        "Skill": "#ef4444",
+        "Science": "#22c55e",
+        "Mystic": "#a855f7"
+    },
+    "tier_colors": {
+        "S+": "#f59e0b",
+        "S": "#fbbf24",
+        "A": "#a3e635",
+        "B": "#34d399",
+        "C": "#22d3ee",
+        "D": "#60a5fa",
+        "F": "#94a3b8"
+    },
+    "tier_order": [
+        "S+",
+        "S",
+        "A",
+        "B",
+        "C",
+        "D",
+        "F"
+    ],
+    "tag_labels": {
+        "defense": "BGs Defense",
+        "recoil": "Recoil Friendly",
+        "high_skill": "High Skill",
+        "relic": "Relic Important",
+        "ramp_up": "Ramp Up",
+        "synergy": "Synergy Needed",
+        "ascendable": "Ascendable",
+        "early_ranking": "Early Ranking",
+        "meteor_tactic": "Meteor Tactic"
+    },
+    "immunity_map": {
+        "Bleed": [
+            "Absorbing Man",
+            "Apocalypse",
+            "Arnim Zola",
+            "Black Widow (Claire Voyant)",
+            "Blue Marvel",
+            "Colossus",
+            "Cosmic Ghost Rider",
+            "Count Nefaria",
+            "Darkhawk",
+            "Dormammu",
+            "Dragon Man",
+            "Dust",
+            "Emma Frost",
+            "Gentle",
+            "Ghost Rider",
+            "Groot",
+            "Guillotine 2099",
+            "Howard the Duck",
+            "Iceman",
+            "Imperiosa",
+            "Iron Man (Infinity War)",
+            "Isophyne",
+            "King Groot",
+            "King Groot (Deathless)",
+            "Korg",
+            "Kushala",
+            "Luke Cage",
+            "Lumatrix",
+            "Madelyne Pryor",
+            "Magneto (House of X)",
+            "Man-Thing",
+            "Mangog",
+            "Morningstar",
+            "Nebula",
+            "Nimrod",
+            "Photon",
+            "Prowler",
+            "Sandman",
+            "Sentinel",
+            "Silver Centurion",
+            "Solvarch",
+            "Spider-Slayer (J. Jonah Jameson)",
+            "Terrax",
+            "The Collector",
+            "The Destroyer",
+            "Thing",
+            "Ultron",
+            "Ultron (Classic)",
+            "Unstoppable Colossus",
+            "Vision",
+            "Vision (Age of Ultron)",
+            "Vision (Deathless)",
+            "Viv Vision",
+            "Warlock",
+            "X-23 (Orochi)"
+        ],
+        "Regen Rate Mod": [
+            "Attuma",
+            "Daredevil (Hell's Kitchen)",
+            "Franken-Castle",
+            "Glykhan",
+            "Hulk (Immortal)",
+            "Kingpin",
+            "Mister Sinister",
+            "Patriot",
+            "Sauron",
+            "The Champion",
+            "Toad",
+            "Wolverine (Weapon X)",
+            "Wolverine (X-23)"
+        ]
+    },
+    "immunity_types": [
+        "Bleed",
+        "Poison",
+        "Incinerate",
+        "Shock",
+        "Coldsnap",
+        "Frostbite",
+        "Nullify",
+        "Stagger",
+        "Armor Break",
+        "Armor Shattered",
+        "Fate Seal",
+        "Heal Block",
+        "Power Drain",
+        "Power Lock",
+        "Power Burn",
+        "Power Steal",
+        "Rupture",
+        "Buff Immunity",
+        "Inverted Controls",
+        "Regen Rate Mod"
+    ],
+    "debuff_map": {
+        "Armor Break": [
+            "Abomination (Immortal)",
+            "Absorbing Man",
+            "Air-Walker",
+            "Angela",
+            "Annihilus",
+            "Arnim Zola",
+            "Black Bolt",
+            "Captain America (Infinity War)",
+            "Captain Marvel (Movie)",
+            "Carnage",
+            "Corvus Glaive",
+            "Cosmic Ghost Rider",
+            "Cull Obsidian",
+            "Cyclops (New Xavier School)",
+            "Deadpool",
+            "Deadpool (X-Force)",
+            "Doctor Doom",
+            "Domino",
+            "Elektra",
+            "Gamora",
+            "Gwenpool",
+            "Hela",
+            "Hercules",
+            "Hit-Monkey",
+            "Howard the Duck",
+            "Hulkbuster",
+            "Hulkling",
+            "Hyperion",
+            "Iron Fist",
+            "Iron Fist (Immortal)",
+            "Iron Man",
+            "Iron Man (Infinity War)",
+            "Iron Patriot",
+            "King Groot",
+            "King Groot (Deathless)",
+            "Knull",
+            "Korg",
+            "M.O.D.O.K.",
+            "Magneto",
+            "Magneto (House of X)",
+            "Man-Thing",
+            "Mangog",
+            "Medusa",
+            "Misty Knight",
+            "Ms. Marvel (Kamala Khan)",
+            "Northstar",
+            "Nova",
+            "Old Man Logan",
+            "Omega Sentinel",
+            "Phoenix",
+            "Proxima Midnight",
+            "Punisher 2099",
+            "Purgatory",
+            "Red Goblin",
+            "Red Hulk",
+            "Red Skull",
+            "Rocket Raccoon",
+            "Ronan",
+            "Sabretooth",
+            "Scarlet Witch",
+            "Scream",
+            "Sentinel",
+            "Silver Surfer",
+            "Sorcerer Supreme",
+            "Spider-Man",
+            "Spider-Man (Symbiote)",
+            "Star-Lord",
+            "Summoned Symbiote",
+            "Super-Skrull",
+            "Superior Iron Man",
+            "Symbiote Supreme",
+            "Taskmaster",
+            "Terrax",
+            "Thanos (Deathless)",
+            "The Champion",
+            "Thor",
+            "Thor (Ragnarok)",
+            "Venom",
+            "Vision (Aarkus)",
+            "Vulture",
+            "War Machine",
+            "Warlock",
+            "Yondu"
+        ],
+        "Weakness": [
+            "Abomination (Immortal)",
+            "Apocalypse",
+            "Blue Marvel",
+            "Captain America (Infinity War)",
+            "Civil Warrior",
+            "Green Goblin",
+            "Hulk (Immortal)",
+            "Hulk (Ragnarok)",
+            "Human Torch",
+            "Jessica Jones",
+            "Joe Fixit",
+            "Juggernaut",
+            "Kindred",
+            "M.O.D.O.K.",
+            "Magneto",
+            "Mister Fantastic",
+            "Morbius",
+            "Okoye",
+            "Patriot",
+            "Psycho-Man",
+            "Ronan",
+            "Scarlet Witch (Classic)",
+            "She-Hulk",
+            "She-Hulk (Deathless)",
+            "Spider-Man",
+            "Spider-Man (Miles Morales)",
+            "Spider-Man (Symbiote)",
+            "Summoned Symbiote",
+            "Symbiote Supreme",
+            "Thing",
+            "Titania",
+            "Void",
+            "Wasp",
+            "Werewolf By Night",
+            "Yondu"
+        ]
+    },
+    "debuff_types": [
+        "Armor Break",
+        "Armor Shattered",
+        "Bleed",
+        "Coldsnap",
+        "Concussion",
+        "Damnation",
+        "Degeneration",
+        "Disorient",
+        "Enervate",
+        "Exhaustion",
+        "Falter",
+        "Fate Seal",
+        "Fatigue",
+        "Frostbite",
+        "Heal Block",
+        "Incinerate",
+        "Neutralize",
+        "Nova Flame",
+        "Nullify",
+        "Petrify",
+        "Plasma",
+        "Poison",
+        "Power Burn",
+        "Power Drain",
+        "Power Lock",
+        "Power Sting",
+        "Rupture",
+        "Sabotage",
+        "Shock",
+        "Sleep",
+        "Slow",
+        "Stagger",
+        "Stun",
+        "Taunt",
+        "Weakness"
+    ],
+    "awakening_data": {
+        "Nico Minoru": {
+            "class": "Mystic",
+            "tier": "S+",
+            "score": 100,
+            "tags": [
+                "in_titan_crystal"
+            ]
+        },
+        "Luke Cage": {
+            "class": "Science",
+            "tier": "A",
+            "score": 60,
+            "tags": []
+        }
+    },
+    "sig_stones_data": {
+        "Nico Minoru": {
+            "class": "Mystic",
+            "tier": "S+",
+            "score": 100,
+            "tags": []
+        },
+        "Thing": {
+            "class": "Science",
+            "tier": "A",
+            "score": 60,
+            "tags": [
+                "defense"
+            ]
+        }
+    },
+    "prestige": {
+        "7-5": {
+            "High Evolutionary": [
+                30000,
+                32860,
+                34120,
+                35170,
+                36100,
+                36960,
+                37760,
+                38520,
+                39240,
+                39930,
+                40600
+            ],
+            "Scarlet Witch (Classic)": [
+                29260,
+                33540,
+                34190,
+                34700,
+                35140,
+                35520,
+                35880,
+                36200,
+                36500,
+                36790,
+                37070
+            ]
+        }
+    },
+    "prestige_sig_levels": [
+        0,
+        20,
+        40,
+        60,
+        80,
+        100,
+        120,
+        140,
+        160,
+        180,
+        200
+    ],
+    "prestige_options": [
+        {
+            "label": "7\u2605 Rank 5",
+            "key": "7-5"
+        },
+        {
+            "label": "7\u2605 Rank 4",
+            "key": "7-4"
+        },
+        {
+            "label": "7\u2605 Rank 3",
+            "key": "7-3"
+        }
+    ],
+    "prestige_portraits": {
+        "Adam Warlock": "https://mcochub.insaneskull.com/storage/champs/adamwarlock.png",
+        "Angela": "https://mcochub.insaneskull.com/storage/champs/angela.png",
+        "Wolverine (X 23)": "https://mcochub.insaneskull.com/storage/champs/x23.png",
+        "Howard The Duck": "https://mcochub.insaneskull.com/storage/champs/howardtheduck.png",
+        "Spider man (Miles Morales)": "https://mcochub.insaneskull.com/storage/champs/spidermanmilesmorales.png",
+        "Kang the Conqueror": "https://mcochub.insaneskull.com/storage/champs/kang.png"
+    },
+    "source_meta": [
+        {
+            "name": "Vega",
+            "edition": "68th Edition - September, 2026",
+            "champion_count": 323,
+            "status": "ok",
+            "sheet_id": "1k48b4bB41ObZDfbbbT2Vm4HxUT7w13INENJNguOAy_Q"
+        },
+        {
+            "name": "Lagacy",
+            "edition": "August 2026",
+            "champion_count": 319,
+            "status": "ok",
+            "sheet_id": "1mHxaV3gZiyooQUksEKi-dx2tDCvGc4lqBUqti1pgL6E"
+        },
+        {
+            "name": "MetalSonicDude",
+            "edition": "September 2026",
+            "champion_count": 329,
+            "status": "ok",
+            "sheet_id": "1JRjjeUGKEhvIQEJ1nzugzTYe_zajPdTViV1em2E37HU"
+        },
+        {
+            "name": "Seatin",
+            "edition": "September 2026",
+            "champion_count": 320,
+            "status": "ok",
+            "sheet_id": "1RoclAXC-5Ap5lmCsJJTuRWlfjNfwrbTkiLTPEZGgaQQ"
+        }
+    ],
+    "last_updated": "September 16, 2026",
+    "total_champions": 329
+}

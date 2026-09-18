@@ -21,12 +21,16 @@ from ..common.helpers.champions import (
     lookup_stat,
     add_page_footers,
     get_cocpit_champion_data,
+    get_cocpit_cached_abilities,
+    get_cocpit_cached_stats,
     build_cocpit_ability_lines,
+    build_cocpit_core_ability_fields,
     build_cocpit_synergy_lines,
     build_cocpit_synergy_intersection_lines,
     build_champion_ability_lines,
     build_champion_synergy_lines,
     chunk_text_blocks,
+    chunk_embed_fields,
 )
 from ..common.components.componentsV2 import CDTEmbed, CDTPagesMenu
 
@@ -124,8 +128,32 @@ class _ChampionGroup(app_commands.Group):
             await safe_respond_interaction(interaction, content=f"Champion `{champion}` not found.", ephemeral=True)
             return
         try:
-            cocpit = await get_cocpit_champion_data(self.core, champ)
-            lines = build_cocpit_ability_lines(cocpit) if cocpit else []
+            cocpit_cached = get_cocpit_cached_abilities(self.core, champ)
+            field_source = None
+            if cocpit_cached:
+                field_source = {
+                    "coreAbilities": {
+                        item.get("title") or "Core Ability": [{"id": item.get("id"), "text": item.get("text")}]
+                        for item in (cocpit_cached.get("core_abilities") or [])
+                        if isinstance(item, dict)
+                    }
+                }
+            else:
+                field_source = await get_cocpit_champion_data(self.core, champ)
+
+            fields = build_cocpit_core_ability_fields(field_source or {})
+            if fields:
+                pages = []
+                for index, page_fields in enumerate(chunk_embed_fields(fields), start=1):
+                    embed = CDTEmbed.embed(interaction, title=f"{champ.get('name','Unknown')} Core Abilities", description="")
+                    for field_name, field_value in page_fields:
+                        embed.add_field(name=field_name, value=field_value, inline=False)
+                    embed.set_footer(text=f"Page {index}/{max(1, len(chunk_embed_fields(fields)))}")
+                    pages.append(embed)
+                await safe_respond_interaction(interaction, embed=pages[0], view=CDTPagesMenu(pages, author=interaction.user))
+                return
+
+            lines = build_cocpit_ability_lines(field_source) if field_source else []
             if not lines:
                 lines = build_champion_ability_lines(champ, cache=self._cache())
             if not lines:
@@ -187,24 +215,39 @@ class _ChampionGroup(app_commands.Group):
             await safe_respond_interaction(interaction, content=f"{len(matches)} champions found for tag `{tag}`.", ephemeral=True)
 
     @app_commands.command(name="stats", description="Show champion stats")
+    @app_commands.describe(
+        rarity="Star rarity (1-7)",
+        rank="Rank",
+        sig="Signature level",
+        ascended="Ascension level"
+    )
     @app_commands.autocomplete(champion=champion_autocomplete)
-    async def stats(self, interaction, champion: str):
+    async def stats(self, interaction, champion: str, rarity: int, rank: int, sig: int = 0, ascended: int = 0):
         champ = resolve_champion(self._cache(), champion)
         if not champ:
             await safe_respond_interaction(interaction, content=f"Champion `{champion}` not found.", ephemeral=True)
             return
-        stats = champ.get("stats", {}) or {}
-        if not stats:
-            await safe_respond_interaction(interaction, content="No stats available for this champion.", ephemeral=True)
-            return
+
+        cocpit_stats = get_cocpit_cached_stats(self.core, champ, rarity, rank, sig, ascended)
         try:
             import discord
-            embed = discord.Embed(title=f"{champ.get('name','Unknown')} — Stats", color=discord.Color.gold())
-            for rarity, ranks in stats.items():
-                for rank, values in ranks.items():
-                    atk = values.get("attack", "N/A")
-                    hp = values.get("health", "N/A")
-                    embed.add_field(name=f"{rarity}★ Rank {rank}", value=f"Attack: {atk}\nHealth: {hp}", inline=False)
+            title = f"{champ.get('name','Unknown')} — {rarity}★ R{rank} Sig {sig} Asc {ascended}"
+            embed = discord.Embed(title=title, color=discord.Color.gold())
+            if cocpit_stats:
+                embed.add_field(name="Attack", value=str(cocpit_stats.get("attack", "N/A")), inline=True)
+                embed.add_field(name="Health", value=str(cocpit_stats.get("health", "N/A")), inline=True)
+                embed.add_field(name="Prestige", value=str(cocpit_stats.get("prestige", "N/A")), inline=True)
+                row_sig = cocpit_stats.get("sig_level")
+                if row_sig is not None and int(row_sig) != int(sig):
+                    embed.add_field(name="Sig Note", value=f"Closest cached sig: {row_sig}", inline=False)
+            else:
+                statline = lookup_stat(champ, rarity, rank, ascended)
+                if not statline:
+                    await safe_respond_interaction(interaction, content="No Cocpit stats available for that combination.", ephemeral=True)
+                    return
+                embed.add_field(name="Attack", value=str(statline.get("attack", "N/A")), inline=True)
+                embed.add_field(name="Health", value=str(statline.get("health", "N/A")), inline=True)
+                embed.add_field(name="Prestige", value="N/A", inline=True)
             await safe_respond_interaction(interaction, embed=embed)
         except Exception:
             log.exception("Failed to build stats embed")

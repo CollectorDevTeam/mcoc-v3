@@ -354,6 +354,11 @@ class MCOCAdminPrefix(commands.Cog):
             aw_count = len(parent.cache.get_all_aw() or [])
             champions_map_count = len(parent.cache.get_all_champions_map() or [])
             glossary_count = len(parent.cache.get_all_glossary_terms() or [])
+            cocpit_champions_count = len(parent.cache.get_all_cocpit_champions() or []) if hasattr(parent.cache, "get_all_cocpit_champions") else 0
+            cocpit_abilities_data = parent.cache._load_file("cocpit_abilities") or {}
+            cocpit_abilities_count = len(cocpit_abilities_data.get("entries", [])) if isinstance(cocpit_abilities_data, dict) else 0
+            champstats_data = parent.cache._load_file("champstats") or {}
+            champstats_count = len(champstats_data.get("entries", [])) if isinstance(champstats_data, dict) else 0
             tierlist_data = parent.cache._load_file("tierlist") or {}
             tierlist_count = len(tierlist_data.get("champions", []))
             
@@ -381,10 +386,23 @@ class MCOCAdminPrefix(commands.Cog):
                 f"• Tierlist: **{tierlist_count}**"
             )
             Embed.add_field(ctx, emb=emb, name="Extended Data", value=extended_summary, inline=True)
+
+            cocpit_summary = (
+                f"• Champions: **{cocpit_champions_count}**\n"
+                f"• Abilities: **{cocpit_abilities_count}**\n"
+                f"• Champstats: **{champstats_count}**"
+            )
+            Embed.add_field(ctx, emb=emb, name="Cocpit Data", value=cocpit_summary, inline=True)
             
             # Version info
             if versions:
-                version_summary = "\n".join([f"• {k}: `{v[:12]}...`" for k, v in versions.items()])
+                def _format_version(value: Any) -> str:
+                    text = str(value or "n/a")
+                    if len(text) <= 16:
+                        return text
+                    return f"{text[:12]}..."
+
+                version_summary = "\n".join([f"• {k}: `{_format_version(v)}`" for k, v in versions.items()])
             else:
                 version_summary = "No versions cached."
             Embed.add_field(ctx, emb=emb, name="Cached Versions", value=version_summary, inline=False)

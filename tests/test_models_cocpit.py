@@ -17,9 +17,7 @@ def test_cocpit_champion_data_generates_group_and_entry_ids():
 
     model = ChampionData.model_validate(payload)
     assert model.coreAbilities is not None
-    assert list(model.coreAbilities.keys())
-    group_id = next(iter(model.coreAbilities))
-    assert group_id.startswith("arcade_")
+    assert "Always Active" in model.coreAbilities
     assert all(entry.id for entries in model.coreAbilities.values() for entry in entries)
 
     sample = Path("data/cocpit.arcade.json").read_text(encoding="utf-8")
