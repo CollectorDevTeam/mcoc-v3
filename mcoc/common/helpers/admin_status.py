@@ -27,6 +27,11 @@ async def collect_admin_status_snapshot(parent: Any, cache: Any, health_summary:
     cocpit_abilities_rows = cocpit_abilities_data.get("entries", []) if isinstance(cocpit_abilities_data, dict) else []
     champstats_data = cache._load_file("champstats") or {}
     champstats_rows = champstats_data.get("entries", []) if isinstance(champstats_data, dict) else []
+    champstats_champion_ids = {
+        str(row.get("champion_id") or "").strip().lower()
+        for row in champstats_rows
+        if isinstance(row, Mapping) and str(row.get("champion_id") or "").strip()
+    }
 
     prestige_data = cache._load_file("prestige") or {}
     prestige_rows = prestige_data.get("rows", []) if isinstance(prestige_data, dict) else []
@@ -60,10 +65,33 @@ async def collect_admin_status_snapshot(parent: Any, cache: Any, health_summary:
         "base_stats": 0,
     }
     api = getattr(parent, "api", None)
-    if api is not None and hasattr(api, "get_cocpit_champion_data") and champions:
-        sample = next((champ for champ in champions if isinstance(champ, Mapping) and (champ.get("id") or champ.get("slug"))), None)
+    cocpit_sample = next((champ for champ in cocpit_champions if isinstance(champ, Mapping) and (champ.get("id") or champ.get("slug"))), None)
+    if cocpit_sample is None and champions:
+        cocpit_sample = next((champ for champ in champions if isinstance(champ, Mapping) and (champ.get("id") or champ.get("slug"))), None)
+
+    if cocpit_sample is not None:
+        cocpit_probe["sample"] = cocpit_sample.get("name") or cocpit_sample.get("slug")
+        cached_row = None
+        sample_id = str(cocpit_sample.get("id") or cocpit_sample.get("slug") or "").strip().lower()
+        if sample_id and isinstance(cocpit_abilities_rows, list):
+            cached_row = next(
+                (
+                    row for row in cocpit_abilities_rows
+                    if isinstance(row, Mapping) and str(row.get("champion_id") or row.get("champion_slug") or "").strip().lower() == sample_id
+                ),
+                None,
+            )
+        if isinstance(cached_row, Mapping):
+            cocpit_probe["ok"] = True
+            cocpit_probe["core_sections"] = len(cached_row.get("core_abilities") or [])
+            cocpit_probe["sig_sections"] = len(cached_row.get("signature_abilities") or [])
+            cocpit_probe["synergies"] = 0
+            cocpit_probe["rotation_parts"] = 0
+            cocpit_probe["base_stats"] = 1
+
+    if (not cocpit_probe.get("ok")) and api is not None and hasattr(api, "get_cocpit_champion_data") and cocpit_sample is not None:
+        sample = cocpit_sample
         if sample is not None:
-            cocpit_probe["sample"] = sample.get("name") or sample.get("slug")
             try:
                 rarity = int(sample.get("rarity") or sample.get("stars") or sample.get("tier") or 6)
             except Exception:
@@ -107,6 +135,7 @@ async def collect_admin_status_snapshot(parent: Any, cache: Any, health_summary:
         "champion_map_rows": champion_map_rows,
         "glossary_rows": glossary_rows,
         "cocpit_champions": cocpit_champions,
+        "cocpit_effective_champions": max(len(cocpit_champions), len(champstats_champion_ids)),
         "cocpit_abilities_rows": cocpit_abilities_rows,
         "champstats_rows": champstats_rows,
         "prestige_rows": prestige_rows,
@@ -134,6 +163,7 @@ def build_admin_status_page_specs(snapshot: Dict[str, Any]) -> List[Dict[str, st
     champion_map_rows = snapshot.get("champion_map_rows", []) or []
     glossary_rows = snapshot.get("glossary_rows", []) or []
     cocpit_champions = snapshot.get("cocpit_champions", []) or []
+    cocpit_effective_champions = int(snapshot.get("cocpit_effective_champions") or 0)
     cocpit_abilities_rows = snapshot.get("cocpit_abilities_rows", []) or []
     champstats_rows = snapshot.get("champstats_rows", []) or []
     prestige_rows = snapshot.get("prestige_rows", []) or []
@@ -157,6 +187,7 @@ def build_admin_status_page_specs(snapshot: Dict[str, Any]) -> List[Dict[str, st
         f"Champions Map: {len(champion_map_rows)}",
         f"Glossary: {len(glossary_rows)}",
         f"Cocpit champions: {len(cocpit_champions)} ({'OK' if health_details_map.get('cocpit_champions', {}).get('valid', True) else 'BAD'})",
+        f"Cocpit champion ids (effective): {cocpit_effective_champions}",
         f"Cocpit abilities: {len(cocpit_abilities_rows)} ({'OK' if health_details_map.get('cocpit_abilities', {}).get('valid', True) else 'BAD'})",
         f"Cocpit champstats: {len(champstats_rows)} ({'OK' if health_details_map.get('champstats', {}).get('valid', True) else 'BAD'})",
         f"Prestige rows: {len(prestige_rows)}",
@@ -209,6 +240,7 @@ def build_admin_status_page_specs(snapshot: Dict[str, Any]) -> List[Dict[str, st
         f"Endpoint: {snapshot.get('cocpit_url')}",
         "Fetch mode: harvested into cache artifacts",
         f"Champions rows: {len(cocpit_champions)}",
+        f"Champions effective ids: {cocpit_effective_champions}",
         f"Abilities rows: {len(cocpit_abilities_rows)}",
         f"Champstats rows: {len(champstats_rows)}",
         f"Version hashes: cocpit_champions={_truncate_version(versions.get('cocpit_champions'), 16)} cocpit_abilities={_truncate_version(versions.get('cocpit_abilities'), 16)} champstats={_truncate_version(versions.get('champstats'), 16)}",

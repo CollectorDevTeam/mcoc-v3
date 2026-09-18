@@ -12,6 +12,7 @@ import asyncio
 import logging
 import random
 import re
+import json
 from typing import Optional, Callable, Awaitable, Any
 from yarl import URL
 
@@ -32,6 +33,7 @@ class MCOCHubAPI:
     COCPIT_CHAMPION_URL = "https://cocpit.org/champion-abilities"
     COCPIT_CHAMPION_AUTOCOMPLETE_URL = "https://cocpit.org/api/champion-autocomplete"
     COCPIT_CHAMP_STATS_URL = "https://cocpit.org/api/champstats"
+    COCPIT_CHAMPIONS_PAGE_URL = "https://cocpit.org/champions"
 
     @staticmethod
     def extract_cocpit_release_date(html: str) -> Optional[str]:
@@ -220,7 +222,14 @@ class MCOCHubAPI:
                     if resp.status != 200:
                         log.warning("Public fetch %s returned %s: %.200s", url, resp.status, text)
                         return None
-                    return await resp.json()
+                    try:
+                        return await resp.json(content_type=None)
+                    except Exception:
+                        try:
+                            return json.loads(text)
+                        except Exception:
+                            log.warning("Public fetch %s returned non-JSON payload", url)
+                            return None
         except RateLimitedError:
             raise
         except Exception:
@@ -312,7 +321,76 @@ class MCOCHubAPI:
 
     async def get_cocpit_champion_autocomplete(self) -> Optional[Any]:
         log.debug("Fetching Cocpit champion autocomplete data")
-        return await self._fetch_public_json(self.COCPIT_CHAMPION_AUTOCOMPLETE_URL)
+        payload = await self._fetch_public_json(self.COCPIT_CHAMPION_AUTOCOMPLETE_URL)
+        if isinstance(payload, list):
+            return payload
+        if isinstance(payload, dict) and isinstance(payload.get("champions"), list):
+            return payload.get("champions")
+
+        # Fallback: scrape /champions links to build a minimal champion index.
+        try:
+            session = await self._ensure_session()
+            async with self._request_semaphore:
+                async with session.get(self.COCPIT_CHAMPIONS_PAGE_URL, timeout=self._timeout) as resp:
+                    html = await resp.text()
+                    if resp.status != 200:
+                        return None
+                    return self._extract_cocpit_champions_from_html(html)
+        except Exception:
+            log.exception("Failed Cocpit champion autocomplete page scrape")
+            return None
+
+    @staticmethod
+    def _extract_cocpit_champions_from_html(html: str) -> list[dict]:
+        if not html:
+            return []
+
+        # Primary pattern: champion link with image alt text name.
+        pattern_with_alt = re.compile(
+            r'<a[^>]+href="/champions/([^"#?]+)"[^>]*>\s*<img[^>]+alt="([^"]+)"',
+            flags=re.IGNORECASE,
+        )
+        matches = pattern_with_alt.findall(html)
+
+        entries: list[dict] = []
+        seen: set[str] = set()
+        for slug, name in matches:
+            slug_text = str(slug).strip()
+            if not slug_text or slug_text.lower() == "your-roster":
+                continue
+            champ_id = slug_text.lower()
+            if champ_id in seen:
+                continue
+            seen.add(champ_id)
+            entries.append({
+                "id": champ_id,
+                "name": str(name).strip() or slug_text.replace("_", " ").title(),
+                "aliases": [],
+                "availableRarities": [],
+                "ascensionMaxByRarity": {},
+            })
+
+        if entries:
+            return entries
+
+        # Secondary pattern: links only, with slug-derived names.
+        for slug in re.findall(r'href="/champions/([^"#?]+)"', html, flags=re.IGNORECASE):
+            slug_text = str(slug).strip()
+            if not slug_text or slug_text.lower() == "your-roster":
+                continue
+            champ_id = slug_text.lower()
+            if champ_id in seen:
+                continue
+            seen.add(champ_id)
+            entries.append({
+                "id": champ_id,
+                "name": slug_text.replace("_", " ").title(),
+                "aliases": [],
+                "availableRarities": [],
+                "ascensionMaxByRarity": {},
+            })
+
+        return entries
 
     async def get_cocpit_release_date(self) -> Optional[str]:
         """Fetch the Cocpit site asset date from the HTML head and use it as the update stamp."""

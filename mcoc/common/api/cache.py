@@ -714,6 +714,59 @@ class CacheManager:
         payload = await api.get_cocpit_champion_autocomplete()
         normalized = self.normalize_cocpit_champions_payload(payload)
         if not normalized:
+            # Fallback path: synthesize champion list from existing champstats rows.
+            stats_doc = self._load_file("champstats") or {}
+            stats_rows = stats_doc.get("entries", []) if isinstance(stats_doc, dict) else []
+            if isinstance(stats_rows, list) and stats_rows:
+                seen: Dict[str, Dict[str, Any]] = {}
+                for row in stats_rows:
+                    if not isinstance(row, dict):
+                        continue
+                    champ_id = str(row.get("champion_id") or "").strip().lower()
+                    if not champ_id:
+                        continue
+                    item = seen.setdefault(
+                        champ_id,
+                        {
+                            "id": champ_id,
+                            "slug": champ_id,
+                            "name": str(row.get("champion_name") or champ_id).strip(),
+                            "aliases": [],
+                            "img": None,
+                            "class_name": None,
+                            "available_rarities": [],
+                            "ascension_max_by_rarity": {},
+                        },
+                    )
+                    try:
+                        rarity = int(row.get("rarity") or 0)
+                    except Exception:
+                        rarity = 0
+                    try:
+                        ascension_level = int(row.get("ascension_level") or 0)
+                    except Exception:
+                        ascension_level = 0
+                    if rarity and rarity not in item["available_rarities"]:
+                        item["available_rarities"].append(rarity)
+                    if rarity:
+                        rarity_key = str(rarity)
+                        current_max = int(item["ascension_max_by_rarity"].get(rarity_key) or 0)
+                        if ascension_level > current_max:
+                            item["ascension_max_by_rarity"][rarity_key] = ascension_level
+
+                champions = list(seen.values())
+                for entry in champions:
+                    entry["available_rarities"] = sorted(set(entry.get("available_rarities") or []))
+
+                if champions:
+                    normalized = {
+                        "version": self._hash(champions),
+                        "updated_at": datetime.datetime.utcnow().isoformat(),
+                        "champions": champions,
+                    }
+                    await _report(f"Cocpit champions fallback from champstats: {len(champions)} champions")
+
+        if not normalized:
             return {"count": 0, "updated": False, "files": [], "error": "invalid cocpit champion payload"}
 
         release_date = None
@@ -758,15 +811,28 @@ class CacheManager:
             if not champ_id:
                 continue
             rarities = [int(v) for v in (champion.get("available_rarities") or []) if isinstance(v, int) or str(v).isdigit()]
-            rarity = max(rarities) if rarities else 7
-            limits = CHAMPION_TIER_LIMITS.get(rarity)
-            rank = int(limits.max_rank) if limits else 1
-            sig = int(limits.max_sig) if limits else 0
-            asc = int(limits.max_ascended) if limits else 0
-            try:
-                payload = await api.get_cocpit_champion_data(champ_id, rarity, rank, sig, asc)
-            except Exception:
-                log.exception("Failed to fetch Cocpit champion abilities for %s", champ_id)
+            if not rarities:
+                rarities = [7, 6, 5, 4]
+
+            payload = None
+            for rarity in sorted(set(rarities), reverse=True):
+                limits = CHAMPION_TIER_LIMITS.get(int(rarity))
+                candidates = [(1, 0, 0)]
+                if limits:
+                    candidates.append((int(limits.max_rank), int(limits.max_sig), int(limits.max_ascended)))
+                for rank, sig, asc in candidates:
+                    try:
+                        maybe = await api.get_cocpit_champion_data(champ_id, int(rarity), int(rank), int(sig), int(asc))
+                    except Exception:
+                        continue
+                    if isinstance(maybe, dict) and ((maybe.get("coreAbilities") or maybe.get("sigAbilities") or maybe.get("baseStats"))):
+                        payload = maybe
+                        break
+                if payload is not None:
+                    break
+
+            if payload is None:
+                log.warning("Failed to fetch Cocpit champion abilities for %s", champ_id)
                 continue
             normalized = self.normalize_cocpit_champion_abilities_payload(champion, payload)
             if normalized is None:
