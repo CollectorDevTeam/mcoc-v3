@@ -1096,14 +1096,37 @@ class CacheManager:
                 except Exception:
                     log.exception("Progress callback failed")
 
-        # If we synced recently, skip network calls
+        # If we synced recently, skip full network calls but still backfill missing Cocpit artifacts.
         if self.is_recent(hours=24):
-            await _report("Cache was synced within the last 24 hours; skipping API requests.")
+            await _report("Cache was synced within the last 24 hours; checking Cocpit artifacts before skipping.")
+            updated_recent = False
+
+            try:
+                cocpit_champions_payload = self._load_file("cocpit_champions")
+                cocpit_abilities_payload = self._load_file("cocpit_abilities")
+                cocpit_champions_ok = self._is_valid_cache_file("cocpit_champions", cocpit_champions_payload)
+                cocpit_abilities_ok = self._is_valid_cache_file("cocpit_abilities", cocpit_abilities_payload)
+
+                if (not cocpit_champions_ok) and hasattr(api, "get_cocpit_champion_autocomplete"):
+                    await _report("Backfilling missing Cocpit champions cache...")
+                    result = await self.harvest_cocpit_champions(api, progress=_report)
+                    updated_recent |= bool(result.get("updated"))
+
+                if (not cocpit_abilities_ok) and hasattr(api, "get_cocpit_champion_data"):
+                    await _report("Backfilling missing Cocpit abilities cache...")
+                    result = await self.harvest_cocpit_champion_abilities(api, progress=_report)
+                    updated_recent |= bool(result.get("updated"))
+            except Exception:
+                log.exception("Failed to backfill Cocpit artifacts during recent-sync short-circuit")
+
+            if not updated_recent:
+                await _report("Cache was synced recently and Cocpit artifacts are unchanged; skipping API requests.")
+
             try:
                 await asyncio.to_thread(self.index.rebuild)
             except Exception:
                 log.exception("Index rebuild failed during short-circuit")
-            return False
+            return updated_recent
 
         updated = False
 

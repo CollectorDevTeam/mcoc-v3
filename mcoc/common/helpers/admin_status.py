@@ -88,6 +88,8 @@ async def collect_admin_status_snapshot(parent: Any, cache: Any, health_summary:
             cocpit_probe["synergies"] = 0
             cocpit_probe["rotation_parts"] = 0
             cocpit_probe["base_stats"] = 1
+        elif champstats_champion_ids:
+            cocpit_probe["error"] = "Cocpit ability cache is empty while champstats exists. Run ///mcocadmin force-sync."
 
     if (not cocpit_probe.get("ok")) and api is not None and hasattr(api, "get_cocpit_champion_data") and cocpit_sample is not None:
         sample = cocpit_sample
@@ -279,7 +281,7 @@ def build_admin_status_page_specs(snapshot: Dict[str, Any]) -> List[Dict[str, st
             "Probe status: FAILED",
             f"Error: {cocpit_probe.get('error') or 'No sample champion available'}",
             "",
-            "This page confirms whether the live descriptive source is currently reachable.",
+            "This page confirms whether Cocpit descriptive data is cached/reachable.",
         ]
 
     rows = [

@@ -514,6 +514,25 @@ class MCOCAdminPrefix(commands.Cog):
                 await parent.cache._diff_and_save("tierlist", tierlist)
             await poster.update_section("Saving", "✅ saved to cache")
 
+            # Cocpit cache artifacts
+            if hasattr(parent.cache, "harvest_cocpit_champions"):
+                await poster.update_section("Cocpit Champions", "harvesting...")
+                cocpit_champs_result = await parent.cache.harvest_cocpit_champions(parent.api)
+                results["cocpit_champions"] = int(cocpit_champs_result.get("count") or 0)
+                await poster.update_section("Cocpit Champions", f"harvested: {results['cocpit_champions']}")
+
+            if hasattr(parent.cache, "harvest_cocpit_champion_abilities"):
+                await poster.update_section("Cocpit Abilities", "harvesting...")
+                cocpit_abilities_result = await parent.cache.harvest_cocpit_champion_abilities(parent.api)
+                results["cocpit_abilities"] = int(cocpit_abilities_result.get("count") or 0)
+                await poster.update_section("Cocpit Abilities", f"harvested: {results['cocpit_abilities']}")
+
+            if hasattr(parent.cache, "harvest_cocpit_champion_stats"):
+                await poster.update_section("Cocpit Champstats", "harvesting...")
+                cocpit_stats_result = await parent.cache.harvest_cocpit_champion_stats(parent.api)
+                results["champstats"] = int(cocpit_stats_result.get("count") or 0)
+                await poster.update_section("Cocpit Champstats", f"harvested: {results['champstats']}")
+
             # Update prestige
             try:
                 await poster.update_section("Prestige", "checking/updating...")
@@ -549,6 +568,13 @@ class MCOCAdminPrefix(commands.Cog):
                 f"• Tierlist: **{results.get('tierlist', 0)}**"
             )
             Embed.add_field(ctx, emb=emb, name="Extended Data", value=extended_summary, inline=True)
+
+            cocpit_summary = (
+                f"• Cocpit Champions: **{results.get('cocpit_champions', 0)}**\n"
+                f"• Cocpit Abilities: **{results.get('cocpit_abilities', 0)}**\n"
+                f"• Cocpit Champstats: **{results.get('champstats', 0)}**"
+            )
+            Embed.add_field(ctx, emb=emb, name="Cocpit Data", value=cocpit_summary, inline=True)
             
             Embed.add_field(ctx, emb=emb, name="Prestige Status", value=f"**{results.get('prestige', 'Unknown')}**", inline=False)
 
