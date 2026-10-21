@@ -1859,7 +1859,9 @@ async def _resolve_prestige_for_entry(core: Any, entry: Dict[str, Any], prestige
         # fallback to cache.get_prestige_value
         if cache and hasattr(cache, "get_prestige_value"):
             try:
-                return cache.get_prestige_value(slug, stars, rank, asc, raw_sig)
+                direct_prestige = cache.get_prestige_value(slug, stars, rank, asc, raw_sig)
+                if isinstance(direct_prestige, (int, float)):
+                    return int(direct_prestige)
             except Exception:
                 pass
 
