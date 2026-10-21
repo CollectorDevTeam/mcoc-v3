@@ -89,7 +89,7 @@ async def collect_admin_status_snapshot(parent: Any, cache: Any, health_summary:
             cocpit_probe["rotation_parts"] = 0
             cocpit_probe["base_stats"] = 1
         elif champstats_champion_ids:
-            cocpit_probe["error"] = "Cocpit ability cache is empty while champstats exists. Run ///mcocadmin force-sync."
+            cocpit_probe["error"] = "Cocpit ability cache is empty while champstats exists. Run //mcocadmin force-sync."
 
     if (not cocpit_probe.get("ok")) and api is not None and hasattr(api, "get_cocpit_champion_data") and cocpit_sample is not None:
         sample = cocpit_sample
@@ -193,7 +193,7 @@ def build_admin_status_page_specs(snapshot: Dict[str, Any]) -> List[Dict[str, st
         f"Cocpit abilities: {len(cocpit_abilities_rows)} ({'OK' if health_details_map.get('cocpit_abilities', {}).get('valid', True) else 'BAD'})",
         f"Cocpit champstats: {len(champstats_rows)} ({'OK' if health_details_map.get('champstats', {}).get('valid', True) else 'BAD'})",
         f"Prestige rows: {len(prestige_rows)}",
-        "Export: ///mcocadmin export-champions",
+        "Export: //mcocadmin export-champions",
     ]
     if not health_ok:
         issues = health_summary.get("issues", [])[:6]

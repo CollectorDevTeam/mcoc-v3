@@ -1,23 +1,23 @@
 # MCOC Command Map (Prefix Layer)
 
-A concise, actionable map of the `///mcoc` prefix command tree (v2 → v3 migration checklist).
+A concise, actionable map of the `//mcoc` prefix command tree (v2 → v3 migration checklist).
 Use this to verify which commands are exposed by the prefix registrars and to spot missing or incomplete exports.
 
 ---
 
 ## Top level
-**`///mcoc`**
+**`//mcoc`**
 - **Subcommands:** `status`
 - **Description:** Root help and basic core status.
 
-**`///mcoc status`**
+**`//mcoc status`**
 - **Args:** none
 - **Permission:** none
 - **Description:** Shows whether core/cache attached.
 
 ---
 
-## ///mcoc champ (champions)
+## //mcoc champ (champions)
 - **`info`** — `* champion` — Show champion profile embed.
 - **`abilities`** — `* champion` — Show champion abilities embed.
 - **`synergies`** — `* champion` — Show champion synergies.
@@ -27,7 +27,7 @@ Use this to verify which commands are exposed by the prefix registrars and to sp
 
 ---
 
-## ///mcoc roster (user roster)
+## //mcoc roster (user roster)
 - **`add`** — `champion, hargs` — Add champion to user roster.
 - **`remove`** — `champion, hargs?` — Remove champion entries.
 - **`update`** — `champion, hargs` — Update champion entry (rarity required).
@@ -37,7 +37,7 @@ Use this to verify which commands are exposed by the prefix registrars and to sp
 
 ---
 
-## ///mcoc admin (admin utilities)
+## //mcoc admin (admin utilities)
 - **`status`** — — owner — Cache / API / prestige summary.
 - **`key`** — — owner — Show shared API key presence (masked).
 - **`sync`** — — owner — Full cache sync (progress via queue).
@@ -47,7 +47,7 @@ Use this to verify which commands are exposed by the prefix registrars and to sp
 
 ---
 
-## ///mcoc account (user profiles & privacy)
+## //mcoc account (user profiles & privacy)
 - **`info` / `view`** — `member?` — Show profile embed or raw JSON.
 - **`set`** — `field value` — Set allowed profile fields.
 - **`link`** — `mcoc_id` — Link Discord → in‑game id.
@@ -60,7 +60,7 @@ Use this to verify which commands are exposed by the prefix registrars and to sp
 
 ---
 
-## ///mcoc alliance (alliance management)
+## //mcoc alliance (alliance management)
 - **`info`** — — Show guild public alliance profile (alias of settings/info).
 - **`create`** — `simple|complex name` — admin/manage_guild — Register alliance and create core roles (confirm).
 - **`template`** — — admin/manage_guild — Interactive role template creation (confirm).
@@ -84,7 +84,7 @@ Use this to verify which commands are exposed by the prefix registrars and to sp
 
 ## Gaps, priorities, and action items
 1. **Registrar coverage**  
-   Ensure each `register_with_group` wrapper re-exports every Cog command you want available under `///mcoc`. Some wrappers currently expose only a subset; add wrappers for missing commands (notably many alliance and account commands).
+   Ensure each `register_with_group` wrapper re-exports every Cog command you want available under `//mcoc`. Some wrappers currently expose only a subset; add wrappers for missing commands (notably many alliance and account commands).
 
 2. **Destructive confirmations**  
    Ensure `PagesMenu.confirm` is used in registrar wrappers for destructive actions (`account delete`, `alliance unregister`) and that `PagesMenu` is imported.
@@ -103,7 +103,7 @@ Use this to verify which commands are exposed by the prefix registrars and to sp
 
 7. **Testing checklist**  
    - Restart bot; verify logs show registrars attached or commands skipped.  
-   - Test `///mcoc alliance manage`, `///mcoc account set`, `///mcoc account delete` (confirm flow), `///mcoc roster list` (PagesMenu).  
+   - Test `//mcoc alliance manage`, `//mcoc account set`, `//mcoc account delete` (confirm flow), `//mcoc roster list` (PagesMenu).
    - Test leader-only flows with a test guild.
 
 ---

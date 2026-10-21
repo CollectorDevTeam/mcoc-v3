@@ -51,7 +51,7 @@ If we ever plan to share data for other purposes, we will notify you and obtain 
 ## 7. Your Rights and Choices
 - **Access**: You can request a copy of the profile data we hold about you.
 - **Correction**: You can update profile fields via the bot commands.
-- **Deletion**: You can revoke consent and request deletion of your profile and roster (`///account revoke-consent` or similar).
+- **Deletion**: You can revoke consent and request deletion of your profile and roster (`//account revoke-consent` or similar).
 - **Consent**: You must explicitly agree to this policy before we create or store your profile data. We will record consent metadata.
 
 To exercise any of these rights, use the bot commands or contact the maintainers via the repository.

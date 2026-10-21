@@ -11,7 +11,7 @@ from typing import Optional
 import logging
 from redbot.core import commands
 from .componentsV2 import CDTEmbed
-from .prefix_utils import safe_send_ctx
+from .prefix_utils import get_runtime_prefix, safe_send_ctx
 
 log = logging.getLogger("red.mcoc.help")
 
@@ -58,7 +58,8 @@ async def send_or_brand_help(ctx: commands.Context, target: str, title: Optional
                         pass
                     # set branded footer
                     try:
-                        CDTEmbed.set_footer(ctx, emb, footer_text="Type `///help <command>` for more info")
+                        prefix = get_runtime_prefix(ctx, "//")
+                        CDTEmbed.set_footer(ctx, emb, footer_text=f"Type `{prefix}help <command>` for more info")
                     except Exception:
                         pass
                     # edit the message to replace embed with branded one
@@ -81,10 +82,12 @@ async def send_or_brand_help(ctx: commands.Context, target: str, title: Optional
 
     # 2) Fallback: build a CDTEmbed help card from fallback_text or title
     try:
-        emb = CDTEmbed.embed(ctx, title=title or "Help", description=fallback_text or "Use ///help <command> for more details.")
-        CDTEmbed.set_footer(ctx, emb, footer_text="Type ///help <command> for more info")
+        prefix = get_runtime_prefix(ctx, "//")
+        emb = CDTEmbed.embed(ctx, title=title or "Help", description=fallback_text or f"Use {prefix}help <command> for more details.")
+        CDTEmbed.set_footer(ctx, emb, footer_text=f"Type {prefix}help <command> for more info")
         await safe_send_ctx(ctx, None, embed=emb)
     except Exception:
         # final fallback: plain text
-        await safe_send_ctx(ctx, fallback_text or "Help unavailable; try ///help <command>.")
+        prefix = get_runtime_prefix(ctx, "//")
+        await safe_send_ctx(ctx, fallback_text or f"Help unavailable; try {prefix}help <command>.")
     return None

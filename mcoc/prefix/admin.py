@@ -11,7 +11,7 @@ Prefix commands for MCOC admin (development / fallback).
 
 This cog exposes a small set of owner-only admin utilities and also provides
 a `register_with_group` function so the same commands can be attached to the
-main ///mcoc group via the registrar pattern.
+main //mcoc group via the registrar pattern.
 """
 
 from typing import Any, Dict, List, Optional
@@ -155,7 +155,7 @@ class MCOCAdminPrefix(commands.Cog):
             ]
             emb = Embed.embed(ctx, title="MCOC Admin Help", description="Owner/admin utilities for the MCOC bot.")
             Embed.add_field(ctx, emb=emb, name="Available Commands", value="\n".join(f"• `{cmd}`" for cmd in subcommands), inline=False)
-            Embed.add_field(ctx, emb=emb, name="Usage", value="`///mcocadmin status`\n`///mcocadmin sync`\n`///mcocadmin help`", inline=False)
+            Embed.add_field(ctx, emb=emb, name="Usage", value="`//mcocadmin status`\n`//mcocadmin sync`\n`//mcocadmin help`", inline=False)
             await safe_send_ctx(ctx, None, embed=emb)
             return
 
@@ -163,11 +163,11 @@ class MCOCAdminPrefix(commands.Cog):
             subcommands = ["status", "sync", "force-sync", "prestige_sync", "key", "features", "export-champions", "wipe-cache"]
             emb = Embed.embed(ctx, title="MCOC Admin", description="Owner/admin utilities for the MCOC bot.")
             Embed.add_field(ctx, emb=emb, name="Common Commands", value="\n".join(f"• `{cmd}`" for cmd in subcommands), inline=False)
-            Embed.add_field(ctx, emb=emb, name="Example", value="`///mcocadmin status`", inline=False)
+            Embed.add_field(ctx, emb=emb, name="Example", value="`//mcocadmin status`", inline=False)
             await safe_send_ctx(ctx, None, embed=emb)
             return
 
-        await safe_send_ctx(ctx, f"Unknown admin command: `{args[0]}`. Use `///mcocadmin help`.")
+        await safe_send_ctx(ctx, f"Unknown admin command: `{args[0]}`. Use `//mcocadmin help`.")
 
     # -------------------------
     # Owner-only utilities
@@ -304,7 +304,7 @@ class MCOCAdminPrefix(commands.Cog):
                     "Shared API key for **mcochub** is NOT set.\n"
                     "Set it with:\n"
                     "```"
-                    "///set api mcochub apikey,<your_key_here>"
+                    "//set api mcochub apikey,<your_key_here>"
                     "```"
                 )
                 return
@@ -679,7 +679,7 @@ class MCOCAdminPrefix(commands.Cog):
 
         result = cache.wipe_cache()
         removed = result.get("removed", 0)
-        await safe_send_ctx(ctx, f"✅ Cache wiped. Removed **{removed}** cached file(s) and reset metadata. Run `///mcocadmin sync` to rebuild it.")
+        await safe_send_ctx(ctx, f"✅ Cache wiped. Removed **{removed}** cached file(s) and reset metadata. Run `//mcocadmin sync` to rebuild it.")
 
     def _lookup_cache_object(self, cache: Any, kind: str, key: str):
         """Resolve a champion/ability/immunity/tag by exact or normalized lookup."""

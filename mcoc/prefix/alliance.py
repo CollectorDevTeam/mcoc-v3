@@ -102,7 +102,7 @@ class AlliancePrefix(commands.Cog):
     @commands.admin_or_permissions(manage_guild=True)
     async def alliance_setrole(self, ctx, key: str, role: Optional[Any] = None):
         if role is None:
-            await safe_send_ctx(ctx, "Usage: ///mcoc alliance setrole <key> <@role>")
+            await safe_send_ctx(ctx, "Usage: //mcoc alliance setrole <key> <@role>")
             return
         mapped = await Alliance.create_or_link_role(ctx.guild, role.name, key, role_obj=role)
         if mapped:

@@ -662,8 +662,8 @@ async def enroll_command_handler(parent: Any, ctx: Any, user_id: int) -> Tuple[b
             "To enroll, please review our policies:\n"
             f"Privacy Policy: {source}\n"
             f"Terms of Service: {POLICY_METADATA['terms_of_service']['url']}\n\n"
-            "If you agree, type: ///account agree\n"
-            "If you decline, type: ///account decline\n"
+            "If you agree, type: //account agree\n"
+            "If you decline, type: //account decline\n"
         )
 
         # Try CDTConfirm if available
@@ -722,7 +722,7 @@ async def enroll_command_handler(parent: Any, ctx: Any, user_id: int) -> Tuple[b
 
 async def handle_consent_response(parent: Any, ctx: Any, user_id: int, agree: bool) -> Tuple[bool, str]:
     """
-    Record a typed consent response (///account agree or ///account decline).
+    Record a typed consent response (//account agree or //account decline).
     """
     try:
         version = POLICY_METADATA["privacy_policy"]["version"]
@@ -756,8 +756,8 @@ async def enroll_command_handler(parent: Any, ctx: Any, user_id: int) -> Tuple[b
             "To enroll, please review our policies:\n"
             f"Privacy Policy: {source}\n"
             f"Terms of Service: {POLICY_METADATA['terms_of_service']['url']}\n\n"
-            "If you agree, type: ///account agree\n"
-            "If you decline, type: ///account decline\n"
+            "If you agree, type: //account agree\n"
+            "If you decline, type: //account decline\n"
             "This prompt will time out after a short period."
         )
 
@@ -818,7 +818,7 @@ async def enroll_command_handler(parent: Any, ctx: Any, user_id: int) -> Tuple[b
 
 async def handle_consent_response(parent: Any, ctx: Any, user_id: int, agree: bool) -> Tuple[bool, str]:
     """
-    Record a typed consent response (///account agree or decline).
+    Record a typed consent response (//account agree or decline).
     """
     try:
         version = POLICY_METADATA["privacy_policy"]["version"]

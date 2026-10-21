@@ -381,7 +381,7 @@ class RosterPrefix(commands.Cog):
         if not await self._require_parent(ctx):
             return
         if not confirm or confirm.lower() not in {"confirm", "yes", "i confirm"}:
-            await safe_send_ctx(ctx, "This will delete your roster. To proceed, run: ///roster clear confirm")
+            await safe_send_ctx(ctx, "This will delete your roster. To proceed, run: //roster clear confirm")
             return
         user_id = getattr(ctx.author, "id", None)
         users = Roster.ensure_user_manager(self.parent)

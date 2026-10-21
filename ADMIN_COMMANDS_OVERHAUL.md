@@ -5,7 +5,7 @@ Updated the MCOC admin commands to provide comprehensive status reporting and im
 
 ## Changes Made
 
-### 1. **Status Command (`///admin status`)**
+### 1. **Status Command (`//admin status`)**
 **Before:** Plain text output with inconsistent formatting; missing several data types  
 **After:** Rich Discord embed with organized sections
 
@@ -39,7 +39,7 @@ The status command now comprehensively reports on all 9 external data sources tr
 8. **Tierlist** - Champion tier rankings from mcochub
 9. **Prestige** - Player prestige data (aggregated by tier)
 
-### 2. **Sync Command (`///admin sync`)**
+### 2. **Sync Command (`//admin sync`)**
 **Before:** Basic text confirmation without data summary  
 **After:** Rich embed with comprehensive data summary
 
@@ -55,7 +55,7 @@ The status command now comprehensively reports on all 9 external data sources tr
 - All extended data counts (AW, Champions Map, Glossary, Tierlist)
 - Version identifiers for all cached datasets
 
-### 3. **Force Sync Command (`///admin force-sync`)**
+### 3. **Force Sync Command (`//admin force-sync`)**
 **Before:** Only fetched and reported on core 4 data types; prestige handling was minimal  
 **After:** Comprehensive multi-step fetch with full reporting on all data types
 

@@ -19,7 +19,7 @@ Responsibilities:
  - load optional slash root and diagnostics if present
 
 This file intentionally prefers explicit Cog registration for the feature modules
-so top-level commands (///account, ///roster, ///alliance, ///champ) are available
+so top-level commands (//account, //roster, //alliance, //champ) are available
 immediately and can be reloaded independently during development.
 """
 
@@ -60,7 +60,7 @@ async def setup(bot: Any) -> None:
         except Exception:
             log.exception("Unexpected error during common core async init")
 
-    # 3) Register the compatibility prefix root (///mcoc)
+    # 3) Register the compatibility prefix root (//mcoc)
     try:
         from .prefix.core import MCOCPrefix
         try:
@@ -79,7 +79,7 @@ async def setup(bot: Any) -> None:
 
     # 4) Register top-level prefix feature cogs if present.
     #    These are optional; failures are non-fatal but logged.
-    #    Registering them here ensures ///account, ///roster, ///alliance, ///champ, ///mcocadmin exist.
+    #    Registering them here ensures //account, //roster, //alliance, //champ, //mcocadmin exist.
     feature_cogs = [
         ("mcoc.prefix.account", "AccountPrefix"),
         ("mcoc.prefix.roster", "RosterPrefix"),

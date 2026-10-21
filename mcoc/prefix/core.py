@@ -11,10 +11,10 @@ Prefix command root for MCOC (hybrid mode).
 
 Behavior:
  - Each feature module (account, roster, alliance, champ, admin) should register
-   itself as a top-level Cog (///account, ///roster, ///alliance, ///champ, ///mcocadmin).
+    itself as a top-level Cog (//account, //roster, //alliance, //champ, //mcocadmin).
  - This MCOCPrefix Cog remains as a thin compatibility entrypoint:
-     - `///mcoc` shows a short help and can forward `///mcoc <sub> ...` to the
-       corresponding top-level command if it exists (e.g., ///mcoc account -> ///account).
+         - `//mcoc` shows a short help and can forward `//mcoc <sub> ...` to the
+             corresponding top-level command if it exists (e.g., //mcoc account -> //account).
  - Keep registrar pattern removed; prefer explicit Cog registration for each module.
 """
 
@@ -25,23 +25,24 @@ Entitlements = Core.Entitlements
 Helpers = Core.Helpers
 Alliance = Helpers.alliance
 Roster = Helpers.roster
+Account = Helpers.account
 
 import importlib
 import logging
 
 from redbot.core import commands
 
-from mcoc.common.components.prefix_utils import safe_send_ctx
+from mcoc.common.components.prefix_utils import get_runtime_prefix, safe_send_ctx
 
 log = logging.getLogger("red.mcoc.prefix.core")
 
 
 class MCOCPrefix(commands.Cog):
     """
-    Thin compatibility Cog exposing ///mcoc root and a forwarding helper.
+    Thin compatibility Cog exposing //mcoc root and a forwarding helper.
 
     Top-level feature Cogs should register themselves directly (async setup).
-    This Cog helps users who still type ///mcoc <sub> by forwarding to the
+    This Cog helps users who still type //mcoc <sub> by forwarding to the
     top-level command if present, otherwise showing a short help.
     """
 
@@ -80,6 +81,7 @@ class MCOCPrefix(commands.Cog):
         Otherwise show a short help pointing to top-level commands.
         """
         # If user provided a subcommand name, attempt to forward (existing logic)...
+        prefix = get_runtime_prefix(ctx, "//")
         if subcommand:
             cmd = self._find_top_command(subcommand)
             if cmd:
@@ -90,22 +92,41 @@ class MCOCPrefix(commands.Cog):
                     return
                 except commands.CommandError:
                     # Command invocation failed at the command layer; log and fall through to help.
-                    log.exception("Forwarding ///mcoc %s to top-level command failed", subcommand)
+                    log.exception("Forwarding //mcoc %s to top-level command failed", subcommand)
                 except Exception:
                     # Unexpected error while forwarding; log and fall through to help.
-                    log.exception("Unexpected error forwarding ///mcoc %s", subcommand)
+                    log.exception("Unexpected error forwarding //mcoc %s", subcommand)
 
         # No forwarding possible or forwarding failed: show attractive embed help (use Embed)
         try:
-            emb = Embed(ctx, title="Challenger Help Menu", color=Embed.get_color_value(ctx))
-            Embed.add_field(name="Syntax", value="`///mcoc [subcommand] [args...]`", inline=False)
+            emb = Embed(ctx, title="Collector Help Menu", color=Embed.get_color_value(ctx))
+            Embed.add_field(name="Syntax", value=f"`{prefix}mcoc [subcommand] [args...]`", inline=False)
             Embed.add_field(name="Description", value="Compatibility root. Use top-level commands directly for faster access.", inline=False)
-            Embed.add_field(name="Top-level commands", value="`///account`, `///roster`, `///alliance`, `///champ`, `///mcocadmin`, `///mcoc status`", inline=False)
-            Embed.set_footer(text="Type `///help <command>` for more details.")
+            Embed.add_field(name="Top-level commands", value=f"`{prefix}account`, `{prefix}roster`, `{prefix}alliance`, `{prefix}champ`, `{prefix}mcocadmin`, `{prefix}mcoc status`", inline=False)
+            Embed.set_footer(text=f"Type `{prefix}help <command>` for more details.")
             await safe_send_ctx(ctx, None, embed=emb)
         except Exception:
             # fallback to text only if embed fails
-            await safe_send_ctx(ctx, "MCOC compatibility root. Use `///account`, `///roster`, `///alliance`, `///champ`, `///mcocadmin`.")
+            await safe_send_ctx(ctx, f"MCOC compatibility root. Use `{prefix}account`, `{prefix}roster`, `{prefix}alliance`, `{prefix}champ`, `{prefix}mcocadmin`.")
+
+    @mcoc.command(name="policy", aliases=["policies", "privacy", "tos"])
+    async def mcoc_policy(self, ctx):
+        """Show the Privacy Policy and Terms of Service links."""
+        policy_meta = getattr(Account, "POLICY_METADATA", {}) or {}
+        privacy = policy_meta.get("privacy_policy", {}) or {}
+        tos = policy_meta.get("terms_of_service", {}) or {}
+
+        privacy_url = privacy.get("url") or "https://raw.githubusercontent.com/CollectorDevTeam/mcoc-v3/main/mcoc/privacy_policy.md"
+        privacy_version = privacy.get("version") or "unknown"
+        tos_url = tos.get("url") or "https://raw.githubusercontent.com/CollectorDevTeam/mcoc-v3/main/mcoc/terms_of_service.md"
+        tos_version = tos.get("version") or "unknown"
+
+        lines = [
+            "Collector policy links:",
+            f"Privacy Policy ({privacy_version}): {privacy_url}",
+            f"Terms of Service ({tos_version}): {tos_url}",
+        ]
+        await safe_send_ctx(ctx, "\n".join(lines))
 
 
     @mcoc.command(name="status")
@@ -153,77 +174,82 @@ class MCOCPrefix(commands.Cog):
     # -------------------------
     # Convenience forwarding endpoints (optional)
     # -------------------------
-    # These are small helpers so users can type ///mcoc account and still get
+    # These are small helpers so users can type //mcoc account and still get
     # the top-level behavior. They are intentionally minimal and simply call
     # the top-level command if present.
 
     @mcoc.group(name="account", invoke_without_command=True)
     async def mcoc_account(self, ctx, *args: str):
         """
-        Forwarder for account: tries to invoke top-level ///account if present.
+        Forwarder for account: tries to invoke top-level //account if present.
         """
         cmd = self._find_top_command("account")
+        prefix = get_runtime_prefix(ctx, "//")
         if not cmd:
             # No top-level account command registered; show a short fallback help.
-            await safe_send_ctx(ctx, "Account commands: info, profile, set, link, unlink, delete, privacy. Use ///account for top-level access.")
+            await safe_send_ctx(ctx, f"Account commands: info, profile, set, link, unlink, delete, privacy. Use {prefix}account for top-level access.")
             return
 
         # If args are empty, prefer to invoke the top-level command with no args
-        # (this mirrors user typing ///account directly). If invocation fails, show fallback.
+        # (this mirrors user typing //account directly). If invocation fails, show fallback.
         try:
             await ctx.invoke(cmd, *args)
             return
         except commands.CommandError:
-            log.exception("Failed to forward ///mcoc account to ///account")
-            await safe_send_ctx(ctx, "Account commands: info, profile, set, link, unlink, delete, privacy. Use ///account for top-level access.")
+            log.exception("Failed to forward //mcoc account to //account")
+            await safe_send_ctx(ctx, f"Account commands: info, profile, set, link, unlink, delete, privacy. Use {prefix}account for top-level access.")
         except Exception:
-            log.exception("Unexpected error forwarding ///mcoc account to ///account")
-            await safe_send_ctx(ctx, "Account commands: info, profile, set, link, unlink, delete, privacy. Use ///account for top-level access.")
+            log.exception("Unexpected error forwarding //mcoc account to //account")
+            await safe_send_ctx(ctx, f"Account commands: info, profile, set, link, unlink, delete, privacy. Use {prefix}account for top-level access.")
 
 
     @mcoc.group(name="roster", invoke_without_command=True)
     async def mcoc_roster(self, ctx, *args: str):
         cmd = self._find_top_command("roster")
+        prefix = get_runtime_prefix(ctx, "//")
         if cmd:
             try:
                 await ctx.invoke(cmd, *args)
                 return
             except Exception:
-                log.exception("Failed to forward ///mcoc roster to ///roster")
-        await safe_send_ctx(ctx, "Roster commands: add, remove, update, list, import, export, clear. Use ///roster for top-level access.")
+                log.exception("Failed to forward //mcoc roster to //roster")
+        await safe_send_ctx(ctx, f"Roster commands: add, remove, update, list, import, export, clear. Use {prefix}roster for top-level access.")
 
     @mcoc.group(name="alliance", invoke_without_command=True)
     async def mcoc_alliance(self, ctx, *args: str):
         cmd = self._find_top_command("alliance")
+        prefix = get_runtime_prefix(ctx, "//")
         if cmd:
             try:
                 await ctx.invoke(cmd, *args)
                 return
             except Exception:
-                log.exception("Failed to forward ///mcoc alliance to ///alliance")
-        await safe_send_ctx(ctx, "Alliance commands: info, create, join, leave, settings, manage. Use ///alliance for top-level access.")
+                log.exception("Failed to forward //mcoc alliance to //alliance")
+        await safe_send_ctx(ctx, f"Alliance commands: info, create, join, leave, settings, manage. Use {prefix}alliance for top-level access.")
 
     @mcoc.group(name="champ", invoke_without_command=True)
     async def mcoc_champ(self, ctx, *args: str):
         cmd = self._find_top_command("champ")
+        prefix = get_runtime_prefix(ctx, "//")
         if cmd:
             try:
                 await ctx.invoke(cmd, *args)
                 return
             except Exception:
-                log.exception("Failed to forward ///mcoc champ to ///champ")
-        await safe_send_ctx(ctx, "Champion commands: info, abilities, search, stats. Use ///champ for top-level access.")
+                log.exception("Failed to forward //mcoc champ to //champ")
+        await safe_send_ctx(ctx, f"Champion commands: info, abilities, search, stats. Use {prefix}champ for top-level access.")
 
     @mcoc.group(name="admin", invoke_without_command=True)
     async def mcoc_admin(self, ctx, *args: str):
         cmd = self._find_top_command("mcocadmin")
+        prefix = get_runtime_prefix(ctx, "//")
         if cmd:
             try:
                 await ctx.invoke(cmd, *args)
                 return
             except Exception:
-                log.exception("Failed to forward ///mcoc admin to ///mcocadmin")
-        await safe_send_ctx(ctx, "Admin commands: status, sync, debug. Use ///mcocadmin for top-level access.")
+                log.exception("Failed to forward //mcoc admin to //mcocadmin")
+        await safe_send_ctx(ctx, f"Admin commands: status, sync, debug. Use {prefix}mcocadmin for top-level access.")
 
     def apply_role_entitlements_to_user(guild_cfg, role_id, user_id):
         role_key = f"role:{role_id}"
@@ -248,7 +274,8 @@ class MCOCPrefix(commands.Cog):
             text = fallback or title
         emb = Embed(ctx, title=title, description=text)
         try:
-            Embed.set_footer(ctx, emb, footer_text="Type ///help <command> for details")
+            prefix = get_runtime_prefix(ctx, "//")
+            Embed.set_footer(ctx, emb, footer_text=f"Type {prefix}help <command> for details")
         except Exception:
             pass
         return emb

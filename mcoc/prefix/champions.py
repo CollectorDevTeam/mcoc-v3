@@ -180,7 +180,7 @@ class ChampionsPrefix(commands.Cog):
             return
 
         if property_name.lower() not in {"alias", "shortname"}:
-            await safe_send_ctx(ctx, "Use `///champ set alias <Champion> <alias>` or `///champ set shortname <Champion> <shortname>`.")
+            await safe_send_ctx(ctx, "Use `//champ set alias <Champion> <alias>` or `//champ set shortname <Champion> <shortname>`.")
             return
 
         cache = getattr(self.parent, "cache", None) if getattr(self, "parent", None) else None
@@ -247,7 +247,7 @@ class ChampionsPrefix(commands.Cog):
             return
 
         if property_name.lower() not in {"alias", "shortname"}:
-            await safe_send_ctx(ctx, "Use `///champ remove alias <alias>` or `///champ remove shortname <shortname>`.")
+            await safe_send_ctx(ctx, "Use `//champ remove alias <alias>` or `//champ remove shortname <shortname>`.")
             return
 
         cache = getattr(self.parent, "cache", None) if getattr(self, "parent", None) else None

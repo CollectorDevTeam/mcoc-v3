@@ -14,7 +14,7 @@ import inspect
 
 log = logging.getLogger("red.mcoc.prefix_utils")
 
-def get_runtime_prefix(ctx: Any, default: str = "///") -> str:
+def get_runtime_prefix(ctx: Any, default: str = "//") -> str:
     """
     Return the prefix the user typed in this context, or a best-effort fallback.
     Prefer ctx.prefix (exact runtime prefix). If not available, try bot.command_prefix.

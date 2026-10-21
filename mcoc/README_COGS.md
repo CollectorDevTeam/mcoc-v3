@@ -8,7 +8,7 @@ This document describes the high-level structure and responsibilities of the MCO
   - `api/` — network, cache, prestige; external data sources.
   - `helpers/` — business logic used by frontends (public surface).
   - `feature_system/` — entitlements and gating.
-- `mcoc/prefix/` — legacy prefix command cogs (/// commands).
+- `mcoc/prefix/` — legacy prefix command cogs (// commands).
 - `mcoc/slash/` — modern application command cogs (slash commands).
 - `mcoc/diagnostics/` — debug and diagnostics helpers.
 

@@ -22,6 +22,7 @@ from redbot.core import commands
 from mcoc.common import Core
 from mcoc.common.helpers import account as Account
 from mcoc.common.components.help_utils import send_or_brand_help
+from mcoc.common.components.prefix_utils import get_runtime_prefix
 from mcoc.common.components.prefix_utils import safe_send_ctx
 
 log = logging.getLogger("red.mcoc.prefix.account")
@@ -150,9 +151,10 @@ class AccountPrefix(commands.Cog):
     async def _handle_set(self, ctx, args: tuple) -> None:
         if len(args) < 2:
             fields = sorted(getattr(Account, "ALLOWED_PROFILE_FIELDS", {}).keys())
+            prefix = get_runtime_prefix(ctx, "//")
             await safe_send_ctx(
                 ctx,
-                "Usage: ///account set <field> <value>\n"
+                f"Usage: {prefix}account set <field> <value>\n"
                 f"Fields: {', '.join(fields) if fields else 'none'}",
             )
             return
@@ -235,7 +237,8 @@ class AccountPrefix(commands.Cog):
                 await self._send_profile_display(ctx, resolved)
                 return
 
-        await safe_send_ctx(ctx, "Unknown account subcommand. Try `///account` for help.")
+        prefix = get_runtime_prefix(ctx, "//")
+        await safe_send_ctx(ctx, f"Unknown account subcommand. Try `{prefix}account` for help.")
 
     @account.command(name="agree")
     async def account_agree(self, ctx):
@@ -252,6 +255,14 @@ class AccountPrefix(commands.Cog):
             return
         _, msg = await Account.handle_consent_response(self.parent, ctx, getattr(ctx.author, "id", None), False)
         await safe_send_ctx(ctx, msg)
+
+    @account.command(name="create", aliases=["enroll", "start"])
+    async def account_create(self, ctx):
+        """Start account enrollment and show policy links."""
+        if not await self._require_parent(ctx):
+            return
+        ok, msg = await Account.enroll_command_handler(self.parent, ctx, getattr(ctx.author, "id", None))
+        await safe_send_ctx(ctx, msg if ok else f"Failed to start enrollment: {msg}")
 
     @account.command(name="profile")
     async def account_profile(self, ctx, member: Optional[Any] = None):
