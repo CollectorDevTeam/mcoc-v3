@@ -877,21 +877,51 @@ class CacheManager:
 
         rows: List[Dict[str, Any]] = []
         seen: set[str] = set()
+        request_count = 0
+        combo_count = 0
+
+        tier_plan: List[Tuple[int, int, int]] = []
+        for rarity, limits in CHAMPION_TIER_LIMITS.items():
+            sig_levels = self._cocpit_sig_levels(int(limits.max_sig))
+            tier_plan.append((int(rarity), int(limits.max_rank), len(sig_levels) * (int(limits.max_ascended) + 1) * int(limits.max_rank)))
+
+        total_combos = sum(item[2] for item in tier_plan)
+        await _report(f"Cocpit champstats harvest started: {total_combos} progression combinations planned.")
 
         for rarity, limits in CHAMPION_TIER_LIMITS.items():
             for rank in range(1, int(limits.max_rank) + 1):
                 for ascension_level in range(0, int(limits.max_ascended) + 1):
                     for sig_level in self._cocpit_sig_levels(int(limits.max_sig)):
+                        combo_count += 1
+                        if combo_count == 1 or combo_count % 10 == 0:
+                            await _report(
+                                f"Cocpit champstats progress: combo {combo_count}/{total_combos} "
+                                f"(rarity={rarity}, rank={rank}, asc={ascension_level}, sig={sig_level}) | "
+                                f"rows={len(rows)}"
+                            )
+
                         page = 1
                         while True:
-                            payload = await api.get_cocpit_champion_stats(
-                                rarity=rarity,
-                                rank=rank,
-                                sig_level=sig_level,
-                                ascension_level=ascension_level,
-                                page=page,
-                                page_size=50,
-                            )
+                            request_count += 1
+                            try:
+                                payload = await asyncio.wait_for(
+                                    api.get_cocpit_champion_stats(
+                                        rarity=rarity,
+                                        rank=rank,
+                                        sig_level=sig_level,
+                                        ascension_level=ascension_level,
+                                        page=page,
+                                        page_size=50,
+                                    ),
+                                    timeout=25,
+                                )
+                            except asyncio.TimeoutError:
+                                await _report(
+                                    "Cocpit champstats request timed out; "
+                                    f"skipping combo rarity={rarity} rank={rank} asc={ascension_level} sig={sig_level} page={page}"
+                                )
+                                break
+
                             if not payload:
                                 break
 
@@ -911,6 +941,12 @@ class CacheManager:
                                     continue
                                 seen.add(key)
                                 rows.append(item)
+
+                            if request_count % 20 == 0:
+                                await _report(
+                                    f"Cocpit champstats requests: {request_count} | "
+                                    f"current combo {combo_count}/{total_combos} | rows={len(rows)}"
+                                )
 
                             if not normalized.get("has_more") or not normalized.get("totals", {}).get("has_more"):
                                 break
@@ -941,7 +977,10 @@ class CacheManager:
         except Exception:
             log.exception("Failed to write metadata after Cocpit stats harvest")
 
-        await _report(f"Cocpit champion stats harvested: {len(rows)} champions")
+        await _report(
+            f"Cocpit champion stats harvested: {len(rows)} rows "
+            f"across {combo_count} combinations and {request_count} requests"
+        )
         return {"count": len(rows), "updated": True, "files": ["champstats.json"], "version": version}
 
     def normalize_champions_map_payload(self, payload: Any) -> Optional[Dict[str, Any]]:
