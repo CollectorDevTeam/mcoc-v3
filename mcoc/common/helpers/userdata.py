@@ -421,7 +421,7 @@ class UserDataManager:
     # Prestige and sorting helpers
     # -----------------------------
     @staticmethod
-    def compute_user_prestige_from_roster(roster_entries: List[Dict[str, Any]], top_n: int = 5) -> Optional[float]:
+    def compute_user_prestige_from_roster(roster_entries: List[Dict[str, Any]], top_n: int = 30) -> Optional[float]:
         """
         Compute the average prestige of the user's top_n champions.
         Each roster entry should include a numeric 'prestige' field when available.
@@ -514,7 +514,7 @@ class UserDataManager:
     async def set_profile_field_async(self, user_id: int, field: str, value: Any) -> None:
         return await asyncio.to_thread(self.set_profile_field, user_id, field, value)
 
-    async def compute_user_prestige_from_roster_async(self, roster_entries: List[Dict[str, Any]], top_n: int = 5) -> Optional[float]:
+    async def compute_user_prestige_from_roster_async(self, roster_entries: List[Dict[str, Any]], top_n: int = 30) -> Optional[float]:
         return await asyncio.to_thread(self.compute_user_prestige_from_roster, roster_entries, top_n)
 
     async def sort_roster_entries_async(self, entries: List[Dict[str, Any]]) -> List[Dict[str, Any]]:

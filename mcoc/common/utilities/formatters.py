@@ -262,9 +262,9 @@ def format_champion_line(champ_obj: ChampionLike, entry: Dict[str, Any], *, incl
 
     cls_emoji = CLASS_EMOJI.get(cls, CLASS_EMOJI["all"])
 
-    prestige_text = f"[{prestige:,}]" if prestige > 0 else ""
+    prestige_text = f"| {prestige:,}" if prestige > 0 else ""
     asc_text = f" {asc_emoji}" if asc_emoji else ""
-    return f"{cls_emoji} {star_display} {name} r{rank} {sig_text}{asc_text}{' ' + prestige_text if prestige_text else ''}".strip()
+    return f"{cls_emoji} {star_display} {name} r{rank} {sig_text}{asc_text} {prestige_text}".strip()
 
 
 def format_top5_prestige_line(champ_obj: Optional[Champion], entry: Dict[str, Any], *, include_prestige: Optional[Any] = None) -> str:

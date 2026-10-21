@@ -162,6 +162,15 @@ def parse_harg_token(token: str) -> Dict[str, Any]:
     working = t
     components_spans: List[Tuple[int, int]] = []
 
+    # Treat a leading "s" immediately after rarity as a star marker, not part of the champion name.
+    # This supports compact forms such as: 7sr3s40Shang-Chi, 7sa1r3s60Colossus.
+    leading_star_marker = re.match(r"^(?P<rarity>[1-7])[sS](?=.)", working)
+    if leading_star_marker:
+        try:
+            components_spans.append((leading_star_marker.start() + 1, leading_star_marker.start() + 2))
+        except Exception:
+            pass
+
     # 1) Signature: 's' followed by digits (prefer this first)
     sig = None
     for m in SIG_RE2.finditer(working):

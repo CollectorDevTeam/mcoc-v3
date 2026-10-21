@@ -2041,7 +2041,11 @@ async def build_roster_pages(core: Any, ctx_or_author: Any, parsed_filters: Opti
         # Build title and convert page_texts into Embed pages
         title_count = len(filtered_entries)
         prestige_vals = [int(x["prestige"]) for x in filtered_entries if isinstance(x.get("prestige"), (int, float))]
-        title_prestige = int(round(sum(prestige_vals) / len(prestige_vals))) if prestige_vals else "N/A"
+        if prestige_vals:
+            top_30 = sorted(prestige_vals, reverse=True)[:30]
+            title_prestige = int(round(sum(top_30) / len(top_30))) if top_30 else "N/A"
+        else:
+            title_prestige = "N/A"
         roster_title = f"Roster ({title_count} champions) [{title_prestige}]"
 
         embed_pages: List[Any] = []
