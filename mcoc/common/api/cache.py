@@ -780,7 +780,6 @@ class CacheManager:
 
         self._atomic_write_json_blocking(self.cache_dir / "cocpit_champions.json", normalized)
         self.metadata.setdefault("versions", {})["cocpit_champions"] = normalized.get("version")
-        self.metadata["last_sync"] = datetime.datetime.utcnow().isoformat()
         try:
             self._atomic_write_json_blocking(self.metadata_file, self.metadata)
         except Exception:
@@ -857,7 +856,6 @@ class CacheManager:
         }
         self._atomic_write_json_blocking(self.cache_dir / "cocpit_abilities.json", artifact)
         self.metadata.setdefault("versions", {})["cocpit_abilities"] = artifact.get("version")
-        self.metadata["last_sync"] = datetime.datetime.utcnow().isoformat()
         try:
             self._atomic_write_json_blocking(self.metadata_file, self.metadata)
         except Exception:
@@ -938,7 +936,6 @@ class CacheManager:
         output_path = self.cache_dir / "champstats.json"
         self._atomic_write_json_blocking(output_path, artifact)
         self.metadata.setdefault("versions", {})["champstats"] = version
-        self.metadata["last_sync"] = datetime.datetime.utcnow().isoformat()
         try:
             self._atomic_write_json_blocking(self.metadata_file, self.metadata)
         except Exception:
@@ -1096,16 +1093,24 @@ class CacheManager:
                 except Exception:
                     log.exception("Progress callback failed")
 
-        # If we synced recently, skip full network calls but still backfill missing Cocpit artifacts.
-        if self.is_recent(hours=24):
+        core_artifacts = ["champions", "abilities", "tags", "immunities", "aw"]
+        core_missing = [
+            name for name in core_artifacts
+            if not self._is_valid_cache_file(name, self._load_file(name))
+        ]
+
+        # If we synced recently, skip full network calls only when core cache artifacts are healthy.
+        if self.is_recent(hours=24) and not core_missing:
             await _report("Cache was synced within the last 24 hours; checking Cocpit artifacts before skipping.")
             updated_recent = False
 
             try:
                 cocpit_champions_payload = self._load_file("cocpit_champions")
                 cocpit_abilities_payload = self._load_file("cocpit_abilities")
+                champstats_payload = self._load_file("champstats")
                 cocpit_champions_ok = self._is_valid_cache_file("cocpit_champions", cocpit_champions_payload)
                 cocpit_abilities_ok = self._is_valid_cache_file("cocpit_abilities", cocpit_abilities_payload)
+                champstats_ok = self._is_valid_cache_file("champstats", champstats_payload)
 
                 if (not cocpit_champions_ok) and hasattr(api, "get_cocpit_champion_autocomplete"):
                     await _report("Backfilling missing Cocpit champions cache...")
@@ -1116,6 +1121,14 @@ class CacheManager:
                     await _report("Backfilling missing Cocpit abilities cache...")
                     result = await self.harvest_cocpit_champion_abilities(api, progress=_report)
                     updated_recent |= bool(result.get("updated"))
+
+                if (not champstats_ok) and hasattr(api, "get_cocpit_champion_stats"):
+                    await _report("Backfilling missing Cocpit champion stats cache...")
+                    try:
+                        result = await asyncio.wait_for(self.harvest_cocpit_champion_stats(api, progress=_report), timeout=180)
+                        updated_recent |= bool(result.get("updated"))
+                    except asyncio.TimeoutError:
+                        await _report("Cocpit champion stats backfill timed out; leaving existing cache unchanged.")
             except Exception:
                 log.exception("Failed to backfill Cocpit artifacts during recent-sync short-circuit")
 
@@ -1127,6 +1140,12 @@ class CacheManager:
             except Exception:
                 log.exception("Index rebuild failed during short-circuit")
             return updated_recent
+
+        if self.is_recent(hours=24) and core_missing:
+            await _report(
+                "Recent sync timestamp exists, but core cache artifacts are missing or invalid "
+                f"({', '.join(core_missing)}). Forcing full API refresh."
+            )
 
         updated = False
 
@@ -1155,6 +1174,17 @@ class CacheManager:
                 if aw is None:
                     await _report("AW Season endpoint returned no data; aborting sync.")
                     return False
+
+                # Save core datasets as soon as they are fetched so partial failures later
+                # do not leave the cache with empty champion datasets.
+                await _report("Saving champions...")
+                updated |= await self._diff_and_save("champions", champions)
+                await _report("Saving tags...")
+                updated |= await self._diff_and_save("tags", tags)
+                await _report("Saving abilities...")
+                updated |= await self._diff_and_save("abilities", abilities)
+                await _report("Saving AW...")
+                updated |= await self._diff_and_save("aw", aw)
 
                 await _report("Fetching tierlist...")
                 tierlist = await api.get_tierlist()
@@ -1186,8 +1216,11 @@ class CacheManager:
 
                 if hasattr(api, "get_cocpit_champion_stats"):
                     await _report("Harvesting Cocpit champion stats...")
-                    stats_result = await self.harvest_cocpit_champion_stats(api, progress=_report)
-                    updated |= bool(stats_result.get("updated"))
+                    try:
+                        stats_result = await asyncio.wait_for(self.harvest_cocpit_champion_stats(api, progress=_report), timeout=300)
+                        updated |= bool(stats_result.get("updated"))
+                    except asyncio.TimeoutError:
+                        await _report("Cocpit champion stats harvest timed out; continuing with remaining sync tasks.")
 
                 await _report("Fetching glossary...")
                 glossary = await api.get_glossary()
@@ -1201,18 +1234,10 @@ class CacheManager:
                 await _report("Fetching immunities...")
                 immunities = await api.get_immunities()
                 if immunities is None:
-                    await _report("Immunities endpoint returned no data; aborting sync.")
-                    return False
-
-                # Only reach here if all calls returned non-None
-                await _report("Saving champions...")
-                updated |= await self._diff_and_save("champions", champions)
-                await _report("Saving tags...")
-                updated |= await self._diff_and_save("tags", tags)
-                await _report("Saving abilities...")
-                updated |= await self._diff_and_save("abilities", abilities)
-                await _report("Saving immunities...")
-                updated |= await self._diff_and_save("immunities", immunities)
+                    await _report("Immunities endpoint returned no data; keeping existing immunities cache.")
+                else:
+                    await _report("Saving immunities...")
+                    updated |= await self._diff_and_save("immunities", immunities)
 
                 if updated:
                     await _report("Cache sync complete.")
