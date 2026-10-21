@@ -16,6 +16,7 @@ import logging
 import tempfile
 import os
 import asyncio
+import contextlib
 from typing import Optional, Callable, Awaitable, Any, Dict, List, Tuple, Mapping
 from .cacheindex import CacheIndex
 from pathlib import Path
@@ -1132,6 +1133,29 @@ class CacheManager:
                 except Exception:
                     log.exception("Progress callback failed")
 
+        async def _run_with_heartbeat(awaitable: Awaitable[Any], label: str, timeout_seconds: int) -> Any:
+            """Run an awaitable with periodic progress heartbeats and a hard timeout."""
+            loop = asyncio.get_running_loop()
+            started = loop.time()
+            done = asyncio.Event()
+
+            async def _heartbeat() -> None:
+                while not done.is_set():
+                    await asyncio.sleep(20)
+                    if done.is_set():
+                        break
+                    elapsed = int(loop.time() - started)
+                    await _report(f"{label} still running... {elapsed}s elapsed")
+
+            heartbeat_task = asyncio.create_task(_heartbeat())
+            try:
+                return await asyncio.wait_for(awaitable, timeout=timeout_seconds)
+            finally:
+                done.set()
+                heartbeat_task.cancel()
+                with contextlib.suppress(asyncio.CancelledError):
+                    await heartbeat_task
+
         core_artifacts = ["champions", "abilities", "tags", "immunities", "aw"]
         core_missing = [
             name for name in core_artifacts
@@ -1164,7 +1188,11 @@ class CacheManager:
                 if (not champstats_ok) and hasattr(api, "get_cocpit_champion_stats"):
                     await _report("Backfilling missing Cocpit champion stats cache...")
                     try:
-                        result = await asyncio.wait_for(self.harvest_cocpit_champion_stats(api, progress=_report), timeout=180)
+                        result = await _run_with_heartbeat(
+                            self.harvest_cocpit_champion_stats(api, progress=_report),
+                            "Cocpit champion stats backfill",
+                            120,
+                        )
                         updated_recent |= bool(result.get("updated"))
                     except asyncio.TimeoutError:
                         await _report("Cocpit champion stats backfill timed out; leaving existing cache unchanged.")
@@ -1256,7 +1284,11 @@ class CacheManager:
                 if hasattr(api, "get_cocpit_champion_stats"):
                     await _report("Harvesting Cocpit champion stats...")
                     try:
-                        stats_result = await asyncio.wait_for(self.harvest_cocpit_champion_stats(api, progress=_report), timeout=300)
+                        stats_result = await _run_with_heartbeat(
+                            self.harvest_cocpit_champion_stats(api, progress=_report),
+                            "Cocpit champion stats harvest",
+                            180,
+                        )
                         updated |= bool(stats_result.get("updated"))
                     except asyncio.TimeoutError:
                         await _report("Cocpit champion stats harvest timed out; continuing with remaining sync tasks.")
