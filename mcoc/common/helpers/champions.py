@@ -400,7 +400,52 @@ def get_cocpit_cached_stats(core: Any, champ: Mapping[str, Any], rarity: int, ra
     champion_ref = champ.get("id") or champ.get("slug") or champ.get("name")
     try:
         result = cache.get_cocpit_champion_stats(champion_ref, rarity, rank, sig, ascended)
-        return result if isinstance(result, dict) else None
+        if isinstance(result, dict):
+            return result
+
+        # Fallback when champstats cache is unavailable: use Cocpit detail payload baseStats.
+        fallback = cache.get_cocpit_abilities(champion_ref) if hasattr(cache, "get_cocpit_abilities") else None
+        if not isinstance(fallback, dict):
+            return None
+
+        raw = fallback.get("raw") if isinstance(fallback, dict) else None
+        if not isinstance(raw, Mapping):
+            return None
+        base = raw.get("baseStats") or {}
+        if not isinstance(base, Mapping):
+            return None
+
+        def _coerce(value: Any) -> Optional[int]:
+            if value is None:
+                return None
+            try:
+                if isinstance(value, (int, float)):
+                    return int(value)
+                text = str(value).strip().replace(",", "")
+                digits = "".join(ch for ch in text if ch.isdigit() or ch == "-")
+                return int(digits) if digits else None
+            except Exception:
+                return None
+
+        attack = _coerce(base.get("Attack") or base.get("ATK") or base.get("attack"))
+        health = _coerce(base.get("Health") or base.get("HP") or base.get("health"))
+        prestige = _coerce(base.get("Prestige") or base.get("prestige"))
+
+        if attack is None and health is None and prestige is None:
+            return None
+
+        return {
+            "champion_id": fallback.get("champion_id") or champion_ref,
+            "champion_name": fallback.get("champion_name") or champ.get("name") or champ.get("slug") or champion_ref,
+            "rarity": int(rarity),
+            "rank": int(rank),
+            "sig_level": int(sig),
+            "ascension_level": int(ascended or 0),
+            "attack": attack,
+            "health": health,
+            "prestige": prestige,
+            "_source": "cocpit_base_stats",
+        }
     except Exception:
         log.exception("Failed to read cached Cocpit stats for %s", champion_ref)
         return None

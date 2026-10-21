@@ -776,6 +776,8 @@ class ChampionsPrefix(commands.Cog):
                 ])
                 if int(row.get("sig_level") or 0) != int(sig):
                     desc += f"\n**Sig Note:** Closest cached sig: {row.get('sig_level')}"
+                if row.get("_source") == "cocpit_base_stats":
+                    desc += "\n**Source:** Cocpit baseStats fallback (champstats cache unavailable)."
                 await ctx.send(embed=Embed.embed(ctx.author, title=title, description=desc))
                 return
 

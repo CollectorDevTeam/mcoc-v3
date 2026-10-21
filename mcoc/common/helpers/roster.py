@@ -1863,6 +1863,25 @@ async def _resolve_prestige_for_entry(core: Any, entry: Dict[str, Any], prestige
             except Exception:
                 pass
 
+        # final fallback: Cocpit abilities cache may include baseStats.Prestige.
+        if cache and hasattr(cache, "get_cocpit_abilities") and slug:
+            try:
+                ability_row = cache.get_cocpit_abilities(slug)
+                if isinstance(ability_row, dict):
+                    raw = ability_row.get("raw") if isinstance(ability_row, dict) else None
+                    base = raw.get("baseStats") if isinstance(raw, dict) else None
+                    if isinstance(base, dict):
+                        value = base.get("Prestige") or base.get("prestige")
+                        if value is not None:
+                            if isinstance(value, (int, float)):
+                                return int(value)
+                            text = str(value).strip().replace(",", "")
+                            digits = "".join(ch for ch in text if ch.isdigit() or ch == "-")
+                            if digits:
+                                return int(digits)
+            except Exception:
+                pass
+
     except Exception:
         log.exception("Failed to resolve prestige for entry %s", entry)
     return None
