@@ -162,14 +162,19 @@ def parse_harg_token(token: str) -> Dict[str, Any]:
     working = t
     components_spans: List[Tuple[int, int]] = []
 
-    # Treat a leading "s" immediately after rarity as a star marker, not part of the champion name.
-    # This supports compact forms such as: 7sr3s40Shang-Chi, 7sa1r3s60Colossus.
-    leading_star_marker = re.match(r"^(?P<rarity>[1-7])[sS](?=.)", working)
-    if leading_star_marker:
+    # Parse compact leading rarity markers and consume them from champion text:
+    # - 7sColossus
+    # - 7starColossus / 7starsColossus
+    # - 7*Colossus / 7★Colossus
+    # - 7 Colossus
+    rarity = None
+    rarity_prefix = re.match(r"^(?P<rarity>[1-7])(?:(?P<marker>stars?|s|\*|★)|\s)", working, flags=re.IGNORECASE)
+    if rarity_prefix:
         try:
-            components_spans.append((leading_star_marker.start() + 1, leading_star_marker.start() + 2))
+            rarity = int(rarity_prefix.group("rarity"))
+            components_spans.append(rarity_prefix.span())
         except Exception:
-            pass
+            rarity = None
 
     # 1) Signature: 's' followed by digits (prefer this first)
     sig = None
@@ -201,32 +206,32 @@ def parse_harg_token(token: str) -> Dict[str, Any]:
         except Exception:
             continue
 
-    # 4) Rarity digit 1-7 (take first occurrence not part of a name)
-    rarity = None
+    # 4) Rarity digit 1-7 (take first occurrence not part of a name) if not already parsed
     # Prefer explicit markers first: digit followed by '*', '★', or star/stars.
-    m = RARITY_RE.search(working)
-    if m:
-        try:
-            rarity = int(m.group("rarity"))
-            components_spans.append(m.span())
-        except Exception:
-            rarity = None
-    else:
-        # fallback: accept a bare digit only if it's clearly a rarity (not embedded in a name)
-        for m in RARITY_DIGIT_RE.finditer(working):
+    if rarity is None:
+        m = RARITY_RE.search(working)
+        if m:
             try:
-                # ensure the digit isn't part of an alphanumeric run (e.g., "X7" inside a name)
-                s, e = m.span()
-                left = working[s-1] if s-1 >= 0 else ""
-                right = working[e] if e < len(working) else ""
-                if (left.isalpha() and left.islower()) and (right.isalpha() and right.islower()):
-                    # looks like part of a name, skip
-                    continue
                 rarity = int(m.group("rarity"))
                 components_spans.append(m.span())
-                break
             except Exception:
-                continue
+                rarity = None
+        else:
+            # fallback: accept a bare digit only if it's clearly a rarity (not embedded in a name)
+            for m in RARITY_DIGIT_RE.finditer(working):
+                try:
+                    # ensure the digit isn't part of an alphanumeric run (e.g., "X7" inside a name)
+                    s, e = m.span()
+                    left = working[s-1] if s-1 >= 0 else ""
+                    right = working[e] if e < len(working) else ""
+                    if (left.isalpha() and left.islower()) and (right.isalpha() and right.islower()):
+                        # looks like part of a name, skip
+                        continue
+                    rarity = int(m.group("rarity"))
+                    components_spans.append(m.span())
+                    break
+                except Exception:
+                    continue
 
     # Build champion name by removing matched spans
     name_candidate = _extract_name_by_removing_components(working, components_spans)

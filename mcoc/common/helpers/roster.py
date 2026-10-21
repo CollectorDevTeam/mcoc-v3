@@ -513,8 +513,39 @@ def parse_roster_entries_from_input(text: str, cache) -> List[Dict[str, Any]]:
     if _looks_like_cocpit_roster_csv(text):
         return parse_cocpit_roster_csv(text, cache)
 
+    def _split_compact_stream(raw_text: str) -> List[str]:
+        """Split compact streams like '7sr3...Colossus 7sr3...Okoye' into per-entry tokens."""
+        cleaned = (raw_text or "").strip()
+        if not cleaned:
+            return []
+
+        # First split on obvious separators.
+        parts = [p.strip() for p in re.split(r"[,\n]+", cleaned) if p.strip()]
+        out: List[str] = []
+        marker = re.compile(r"(?=(?:^|\s)[1-7](?:\*|★|s|stars?|\s))", re.IGNORECASE)
+
+        for part in parts:
+            hits = list(marker.finditer(part))
+            if len(hits) <= 1:
+                out.append(part)
+                continue
+            positions = [m.start() for m in hits]
+            positions.append(len(part))
+            for i in range(len(positions) - 1):
+                chunk = part[positions[i]:positions[i + 1]].strip()
+                if chunk:
+                    out.append(chunk)
+        return out
+
+    compact_tokens = _split_compact_stream(text)
+
     try:
-        parsed_tokens = parse_harg_list(text)
+        parsed_tokens = []
+        if compact_tokens:
+            for tok in compact_tokens:
+                parsed_tokens.append(parse_harg_token(tok))
+        else:
+            parsed_tokens = parse_harg_list(text)
     except Exception:
         parsed_tokens = []
 
