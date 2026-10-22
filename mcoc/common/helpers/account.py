@@ -70,6 +70,7 @@ ALLOWED_PROFILE_FIELDS: Dict[str, Dict[str, str]] = {
     "linked": {"type": "bool", "desc": "Account linked flag"},
     "prestige_map": {"type": "dict", "desc": "Persisted prestige per champ"},
     "top5": {"type": "list", "desc": "Cached top 5 champion names"},
+    "active_roster": {"type": "str", "desc": "Active roster id/name for profile display"},
     "consent": {"type": "bool", "desc": "User consented to privacy policy"},
     "consent_ts": {"type": "str", "desc": "Consent timestamp (ISO date)"},
     "consent_version": {"type": "str", "desc": "Policy version at consent"},
@@ -96,6 +97,7 @@ FIELD_CANONICAL: Dict[str, str] = {
     "linked": "linked",
     "prestige_map": "prestige_map",
     "top5": "top5",
+    "active_roster": "active_roster",
     "consent": "consent",
     "consent_ts": "consent_ts",
     "consent_version": "consent_version",
@@ -188,6 +190,143 @@ def _resolve_account_identity(profile: Dict[str, Any]) -> Tuple[Optional[str], O
         or profile.get("id")
     )
     return (None if mcoc_name in (None, "") else str(mcoc_name).strip()) or None, (None if mcoc_id in (None, "") else str(mcoc_id).strip()) or None
+
+
+def _coerce_roster_entries(candidate: Any) -> List[Dict[str, Any]]:
+    if not isinstance(candidate, list):
+        return []
+    out: List[Dict[str, Any]] = []
+    for item in candidate:
+        if isinstance(item, dict) and item.get("champion"):
+            out.append(item)
+    return out
+
+
+def _resolve_active_roster_entries(users: Any, target_id: int, profile: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """
+    Resolve the active roster entries for profile display.
+
+    Current data model persists one roster under user data (`list_roster`).
+    This helper is forward-compatible with a profile-level multi-roster shape:
+      - profile["active_roster"] picks from profile["rosters"]
+      - profile["rosters"] can be a dict of roster_id -> entries/object
+      - profile["rosters"] can be a list of roster objects with id/name/entries
+    """
+    active_id = profile.get("active_roster")
+    rosters = profile.get("rosters")
+
+    if isinstance(rosters, dict) and active_id:
+        selected = rosters.get(str(active_id)) or rosters.get(active_id)
+        if isinstance(selected, dict):
+            entries = _coerce_roster_entries(selected.get("entries") or selected.get("roster") or [])
+            if entries:
+                return entries
+        entries = _coerce_roster_entries(selected)
+        if entries:
+            return entries
+
+    if isinstance(rosters, list) and active_id:
+        for roster_obj in rosters:
+            if not isinstance(roster_obj, dict):
+                continue
+            rid = roster_obj.get("id") or roster_obj.get("name")
+            if rid is not None and str(rid) == str(active_id):
+                entries = _coerce_roster_entries(roster_obj.get("entries") or roster_obj.get("roster") or [])
+                if entries:
+                    return entries
+
+    if isinstance(rosters, list) and len(rosters) == 1 and isinstance(rosters[0], dict):
+        entries = _coerce_roster_entries(rosters[0].get("entries") or rosters[0].get("roster") or [])
+        if entries:
+            return entries
+
+    try:
+        lr = getattr(users, "list_roster", None)
+        if lr:
+            raw = lr(target_id)
+            return _coerce_roster_entries(raw)
+    except Exception:
+        pass
+    return []
+
+
+def _extract_roster_ids(profile: Dict[str, Any]) -> List[str]:
+    ids: List[str] = []
+    rosters = profile.get("rosters") if isinstance(profile, dict) else None
+
+    if isinstance(rosters, dict):
+        for key in rosters.keys():
+            text = str(key).strip()
+            if text:
+                ids.append(text)
+
+    elif isinstance(rosters, list):
+        for item in rosters:
+            if not isinstance(item, dict):
+                continue
+            rid = item.get("id") or item.get("name")
+            if rid is None:
+                continue
+            text = str(rid).strip()
+            if text:
+                ids.append(text)
+
+    seen: set = set()
+    deduped: List[str] = []
+    for rid in ids:
+        low = rid.lower()
+        if low in seen:
+            continue
+        seen.add(low)
+        deduped.append(rid)
+    return deduped
+
+
+def get_selectable_rosters(parent: Any, user_id: int) -> Tuple[List[str], Optional[str]]:
+    """Return (roster_ids, active_roster_id) for account selection UX."""
+    profile = get_profile(parent, user_id) or {}
+    roster_ids = _extract_roster_ids(profile)
+    active = profile.get("active_roster")
+    active_id = str(active).strip() if active not in (None, "") else None
+
+    users = _ensure_user_manager_from_parent(parent)
+    if users and not roster_ids:
+        try:
+            roster_entries = users.list_roster(user_id) if hasattr(users, "list_roster") else []
+            if isinstance(roster_entries, list) and roster_entries:
+                roster_ids = ["default"]
+        except Exception:
+            pass
+
+    if not active_id and len(roster_ids) == 1:
+        active_id = roster_ids[0]
+
+    return roster_ids, active_id
+
+
+def select_active_roster(parent: Any, user_id: int, roster_id: str) -> Tuple[bool, str]:
+    """Select the active roster id/name for profile and account operations."""
+    requested = str(roster_id or "").strip()
+    if not requested:
+        return False, "Provide a roster id/name to select."
+
+    roster_ids, _active = get_selectable_rosters(parent, user_id)
+    if not roster_ids:
+        return False, "No rosters are available yet. Import or add champions first."
+
+    matched: Optional[str] = None
+    for rid in roster_ids:
+        if str(rid).lower() == requested.lower():
+            matched = rid
+            break
+
+    if matched is None:
+        return False, f"Unknown roster `{requested}`. Available: {', '.join(roster_ids)}"
+
+    ok = set_profile_field(parent, user_id, "active_roster", matched)
+    if not ok:
+        return False, "Failed to update active roster."
+    return True, f"Active roster set to `{matched}`."
 
 
 # -----------------------------
@@ -371,7 +510,8 @@ def _parse_prestige_map(profile: Union[Dict[str, Any], Any]) -> Dict[str, int]:
 def compute_top5_from_profile(profile: Union[Dict[str, Any], Any]) -> Tuple[List[str], Optional[int], Optional[float]]:
     try:
         pm = _parse_prestige_map(profile)
-        items = [(k, v) for k, v in pm.items() if isinstance(v, int)]
+        # Ignore zero/negative prestige values so stale maps don't mask roster recompute.
+        items = [(k, v) for k, v in pm.items() if isinstance(v, int) and v > 0]
         if not items:
             log.debug("compute_top5_from_profile: no prestige items")
             return [], None, None
@@ -412,7 +552,9 @@ def compute_top5_from_roster(parent: Any, roster: List[Dict[str, Any]], profile:
                 p = None
                 if key in prestige_map and prestige_map.get(key) is not None:
                     try:
-                        p = int(prestige_map.get(key))
+                        pm_value = int(prestige_map.get(key))
+                        if pm_value > 0:
+                            p = pm_value
                     except Exception:
                         p = None
                 if p is None and cache and hasattr(cache, "get_prestige_value"):
@@ -424,6 +566,18 @@ def compute_top5_from_roster(parent: Any, roster: List[Dict[str, Any]], profile:
                             int(e.get("ascended") or 0),
                             int(e.get("sig") or 0),
                         )
+                    except Exception:
+                        p = None
+                if p is None and cache and hasattr(cache, "get_cocpit_abilities") and slug:
+                    try:
+                        ability_row = cache.get_cocpit_abilities(slug)
+                        if isinstance(ability_row, dict):
+                            raw = ability_row.get("raw") if isinstance(ability_row, dict) else None
+                            base = raw.get("baseStats") if isinstance(raw, dict) else None
+                            if isinstance(base, dict):
+                                value = base.get("Prestige") or base.get("prestige")
+                                if isinstance(value, (int, float)):
+                                    p = int(value)
                     except Exception:
                         p = None
                 name = slug
@@ -501,18 +655,16 @@ def build_profile_display(parent: Any, ctx_or_author: Any, target_id: int, viewe
             CDTEmbed.add_field(ctx_or_author, emb, name="MCOC Username", value=str(mcoc_name) if mcoc_name else "Not set", inline=True)
             CDTEmbed.add_field(ctx_or_author, emb, name="MCOC ID", value=str(mcoc_id) if mcoc_id else "Not set", inline=True)
 
-            # Top5: prefer cached top5 in profile, else compute
-            top5_lines, total_prestige, _avg = compute_top5_from_profile(profile)
-            if not top5_lines:
-                roster = []
-                try:
-                    lr = getattr(users, "list_roster", None)
-                    if lr:
-                        roster = lr(target_id) if not asyncio.iscoroutinefunction(lr) else asyncio.get_event_loop().run_until_complete(lr(target_id))
-                except Exception:
-                    roster = []
-                if roster:
-                    top5_lines, total_prestige = compute_top5_from_roster(parent, roster, profile)
+            # Top5/Prestige: prefer active roster calculation, fallback to profile cache.
+            roster = _resolve_active_roster_entries(users, target_id, profile)
+            if roster:
+                top5_lines, total_prestige = compute_top5_from_roster(parent, roster, profile)
+                if not top5_lines or not isinstance(total_prestige, int) or total_prestige <= 0:
+                    cached_lines, cached_total, _avg = compute_top5_from_profile(profile)
+                    if cached_lines:
+                        top5_lines, total_prestige = cached_lines, cached_total
+            else:
+                top5_lines, total_prestige, _avg = compute_top5_from_profile(profile)
 
             if total_prestige is not None:
                 CDTEmbed.add_field(ctx_or_author, emb, name="Prestige (sum)", value=str(total_prestige), inline=False)

@@ -185,6 +185,34 @@ class AccountPrefix(commands.Cog):
         else:
             await safe_send_ctx(ctx, "Failed to update that profile field.")
 
+    async def _handle_select(self, ctx, args: tuple) -> None:
+        user_id = getattr(ctx.author, "id", None)
+        requested = " ".join(str(a) for a in args[1:]).strip() if len(args) > 1 else ""
+
+        if requested:
+            ok, msg = Account.select_active_roster(self.parent, user_id, requested)
+            await safe_send_ctx(ctx, msg)
+            return
+
+        roster_ids, active_id = Account.get_selectable_rosters(self.parent, user_id)
+        if not roster_ids:
+            await safe_send_ctx(ctx, "No rosters are available yet. Import or add champions first.")
+            return
+
+        if len(roster_ids) == 1 and active_id != roster_ids[0]:
+            ok, msg = Account.select_active_roster(self.parent, user_id, roster_ids[0])
+            await safe_send_ctx(ctx, msg)
+            return
+
+        prefix = get_runtime_prefix(ctx, "//")
+        current = active_id or "not set"
+        await safe_send_ctx(
+            ctx,
+            f"Active roster: {current}\n"
+            f"Available rosters: {', '.join(roster_ids)}\n"
+            f"Use `{prefix}account select <roster>` to switch.",
+        )
+
     @commands.group(name="account", invoke_without_command=True)
     async def account(self, ctx, *args: str):
         """View account/profile assistance and consent actions."""
@@ -204,6 +232,10 @@ class AccountPrefix(commands.Cog):
             await self._handle_set(ctx, args)
             return
 
+        if args and args[0].lower() in {"select", "active"}:
+            await self._handle_select(ctx, args)
+            return
+
         if not args:
             status = "consented" if Account.user_has_consented(self.parent, getattr(ctx.author, "id", None)) else "not consented"
             await send_or_brand_help(
@@ -211,7 +243,7 @@ class AccountPrefix(commands.Cog):
                 "account",
                 title="Account Help",
                 fallback_text=(
-                    "Account commands: profile, settings, set, privacy, link, unlink, agree, decline.\n"
+                    "Account commands: profile, settings, set, select, privacy, link, unlink, agree, decline.\n"
                     f"Consent status: {status}."
                 ),
             )
@@ -297,6 +329,14 @@ class AccountPrefix(commands.Cog):
             return
         ok = Account.set_profile_field(self.parent, user_id, "privacy_mode", mode.lower())
         await safe_send_ctx(ctx, "Privacy mode updated." if ok else "Failed to update privacy mode.")
+
+    @account.command(name="select", aliases=["active"])
+    async def account_select(self, ctx, *, roster_name: Optional[str] = None):
+        """View or set the active roster for profile and account displays."""
+        if not await self._require_parent(ctx):
+            return
+        args: tuple = ("select",) if not roster_name else ("select", roster_name)
+        await self._handle_select(ctx, args)
 
     @account.command(name="mcocid", aliases=["connect", "link", "mcoc-id"])
     async def account_link(self, ctx, mcoc_id: str):
