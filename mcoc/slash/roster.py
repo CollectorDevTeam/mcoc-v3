@@ -29,6 +29,7 @@ from ..common.helpers.roster import (
     import_roster_entries,
     validate_entry_for_add,
 )
+from ..common.helpers.types import CLASS_EMOJI
 from ..common.components.componentsV2 import CDTEmbed, CDTPagesMenu, CDTConfirm
 
 
@@ -464,7 +465,6 @@ class _RosterGroup(app_commands.Group):
             return [CDTEmbed.embed(interaction, title=title, description="No eligible champions found for these filters.")]
 
         lines = []
-        rank_no = 1
         seen_tiers = set()
         for tier in TIER_DISPLAY_ORDER:
             tier_rows = [row for row in suggestions if str(row.get("tier") or "").upper() == tier]
@@ -473,20 +473,22 @@ class _RosterGroup(app_commands.Group):
             seen_tiers.add(tier)
             lines.append(f"**{tier}**")
             for row in tier_rows:
+                cls = str(row.get("class") or "").lower()
+                class_emoji = (CLASS_EMOJI.get(cls) or CLASS_EMOJI.get("all") or "").strip()
                 lines.append(
-                    f"{rank_no}. {row['name']} ({row['class'].title()}) {row['rarity']}★ r{row['rank']} -> r{row['target_rank']} | score {row['score']:.1f}"
+                    f"{class_emoji} {row['name']} ({row['class'].title()}) {row['rarity']}★ r{row['rank']} -> r{row['target_rank']} | score {row['score']:.1f}"
                 )
-                rank_no += 1
             lines.append("")
 
         other_rows = [row for row in suggestions if str(row.get("tier") or "").upper() not in seen_tiers]
         if other_rows:
             lines.append("**Other**")
             for row in other_rows:
+                cls = str(row.get("class") or "").lower()
+                class_emoji = (CLASS_EMOJI.get(cls) or CLASS_EMOJI.get("all") or "").strip()
                 lines.append(
-                    f"{rank_no}. {row['name']} ({row['class'].title()}) {row['rarity']}★ r{row['rank']} -> r{row['target_rank']} | score {row['score']:.1f}"
+                    f"{class_emoji} {row['name']} ({row['class'].title()}) {row['rarity']}★ r{row['rank']} -> r{row['target_rank']} | score {row['score']:.1f}"
                 )
-                rank_no += 1
 
         page_chunks = []
         chunk = []
@@ -523,7 +525,6 @@ class _RosterGroup(app_commands.Group):
             return [CDTEmbed.embed(interaction, title=title, description="No eligible champions found for these filters.")]
 
         lines = []
-        rank_no = 1
         seen_tiers = set()
         for tier in TIER_DISPLAY_ORDER:
             tier_rows = [row for row in suggestions if str(row.get("tier") or "").upper() == tier]
@@ -532,20 +533,22 @@ class _RosterGroup(app_commands.Group):
             seen_tiers.add(tier)
             lines.append(f"**{tier}**")
             for row in tier_rows:
+                cls = str(row.get("class") or "").lower()
+                class_emoji = (CLASS_EMOJI.get(cls) or CLASS_EMOJI.get("all") or "").strip()
                 lines.append(
-                    f"{rank_no}. {row['name']} ({row['class'].title()}) {row['rarity']}★ r{row['rank']} s0 | score {row['score']:.1f}"
+                    f"{class_emoji} {row['name']} ({row['class'].title()}) {row['rarity']}★ r{row['rank']} s0 | score {row['score']:.1f}"
                 )
-                rank_no += 1
             lines.append("")
 
         other_rows = [row for row in suggestions if str(row.get("tier") or "").upper() not in seen_tiers]
         if other_rows:
             lines.append("**Other**")
             for row in other_rows:
+                cls = str(row.get("class") or "").lower()
+                class_emoji = (CLASS_EMOJI.get(cls) or CLASS_EMOJI.get("all") or "").strip()
                 lines.append(
-                    f"{rank_no}. {row['name']} ({row['class'].title()}) {row['rarity']}★ r{row['rank']} s0 | score {row['score']:.1f}"
+                    f"{class_emoji} {row['name']} ({row['class'].title()}) {row['rarity']}★ r{row['rank']} s0 | score {row['score']:.1f}"
                 )
-                rank_no += 1
 
         page_chunks = []
         chunk = []

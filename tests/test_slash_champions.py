@@ -483,6 +483,8 @@ def test_slash_roster_rankup_pages_group_by_tier_order(monkeypatch):
     description = pages[0]["description"]
 
     assert description.find("**S+**") < description.find("**A**") < description.find("**B**")
+    assert "1. " not in description
+    assert "<:cosmic2:" in description
 
 
 def test_slash_roster_awaken_pages_group_by_tier_order(monkeypatch):
