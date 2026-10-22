@@ -31,6 +31,12 @@ class _AccountGroup(app_commands.Group):
 
     @app_commands.command(name="profile", description="View an account profile")
     async def profile(self, interaction: discord.Interaction, user: Optional[discord.User] = None):
+        try:
+            # Acknowledge immediately so slow profile assembly cannot time out the interaction.
+            await interaction.response.defer(ephemeral=False)
+        except Exception:
+            pass
+
         target = user or interaction.user
         emb, text = Account.build_profile_display(
             self.core,
@@ -39,10 +45,11 @@ class _AccountGroup(app_commands.Group):
             viewer_id=getattr(interaction.user, "id", None),
             prefer_embed=True,
         )
+        sender = interaction.followup.send if getattr(interaction.response, "is_done", lambda: False)() else interaction.response.send_message
         if emb is not None:
-            await interaction.response.send_message(embed=emb, ephemeral=False)
+            await sender(embed=emb, ephemeral=False)
             return
-        await interaction.response.send_message(text or "No profile found for that user.", ephemeral=True)
+        await sender(text or "No profile found for that user.", ephemeral=True)
 
     @app_commands.command(name="settings", description="View account settings")
     async def settings(self, interaction: discord.Interaction, user: Optional[discord.User] = None):

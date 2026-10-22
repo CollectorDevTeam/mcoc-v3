@@ -6,8 +6,25 @@ from mcoc.slash.account import _AccountGroup
 class _ResponseStub:
     def __init__(self):
         self.calls = []
+        self._done = False
 
     async def send_message(self, content=None, **kwargs):
+        self._done = True
+        self.calls.append({"content": content, **kwargs})
+
+    async def defer(self, **kwargs):
+        self._done = True
+        self.calls.append({"defer": True, **kwargs})
+
+    def is_done(self):
+        return self._done
+
+
+class _FollowupStub:
+    def __init__(self):
+        self.calls = []
+
+    async def send(self, content=None, **kwargs):
         self.calls.append({"content": content, **kwargs})
 
 
@@ -15,6 +32,7 @@ class _InteractionStub:
     def __init__(self, user_id=42, display_name="viewer"):
         self.user = types.SimpleNamespace(id=user_id, display_name=display_name)
         self.response = _ResponseStub()
+        self.followup = _FollowupStub()
 
 
 async def _invoke(cmd, group, interaction, *args, **kwargs):
@@ -39,7 +57,9 @@ def test_slash_account_profile_uses_backend_embed_path(monkeypatch):
     asyncio.run(_invoke(group.profile, group, interaction, user=target))
 
     assert len(interaction.response.calls) == 1
-    call = interaction.response.calls[0]
+    assert interaction.response.calls[0].get("defer") is True
+    assert len(interaction.followup.calls) == 1
+    call = interaction.followup.calls[0]
     assert call.get("embed") is sentinel_embed
     assert call.get("ephemeral") is False
 
