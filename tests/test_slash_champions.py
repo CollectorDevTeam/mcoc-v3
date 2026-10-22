@@ -518,6 +518,17 @@ def test_slash_roster_awaken_pages_group_by_tier_order(monkeypatch):
     assert description.find("**S+**") < description.find("**A**") < description.find("**B**")
 
 
+def test_slash_roster_modal_labels_fit_discord_limit():
+    group = _RosterGroup(core=_CoreStub([]))
+    rankup_modal = _RosterRankupModal(group)
+    awaken_modal = _RosterAwakenModal(group)
+
+    for modal in (rankup_modal, awaken_modal):
+        for field in modal.children:
+            label = getattr(field, "label", "") or ""
+            assert 1 <= len(label) <= 45
+
+
 def test_slash_champ_search_returns_pages(monkeypatch):
     champions = [
         {

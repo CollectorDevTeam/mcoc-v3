@@ -949,7 +949,7 @@ class _RosterRankupModal(ui.Modal):
         self.group = group
         super().__init__(title="Roster Rankup Suggestions")
         self.class_filter = ui.TextInput(
-            label="Class (all/science/skill/mutant/tech/cosmic/mystic)",
+            label="Class (all/science/skill/etc)",
             placeholder="all",
             default="all",
             required=False,
@@ -1006,7 +1006,7 @@ class _RosterAwakenModal(ui.Modal):
         self.group = group
         super().__init__(title="Roster Awaken Suggestions")
         self.class_filter = ui.TextInput(
-            label="Class (all/science/skill/mutant/tech/cosmic/mystic)",
+            label="Class (all/science/skill/etc)",
             placeholder="all",
             default="all",
             required=False,
