@@ -491,6 +491,12 @@ def build_cocpit_synergy_lines(cocpit_data: Mapping[str, Any], cache: Any = None
 
 def build_cocpit_synergy_intersection_lines(base_champion: Mapping[str, Any], team_champions: List[Mapping[str, Any]], cocpit_data: Mapping[str, Any], cache: Any = None) -> List[str]:
     """Return synergy descriptions whose partner requirements are satisfied by the provided team."""
+    active_lines, _inactive_lines = build_cocpit_synergy_activation_sets(base_champion, team_champions, cocpit_data, cache=cache)
+    return active_lines
+
+
+def build_cocpit_synergy_activation_sets(base_champion: Mapping[str, Any], team_champions: List[Mapping[str, Any]], cocpit_data: Mapping[str, Any], cache: Any = None) -> Tuple[List[str], List[str]]:
+    """Return (active_lines, inactive_lines) for Cocpit synergy cards against a selected team."""
     base_slug = str(base_champion.get("id") or base_champion.get("slug") or "").strip().lower()
     team_slugs = {
         str(champ.get("id") or champ.get("slug") or "").strip().lower()
@@ -500,26 +506,41 @@ def build_cocpit_synergy_intersection_lines(base_champion: Mapping[str, Any], te
     if base_slug:
         team_slugs.add(base_slug)
 
-    lines: List[str] = []
+    active_lines: List[str] = []
+    inactive_lines: List[str] = []
+
     for synergy in cocpit_data.get("synergies") or []:
         if not isinstance(synergy, Mapping):
             continue
+
         partners = [partner for partner in (synergy.get("partners") or []) if isinstance(partner, Mapping)]
-        partner_slugs = {
-            str(partner.get("champName") or partner.get("champPortraitName") or "").strip().lower()
-            for partner in partners
-            if str(partner.get("champName") or partner.get("champPortraitName") or "").strip()
-        }
-        required_partners = {slug for slug in partner_slugs if slug and slug != base_slug}
-        if required_partners and not required_partners.issubset(team_slugs):
-            continue
+        partner_rows = []
+        for partner in partners:
+            ref = str(partner.get("champName") or partner.get("champPortraitName") or "").strip().lower()
+            if not ref:
+                continue
+            partner_rows.append((ref, _titleize_partner_name(partner, cache=cache)))
+
+        required_rows = [(slug, name) for slug, name in partner_rows if slug and slug != base_slug]
+        required_slugs = {slug for slug, _name in required_rows}
+        is_active = not required_slugs or required_slugs.issubset(team_slugs)
+
+        active_names = [name for slug, name in required_rows if slug in team_slugs]
+        missing_names = [name for slug, name in required_rows if slug not in team_slugs]
 
         title = str(synergy.get("title") or "Synergy").strip()
-        matched = [_titleize_partner_name(partner, cache=cache) for partner in partners if isinstance(partner, Mapping) and str(partner.get("champName") or partner.get("champPortraitName") or "").strip().lower() in team_slugs]
         description_parts = [_clean_cocpit_text(part) for part in (synergy.get("description_parts") or []) if _clean_cocpit_text(part)]
-        lines.append(f"**{title}** | Active with {', '.join(matched) if matched else 'Current team'}")
-        lines.extend(f"• {part}" for part in description_parts)
-    return lines
+
+        if is_active:
+            heading = f"**{title}** | Activated by {', '.join(active_names) if active_names else 'Current team'}"
+            active_lines.append(heading)
+            active_lines.extend(f"• {part}" for part in description_parts)
+        else:
+            heading = f"**{title}** | Missing {', '.join(missing_names)}"
+            inactive_lines.append(heading)
+            inactive_lines.extend(f"• {part}" for part in description_parts)
+
+    return active_lines, inactive_lines
 
 
 def chunk_text_blocks(lines: List[str], *, max_chars: int = 3500) -> List[str]:

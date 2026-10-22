@@ -13,6 +13,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
 from urllib.parse import urlparse
+import re
 
 # Keep the runtime import optional while giving Pylance valid type information.
 # The runtime value is always defined before the guard below.
@@ -474,16 +475,29 @@ else:
                 filter_button.callback = self._filter_callback
                 self.add_item(filter_button)
 
+        def _strip_pagination_footer(self, text: str) -> str:
+            raw = str(text or "").strip()
+            if not raw:
+                return ""
+            cleaned = re.sub(r"\s*•\s*Page\s+\d+\s+of\s+\d+(?:\s*\|\s*CollectorBot by CollectorDevTeam)?\s*$", "", raw, flags=re.IGNORECASE)
+            cleaned = re.sub(r"\s*\|\s*CollectorBot by CollectorDevTeam\s*$", "", cleaned, flags=re.IGNORECASE)
+            return cleaned.strip(" •")
+
         async def _render_page(self):
             page = self.pages[self.index]
             if isinstance(page, Embed):
-                emb = page
+                # Render from a copy so repeated paging does not mutate and re-append footer text.
+                try:
+                    emb = page.copy()
+                except Exception:
+                    emb = page
             elif isinstance(page, dict):
                 emb = Embed(title=page.get("title", "Page"), description=page.get("description", ""))
             else:
                 emb = Embed(title="Page", description=str(page))
             try:
                 base = emb.footer.text if getattr(emb, "footer", None) and getattr(emb.footer, "text", None) else ""
+                base = self._strip_pagination_footer(base)
                 footer_text = f"{base} • Page {self.index + 1} of {len(self.pages)}{CDT_FOOTER_TAG}" if base else f"Page {self.index + 1} of {len(self.pages)}{CDT_FOOTER_TAG}"
                 emb.set_footer(text=footer_text, icon_url=CDT_ICON)
             except Exception:

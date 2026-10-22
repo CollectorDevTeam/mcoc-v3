@@ -529,7 +529,9 @@ class ChampionsPrefix(commands.Cog):
         try:
             cocpit_cached = Champions.get_cocpit_cached_abilities(self.parent, champ_obj)
             field_source = None
+            source_label = "MCOCHub cache"
             if cocpit_cached:
+                source_label = "Cocpit cache"
                 field_source = {
                     "coreAbilities": {
                         item.get("title") or "Core Ability": [{"id": item.get("id"), "text": item.get("text")}]
@@ -539,17 +541,18 @@ class ChampionsPrefix(commands.Cog):
                 }
             else:
                 field_source = await Champions.get_cocpit_champion_data(self.parent, champ_obj)
+                if field_source:
+                    source_label = "Cocpit live"
 
             fields = Champions.build_cocpit_core_ability_fields(field_source or {})
             if fields:
                 field_pages = Champions.chunk_embed_fields(fields)
                 embeds = []
-                total_pages = max(1, len(field_pages))
-                for index, page_fields in enumerate(field_pages, start=1):
+                for page_fields in field_pages:
                     embed = Embed.embed(ctx.author, title=f"{champ_obj.get('name') or champ_obj.get('slug')}'s Core Abilities", description="")
                     for field_name, field_value in page_fields:
                         embed.add_field(name=field_name, value=field_value, inline=False)
-                    embed.set_footer(text=f"Page {index}/{total_pages}")
+                    Embed.set_footer(ctx, embed, text=f"Source: {source_label}")
                     embeds.append(embed)
                 if len(embeds) == 1:
                     await ctx.send(embed=embeds[0])
@@ -561,11 +564,14 @@ class ChampionsPrefix(commands.Cog):
             lines = Champions.build_cocpit_ability_lines(field_source) if field_source else []
             if not lines:
                 lines = Champions.build_champion_ability_lines(champ_obj, cache=cache)
+                source_label = "MCOCHub cache"
             if not lines:
                 await safe_send_ctx(ctx, "Abilities unavailable.")
                 return
             pages = Champions.chunk_text_blocks(lines)
             embeds = [Embed.embed(ctx.author, title=f"{champ_obj.get('name') or champ_obj.get('slug')}'s Abilities", description=page) for page in pages]
+            for embed in embeds:
+                Embed.set_footer(ctx, embed, text=f"Source: {source_label}")
             if len(embeds) == 1:
                 await ctx.send(embed=embeds[0])
                 return
@@ -641,7 +647,7 @@ class ChampionsPrefix(commands.Cog):
 
     @champ.command(name="synergies")
     async def champ_synergies(self, ctx, *, name: str):
-        """Show Cocpit-backed synergies for one champion, or active intersections for a team."""
+        """Show Cocpit-backed synergies for one champion, or active/unactivated sets for a team."""
         if not await self._require_parent(ctx):
             return
 
@@ -655,24 +661,42 @@ class ChampionsPrefix(commands.Cog):
             await safe_send_ctx(ctx, "Champion not found.")
             return
 
+        team = team[:5]
+
         try:
             base = team[0]
             cocpit = await Champions.get_cocpit_champion_data(self.parent, base)
-            if not cocpit:
-                lines = Champions.build_champion_synergy_lines(base, cache=cache)
-                title = f"{base.get('name') or base.get('slug')}'s Synergies"
-            elif len(team) == 1:
-                lines = Champions.build_cocpit_synergy_lines(cocpit, cache=cache)
-                title = f"{base.get('name') or base.get('slug')}'s Synergies"
-            else:
-                lines = Champions.build_cocpit_synergy_intersection_lines(base, team, cocpit, cache=cache)
-                title = f"Active Synergies: {', '.join(champ.get('name') or champ.get('slug') or 'Unknown' for champ in team[:5])}"
+            embeds = []
 
-            if not lines:
+            if cocpit and len(team) > 1:
+                active_lines, inactive_lines = Champions.build_cocpit_synergy_activation_sets(base, team, cocpit, cache=cache)
+                if active_lines:
+                    for page in Champions.chunk_text_blocks(active_lines):
+                        emb = Embed.embed(ctx.author, title=f"Activated Synergies: {base.get('name') or base.get('slug')}", description=page)
+                        Embed.set_footer(ctx, emb, text="Source: Cocpit")
+                        embeds.append(emb)
+                if inactive_lines:
+                    for page in Champions.chunk_text_blocks(inactive_lines):
+                        emb = Embed.embed(ctx.author, title=f"Unactivated Synergies: {base.get('name') or base.get('slug')}", description=page)
+                        Embed.set_footer(ctx, emb, text="Source: Cocpit")
+                        embeds.append(emb)
+            elif cocpit:
+                lines = Champions.build_cocpit_synergy_lines(cocpit, cache=cache)
+                for page in Champions.chunk_text_blocks(lines):
+                    emb = Embed.embed(ctx.author, title=f"{base.get('name') or base.get('slug')}'s Synergies", description=page)
+                    Embed.set_footer(ctx, emb, text="Source: Cocpit")
+                    embeds.append(emb)
+            else:
+                lines = Champions.build_champion_synergy_lines(base, cache=cache)
+                for page in Champions.chunk_text_blocks(lines):
+                    emb = Embed.embed(ctx.author, title=f"{base.get('name') or base.get('slug')}'s Synergies", description=page)
+                    Embed.set_footer(ctx, emb, text="Source: MCOCHub cache")
+                    embeds.append(emb)
+
+            if not embeds:
                 await safe_send_ctx(ctx, "Synergies unavailable.")
                 return
 
-            embeds = [Embed.embed(ctx.author, title=title, description=page) for page in Champions.chunk_text_blocks(lines)]
             if len(embeds) == 1:
                 await ctx.send(embed=embeds[0])
                 return

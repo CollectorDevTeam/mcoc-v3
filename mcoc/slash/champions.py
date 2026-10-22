@@ -27,10 +27,12 @@ from ..common.helpers.champions import (
     build_cocpit_core_ability_fields,
     build_cocpit_synergy_lines,
     build_cocpit_synergy_intersection_lines,
+    build_cocpit_synergy_activation_sets,
     build_champion_ability_lines,
     build_champion_synergy_lines,
     chunk_text_blocks,
     chunk_embed_fields,
+    _champion_matches_filters,
 )
 from ..common.components.componentsV2 import CDTEmbed, CDTPagesMenu
 
@@ -76,32 +78,83 @@ class _ChampionGroup(app_commands.Group):
         except Exception:
             return []
 
+    def _normalize_token(self, value: Any) -> str:
+        return "".join(ch for ch in str(value or "").lower() if ch.isalnum())
+
+    def _apply_source_footer(self, embeds: List[Any], source_label: str) -> List[Any]:
+        if not embeds:
+            return embeds
+        for emb in embeds:
+            try:
+                CDTEmbed.set_footer(None, emb, text=f"Source: {source_label}")
+            except Exception:
+                continue
+        return embeds
+
+    def _iter_cache_choices(self, field: str) -> List[str]:
+        values: List[str] = []
+        cache = self._cache()
+        champs = cache.get_all_champions() if cache and hasattr(cache, "get_all_champions") else []
+        seen = set()
+        for champ in champs or []:
+            if not isinstance(champ, dict):
+                continue
+            for item in champ.get(field) or []:
+                if isinstance(item, dict):
+                    candidate = item.get("name") or item.get("id")
+                else:
+                    candidate = item
+                text = str(candidate or "").strip()
+                if not text:
+                    continue
+                key = text.lower()
+                if key in seen:
+                    continue
+                seen.add(key)
+                values.append(text)
+        return sorted(values)
+
     async def tag_autocomplete(self, interaction, current: str):
         idx = self._index()
+        cur = (current or "").lower()
         if idx and hasattr(idx, "tag_autocomplete"):
             try:
                 return await idx.tag_autocomplete(interaction, current or "")
             except Exception:
                 log.exception("tag_autocomplete failed in CacheIndex")
-        return []
+        try:
+            tags = self._iter_cache_choices("tags")
+            return [app_commands.Choice(name=t, value=t) for t in tags if not cur or cur in t.lower()][:25]
+        except Exception:
+            return []
 
     async def ability_autocomplete(self, interaction, current: str):
         idx = self._index()
+        cur = (current or "").lower()
         if idx and hasattr(idx, "ability_autocomplete"):
             try:
                 return await idx.ability_autocomplete(interaction, current or "")
             except Exception:
                 log.exception("ability_autocomplete failed in CacheIndex")
-        return []
+        try:
+            abilities = self._iter_cache_choices("abilities")
+            return [app_commands.Choice(name=a, value=a) for a in abilities if not cur or cur in a.lower()][:25]
+        except Exception:
+            return []
 
     async def immunity_autocomplete(self, interaction, current: str):
         idx = self._index()
+        cur = (current or "").lower()
         if idx and hasattr(idx, "immunity_autocomplete"):
             try:
                 return await idx.immunity_autocomplete(interaction, current or "")
             except Exception:
                 log.exception("immunity_autocomplete failed in CacheIndex")
-        return []
+        try:
+            immunities = self._iter_cache_choices("immunities")
+            return [app_commands.Choice(name=i, value=i) for i in immunities if not cur or cur in i.lower()][:25]
+        except Exception:
+            return []
 
     # -------------------------
     # Commands
@@ -114,7 +167,7 @@ class _ChampionGroup(app_commands.Group):
             await safe_respond_interaction(interaction, content=f"Champion `{champion}` not found.", ephemeral=True)
             return
         try:
-            embed = await CDTEmbed.champions_embed(interaction, champ)
+            embed = CDTEmbed.champion_embed(interaction, champ)
             await safe_respond_interaction(interaction, embed=embed)
         except Exception:
             log.exception("Failed to build champion embed")
@@ -130,7 +183,9 @@ class _ChampionGroup(app_commands.Group):
         try:
             cocpit_cached = get_cocpit_cached_abilities(self.core, champ)
             field_source = None
+            source_label = "MCOCHub cache"
             if cocpit_cached:
+                source_label = "Cocpit cache"
                 field_source = {
                     "coreAbilities": {
                         item.get("title") or "Core Ability": [{"id": item.get("id"), "text": item.get("text")}]
@@ -140,26 +195,30 @@ class _ChampionGroup(app_commands.Group):
                 }
             else:
                 field_source = await get_cocpit_champion_data(self.core, champ)
+                if field_source:
+                    source_label = "Cocpit live"
 
             fields = build_cocpit_core_ability_fields(field_source or {})
             if fields:
                 pages = []
-                for index, page_fields in enumerate(chunk_embed_fields(fields), start=1):
+                for page_fields in chunk_embed_fields(fields):
                     embed = CDTEmbed.embed(interaction, title=f"{champ.get('name','Unknown')} Core Abilities", description="")
                     for field_name, field_value in page_fields:
                         embed.add_field(name=field_name, value=field_value, inline=False)
-                    embed.set_footer(text=f"Page {index}/{max(1, len(chunk_embed_fields(fields)))}")
                     pages.append(embed)
+                pages = self._apply_source_footer(pages, source_label)
                 await safe_respond_interaction(interaction, embed=pages[0], view=CDTPagesMenu(pages, author=interaction.user))
                 return
 
             lines = build_cocpit_ability_lines(field_source) if field_source else []
             if not lines:
                 lines = build_champion_ability_lines(champ, cache=self._cache())
+                source_label = "MCOCHub cache"
             if not lines:
                 await safe_respond_interaction(interaction, content="Abilities unavailable.", ephemeral=True)
                 return
             pages = [CDTEmbed.embed(interaction, title=f"{champ.get('name','Unknown')} Abilities", description=page) for page in chunk_text_blocks(lines)]
+            pages = self._apply_source_footer(pages, source_label)
             await safe_respond_interaction(interaction, embed=pages[0], view=CDTPagesMenu(pages, author=interaction.user))
         except Exception:
             log.exception("Failed to build abilities embed")
@@ -176,43 +235,76 @@ class _ChampionGroup(app_commands.Group):
             cocpit = await get_cocpit_champion_data(self.core, champ)
             cache = self._cache()
             team = [champ]
+            seen = {self._normalize_token(champ.get("id") or champ.get("slug") or champ.get("name"))}
             if teammates:
                 for token in [part.strip() for part in teammates.split(",") if part.strip()]:
                     resolved = resolve_champion(cache, token)
-                    if resolved:
-                        team.append(resolved)
+                    if not resolved:
+                        continue
+                    key = self._normalize_token(resolved.get("id") or resolved.get("slug") or resolved.get("name"))
+                    if key in seen:
+                        continue
+                    seen.add(key)
+                    team.append(resolved)
+                    if len(team) >= 5:
+                        break
+
             if cocpit and len(team) > 1:
-                lines = build_cocpit_synergy_intersection_lines(champ, team, cocpit, cache=cache)
-                title = f"Active Synergies: {champ.get('name','Unknown')}"
-            elif cocpit:
+                active_lines, inactive_lines = build_cocpit_synergy_activation_sets(champ, team, cocpit, cache=cache)
+                pages = []
+                if active_lines:
+                    pages.extend([CDTEmbed.embed(interaction, title=f"Activated Synergies: {champ.get('name','Unknown')}", description=page) for page in chunk_text_blocks(active_lines)])
+                if inactive_lines:
+                    pages.extend([CDTEmbed.embed(interaction, title=f"Unactivated Synergies: {champ.get('name','Unknown')}", description=page) for page in chunk_text_blocks(inactive_lines)])
+                if not pages:
+                    await safe_respond_interaction(interaction, content="No synergy cards available for this team.", ephemeral=True)
+                    return
+                pages = self._apply_source_footer(pages, "Cocpit")
+                await safe_respond_interaction(interaction, embed=pages[0], view=CDTPagesMenu(pages, author=interaction.user))
+                return
+
+            if cocpit:
                 lines = build_cocpit_synergy_lines(cocpit, cache=cache)
+                source_label = "Cocpit"
                 title = f"{champ.get('name','Unknown')} Synergies"
             else:
                 lines = build_champion_synergy_lines(champ, cache=cache)
+                source_label = "MCOCHub cache"
                 title = f"{champ.get('name','Unknown')} Synergies"
             if not lines:
                 await safe_respond_interaction(interaction, content="Synergies unavailable.", ephemeral=True)
                 return
             pages = [CDTEmbed.embed(interaction, title=title, description=page) for page in chunk_text_blocks(lines)]
+            pages = self._apply_source_footer(pages, source_label)
             await safe_respond_interaction(interaction, embed=pages[0], view=CDTPagesMenu(pages, author=interaction.user))
         except Exception:
             log.exception("Failed to build synergies embed")
             await safe_respond_interaction(interaction, content="Synergies unavailable.", ephemeral=True)
 
-    @app_commands.command(name="tags", description="List champions with a specific tag")
+    @app_commands.command(name="tag", description="List champions with a specific tag")
     @app_commands.autocomplete(tag=tag_autocomplete)
-    async def tags(self, interaction, tag: str):
+    async def tag(self, interaction, tag: str):
         cache = self._cache()
         champs = cache.get_all_champions() if cache else []
-        matches = [c for c in champs if tag in (c.get("tags") or [])]
+        wanted = self._normalize_token(tag)
+        matches = []
+        for champ in champs:
+            tags = champ.get("tags") or []
+            if any(self._normalize_token(value) == wanted for value in tags):
+                matches.append(champ)
         if not matches:
             await safe_respond_interaction(interaction, content=f"No champions found with tag `{tag}`.", ephemeral=True)
             return
         try:
-            embed = await CDTEmbed.tag_list_embed(interaction, tag, matches)
+            embed = CDTEmbed.tag_list_embed(interaction, tag, matches)
             await safe_respond_interaction(interaction, embed=embed)
         except Exception:
             await safe_respond_interaction(interaction, content=f"{len(matches)} champions found for tag `{tag}`.", ephemeral=True)
+
+    @app_commands.command(name="tags", description="List champions with a specific tag")
+    @app_commands.autocomplete(tag=tag_autocomplete)
+    async def tags(self, interaction, tag: str):
+        await self.tag(interaction, tag)
 
     @app_commands.command(name="stats", description="Show champion stats")
     @app_commands.describe(
@@ -290,38 +382,45 @@ class _ChampionGroup(app_commands.Group):
         champ_synergy: Optional[str] = None
     ):
         idx = self._index()
-        champs = idx.champions if idx and hasattr(idx, "champions") else (self._cache().get_all_champions() if self._cache() else [])
+        cache = self._cache()
+        champs = idx.champions if idx and hasattr(idx, "champions") else (cache.get_all_champions() if cache else [])
+
+        filters = {
+            "name": champ_name or None,
+            "classes": [champ_class] if champ_class else [],
+            "tags": [champ_tag] if champ_tag else [],
+            "abilities": [champ_ability] if champ_ability else [],
+            "immunities": [champ_immunity] if champ_immunity else [],
+            "tiers": [str(champ_rarity)] if champ_rarity is not None else [],
+            "rarities": [str(champ_rarity)] if champ_rarity is not None else [],
+        }
+
+        synergy_target = resolve_champion(cache, champ_synergy) if champ_synergy else None
+        synergy_token = self._normalize_token((synergy_target or {}).get("id") or (synergy_target or {}).get("slug") or champ_synergy)
+
         results = []
         for champ in champs:
             try:
-                if champ_name and champ_name.lower() not in (champ.get("name") or "").lower():
+                if not _champion_matches_filters(champ, filters):
                     continue
-                if champ_class and (champ.get("class") or "").lower() != champ_class.lower():
-                    continue
-                if champ_rarity and champ_rarity not in (champ.get("rarities") or []):
-                    continue
-                if champ_tag and champ_tag not in (champ.get("tags") or []):
-                    continue
-                if champ_ability:
-                    abilities = champ.get("abilities") or []
-                    found = False
-                    for a in abilities:
-                        if isinstance(a, dict):
-                            if champ_ability == a.get("id") or champ_ability == a.get("name"):
-                                found = True
-                                break
-                        else:
-                            if str(a) == str(champ_ability):
-                                found = True
-                                break
-                    if not found:
-                        continue
-                if champ_immunity and champ_immunity not in (champ.get("immunities") or []):
-                    continue
-                if champ_synergy:
-                    synergies = champ.get("synergies", []) or []
-                    partner_ids = [s.get("partner") for s in synergies if isinstance(s, dict)]
-                    if champ_synergy not in partner_ids:
+                if synergy_token:
+                    matched = False
+                    for synergy in champ.get("synergies") or []:
+                        if not isinstance(synergy, dict):
+                            continue
+                        partners = synergy.get("synergy_with") or synergy.get("partners") or []
+                        if isinstance(partners, list):
+                            for partner in partners:
+                                if isinstance(partner, dict):
+                                    token = self._normalize_token(partner.get("champName") or partner.get("champPortraitName") or partner.get("name") or partner.get("id"))
+                                else:
+                                    token = self._normalize_token(partner)
+                                if token and token == synergy_token:
+                                    matched = True
+                                    break
+                        if matched:
+                            break
+                    if not matched:
                         continue
                 results.append(champ)
             except Exception:
@@ -331,15 +430,10 @@ class _ChampionGroup(app_commands.Group):
             await safe_respond_interaction(interaction, content="No champions match your search filters.", ephemeral=True)
             return
 
-        # Build pages and send with pagination view if available
-        pages = []
         try:
-            for champ in results:
-                pages.append(await CDTEmbed.champions_embed(interaction, champ))
+            pages = [CDTEmbed.champion_embed(interaction, champ) for champ in results]
             pages = add_page_footers(pages)
-            await safe_respond_interaction(interaction, embed=pages[0], followup=False)
-            # attach view via direct tree response (discord will accept view on initial response)
-            await interaction.response.edit_message(embed=pages[0], view=CDTPagesMenu(pages, interaction.user))
+            await safe_respond_interaction(interaction, embed=pages[0], view=CDTPagesMenu(pages, author=interaction.user))
         except Exception:
             names = [c.get("name", "Unknown") for c in results][:50]
             await safe_respond_interaction(interaction, content=f"Matches ({len(results)}): {', '.join(names)}", ephemeral=True)
