@@ -229,7 +229,7 @@ class RosterPrefix(commands.Cog):
             await self._show_roster_operation_pages(ctx, "add")
             return
         try:
-            entries = Roster.parse_roster_entries_from_input(raw, getattr(self.parent, "cache", None))
+            entries, failed_tokens = Roster.parse_roster_entries_with_errors(raw, getattr(self.parent, "cache", None))
         except Exception as exc:
             try:
                 await self._show_roster_operation_pages(ctx, "add", raw)
@@ -249,7 +249,45 @@ class RosterPrefix(commands.Cog):
             Roster.schedule_persist_user_prestige(self.parent, user_id)
         except Exception:
             pass
-        await safe_send_ctx(ctx, f"Added {added} champion(s) to your roster.")
+
+        response_lines = []
+        if added:
+            cache = getattr(self.parent, "cache", None)
+            lines = []
+            for e in entries:
+                champ = None
+                try:
+                    champ = cache.get_champion(e["champion"]) if cache else None
+                except Exception:
+                    champ = None
+                if champ is not None:
+                    from mcoc.common.utilities.formatters import format_champion_line
+                    lines.append(format_champion_line(champ, e))
+                else:
+                    lines.append(f"{e.get('champion', 'Unknown')} r{int(e.get('rank', 1))} s{int(e.get('sig', 0))}")
+            response_lines.append(f"Added {added} champion(s) to your roster.")
+            response_lines.extend(lines)
+        else:
+            response_lines.append("Added 0 champion(s) to your roster.")
+
+        if failed_tokens:
+            response_lines.append("")
+            response_lines.append("Could not resolve token")
+            response_lines.extend(failed_tokens)
+
+        if added:
+            emb = Embed.embed(ctx, title=f"Roster Add — {added} champion(s)")
+            value = "\n".join(lines[:20])
+            if value:
+                Embed.add_field(ctx, emb=emb, name="Added", value=value, inline=False)
+            if failed_tokens:
+                failed_value = "\n".join(failed_tokens[:10])
+                Embed.add_field(ctx, emb=emb, name="Could not resolve token", value=failed_value, inline=False)
+            await safe_send_ctx(ctx, "\n".join(response_lines[:12]), embed=emb)
+            return
+
+        message = "\n".join(response_lines)
+        await safe_send_ctx(ctx, message)
 
     @roster.command(name="remove", aliases=["rm", "del"])
     async def roster_remove(self, ctx, *, text: str):
@@ -259,7 +297,7 @@ class RosterPrefix(commands.Cog):
         user_id = getattr(ctx.author, "id", None)
         users = Roster.ensure_user_manager(self.parent)
         try:
-            entries = Roster.parse_roster_entries_from_input(text, getattr(self.parent, "cache", None))
+            entries, failed_tokens = Roster.parse_roster_entries_with_errors(text, getattr(self.parent, "cache", None))
         except Exception as exc:
             await safe_send_ctx(ctx, f"Failed to parse entries: {exc}")
             return
@@ -274,7 +312,11 @@ class RosterPrefix(commands.Cog):
             Roster.schedule_persist_user_prestige(self.parent, user_id)
         except Exception:
             pass
-        await safe_send_ctx(ctx, f"Removed {removed} champion(s) from your roster.")
+
+        message = f"Removed {removed} champion(s) from your roster."
+        if failed_tokens:
+            message += "\n\nCould not resolve token\n" + "\n".join(failed_tokens)
+        await safe_send_ctx(ctx, message)
 
     @roster.command(name="update")
     async def roster_update(self, ctx, *, text: str = ""):

@@ -501,17 +501,31 @@ def parse_cocpit_roster_csv(text: str, cache) -> List[Dict[str, Any]]:
     return out
 
 
-def parse_roster_entries_from_input(text: str, cache) -> List[Dict[str, Any]]:
-    """
-    Parse free-form text into canonical roster entries.
-    Returns list of dicts: { champion: slug, rarity, rank, sig, ascended, tags, raw }.
-    Raises ValueError if nothing valid parsed.
-    """
+def _dedupe_in_order(values: List[str]) -> List[str]:
+    seen = set()
+    ordered: List[str] = []
+    for item in values:
+        if item is None:
+            continue
+        key = str(item).strip()
+        if not key or key in seen:
+            continue
+        seen.add(key)
+        ordered.append(key)
+    return ordered
+
+
+def parse_roster_entries_with_errors(text: str, cache) -> Tuple[List[Dict[str, Any]], List[str]]:
+    """Parse free-form roster text and return the valid entries plus any unresolved tokens."""
     if not text or not text.strip():
         raise ValueError("No input provided")
 
     if _looks_like_cocpit_roster_csv(text):
-        return parse_cocpit_roster_csv(text, cache)
+        try:
+            entries = parse_cocpit_roster_csv(text, cache)
+        except Exception as exc:
+            return [], [str(exc)]
+        return entries, []
 
     def _split_compact_stream(raw_text: str) -> List[str]:
         """Split compact streams like '7sr3...Colossus 7sr3...Okoye' into per-entry tokens."""
@@ -519,7 +533,6 @@ def parse_roster_entries_from_input(text: str, cache) -> List[Dict[str, Any]]:
         if not cleaned:
             return []
 
-        # First split on obvious separators.
         parts = [p.strip() for p in re.split(r"[,\n]+", cleaned) if p.strip()]
         out: List[str] = []
         marker = re.compile(r"(?=(?:^|\s)[1-7](?:\*|★|s|stars?|\s))", re.IGNORECASE)
@@ -561,8 +574,9 @@ def parse_roster_entries_from_input(text: str, cache) -> List[Dict[str, Any]]:
                 parsed_tokens.append({"raw": p, "champion": p})
 
     out: List[Dict[str, Any]] = []
-    errors: List[str] = []
+    failed: List[str] = []
     for parsed in parsed_tokens:
+        raw_token = (parsed.get("raw") if isinstance(parsed, dict) else None) or str(parsed or "").strip()
         try:
             entry = extract_entry_from_parsed(parsed)
             if entry.get("rarity") is None:
@@ -581,13 +595,13 @@ def parse_roster_entries_from_input(text: str, cache) -> List[Dict[str, Any]]:
                 if m:
                     champ_name = m.group(0).strip()
             if not champ_name:
-                errors.append(f"Could not determine champion name from '{parsed.get('raw')}'")
+                failed.append(raw_token)
                 continue
 
             try:
                 slug = _resolve_champion_slug(champ_name, cache)
-            except ValueError as exc:
-                errors.append(str(exc))
+            except ValueError:
+                failed.append(raw_token)
                 continue
 
             rarity, rank, sig, ascended = normalize_champion_progression(
@@ -607,12 +621,21 @@ def parse_roster_entries_from_input(text: str, cache) -> List[Dict[str, Any]]:
                 "raw": parsed.get("raw") or str(champ_name),
             })
         except Exception as exc:
-            log.debug("parse_roster_entries_from_input: failed token=%s exc=%s", parsed, exc)
-            continue
+            log.debug("parse_roster_entries_with_errors: failed token=%s exc=%s", parsed, exc)
+            failed.append(raw_token)
+    return out, _dedupe_in_order(failed)
 
-    if not out:
-        raise ValueError("No valid entries parsed: " + ("; ".join(errors) if errors else "unknown error"))
-    return out
+
+def parse_roster_entries_from_input(text: str, cache) -> List[Dict[str, Any]]:
+    """
+    Parse free-form text into canonical roster entries.
+    Returns list of dicts: { champion: slug, rarity, rank, sig, ascended, tags, raw }.
+    Raises ValueError if nothing valid parsed.
+    """
+    entries, failed = parse_roster_entries_with_errors(text, cache)
+    if not entries:
+        raise ValueError("No valid entries parsed: " + ("; ".join(failed) if failed else "unknown error"))
+    return entries
 
 
 def import_roster_entries(core: Any, user_id: int, entries: List[Dict[str, Any]], *, users: Optional[Any] = None) -> Dict[str, Any]:

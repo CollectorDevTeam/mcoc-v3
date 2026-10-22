@@ -1,5 +1,5 @@
 from mcoc.common.utilities.hargs import parse_harg_token
-from mcoc.common.helpers.roster import parse_roster_entries_from_input
+from mcoc.common.helpers.roster import parse_roster_entries_from_input, parse_roster_entries_with_errors
 
 
 class _CacheStub:
@@ -44,3 +44,14 @@ def test_parse_roster_entries_multi_compact_stream():
     assert "colossus" in slugs
     assert "shang-chi" in slugs
     assert "future-ant-man" in slugs
+
+
+def test_parse_roster_entries_with_errors_reports_unresolved_tokens():
+    cache = _CacheStub()
+    cache._map["dragonman"] = {"id": "dragon-man", "slug": "dragon-man", "name": "Dragon-Man"}
+
+    entries, failed = parse_roster_entries_with_errors("7sr1a1Dragon-Man 7sr1yabbadabbadoo", cache)
+
+    assert len(entries) == 1
+    assert entries[0]["champion"] == "dragon-man"
+    assert failed == ["7sr1yabbadabbadoo"]
