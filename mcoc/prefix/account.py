@@ -179,7 +179,7 @@ class AccountPrefix(commands.Cog):
             f"Use `{prefix}account select <roster>` to switch.",
         )
 
-    @commands.group(name="account", invoke_without_command=True)
+    @commands.hybrid_group(name="account", invoke_without_command=True)
     async def account(self, ctx, *args: str):
         """View account/profile assistance and consent actions."""
         if not await self._require_parent(ctx):

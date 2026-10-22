@@ -110,7 +110,7 @@ class RosterPrefix(commands.Cog):
         pages = await loader_map[operation](self.parent, ctx.author, parsed_filters=parsed_filters)
         await self._start_pages(ctx, pages, f"No roster entries are available for `{operation}`.")
 
-    @commands.group(name="roster", invoke_without_command=True)
+    @commands.hybrid_group(name="roster", invoke_without_command=True)
     async def roster(self, ctx, *args):
         """List or inspect roster entries for yourself or another member.
         Examples:

@@ -168,7 +168,7 @@ class ChampionsPrefix(commands.Cog):
             cache._save_champion_overrides(overrides)
         return True
 
-    @commands.group(name="champ", aliases=["champions"])
+    @commands.hybrid_group(name="champ", aliases=["champions"])
     async def champ(self, ctx):
         """Champion commands: search, abilities, info."""
 
