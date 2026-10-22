@@ -281,9 +281,7 @@ class _ChampionGroup(app_commands.Group):
             log.exception("Failed to build synergies embed")
             await safe_respond_interaction(interaction, content="Synergies unavailable.", ephemeral=True)
 
-    @app_commands.command(name="tag", description="List champions with a specific tag")
-    @app_commands.autocomplete(tag=tag_autocomplete)
-    async def tag(self, interaction, tag: str):
+    async def _lookup_tag(self, interaction, tag: str):
         cache = self._cache()
         champs = cache.get_all_champions() if cache else []
         wanted = self._normalize_token(tag)
@@ -301,10 +299,15 @@ class _ChampionGroup(app_commands.Group):
         except Exception:
             await safe_respond_interaction(interaction, content=f"{len(matches)} champions found for tag `{tag}`.", ephemeral=True)
 
+    @app_commands.command(name="tag", description="List champions with a specific tag")
+    @app_commands.autocomplete(tag=tag_autocomplete)
+    async def tag(self, interaction, tag: str):
+        await self._lookup_tag(interaction, tag)
+
     @app_commands.command(name="tags", description="List champions with a specific tag")
     @app_commands.autocomplete(tag=tag_autocomplete)
     async def tags(self, interaction, tag: str):
-        await self.tag(interaction, tag)
+        await self._lookup_tag(interaction, tag)
 
     @app_commands.command(name="stats", description="Show champion stats")
     @app_commands.describe(
@@ -365,6 +368,7 @@ class _ChampionGroup(app_commands.Group):
         champ_synergy="synergy"
     )
     @app_commands.autocomplete(
+        champ_name=champion_autocomplete,
         champ_tag=tag_autocomplete,
         champ_ability=ability_autocomplete,
         champ_immunity=immunity_autocomplete,

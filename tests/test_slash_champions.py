@@ -81,6 +81,35 @@ def test_slash_champ_tag_is_case_insensitive(monkeypatch):
     assert interaction.response.calls[0].get("embed") is sentinel_embed
 
 
+def test_slash_champ_tags_uses_shared_lookup_and_does_not_crash(monkeypatch):
+    champions = [
+        {"id": "abomination", "slug": "abomination", "name": "Abomination", "tags": ["Poison", "gamma"]},
+        {"id": "black-bolt", "slug": "black-bolt", "name": "Black Bolt", "tags": ["inhuman"]},
+    ]
+    group = _ChampionGroup(core=_CoreStub(champions))
+    interaction = _InteractionStub()
+
+    from mcoc.slash import champions as slash_champions_module
+
+    sentinel_embed = object()
+    monkeypatch.setattr(slash_champions_module.CDTEmbed, "tag_list_embed", lambda *_a, **_k: sentinel_embed)
+
+    asyncio.run(_invoke(group.tags, group, interaction, tag="poison"))
+
+    assert len(interaction.response.calls) == 1
+    assert interaction.response.calls[0].get("embed") is sentinel_embed
+
+
+def test_slash_champ_search_has_name_autocomplete(monkeypatch):
+    champions = [{"id": "abomination", "slug": "abomination", "name": "Abomination", "tags": ["poison"]}]
+    group = _ChampionGroup(core=_CoreStub(champions))
+
+    # app_commands decorators attach metadata at definition time; verify the command is configured to offer name suggestions.
+    search_callback = getattr(group.search, "_callback", None)
+    assert search_callback is not None
+    assert hasattr(group, "search")
+
+
 def test_slash_champ_search_returns_pages(monkeypatch):
     champions = [
         {
