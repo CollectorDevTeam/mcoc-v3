@@ -93,7 +93,13 @@ class MCOCSlash(commands.Cog):
 
         try:
             self.bot.tree.add_command(group, override=True)
-            return True, "registered via add_command(override=True)"
+            try:
+                names = [getattr(c, "name", None) for c in self.bot.tree.get_commands()]
+            except Exception:
+                names = []
+            if name in names:
+                return True, "registered via add_command(override=True)"
+            return False, "add_command(override=True) returned but group not visible in tree.get_commands()"
         except TypeError:
             # Older discord.py variants may not support override kwarg.
             pass
@@ -108,7 +114,13 @@ class MCOCSlash(commands.Cog):
         try:
             self._tree_clear_disabled(name)
             self.bot.tree.add_command(group)
-            return True, "registered via remove+add fallback"
+            try:
+                names = [getattr(c, "name", None) for c in self.bot.tree.get_commands()]
+            except Exception:
+                names = []
+            if name in names:
+                return True, "registered via remove+add fallback"
+            return False, "remove+add fallback returned but group not visible in tree.get_commands()"
         except Exception as exc:
             log.exception("Failed to register slash group %s", name)
             return False, f"{type(exc).__name__}: {exc}"

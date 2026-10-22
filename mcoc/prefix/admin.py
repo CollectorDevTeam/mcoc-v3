@@ -146,6 +146,7 @@ class MCOCAdminPrefix(commands.Cog):
                 "slash-status",
                 "slash-sync",
                 "slash-reload",
+                "slash-probe",
                 "sync",
                 "sync-champstats",
                 "force-sync",
@@ -167,7 +168,7 @@ class MCOCAdminPrefix(commands.Cog):
             return
 
         if not args:
-            subcommands = ["status", "slash-status", "slash-sync", "slash-reload", "sync", "sync-champstats", "force-sync", "prestige_sync", "roster-prestige", "key", "features", "export-champions", "wipe-cache"]
+            subcommands = ["status", "slash-status", "slash-sync", "slash-reload", "slash-probe", "sync", "sync-champstats", "force-sync", "prestige_sync", "roster-prestige", "key", "features", "export-champions", "wipe-cache"]
             emb = Embed.embed(ctx, title="MCOC Admin", description="Owner/admin utilities for the MCOC bot.")
             Embed.add_field(ctx, emb=emb, name="Common Commands", value="\n".join(f"• `{cmd}`" for cmd in subcommands), inline=False)
             Embed.add_field(ctx, emb=emb, name="Example", value="`//mcocadmin status`", inline=False)
@@ -481,6 +482,80 @@ class MCOCAdminPrefix(commands.Cog):
         except Exception as exc:
             log.exception("Slash reload sync failed")
             await safe_send_ctx(ctx, f"Slash reload sync failed: {type(exc).__name__} {exc}")
+
+    @commands.is_owner()
+    @admin.command(name="slash-probe", aliases=["slashprobe"])
+    async def slash_probe(self, ctx, guild_id: Optional[int] = None):
+        """Insert a temporary slash group and verify tree visibility + sync behavior."""
+        tree = getattr(self.bot, "tree", None)
+        if tree is None:
+            await safe_send_ctx(ctx, "Discord app command tree is unavailable.")
+            return
+
+        probe_name = "mcocprobe"
+        probe = discord.app_commands.Group(name=probe_name, description="temporary probe group")
+
+        def _tree_names() -> List[str]:
+            try:
+                return [getattr(c, "name", "?") for c in tree.get_commands()]
+            except Exception:
+                return []
+
+        before_names = _tree_names()
+        add_ok = True
+        add_detail = ""
+        try:
+            tree.add_command(probe, override=True)
+        except TypeError:
+            try:
+                tree.remove_command(probe_name)
+            except Exception:
+                pass
+            try:
+                tree.add_command(probe)
+            except Exception as exc:
+                add_ok = False
+                add_detail = f"{type(exc).__name__}: {exc}"
+        except Exception as exc:
+            add_ok = False
+            add_detail = f"{type(exc).__name__}: {exc}"
+
+        after_add_names = _tree_names()
+        visible_after_add = probe_name in after_add_names
+
+        sync_count = None
+        sync_names: List[str] = []
+        sync_error = None
+        try:
+            if guild_id:
+                synced = await tree.sync(guild=Object(id=int(guild_id)))
+            else:
+                synced = await tree.sync()
+            sync_names = [getattr(cmd, "name", "?") for cmd in (synced or [])]
+            sync_count = len(sync_names)
+        except Exception as exc:
+            sync_error = f"{type(exc).__name__}: {exc}"
+
+        # cleanup probe
+        try:
+            tree.remove_command(probe_name)
+        except Exception:
+            pass
+
+        lines = [
+            f"Before add top-level: {', '.join(before_names) if before_names else 'none'}",
+            f"Add call success: {add_ok}",
+            f"Probe visible after add: {visible_after_add}",
+            f"After add top-level: {', '.join(after_add_names) if after_add_names else 'none'}",
+        ]
+        if add_detail:
+            lines.append(f"Add detail: {add_detail}")
+        if sync_error:
+            lines.append(f"Sync error: {sync_error}")
+        else:
+            lines.append(f"Sync returned {sync_count} commands: {', '.join(sync_names[:30]) if sync_names else 'none'}")
+
+        await safe_send_ctx(ctx, "\n".join(lines))
 
     # -------------------------
     # Sync using CacheStatusPoster
