@@ -172,6 +172,24 @@ def _format_playing_since(iso_date_str: Optional[str]) -> str:
     return f"{pretty} - {days:,} days"
 
 
+def _resolve_account_identity(profile: Dict[str, Any]) -> Tuple[Optional[str], Optional[str]]:
+    """Return (mcoc_name, mcoc_id), keeping the in-game name and immutable id distinct."""
+    mcoc_name = (
+        profile.get("mcoc_name")
+        or profile.get("display_name")
+        or profile.get("username")
+        or profile.get("mcoctag")
+        or profile.get("player_name")
+    )
+    mcoc_id = (
+        profile.get("mcoc_id")
+        or profile.get("account_id")
+        or profile.get("player_id")
+        or profile.get("id")
+    )
+    return (None if mcoc_name in (None, "") else str(mcoc_name).strip()) or None, (None if mcoc_id in (None, "") else str(mcoc_id).strip()) or None
+
+
 # -----------------------------
 # UserDataManager wrappers
 # -----------------------------
@@ -448,6 +466,8 @@ def _format_date_iso(iso_str: Optional[str]) -> str:
 
 
 def build_profile_display(parent: Any, ctx_or_author: Any, target_id: int, viewer_id: Optional[int] = None, *, prefer_embed: bool = True) -> Tuple[Optional[Any], Optional[str]]:
+    top5_lines: List[str] = []
+    total_prestige: Optional[int] = None
     try:
         users = _ensure_user_manager_from_parent(parent)
         if not users:
@@ -476,9 +496,10 @@ def build_profile_display(parent: Any, ctx_or_author: Any, target_id: int, viewe
         try:
             emb = CDTEmbed.embed(ctx_or_author, title="CollectorVerse Profile")
             linked = profile.get("linked", False)
-            mcoc_id = profile.get("mcoc_id") or profile.get("mcoc_name") or None
+            mcoc_name, mcoc_id = _resolve_account_identity(profile)
             CDTEmbed.add_field(ctx_or_author, emb, name="Linked", value=str(bool(linked)), inline=True)
-            CDTEmbed.add_field(ctx_or_author, emb, name="MCOC Username", value=str(mcoc_id) if mcoc_id else "Not linked", inline=True)
+            CDTEmbed.add_field(ctx_or_author, emb, name="MCOC Username", value=str(mcoc_name) if mcoc_name else "Not set", inline=True)
+            CDTEmbed.add_field(ctx_or_author, emb, name="MCOC ID", value=str(mcoc_id) if mcoc_id else "Not set", inline=True)
 
             # Top5: prefer cached top5 in profile, else compute
             top5_lines, total_prestige, _avg = compute_top5_from_profile(profile)
@@ -578,12 +599,13 @@ def build_profile_display(parent: Any, ctx_or_author: Any, target_id: int, viewe
         # Text fallback
         try:
             lines: List[str] = []
-            display_name = profile.get("mcoc_name") or profile.get("display_name") or str(target_id)
+            mcoc_name, mcoc_id = _resolve_account_identity(profile)
+            display_name = mcoc_name or profile.get("display_name") or str(target_id)
             lines.append(f"Profile — {display_name}")
             linked = profile.get("linked", False)
-            mcoc_id = profile.get("mcoc_id") or profile.get("mcoc_name")
             lines.append(f"Linked: {linked}")
-            lines.append(f"MCOC ID: {mcoc_id or 'Not linked'}")
+            lines.append(f"MCOC Username: {mcoc_name or 'Not set'}")
+            lines.append(f"MCOC ID: {mcoc_id or 'Not set'}")
             if total_prestige is not None:
                 lines.append(f"Prestige (sum): {total_prestige}")
             if top5_lines:
