@@ -23,6 +23,7 @@ class MCOCSlash(commands.Cog):
     def __init__(self, bot: Any):
         self.bot = bot
         self.parent = getattr(bot, "mcoc_core", None)
+        self._last_registration_report = {}
         # DO NOT call async functions here
         # slash cogs will attach in cog_load
         log.debug("MCOCSlash initialized (waiting for cog_load)")
@@ -33,6 +34,7 @@ class MCOCSlash(commands.Cog):
 
         try:
             await self._attach_slash_cogs()
+            await self._ensure_groups_registered()
         except Exception:
             log.exception("Failed to attach slash cogs in cog_load")
 
@@ -68,9 +70,110 @@ class MCOCSlash(commands.Cog):
             except Exception:
                 log.exception("Failed to import slash cog %s", class_name)
 
+    def _tree_clear_disabled(self, name: str) -> None:
+        """Best effort cleanup for trees that keep disabled command names across reloads."""
+        if not name:
+            return
+        try:
+            disabled = getattr(self.bot.tree, "_disabled_global_commands", None)
+            if isinstance(disabled, dict):
+                disabled.pop(name, None)
+        except Exception:
+            pass
+
+    def _tree_register_group(self, group: Any) -> tuple[bool, str]:
+        """Register an app_commands.Group with robust fallback and override support."""
+        if group is None:
+            return False, "group object is None"
+        name = getattr(group, "name", None)
+        if not name:
+            return False, "group has no name"
+
+        self._tree_clear_disabled(name)
+
+        try:
+            self.bot.tree.add_command(group, override=True)
+            return True, "registered via add_command(override=True)"
+        except TypeError:
+            # Older discord.py variants may not support override kwarg.
+            pass
+        except Exception:
+            pass
+
+        try:
+            self.bot.tree.remove_command(name)
+        except Exception:
+            pass
+
+        try:
+            self._tree_clear_disabled(name)
+            self.bot.tree.add_command(group)
+            return True, "registered via remove+add fallback"
+        except Exception as exc:
+            log.exception("Failed to register slash group %s", name)
+            return False, f"{type(exc).__name__}: {exc}"
+
+    async def _ensure_groups_registered(self):
+        """Ensure loaded slash cog groups are actually attached to the app command tree."""
+        cogs = [
+            "ChampionSlashCog",
+            "RosterSlashCog",
+            "AccountSlashCog",
+            "AdminSlashCog",
+        ]
+
+        registered = []
+        missing = []
+        report = {}
+        for cog_name in cogs:
+            cog = self.bot.get_cog(cog_name)
+            if cog is None:
+                missing.append(cog_name)
+                report[cog_name] = {
+                    "cog_loaded": False,
+                    "group_present": False,
+                    "group_name": None,
+                    "registered": False,
+                    "detail": "cog not loaded",
+                }
+                continue
+
+            group = getattr(cog, "group", None)
+            if group is None:
+                group = getattr(cog, "_group", None)
+
+            ok, detail = self._tree_register_group(group)
+            group_name = getattr(group, "name", None) if group is not None else None
+            report[cog_name] = {
+                "cog_loaded": True,
+                "group_present": group is not None,
+                "group_name": group_name,
+                "registered": ok,
+                "detail": detail,
+            }
+            if ok:
+                registered.append(group_name or cog_name)
+            else:
+                missing.append(cog_name)
+
+        self._last_registration_report = report
+
+        if registered:
+            log.info("MCOC slash groups registered: %s", ", ".join(registered))
+        if missing:
+            log.warning("MCOC slash groups missing/unregistered: %s", ", ".join(missing))
+
+    def get_registration_report(self):
+        """Return the most recent slash group registration report."""
+        return dict(self._last_registration_report or {})
+
     @commands.Cog.listener()
     async def on_ready(self):
         self.parent = getattr(self.bot, "mcoc_core", None)
+        try:
+            await self._ensure_groups_registered()
+        except Exception:
+            log.exception("Failed to ensure slash groups on_ready")
 
     async def cog_unload(self):
         try:

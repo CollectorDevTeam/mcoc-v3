@@ -348,11 +348,31 @@ class MCOCAdminPrefix(commands.Cog):
             if self.bot.get_cog(cog_name):
                 loaded.append(cog_name)
 
+        registration_lines = []
+        slash_core = self.bot.get_cog("MCOCSlash")
+        if slash_core is not None:
+            try:
+                report = getattr(slash_core, "get_registration_report", lambda: {})() or {}
+                for cog_name in ["ChampionSlashCog", "RosterSlashCog", "AccountSlashCog", "AdminSlashCog"]:
+                    item = report.get(cog_name)
+                    if not item:
+                        continue
+                    group_name = item.get("group_name") or "?"
+                    state = "ok" if item.get("registered") else "failed"
+                    detail = str(item.get("detail") or "")
+                    if len(detail) > 90:
+                        detail = detail[:87] + "..."
+                    registration_lines.append(f"{cog_name}:{group_name}:{state}:{detail}")
+            except Exception:
+                registration_lines.append("registration report unavailable")
+
         emb = Embed.embed(ctx, title="Slash Registration Status")
         Embed.add_field(ctx, emb=emb, name="Application ID", value=str(app_id or "unknown"), inline=False)
         Embed.add_field(ctx, emb=emb, name="Owner", value=str(owner or "unknown"), inline=False)
         Embed.add_field(ctx, emb=emb, name="Guild Count", value=str(len(getattr(self.bot, "guilds", []) or [])), inline=True)
         Embed.add_field(ctx, emb=emb, name="Loaded Slash Cogs", value=", ".join(loaded) if loaded else "none", inline=False)
+        if registration_lines:
+            Embed.add_field(ctx, emb=emb, name="Group Registration", value="\n".join(registration_lines[:8]), inline=False)
         Embed.add_field(ctx, emb=emb, name="Top-level Slash Commands", value=", ".join(top) if top else "none", inline=False)
         await safe_send_ctx(ctx, None, embed=emb)
 
@@ -412,6 +432,15 @@ class MCOCAdminPrefix(commands.Cog):
         except Exception:
             log.exception("Failed to attach slash cogs via MCOCSlash")
 
+        try:
+            ensure_registered = getattr(slash_core, "_ensure_groups_registered", None)
+            if callable(ensure_registered):
+                result = ensure_registered()
+                if inspect.isawaitable(result):
+                    await result
+        except Exception:
+            log.exception("Failed to ensure slash groups via MCOCSlash")
+
         for cog_name in ["ChampionSlashCog", "RosterSlashCog", "AccountSlashCog", "AdminSlashCog"]:
             if self.bot.get_cog(cog_name):
                 loaded.append(cog_name)
@@ -424,12 +453,29 @@ class MCOCAdminPrefix(commands.Cog):
             else:
                 result = await tree.sync()
             names = [getattr(cmd, "name", "?") for cmd in (result or [])]
+            registration_lines = []
+            try:
+                report = getattr(slash_core, "get_registration_report", lambda: {})() or {}
+                for cog_name in ["ChampionSlashCog", "RosterSlashCog", "AccountSlashCog", "AdminSlashCog"]:
+                    item = report.get(cog_name)
+                    if not item:
+                        continue
+                    group_name = item.get("group_name") or "?"
+                    state = "ok" if item.get("registered") else "failed"
+                    detail = str(item.get("detail") or "")
+                    if len(detail) > 120:
+                        detail = detail[:117] + "..."
+                    registration_lines.append(f"- {cog_name} ({group_name}) => {state}: {detail}")
+            except Exception:
+                pass
             details = [
                 f"Slash reload complete. Synced {len(names)} commands.",
                 f"Loaded slash cogs: {', '.join(loaded) if loaded else 'none'}",
             ]
             if missing:
                 details.append(f"Missing slash cogs: {', '.join(missing)}")
+            if registration_lines:
+                details.append("Registration report:\n" + "\n".join(registration_lines[:8]))
             details.append(f"Top-level synced: {', '.join(names[:50]) if names else 'none'}")
             await safe_send_ctx(ctx, "\n".join(details))
         except Exception as exc:
