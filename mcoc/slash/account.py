@@ -12,8 +12,8 @@ import logging
 from typing import Optional, Any
 
 import discord
-from discord import app_commands
 from redbot.core import commands
+from redbot.core import app_commands
 
 from ..common.components.componentsV2 import CDTPagesMenu
 from ..common.helpers import account as Account

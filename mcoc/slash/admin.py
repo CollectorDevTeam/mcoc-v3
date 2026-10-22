@@ -9,8 +9,8 @@
 #   1.0 2026-09-01  Initial stabilized API header
 import logging
 import discord
-from discord import app_commands
 from redbot.core import commands
+from redbot.core import app_commands
 from typing import Optional
 
 from ..common.components.componentsV2 import CDTEmbed, CDTPagesMenu

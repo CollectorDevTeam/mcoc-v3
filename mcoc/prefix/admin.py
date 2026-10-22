@@ -27,6 +27,7 @@ from pathlib import Path
 import discord
 from discord import Object
 from redbot.core import commands
+from redbot.core import app_commands
 from mcoc.common import Core
 from mcoc.slash import admin
 Embed = Core.Embed
@@ -493,7 +494,7 @@ class MCOCAdminPrefix(commands.Cog):
             return
 
         probe_name = "mcocprobe"
-        probe = discord.app_commands.Group(name=probe_name, description="temporary probe group")
+        probe = app_commands.Group(name=probe_name, description="temporary probe group")
 
         def _tree_names() -> List[str]:
             try:

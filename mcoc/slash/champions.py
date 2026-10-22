@@ -9,8 +9,8 @@
 #   1.0 2026-09-01  Initial stabilized API header
 import logging
 from typing import Optional, Any, List
-from discord import app_commands
 from redbot.core import commands
+from redbot.core import app_commands
 
 log = logging.getLogger("red.mcoc.slash.champions")
 

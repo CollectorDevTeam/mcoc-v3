@@ -11,8 +11,9 @@
 
 import logging
 from typing import Optional, Any, List
-from discord import app_commands, Attachment
+from discord import Attachment
 from redbot.core import commands
+from redbot.core import app_commands
 
 log = logging.getLogger("red.mcoc.slash.roster")
 
