@@ -36,6 +36,17 @@ class MCOCHubAPI:
     COCPIT_CHAMPIONS_PAGE_URL = "https://cocpit.org/champions"
 
     @staticmethod
+    def _extract_cocpit_autocomplete_url_from_html(html: str) -> Optional[str]:
+        if not html:
+            return None
+        match = re.search(r"window\.configAutocompleteUrl\s*=\s*'([^']+)'", html)
+        if not match:
+            match = re.search(r'window\.configAutocompleteUrl\s*=\s*"([^"]+)"', html)
+        if not match:
+            return None
+        return str(match.group(1)).strip() or None
+
+    @staticmethod
     def extract_cocpit_release_date(html: str) -> Optional[str]:
         """Return the site asset date from Cocpit's CDN URLs, e.g. 2026.09.09."""
         if not html:
@@ -327,7 +338,8 @@ class MCOCHubAPI:
         if isinstance(payload, dict) and isinstance(payload.get("champions"), list):
             return payload.get("champions")
 
-        # Fallback: scrape /champions links to build a minimal champion index.
+        # Fallback 1: discover the current CDN autocomplete URL from /champions.
+        # Fallback 2: scrape /champions links to build a minimal champion index.
         try:
             session = await self._ensure_session()
             async with self._request_semaphore:
@@ -335,7 +347,16 @@ class MCOCHubAPI:
                     html = await resp.text()
                     if resp.status != 200:
                         return None
-                    return self._extract_cocpit_champions_from_html(html)
+
+            discovered_url = self._extract_cocpit_autocomplete_url_from_html(html)
+            if discovered_url:
+                discovered_payload = await self._fetch_public_json(discovered_url)
+                if isinstance(discovered_payload, list):
+                    return discovered_payload
+                if isinstance(discovered_payload, dict) and isinstance(discovered_payload.get("champions"), list):
+                    return discovered_payload.get("champions")
+
+            return self._extract_cocpit_champions_from_html(html)
         except Exception:
             log.exception("Failed Cocpit champion autocomplete page scrape")
             return None

@@ -1,0 +1,37 @@
+{
+  "user_id": "42",
+  "roster": [
+    {
+      "champion": "abomination",
+      "rarity": 7,
+      "rank": 1,
+      "sig": 0,
+      "ascended": 0,
+      "tags": [],
+      "stars": 7,
+      "prestige": null,
+      "name": null
+    }
+  ],
+  "profile": {
+    "mcoc_id": null,
+    "mcoc_name": null,
+    "consent": false,
+    "consent_ts": null,
+    "consent_version": null,
+    "consent_source": "https://github.com/CollectorDevTeam/mcoc-v3/blob/main/mcoc/privacy_policy.md",
+    "website": null,
+    "invite": null,
+    "timezone": null,
+    "alliance": null,
+    "job": null,
+    "created_at": "2026-10-22T21:26:55.822270",
+    "updated_at": "2026-10-22T21:26:55.822270"
+  },
+  "privacy": {
+    "mode": "private",
+    "share_with_alliance": false,
+    "share_with_guilds": []
+  },
+  "alliances": {}
+}
