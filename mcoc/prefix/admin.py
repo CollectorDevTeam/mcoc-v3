@@ -20,6 +20,7 @@ import json
 import re
 import datetime
 import asyncio
+import inspect
 import logging
 from pathlib import Path
 
@@ -144,6 +145,7 @@ class MCOCAdminPrefix(commands.Cog):
                 "status",
                 "slash-status",
                 "slash-sync",
+                "slash-reload",
                 "sync",
                 "sync-champstats",
                 "force-sync",
@@ -165,7 +167,7 @@ class MCOCAdminPrefix(commands.Cog):
             return
 
         if not args:
-            subcommands = ["status", "slash-status", "slash-sync", "sync", "sync-champstats", "force-sync", "prestige_sync", "roster-prestige", "key", "features", "export-champions", "wipe-cache"]
+            subcommands = ["status", "slash-status", "slash-sync", "slash-reload", "sync", "sync-champstats", "force-sync", "prestige_sync", "roster-prestige", "key", "features", "export-champions", "wipe-cache"]
             emb = Embed.embed(ctx, title="MCOC Admin", description="Owner/admin utilities for the MCOC bot.")
             Embed.add_field(ctx, emb=emb, name="Common Commands", value="\n".join(f"• `{cmd}`" for cmd in subcommands), inline=False)
             Embed.add_field(ctx, emb=emb, name="Example", value="`//mcocadmin status`", inline=False)
@@ -341,15 +343,21 @@ class MCOCAdminPrefix(commands.Cog):
         except Exception:
             top = []
 
+        loaded = []
+        for cog_name in ["MCOCSlash", "ChampionSlashCog", "RosterSlashCog", "AccountSlashCog", "AdminSlashCog"]:
+            if self.bot.get_cog(cog_name):
+                loaded.append(cog_name)
+
         emb = Embed.embed(ctx, title="Slash Registration Status")
         Embed.add_field(ctx, emb=emb, name="Application ID", value=str(app_id or "unknown"), inline=False)
         Embed.add_field(ctx, emb=emb, name="Owner", value=str(owner or "unknown"), inline=False)
         Embed.add_field(ctx, emb=emb, name="Guild Count", value=str(len(getattr(self.bot, "guilds", []) or [])), inline=True)
+        Embed.add_field(ctx, emb=emb, name="Loaded Slash Cogs", value=", ".join(loaded) if loaded else "none", inline=False)
         Embed.add_field(ctx, emb=emb, name="Top-level Slash Commands", value=", ".join(top) if top else "none", inline=False)
         await safe_send_ctx(ctx, None, embed=emb)
 
     @commands.is_owner()
-    @admin.command(name="slash-sync")
+    @admin.command(name="slash-sync", aliases=["slashsync"])
     async def slash_sync(self, ctx, guild_id: Optional[int] = None):
         """Force app-command sync. Guild sync is immediate and preferred for verification."""
         tree = getattr(self.bot, "tree", None)
@@ -370,6 +378,63 @@ class MCOCAdminPrefix(commands.Cog):
         except Exception as exc:
             log.exception("Slash sync failed")
             await safe_send_ctx(ctx, f"Slash sync failed: {type(exc).__name__} {exc}")
+
+    @commands.is_owner()
+    @admin.command(name="slash-reload", aliases=["slashreload"])
+    async def slash_reload(self, ctx, guild_id: Optional[int] = None):
+        """Force-attach MCOC slash cogs, then sync app commands."""
+        tree = getattr(self.bot, "tree", None)
+        if tree is None:
+            await safe_send_ctx(ctx, "Discord app command tree is unavailable.")
+            return
+
+        loaded: List[str] = []
+        missing: List[str] = []
+
+        slash_core = self.bot.get_cog("MCOCSlash")
+        if slash_core is None:
+            try:
+                from mcoc.slash.core import MCOCSlash
+                result = self.bot.add_cog(MCOCSlash(self.bot))
+                if inspect.isawaitable(result):
+                    await result
+                slash_core = self.bot.get_cog("MCOCSlash")
+            except Exception as exc:
+                await safe_send_ctx(ctx, f"Failed to load MCOCSlash: {type(exc).__name__} {exc}")
+                return
+
+        try:
+            attach = getattr(slash_core, "_attach_slash_cogs", None)
+            if callable(attach):
+                result = attach()
+                if inspect.isawaitable(result):
+                    await result
+        except Exception:
+            log.exception("Failed to attach slash cogs via MCOCSlash")
+
+        for cog_name in ["ChampionSlashCog", "RosterSlashCog", "AccountSlashCog", "AdminSlashCog"]:
+            if self.bot.get_cog(cog_name):
+                loaded.append(cog_name)
+            else:
+                missing.append(cog_name)
+
+        try:
+            if guild_id:
+                result = await tree.sync(guild=Object(id=int(guild_id)))
+            else:
+                result = await tree.sync()
+            names = [getattr(cmd, "name", "?") for cmd in (result or [])]
+            details = [
+                f"Slash reload complete. Synced {len(names)} commands.",
+                f"Loaded slash cogs: {', '.join(loaded) if loaded else 'none'}",
+            ]
+            if missing:
+                details.append(f"Missing slash cogs: {', '.join(missing)}")
+            details.append(f"Top-level synced: {', '.join(names[:50]) if names else 'none'}")
+            await safe_send_ctx(ctx, "\n".join(details))
+        except Exception as exc:
+            log.exception("Slash reload sync failed")
+            await safe_send_ctx(ctx, f"Slash reload sync failed: {type(exc).__name__} {exc}")
 
     # -------------------------
     # Sync using CacheStatusPoster
