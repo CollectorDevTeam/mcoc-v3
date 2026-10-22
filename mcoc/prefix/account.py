@@ -94,46 +94,12 @@ class AccountPrefix(commands.Cog):
         return str(value)
 
     def _build_settings_pages(self, ctx, target_user: Any) -> List[Any]:
-        Embed = Core.Embed
-        profile = Account.get_profile(self.parent, getattr(target_user, "id", None)) or {}
-        field_meta: Dict[str, Dict[str, str]] = getattr(Account, "ALLOWED_PROFILE_FIELDS", {}) or {}
-        key_map: Dict[str, str] = getattr(Account, "FIELD_CANONICAL", {}) or {}
-
-        ordered_fields = list(field_meta.keys())
-        if not ordered_fields:
-            ordered_fields = sorted(set(key_map.keys()) | set(key_map.values()))
-
-        page_entries: List[tuple] = []
-        for field in ordered_fields:
-            stored_key = key_map.get(field, field)
-            raw = profile.get(stored_key)
-            shown = self._stringify_setting_value(raw)
-            page_entries.append((field, shown))
-
-        per_page = 12
-        pages: List[Any] = []
-        for i in range(0, len(page_entries), per_page):
-            chunk = page_entries[i:i + per_page]
-            emb = Embed.embed(
-                ctx,
-                title=f"{getattr(target_user, 'display_name', 'User')} Account Settings",
-                description="Profile fields and current values.",
-            )
-            for field_name, field_value in chunk:
-                val = field_value
-                if len(val) > 900:
-                    val = val[:897] + "..."
-                Embed.add_field(ctx, emb, name=field_name, value=val, inline=True)
-            pages.append(emb)
-
-        if not pages:
-            emb = Embed.embed(
-                ctx,
-                title=f"{getattr(target_user, 'display_name', 'User')} Account Settings",
-                description="No account settings found.",
-            )
-            pages.append(emb)
-        return pages
+        return Account.build_settings_pages(
+            self.parent,
+            ctx,
+            getattr(target_user, "id", None),
+            title_prefix=f"{getattr(target_user, 'display_name', 'User')} Account",
+        )
 
     async def _send_settings_pages(self, ctx, target_user: Any) -> None:
         pages = self._build_settings_pages(ctx, target_user)

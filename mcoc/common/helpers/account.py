@@ -130,6 +130,73 @@ def get_profile_settings(profile: Dict[str, Any]) -> Dict[str, Any]:
     return {user_field: profile.get(stored_key) for user_field, stored_key in FIELD_CANONICAL.items()}
 
 
+def stringify_setting_value(value: Any) -> str:
+    if value is None:
+        return "not set"
+    if isinstance(value, str):
+        s = value.strip()
+        return s if s else "not set"
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, (int, float)):
+        return str(value)
+    if isinstance(value, list):
+        if not value:
+            return "not set"
+        return ", ".join(str(v) for v in value)
+    if isinstance(value, dict):
+        if not value:
+            return "not set"
+        parts = []
+        for k, v in value.items():
+            parts.append(f"{k}: {v}")
+        return "; ".join(parts)
+    return str(value)
+
+
+def build_settings_pages(parent: Any, ctx_or_author: Any, target_id: int, *, title_prefix: Optional[str] = None, per_page: int = 12) -> List[Any]:
+    profile = get_profile(parent, target_id) or {}
+    field_meta: Dict[str, Dict[str, str]] = ALLOWED_PROFILE_FIELDS or {}
+    key_map: Dict[str, str] = FIELD_CANONICAL or {}
+
+    ordered_fields = list(field_meta.keys())
+    if not ordered_fields:
+        ordered_fields = sorted(set(key_map.keys()) | set(key_map.values()))
+
+    page_entries: List[Tuple[str, str]] = []
+    for field in ordered_fields:
+        stored_key = key_map.get(field, field)
+        raw = profile.get(stored_key)
+        shown = stringify_setting_value(raw)
+        page_entries.append((field, shown))
+
+    pages: List[Any] = []
+    label = title_prefix or "Account"
+    for i in range(0, len(page_entries), per_page):
+        chunk = page_entries[i:i + per_page]
+        emb = CDTEmbed.embed(
+            ctx_or_author,
+            title=f"{label} Settings",
+            description="Profile fields and current values.",
+        )
+        for field_name, field_value in chunk:
+            val = field_value
+            if len(val) > 900:
+                val = val[:897] + "..."
+            CDTEmbed.add_field(ctx_or_author, emb, name=field_name, value=val, inline=True)
+        pages.append(emb)
+
+    if not pages:
+        emb = CDTEmbed.embed(
+            ctx_or_author,
+            title=f"{label} Settings",
+            description="No account settings found.",
+        )
+        pages.append(emb)
+
+    return pages
+
+
 def _format_playing_since(iso_date_str: Optional[str]) -> str:
     if not iso_date_str:
         return "Not set"

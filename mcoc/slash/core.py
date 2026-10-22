@@ -40,6 +40,7 @@ class MCOCSlash(commands.Cog):
         slash_cogs = [
             ("mcoc.slash.champions", "ChampionSlashCog"),
             ("mcoc.slash.roster", "RosterSlashCog"),
+            ("mcoc.slash.account", "AccountSlashCog"),
             ("mcoc.slash.admin", "AdminSlashCog"),
         ]
 
