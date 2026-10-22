@@ -24,6 +24,7 @@ import logging
 from pathlib import Path
 
 import discord
+from discord import Object
 from redbot.core import commands
 from mcoc.common import Core
 from mcoc.slash import admin
@@ -141,6 +142,8 @@ class MCOCAdminPrefix(commands.Cog):
         if args and str(args[0]).lower() in {"help", "?"}:
             subcommands = [
                 "status",
+                "slash-status",
+                "slash-sync",
                 "sync",
                 "sync-champstats",
                 "force-sync",
@@ -162,7 +165,7 @@ class MCOCAdminPrefix(commands.Cog):
             return
 
         if not args:
-            subcommands = ["status", "sync", "sync-champstats", "force-sync", "prestige_sync", "roster-prestige", "key", "features", "export-champions", "wipe-cache"]
+            subcommands = ["status", "slash-status", "slash-sync", "sync", "sync-champstats", "force-sync", "prestige_sync", "roster-prestige", "key", "features", "export-champions", "wipe-cache"]
             emb = Embed.embed(ctx, title="MCOC Admin", description="Owner/admin utilities for the MCOC bot.")
             Embed.add_field(ctx, emb=emb, name="Common Commands", value="\n".join(f"• `{cmd}`" for cmd in subcommands), inline=False)
             Embed.add_field(ctx, emb=emb, name="Example", value="`//mcocadmin status`", inline=False)
@@ -314,6 +317,59 @@ class MCOCAdminPrefix(commands.Cog):
         except Exception:
             log.exception("Failed to fetch shared API tokens")
             await safe_send_ctx(ctx, "Failed to fetch shared API tokens.")
+
+    @commands.is_owner()
+    @admin.command(name="slash-status")
+    async def slash_status(self, ctx):
+        """Show app-command tree state to diagnose slash registration."""
+        tree = getattr(self.bot, "tree", None)
+        if tree is None:
+            await safe_send_ctx(ctx, "Discord app command tree is unavailable.")
+            return
+
+        app_id = None
+        owner = None
+        try:
+            info = await self.bot.application_info()
+            app_id = getattr(info, "id", None)
+            owner = getattr(info, "owner", None)
+        except Exception:
+            pass
+
+        try:
+            top = [cmd.name for cmd in tree.get_commands()]
+        except Exception:
+            top = []
+
+        emb = Embed.embed(ctx, title="Slash Registration Status")
+        Embed.add_field(ctx, emb=emb, name="Application ID", value=str(app_id or "unknown"), inline=False)
+        Embed.add_field(ctx, emb=emb, name="Owner", value=str(owner or "unknown"), inline=False)
+        Embed.add_field(ctx, emb=emb, name="Guild Count", value=str(len(getattr(self.bot, "guilds", []) or [])), inline=True)
+        Embed.add_field(ctx, emb=emb, name="Top-level Slash Commands", value=", ".join(top) if top else "none", inline=False)
+        await safe_send_ctx(ctx, None, embed=emb)
+
+    @commands.is_owner()
+    @admin.command(name="slash-sync")
+    async def slash_sync(self, ctx, guild_id: Optional[int] = None):
+        """Force app-command sync. Guild sync is immediate and preferred for verification."""
+        tree = getattr(self.bot, "tree", None)
+        if tree is None:
+            await safe_send_ctx(ctx, "Discord app command tree is unavailable.")
+            return
+
+        try:
+            if guild_id:
+                result = await tree.sync(guild=Object(id=int(guild_id)))
+                names = [getattr(cmd, "name", "?") for cmd in (result or [])]
+                await safe_send_ctx(ctx, f"Guild slash sync complete for `{guild_id}` ({len(names)} commands): {', '.join(names[:50])}")
+                return
+
+            result = await tree.sync()
+            names = [getattr(cmd, "name", "?") for cmd in (result or [])]
+            await safe_send_ctx(ctx, f"Global slash sync complete ({len(names)} commands): {', '.join(names[:50])}")
+        except Exception as exc:
+            log.exception("Slash sync failed")
+            await safe_send_ctx(ctx, f"Slash sync failed: {type(exc).__name__} {exc}")
 
     # -------------------------
     # Sync using CacheStatusPoster

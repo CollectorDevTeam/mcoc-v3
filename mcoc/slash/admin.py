@@ -125,6 +125,70 @@ class _AdminGroup(app_commands.Group):
         await self.config.sync_interval.set(hours)
         await interaction.response.send_message(f"Sync interval set to {hours} hours.", ephemeral=True)
 
+    @app_commands.command(name="slashstatus", description="Show app-command tree registration status")
+    async def slashstatus(self, interaction: discord.Interaction):
+        if not await self._is_owner(interaction):
+            await interaction.response.send_message("You must be a bot owner to use this command.", ephemeral=True)
+            return
+
+        tree = getattr(interaction.client, "tree", None)
+        if tree is None:
+            await interaction.response.send_message("Discord app command tree is unavailable.", ephemeral=True)
+            return
+
+        app_id = None
+        owner = None
+        try:
+            info = await interaction.client.application_info()
+            app_id = getattr(info, "id", None)
+            owner = getattr(info, "owner", None)
+        except Exception:
+            pass
+
+        try:
+            top = [cmd.name for cmd in tree.get_commands()]
+        except Exception:
+            top = []
+
+        embed = CDTEmbed.embed(interaction, title="Slash Registration Status")
+        embed.add_field(name="Application ID", value=str(app_id or "unknown"), inline=False)
+        embed.add_field(name="Owner", value=str(owner or "unknown"), inline=False)
+        embed.add_field(name="Guild Count", value=str(len(getattr(interaction.client, "guilds", []) or [])), inline=True)
+        embed.add_field(name="Top-level Slash Commands", value=", ".join(top) if top else "none", inline=False)
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+
+    @app_commands.command(name="slashsync", description="Force app-command sync (guild sync is immediate)")
+    async def slashsync(self, interaction: discord.Interaction, guild_id: Optional[str] = None):
+        if not await self._is_owner(interaction):
+            await interaction.response.send_message("You must be a bot owner to use this command.", ephemeral=True)
+            return
+
+        tree = getattr(interaction.client, "tree", None)
+        if tree is None:
+            await interaction.response.send_message("Discord app command tree is unavailable.", ephemeral=True)
+            return
+
+        try:
+            if guild_id:
+                gid = int(guild_id)
+                result = await tree.sync(guild=discord.Object(id=gid))
+                names = [getattr(cmd, "name", "?") for cmd in (result or [])]
+                await interaction.response.send_message(
+                    f"Guild slash sync complete for `{gid}` ({len(names)} commands): {', '.join(names[:50])}",
+                    ephemeral=True,
+                )
+                return
+
+            result = await tree.sync()
+            names = [getattr(cmd, "name", "?") for cmd in (result or [])]
+            await interaction.response.send_message(
+                f"Global slash sync complete ({len(names)} commands): {', '.join(names[:50])}",
+                ephemeral=True,
+            )
+        except Exception as exc:
+            log.exception("Slash sync failed")
+            await interaction.response.send_message(f"Slash sync failed: {type(exc).__name__} {exc}", ephemeral=True)
+
 
 class AdminSlashCog(commands.Cog):
     """Cog wrapper that registers the Admin app command group on cog_load/unload."""
