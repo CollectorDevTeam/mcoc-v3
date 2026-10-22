@@ -12,6 +12,7 @@
 import logging
 import re
 from typing import Optional, Any, List, Tuple
+import discord
 from discord import Attachment, ui
 from redbot.core import commands
 from redbot.core import app_commands
@@ -1063,7 +1064,7 @@ class _RankupClassButton(ui.Button):
             "science": 1,
             "all": 2,
         }
-        super().__init__(label=label, style=1, row=row_map.get(class_filter, 2))
+        super().__init__(label=label, style=discord.ButtonStyle.primary, row=row_map.get(class_filter, 2))
         self.group = group
         self.class_filter = class_filter
 

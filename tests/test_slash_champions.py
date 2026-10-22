@@ -253,6 +253,16 @@ def test_slash_roster_rankup_class_button_opens_class_modal():
     assert modal.class_filter_value == "science"
 
 
+def test_slash_roster_rankup_class_buttons_use_buttonstyle_enum():
+    champion_rows = [{"id": "abomination", "slug": "abomination", "name": "Abomination", "class": "science"}]
+    group = _RosterGroup(core=_CoreStub(champion_rows))
+    view = _RankupClassSelectView(group)
+
+    for child in view.children:
+        style = getattr(child, "style", None)
+        assert hasattr(style, "value")
+
+
 def test_slash_roster_rankup_suggestions_sort_by_score():
     champion_rows = [
         {"id": "abomination", "slug": "abomination", "name": "Abomination", "class": "science"},
