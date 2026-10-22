@@ -694,6 +694,39 @@ class _RosterGroup(app_commands.Group):
         except Exception:
             await interaction.response.send_message(embed=pages[0])
 
+    async def _resolve_target_for_list(self, interaction, raw_hargs: str):
+        text = str(raw_hargs or "").strip()
+        if not text:
+            return interaction.user, text
+
+        mention_match = re.search(r"<@!?(\d+)>", text)
+        if not mention_match:
+            return interaction.user, text
+
+        user_id = int(mention_match.group(1))
+        cleaned = (text[: mention_match.start()] + " " + text[mention_match.end() :]).strip()
+
+        guild = getattr(interaction, "guild", None)
+        if guild and hasattr(guild, "get_member"):
+            member = guild.get_member(user_id)
+            if member is not None:
+                return member, cleaned
+
+        client = getattr(interaction, "client", None)
+        if client and hasattr(client, "get_user"):
+            cached = client.get_user(user_id)
+            if cached is not None:
+                return cached, cleaned
+        if client and hasattr(client, "fetch_user"):
+            try:
+                fetched = await client.fetch_user(user_id)
+                if fetched is not None:
+                    return fetched, cleaned
+            except Exception:
+                pass
+
+        return interaction.user, cleaned
+
     # -------------------------
     # /roster add
     # -------------------------
@@ -772,7 +805,11 @@ class _RosterGroup(app_commands.Group):
 
     @app_commands.command(name="rankup", description="Suggest rankup candidates from your roster")
     async def rankup(self, interaction):
-        await interaction.response.send_modal(_RosterRankupModal(self))
+        await interaction.response.send_message(
+            "Choose a class for rankup suggestions:",
+            view=_RankupClassSelectView(self),
+            ephemeral=True,
+        )
 
     @app_commands.command(name="awaken", description="Suggest awakening candidates from your roster")
     async def awaken(self, interaction):
@@ -850,22 +887,37 @@ class _RosterGroup(app_commands.Group):
     # -------------------------
     @app_commands.command(name="list", description="List your roster with optional filters")
     async def list(self, interaction, hargs: Optional[str] = None):
-        parsed = parse_hargs(hargs or "")
-        pager = await make_roster_pager(self.core, interaction.user, raw_input=hargs or "", parsed_filters=parsed, author_for_controls=interaction.user)
-
-        if not pager:
-            await interaction.response.send_message("No roster entries match your filters.", ephemeral=True)
-            return
-
-        # add page numbers and send with PagesMenu if available
+        raw_hargs = str(hargs or "").strip()
         try:
-            await interaction.response.send_message(embed=pager.pages[0], view=pager)
+            target_user, cleaned_hargs = await self._resolve_target_for_list(interaction, raw_hargs)
+            parsed = parse_hargs(cleaned_hargs or "")
+            pager = await make_roster_pager(
+                self.core,
+                target_user,
+                raw_input=cleaned_hargs or "",
+                parsed_filters=parsed,
+                author_for_controls=interaction.user,
+            )
+
+            if not pager:
+                await interaction.response.send_message("No roster entries match your filters.", ephemeral=True)
+                return
+
+            # add page numbers and send with PagesMenu if available
+            try:
+                await interaction.response.send_message(embed=pager.pages[0], view=pager)
+            except Exception:
+                # fallback: send simple list
+                names = []
+                for page in pager.pages[:50]:
+                    names.append(page.get("title") if isinstance(page, dict) else getattr(page, "title", None) or "Entry")
+                await interaction.response.send_message(f"Matches ({len(pager.pages)}): {', '.join(names)}", ephemeral=True)
         except Exception:
-            # fallback: send simple list
-            names = []
-            for page in pager.pages[:50]:
-                names.append(page.get("title") if isinstance(page, dict) else getattr(page, "title", None) or "Entry")
-            await interaction.response.send_message(f"Matches ({len(pager.pages)}): {', '.join(names)}", ephemeral=True)
+            log.exception("slash roster list failed")
+            try:
+                await interaction.response.send_message("Roster list failed; please try again.", ephemeral=True)
+            except Exception:
+                pass
 
     # -------------------------
     # /roster export
@@ -945,15 +997,11 @@ async def setup(bot):
 
 
 class _RosterRankupModal(ui.Modal):
-    def __init__(self, group: _RosterGroup):
+    def __init__(self, group: _RosterGroup, class_filter: str):
         self.group = group
-        super().__init__(title="Roster Rankup Suggestions")
-        self.class_filter = ui.TextInput(
-            label="Class (all/science/skill/etc)",
-            placeholder="all",
-            default="all",
-            required=False,
-        )
+        self.class_filter_value = str(class_filter or "all").strip().lower() or "all"
+        class_title = "All" if self.class_filter_value == "all" else self.class_filter_value.title()
+        super().__init__(title=f"Rankup: {class_title}")
         self.stars = ui.TextInput(label="Star tier", placeholder="7", default="7")
         self.target_rank = ui.TextInput(label="Target rank", placeholder="3", default="3")
         self.target_per_class = ui.TextInput(
@@ -962,13 +1010,12 @@ class _RosterRankupModal(ui.Modal):
             default="",
             required=False,
         )
-        self.add_item(self.class_filter)
         self.add_item(self.stars)
         self.add_item(self.target_rank)
         self.add_item(self.target_per_class)
 
     async def on_submit(self, interaction):
-        cls = str(self.class_filter.value or "all").strip().lower() or "all"
+        cls = self.class_filter_value
         if cls not in ROSTER_CLASSES and cls != "all":
             await interaction.response.send_message(
                 "Invalid class. Use `all`, `science`, `skill`, `mutant`, `tech`, `cosmic`, or `mystic`.",
@@ -999,6 +1046,33 @@ class _RosterRankupModal(ui.Modal):
             return
 
         await self.group._run_rankup_suggestions(interaction, cls, stars, target_rank, target_per_class)
+
+
+class _RankupClassButton(ui.Button):
+    def __init__(self, group: _RosterGroup, class_filter: str):
+        label = "All" if class_filter == "all" else class_filter.title()
+        row_map = {
+            "cosmic": 0,
+            "mystic": 0,
+            "mutant": 0,
+            "tech": 1,
+            "skill": 1,
+            "science": 1,
+            "all": 2,
+        }
+        super().__init__(label=label, style=1, row=row_map.get(class_filter, 2))
+        self.group = group
+        self.class_filter = class_filter
+
+    async def callback(self, interaction):
+        await interaction.response.send_modal(_RosterRankupModal(self.group, self.class_filter))
+
+
+class _RankupClassSelectView(ui.View):
+    def __init__(self, group: _RosterGroup):
+        super().__init__(timeout=120)
+        for class_filter in ("cosmic", "mystic", "mutant", "tech", "skill", "science", "all"):
+            self.add_item(_RankupClassButton(group, class_filter))
 
 
 class _RosterAwakenModal(ui.Modal):

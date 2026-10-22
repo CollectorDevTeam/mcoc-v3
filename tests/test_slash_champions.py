@@ -2,7 +2,7 @@ import asyncio
 import types
 
 from mcoc.slash.champions import _ChampionGroup
-from mcoc.slash.roster import _RosterGroup, _RosterRankupModal, _RosterAwakenModal
+from mcoc.slash.roster import _RosterGroup, _RosterRankupModal, _RosterAwakenModal, _RankupClassSelectView
 
 
 class _ResponseStub:
@@ -19,6 +19,8 @@ class _ResponseStub:
 class _InteractionStub:
     def __init__(self, user_id=42):
         self.user = types.SimpleNamespace(id=user_id, display_name="viewer")
+        self.guild = None
+        self.client = None
         self.response = _ResponseStub()
 
 
@@ -207,8 +209,8 @@ def test_slash_roster_rankup_opens_modal():
     asyncio.run(_invoke(group.rankup, group, interaction))
 
     assert len(interaction.response.calls) == 1
-    modal = interaction.response.calls[0].get("modal")
-    assert isinstance(modal, _RosterRankupModal)
+    view = interaction.response.calls[0].get("view")
+    assert isinstance(view, _RankupClassSelectView)
 
 
 def test_slash_roster_rankup_modal_parses_inputs_and_calls_runner(monkeypatch):
@@ -226,8 +228,7 @@ def test_slash_roster_rankup_modal_parses_inputs_and_calls_runner(monkeypatch):
 
     monkeypatch.setattr(group, "_run_rankup_suggestions", _fake_runner)
 
-    modal = _RosterRankupModal(group)
-    modal.class_filter._value = "science"
+    modal = _RosterRankupModal(group, "science")
     modal.stars._value = "7"
     modal.target_rank._value = "3"
     modal.target_per_class._value = "2"
@@ -235,6 +236,21 @@ def test_slash_roster_rankup_modal_parses_inputs_and_calls_runner(monkeypatch):
     asyncio.run(modal.on_submit(interaction))
 
     assert called == {"cls": "science", "stars": 7, "target_rank": 3, "per_class_target": 2}
+
+
+def test_slash_roster_rankup_class_button_opens_class_modal():
+    champion_rows = [{"id": "abomination", "slug": "abomination", "name": "Abomination", "class": "science"}]
+    group = _RosterGroup(core=_CoreStub(champion_rows))
+    interaction = _InteractionStub()
+
+    view = _RankupClassSelectView(group)
+    science_button = next(child for child in view.children if getattr(child, "label", "") == "Science")
+    asyncio.run(science_button.callback(interaction))
+
+    assert len(interaction.response.calls) == 1
+    modal = interaction.response.calls[0].get("modal")
+    assert isinstance(modal, _RosterRankupModal)
+    assert modal.class_filter_value == "science"
 
 
 def test_slash_roster_rankup_suggestions_sort_by_score():
@@ -518,9 +534,34 @@ def test_slash_roster_awaken_pages_group_by_tier_order(monkeypatch):
     assert description.find("**S+**") < description.find("**A**") < description.find("**B**")
 
 
+def test_slash_roster_list_mention_targets_other_user(monkeypatch):
+    champion_rows = [{"id": "abomination", "slug": "abomination", "name": "Abomination", "class": "science"}]
+    group = _RosterGroup(core=_CoreStub(champion_rows))
+    interaction = _InteractionStub(user_id=42)
+
+    target = types.SimpleNamespace(id=99, display_name="jjw")
+    interaction.guild = types.SimpleNamespace(get_member=lambda uid: target if uid == 99 else None)
+
+    from mcoc.slash import roster as slash_roster_module
+
+    captured = {}
+
+    async def _fake_make_roster_pager(core, ctx_or_author, **kwargs):
+        captured["target_id"] = getattr(ctx_or_author, "id", None)
+        captured["raw_input"] = kwargs.get("raw_input")
+        return types.SimpleNamespace(pages=[{"title": "Roster"}])
+
+    monkeypatch.setattr(slash_roster_module, "make_roster_pager", _fake_make_roster_pager)
+
+    asyncio.run(_invoke(group.list, group, interaction, hargs="<@99> 7*"))
+
+    assert captured["target_id"] == 99
+    assert "<@99>" not in (captured["raw_input"] or "")
+
+
 def test_slash_roster_modal_labels_fit_discord_limit():
     group = _RosterGroup(core=_CoreStub([]))
-    rankup_modal = _RosterRankupModal(group)
+    rankup_modal = _RosterRankupModal(group, "all")
     awaken_modal = _RosterAwakenModal(group)
 
     for modal in (rankup_modal, awaken_modal):
