@@ -142,8 +142,10 @@ class MCOCAdminPrefix(commands.Cog):
             subcommands = [
                 "status",
                 "sync",
+                "sync-champstats",
                 "force-sync",
                 "prestige_sync",
+                "roster-prestige",
                 "key",
                 "features",
                 "feature-enable",
@@ -160,7 +162,7 @@ class MCOCAdminPrefix(commands.Cog):
             return
 
         if not args:
-            subcommands = ["status", "sync", "force-sync", "prestige_sync", "key", "features", "export-champions", "wipe-cache"]
+            subcommands = ["status", "sync", "sync-champstats", "force-sync", "prestige_sync", "roster-prestige", "key", "features", "export-champions", "wipe-cache"]
             emb = Embed.embed(ctx, title="MCOC Admin", description="Owner/admin utilities for the MCOC bot.")
             Embed.add_field(ctx, emb=emb, name="Common Commands", value="\n".join(f"• `{cmd}`" for cmd in subcommands), inline=False)
             Embed.add_field(ctx, emb=emb, name="Example", value="`//mcocadmin status`", inline=False)
@@ -319,7 +321,7 @@ class MCOCAdminPrefix(commands.Cog):
     @commands.is_owner()
     @admin.command(name="sync")
     async def sync(self, ctx):
-        """Trigger a full cache sync (owner only)."""
+        """Trigger a fast cache sync (owner only), skipping champstats crawl."""
         parent = getattr(self, "parent", None)
         if not parent:
             await safe_send_ctx(ctx, "MCOC core not attached; cache and API unavailable.")
@@ -339,8 +341,8 @@ class MCOCAdminPrefix(commands.Cog):
                 log.exception("Reporter failed to update poster")
 
         try:
-            await poster.update_section("Overall", "Starting full sync…")
-            updated = await parent.cache.sync(parent.api, progress=reporter)
+            await poster.update_section("Overall", "Starting fast sync (champstats skipped)…")
+            updated = await parent.cache.sync(parent.api, progress=reporter, include_champstats=False)
             
             # Gather sync results for summary
             meta = parent.cache.metadata or {}
@@ -368,6 +370,7 @@ class MCOCAdminPrefix(commands.Cog):
             sync_status = "Updated" if updated else "No changes (cache was current)"
             Embed.add_field(ctx, emb=emb, name="Status", value=sync_status, inline=False)
             Embed.add_field(ctx, emb=emb, name="Completed At", value=datetime.datetime.utcnow().isoformat(), inline=False)
+            Embed.add_field(ctx, emb=emb, name="Mode", value="Fast sync (champstats skipped)", inline=False)
             
             # Core data summary
             core_summary = (
@@ -407,7 +410,7 @@ class MCOCAdminPrefix(commands.Cog):
                 version_summary = "No versions cached."
             Embed.add_field(ctx, emb=emb, name="Cached Versions", value=version_summary, inline=False)
             
-            await poster.finalize("Full sync complete")
+            await poster.finalize("Fast sync complete")
             await safe_send_ctx(ctx, None, embed=emb)
         except Exception as e:
             log.exception("Sync failed")
@@ -416,6 +419,121 @@ class MCOCAdminPrefix(commands.Cog):
             except Exception:
                 pass
             await safe_send_ctx(ctx, f"❌ Sync failed: {e}")
+
+    @commands.is_owner()
+    @admin.command(name="sync-champstats")
+    async def sync_champstats(self, ctx):
+        """Harvest Cocpit champion stats only (owner only)."""
+        parent = getattr(self, "parent", None)
+        if not parent:
+            await safe_send_ctx(ctx, "MCOC core not attached; cache and API unavailable.")
+            return
+        if not getattr(parent, "api", None):
+            await safe_send_ctx(ctx, "API not available. Set API key first.")
+            return
+
+        cache = getattr(parent, "cache", None)
+        if cache is None or not hasattr(cache, "harvest_cocpit_champion_stats"):
+            await safe_send_ctx(ctx, "Cache does not support Cocpit champstats harvesting.")
+            return
+
+        poster = CacheStatusPoster(ctx, title="MCOC Champstats Sync")
+        await poster.post_initial()
+
+        async def reporter(text: str):
+            try:
+                await poster.update_section("Progress", text)
+            except Exception:
+                log.exception("Reporter failed to update champstats poster")
+
+        try:
+            await poster.update_section("Overall", "Harvesting Cocpit champion stats only…")
+            result = await cache.harvest_cocpit_champion_stats(parent.api, progress=reporter)
+            count = int(result.get("count") or 0)
+            version = result.get("version") or "n/a"
+
+            emb = Embed.embed(ctx, title="✅ Champstats Sync Complete", color=discord.Color.green())
+            Embed.add_field(ctx, emb=emb, name="Rows", value=str(count), inline=True)
+            Embed.add_field(ctx, emb=emb, name="Version", value=str(version), inline=True)
+            Embed.add_field(ctx, emb=emb, name="Completed At", value=datetime.datetime.utcnow().isoformat(), inline=False)
+
+            await poster.finalize("Champstats sync complete")
+            await safe_send_ctx(ctx, None, embed=emb)
+        except Exception as e:
+            log.exception("sync-champstats failed")
+            try:
+                await poster.update_section("Overall", f"Sync failed: {e}")
+            except Exception:
+                pass
+            await safe_send_ctx(ctx, f"❌ Champstats sync failed: {e}")
+
+    @commands.is_owner()
+    @admin.command(name="roster-prestige")
+    async def roster_prestige(self, ctx, member: Optional[discord.Member] = None):
+        """Show roster prestige diagnostics for a user (owner only)."""
+        parent = getattr(self, "parent", None)
+        if not parent:
+            await safe_send_ctx(ctx, "MCOC core not attached; cache and API unavailable.")
+            return
+
+        target = member or ctx.author
+        users = getattr(parent, "users", None) or getattr(parent, "user_manager", None)
+        if users is None:
+            try:
+                from mcoc.common.helpers import userdata as userdata_module
+                users = userdata_module.get_user_manager()
+            except Exception:
+                users = None
+        if users is None:
+            await safe_send_ctx(ctx, "User data manager unavailable.")
+            return
+
+        try:
+            roster_entries = users.list_roster(getattr(target, "id", None)) if hasattr(users, "list_roster") else []
+        except Exception:
+            roster_entries = []
+
+        if not roster_entries:
+            await safe_send_ctx(ctx, f"No roster entries found for {getattr(target, 'display_name', 'user')}.")
+            return
+
+        from mcoc.common.helpers import roster as roster_helpers
+        prestige_values: List[int] = []
+        resolved_count = 0
+        base_stats_fallback_count = 0
+        try:
+            profile = users.get_profile(getattr(target, "id", None)) if hasattr(users, "get_profile") else {}
+            prestige_map = profile.get("prestige_map", {}) if isinstance(profile, dict) else {}
+        except Exception:
+            prestige_map = {}
+
+        cache = getattr(parent, "cache", None)
+        for entry in roster_entries:
+            try:
+                value = await roster_helpers._resolve_prestige_for_entry(parent, entry, prestige_map)
+                if isinstance(value, (int, float)):
+                    prestige_values.append(int(value))
+                    resolved_count += 1
+
+                if cache and hasattr(cache, "get_cocpit_abilities"):
+                    slug = str(entry.get("champion") or "").strip().lower()
+                    ability_row = cache.get_cocpit_abilities(slug) if slug else None
+                    raw = ability_row.get("raw") if isinstance(ability_row, dict) else None
+                    base = raw.get("baseStats") if isinstance(raw, dict) else None
+                    if isinstance(base, dict) and base.get("Prestige") is not None:
+                        base_stats_fallback_count += 1
+            except Exception:
+                continue
+
+        top30 = sorted(prestige_values, reverse=True)[:30]
+        avg_top30 = int(round(sum(top30) / len(top30))) if top30 else None
+
+        emb = Embed.embed(ctx, title=f"Roster Prestige Diagnostics — {getattr(target, 'display_name', 'user')}")
+        Embed.add_field(ctx, emb=emb, name="Roster Entries", value=str(len(roster_entries)), inline=True)
+        Embed.add_field(ctx, emb=emb, name="Prestige Resolved", value=str(resolved_count), inline=True)
+        Embed.add_field(ctx, emb=emb, name="Top-30 Average", value=str(avg_top30) if avg_top30 is not None else "N/A", inline=True)
+        Embed.add_field(ctx, emb=emb, name="Cocpit baseStats availability", value=str(base_stats_fallback_count), inline=True)
+        await safe_send_ctx(ctx, None, embed=emb)
 
     @commands.is_owner()
     @admin.command(name="force-sync")

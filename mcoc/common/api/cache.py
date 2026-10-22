@@ -1120,7 +1120,7 @@ class CacheManager:
     # -----------------------------
     # Public sync method
     # -----------------------------
-    async def sync(self, api, progress: Optional[Callable[[str], Awaitable[None]]] = None) -> bool:
+    async def sync(self, api, progress: Optional[Callable[[str], Awaitable[None]]] = None, *, include_champstats: bool = True) -> bool:
         """
         Sync champions/tags/abilities/immunities from API.
         If `progress` is provided, call it with short status strings to update UI.
@@ -1185,7 +1185,7 @@ class CacheManager:
                     result = await self.harvest_cocpit_champion_abilities(api, progress=_report)
                     updated_recent |= bool(result.get("updated"))
 
-                if (not champstats_ok) and hasattr(api, "get_cocpit_champion_stats"):
+                if include_champstats and (not champstats_ok) and hasattr(api, "get_cocpit_champion_stats"):
                     await _report("Backfilling missing Cocpit champion stats cache...")
                     try:
                         result = await _run_with_heartbeat(
@@ -1281,7 +1281,7 @@ class CacheManager:
                     cocpit_abilities_result = await self.harvest_cocpit_champion_abilities(api, progress=_report)
                     updated |= bool(cocpit_abilities_result.get("updated"))
 
-                if hasattr(api, "get_cocpit_champion_stats"):
+                if include_champstats and hasattr(api, "get_cocpit_champion_stats"):
                     await _report("Harvesting Cocpit champion stats...")
                     try:
                         stats_result = await _run_with_heartbeat(
@@ -1292,6 +1292,8 @@ class CacheManager:
                         updated |= bool(stats_result.get("updated"))
                     except asyncio.TimeoutError:
                         await _report("Cocpit champion stats harvest timed out; continuing with remaining sync tasks.")
+                elif not include_champstats:
+                    await _report("Skipping Cocpit champion stats harvest for fast sync mode.")
 
                 await _report("Fetching glossary...")
                 glossary = await api.get_glossary()
