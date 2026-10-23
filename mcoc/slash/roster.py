@@ -159,9 +159,6 @@ class _RosterListControlsView(ui.View):
         self.parsed_filters = dict(parsed_filters or {})
         for label, mode in (("AWAKEN", "awaken"), ("RANKUP", "rankup"), ("TIERLIST", "tierlist"), ("CLEAR", "default")):
             self.add_item(_RosterListModeButton(group, target_user, self.base_hargs, label, mode, parsed_filters=self.parsed_filters))
-        self.add_item(_RosterQuickFilterButton(group, target_user, self.base_hargs, self.parsed_filters, "STAR", "star", row=1))
-        self.add_item(_RosterQuickFilterButton(group, target_user, self.base_hargs, self.parsed_filters, "RANK", "rank", row=1))
-        self.add_item(_RosterQuickFilterButton(group, target_user, self.base_hargs, self.parsed_filters, "CLASS", "class", row=1))
 
 
 class _RosterQuickFilterSelect(ui.Select):
@@ -245,9 +242,9 @@ class _RosterQuickFilterPickerView(ui.View):
         self.add_item(_RosterQuickFilterSelect(group, target_user, base_hargs, parsed_filters, kind, anchor_message))
 
 
-class _RosterQuickFilterButton(ui.Button):
-    def __init__(self, group: "_RosterGroup", target_user: Any, base_hargs: str, parsed_filters: dict, label: str, kind: str, *, row: Optional[int] = None):
-        super().__init__(label=label, style=discord.ButtonStyle.primary, row=row)
+class _RosterFilterCategoryButton(ui.Button):
+    def __init__(self, group: "_RosterGroup", target_user: Any, base_hargs: str, parsed_filters: dict, label: str, kind: str):
+        super().__init__(label=label, style=discord.ButtonStyle.primary)
         self.group = group
         self.target_user = target_user
         self.base_hargs = base_hargs or ""
@@ -266,8 +263,16 @@ class _RosterQuickFilterButton(ui.Button):
             )
             await interaction.response.send_message("Choose a value:", view=picker, ephemeral=True)
         except Exception:
-            log.exception("roster quick filter button failed")
+            log.exception("roster filter category button failed")
             await interaction.response.send_message("Unable to open filter picker right now.", ephemeral=True)
+
+
+class _RosterFilterCategoryView(ui.View):
+    def __init__(self, group: "_RosterGroup", target_user: Any, base_hargs: str, parsed_filters: dict):
+        super().__init__(timeout=120)
+        self.add_item(_RosterFilterCategoryButton(group, target_user, base_hargs, parsed_filters, "STAR", "star"))
+        self.add_item(_RosterFilterCategoryButton(group, target_user, base_hargs, parsed_filters, "RANK", "rank"))
+        self.add_item(_RosterFilterCategoryButton(group, target_user, base_hargs, parsed_filters, "CLASS", "class"))
 
 
 class _RosterListModeButton(ui.Button):
@@ -333,6 +338,14 @@ class _RosterGroup(app_commands.Group):
             controls = _RosterListControlsView(self, target_user, base_hargs or "", parsed_filters=parsed_filters)
             for item in getattr(controls, "children", []) or []:
                 pager.add_item(item)
+        except Exception:
+            pass
+        async def _open_filter_categories(_menu: CDTPagesMenu, interaction: Any) -> None:
+            view = _RosterFilterCategoryView(self, target_user, base_hargs or "", parsed_filters)
+            await interaction.response.send_message("Filter picker:", view=view, ephemeral=True)
+
+        try:
+            pager.filter_handler = _open_filter_categories
         except Exception:
             pass
         return pager
