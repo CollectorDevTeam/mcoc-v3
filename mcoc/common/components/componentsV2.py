@@ -596,12 +596,21 @@ else:
             await interaction.response.edit_message(embed=await self._render_page(), view=self)
 
         async def _close_callback(self, interaction: Any):
-            for item in self.children:
-                item.disabled = True
             try:
-                await interaction.response.edit_message(view=self)
+                target_message = getattr(interaction, "message", None) or self.message
+                if target_message is not None and hasattr(target_message, "delete"):
+                    await target_message.delete()
+                else:
+                    for item in self.children:
+                        item.disabled = True
+                    await interaction.response.edit_message(view=self)
             except Exception:
-                pass
+                try:
+                    for item in self.children:
+                        item.disabled = True
+                    await interaction.response.edit_message(view=self)
+                except Exception:
+                    pass
             self.stop()
 
         async def _filter_callback(self, interaction: Any):

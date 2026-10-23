@@ -591,7 +591,7 @@ def test_slash_roster_list_view_builds_filter_buttons():
     group = _RosterGroup(core=_CoreStub(champion_rows))
     list_view = slash_roster_module._RosterListControlsView(group, types.SimpleNamespace(id=42, display_name="jjw"), "7*")
     labels = [child.label for child in list_view.children]
-    assert labels == ["AWAKEN", "RANKUP", "TIERLIST", "CLEAR"]
+    assert labels == ["AWAKEN", "RANKUP", "TIERLIST", "CLEAR", "STAR", "RANK", "CLASS"]
 
 
 def test_slash_roster_list_default_uses_description_and_mode_uses_fields(monkeypatch):

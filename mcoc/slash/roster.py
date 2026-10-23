@@ -151,28 +151,147 @@ class _RosterAddModal(ui.Modal):
 
 
 class _RosterListControlsView(ui.View):
-    def __init__(self, group: "_RosterGroup", target_user: Any, base_hargs: str = "", *, timeout: float = 180.0):
+    def __init__(self, group: "_RosterGroup", target_user: Any, base_hargs: str = "", parsed_filters: Optional[dict] = None, *, timeout: float = 180.0):
         super().__init__(timeout=timeout)
         self.group = group
         self.target_user = target_user
         self.base_hargs = base_hargs or ""
+        self.parsed_filters = dict(parsed_filters or {})
         for label, mode in (("AWAKEN", "awaken"), ("RANKUP", "rankup"), ("TIERLIST", "tierlist"), ("CLEAR", "default")):
-            self.add_item(_RosterListModeButton(group, target_user, self.base_hargs, label, mode))
+            self.add_item(_RosterListModeButton(group, target_user, self.base_hargs, label, mode, parsed_filters=self.parsed_filters))
+        self.add_item(_RosterQuickFilterButton(group, target_user, self.base_hargs, self.parsed_filters, "STAR", "star", row=1))
+        self.add_item(_RosterQuickFilterButton(group, target_user, self.base_hargs, self.parsed_filters, "RANK", "rank", row=1))
+        self.add_item(_RosterQuickFilterButton(group, target_user, self.base_hargs, self.parsed_filters, "CLASS", "class", row=1))
+
+
+class _RosterQuickFilterSelect(ui.Select):
+    def __init__(self, group: "_RosterGroup", target_user: Any, base_hargs: str, parsed_filters: dict, kind: str, anchor_message: Any):
+        self.group = group
+        self.target_user = target_user
+        self.base_hargs = base_hargs or ""
+        self.parsed_filters = dict(parsed_filters or {})
+        self.kind = kind
+        self.anchor_message = anchor_message
+
+        if kind == "star":
+            options = [
+                discord.SelectOption(label="Any Star", value=""),
+                discord.SelectOption(label="7★", value="7"),
+                discord.SelectOption(label="6★", value="6"),
+                discord.SelectOption(label="5★", value="5"),
+                discord.SelectOption(label="4★", value="4"),
+            ]
+            placeholder = "Select star tier"
+        elif kind == "rank":
+            options = [
+                discord.SelectOption(label="Any Rank", value=""),
+                discord.SelectOption(label="Rank 1", value="1"),
+                discord.SelectOption(label="Rank 2", value="2"),
+                discord.SelectOption(label="Rank 3", value="3"),
+                discord.SelectOption(label="Rank 4", value="4"),
+                discord.SelectOption(label="Rank 5", value="5"),
+            ]
+            placeholder = "Select rank"
+        else:
+            options = [
+                discord.SelectOption(label="All Classes", value=""),
+                discord.SelectOption(label="Science", value="science"),
+                discord.SelectOption(label="Skill", value="skill"),
+                discord.SelectOption(label="Mutant", value="mutant"),
+                discord.SelectOption(label="Tech", value="tech"),
+                discord.SelectOption(label="Cosmic", value="cosmic"),
+                discord.SelectOption(label="Mystic", value="mystic"),
+            ]
+            placeholder = "Select class"
+
+        super().__init__(placeholder=placeholder, min_values=1, max_values=1, options=options)
+
+    async def callback(self, interaction):
+        parsed = dict(self.parsed_filters or {})
+        selected = str((self.values or [""])[0] or "").strip().lower()
+        if self.kind == "star":
+            if selected and selected.isdigit():
+                parsed["rarities"] = [int(selected)]
+            else:
+                parsed.pop("rarities", None)
+        elif self.kind == "rank":
+            if selected and selected.isdigit():
+                parsed["ranks"] = [int(selected)]
+            else:
+                parsed.pop("ranks", None)
+        else:
+            if selected:
+                parsed["classes"] = [selected]
+            else:
+                parsed.pop("classes", None)
+
+        try:
+            pager = await self.group._build_roster_list_pager(self.target_user, self.base_hargs, parsed, author_for_controls=getattr(interaction, "user", self.target_user))
+            if not pager:
+                await interaction.response.send_message("No roster entries match the selected filters.", ephemeral=True)
+                return
+            embed = pager.pages[0]
+            if self.anchor_message is not None and hasattr(self.anchor_message, "edit"):
+                await self.anchor_message.edit(embed=embed, view=pager)
+            await interaction.response.edit_message(content="Applied.", view=None)
+        except Exception:
+            log.exception("roster quick filter apply failed")
+            await interaction.response.send_message("Unable to apply filter right now.", ephemeral=True)
+
+
+class _RosterQuickFilterPickerView(ui.View):
+    def __init__(self, group: "_RosterGroup", target_user: Any, base_hargs: str, parsed_filters: dict, kind: str, anchor_message: Any):
+        super().__init__(timeout=120)
+        self.add_item(_RosterQuickFilterSelect(group, target_user, base_hargs, parsed_filters, kind, anchor_message))
+
+
+class _RosterQuickFilterButton(ui.Button):
+    def __init__(self, group: "_RosterGroup", target_user: Any, base_hargs: str, parsed_filters: dict, label: str, kind: str, *, row: Optional[int] = None):
+        super().__init__(label=label, style=discord.ButtonStyle.primary, row=row)
+        self.group = group
+        self.target_user = target_user
+        self.base_hargs = base_hargs or ""
+        self.parsed_filters = dict(parsed_filters or {})
+        self.kind = kind
+
+    async def callback(self, interaction):
+        try:
+            picker = _RosterQuickFilterPickerView(
+                self.group,
+                self.target_user,
+                self.base_hargs,
+                self.parsed_filters,
+                self.kind,
+                getattr(interaction, "message", None),
+            )
+            await interaction.response.send_message("Choose a value:", view=picker, ephemeral=True)
+        except Exception:
+            log.exception("roster quick filter button failed")
+            await interaction.response.send_message("Unable to open filter picker right now.", ephemeral=True)
 
 
 class _RosterListModeButton(ui.Button):
-    def __init__(self, group: "_RosterGroup", target_user: Any, base_hargs: str, label: str, mode: str):
+    def __init__(self, group: "_RosterGroup", target_user: Any, base_hargs: str, label: str, mode: str, *, parsed_filters: Optional[dict] = None):
         super().__init__(label=label, style=discord.ButtonStyle.secondary)
         self.group = group
         self.target_user = target_user
         self.base_hargs = base_hargs or ""
+        self.parsed_filters = dict(parsed_filters or {})
         self.mode = mode or "default"
 
     async def callback(self, interaction):
         try:
-            parsed = parse_hargs(self.base_hargs or "")
-            parsed["list_mode"] = self.mode
-            pager = await make_roster_pager(self.group.core, self.target_user, raw_input=self.base_hargs or "", parsed_filters=parsed, author_for_controls=getattr(interaction, "user", self.target_user))
+            parsed = dict(self.parsed_filters or parse_hargs(self.base_hargs or ""))
+            if self.mode == "default":
+                parsed.pop("list_mode", None)
+            else:
+                parsed["list_mode"] = self.mode
+            pager = await self.group._build_roster_list_pager(
+                self.target_user,
+                self.base_hargs,
+                parsed,
+                author_for_controls=getattr(interaction, "user", self.target_user),
+            )
             if not pager:
                 await interaction.response.send_message("No roster entries match the selected view.", ephemeral=True)
                 return
@@ -198,6 +317,25 @@ class _RosterGroup(app_commands.Group):
         self.core = core
         self._init_failed = False
         # do not create heavy objects here
+
+    async def _build_roster_list_pager(self, target_user: Any, base_hargs: str, parsed_filters: dict, *, author_for_controls: Any) -> Optional[CDTPagesMenu]:
+        pager = await make_roster_pager(
+            self.core,
+            target_user,
+            raw_input=base_hargs or "",
+            parsed_filters=parsed_filters,
+            author_for_controls=author_for_controls,
+        )
+        if not pager:
+            return None
+        try:
+            # Preserve roster list controls when switching to paged views.
+            controls = _RosterListControlsView(self, target_user, base_hargs or "", parsed_filters=parsed_filters)
+            for item in getattr(controls, "children", []) or []:
+                pager.add_item(item)
+        except Exception:
+            pass
+        return pager
 
     async def _prompt_single_champion_modal(self, interaction, champion: str):
         await interaction.response.send_modal(_RosterAddModal(self.core, champion))
@@ -948,21 +1086,14 @@ class _RosterGroup(app_commands.Group):
         try:
             target_user, cleaned_hargs = await self._resolve_target_for_list(interaction, raw_hargs)
             parsed = parse_hargs(cleaned_hargs or "")
-            pager = await make_roster_pager(
-                self.core,
-                target_user,
-                raw_input=cleaned_hargs or "",
-                parsed_filters=parsed,
-                author_for_controls=interaction.user,
-            )
+            pager = await self._build_roster_list_pager(target_user, cleaned_hargs or "", parsed, author_for_controls=interaction.user)
 
             if not pager:
                 await sender("No roster entries match your filters.", ephemeral=True)
                 return
 
             try:
-                list_view = _RosterListControlsView(self, target_user, cleaned_hargs or "")
-                await sender(embed=pager.pages[0], view=list_view)
+                await sender(embed=pager.pages[0], view=pager)
             except Exception:
                 # fallback: send simple list
                 names = []

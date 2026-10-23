@@ -2403,7 +2403,7 @@ async def make_roster_pager(core: Any, ctx_or_author: Any, *, raw_input: Optiona
 
         author = author_for_controls or (ctx_or_author.author if hasattr(ctx_or_author, "author") else ctx_or_author)
         try:
-            pager = CDTPagesMenu(pages, author=author)
+            pager = CDTPagesMenu(pages, author=author, show_filter=False)
         except TypeError:
             try:
                 pager = CDTPagesMenu(pages, ctx_or_author)
