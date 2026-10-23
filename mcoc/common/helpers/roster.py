@@ -2080,6 +2080,20 @@ async def build_roster_pages(core: Any, ctx_or_author: Any, parsed_filters: Opti
         score_by_name = {}
         tier_by_name = {}
         awakened_set = set()
+
+        def _canonical_tokens(value: Any) -> List[str]:
+            base = str(value or "").strip().lower()
+            if not base:
+                return []
+            compact = re.sub(r"[^a-z0-9]+", "", base)
+            dashed = re.sub(r"[^a-z0-9]+", "-", base).strip("-")
+            undashed = dashed.replace("-", "") if dashed else ""
+            out = [base]
+            for token in (compact, dashed, undashed):
+                if token and token not in out:
+                    out.append(token)
+            return out
+
         try:
             tierlist = getattr(cache, "_load_file", lambda *_args, **_kwargs: {})("tierlist") if cache else {}
             if isinstance(tierlist, dict):
@@ -2087,30 +2101,59 @@ async def build_roster_pages(core: Any, ctx_or_author: Any, parsed_filters: Opti
                     if not isinstance(row, dict):
                         continue
                     for key in (row.get("id"), row.get("slug"), row.get("name"), row.get("en")):
-                        token = str(key or "").strip().lower()
-                        if not token:
-                            continue
-                        if token not in score_by_name:
-                            try:
-                                score_by_name[token] = float(row.get("score", 0) or 0)
-                            except Exception:
-                                score_by_name[token] = 0.0
-                        if token not in tier_by_name:
-                            tier = str(row.get("tier") or "").strip()
-                            if tier:
-                                tier_by_name[token] = tier
-                        if bool(row.get("awakened", False)):
-                            awakened_set.add(token)
+                        for token in _canonical_tokens(key):
+                            if token not in score_by_name:
+                                try:
+                                    score_by_name[token] = float(row.get("score", 0) or 0)
+                                except Exception:
+                                    score_by_name[token] = 0.0
+                            if token not in tier_by_name:
+                                tier = str(row.get("tier") or "").strip()
+                                if tier:
+                                    tier_by_name[token] = tier
+                            if bool(row.get("awakened", False)):
+                                awakened_set.add(token)
         except Exception:
             score_by_name = {}
             tier_by_name = {}
             awakened_set = set()
 
+        for entry in filtered_entries:
+            keys: List[str] = []
+            keys.extend(_canonical_tokens(entry.get("champion")))
+            keys.extend(_canonical_tokens(entry.get("raw")))
+            try:
+                if cache:
+                    champ_row = cache.get_champion(entry.get("champion"))
+                    if isinstance(champ_row, dict):
+                        keys.extend(_canonical_tokens(champ_row.get("id")))
+                        keys.extend(_canonical_tokens(champ_row.get("slug")))
+                        keys.extend(_canonical_tokens(champ_row.get("name")))
+                        keys.extend(_canonical_tokens(champ_row.get("en")))
+            except Exception:
+                pass
+
+            seen = set()
+            ordered_keys = []
+            for token in keys:
+                if token and token not in seen:
+                    seen.add(token)
+                    ordered_keys.append(token)
+
+            for token in ordered_keys:
+                if not entry.get("tier") and token in tier_by_name:
+                    entry["tier"] = str(tier_by_name.get(token) or "").strip().upper()
+                if entry.get("score") is None and token in score_by_name:
+                    try:
+                        entry["score"] = float(score_by_name.get(token) or 0.0)
+                    except Exception:
+                        entry["score"] = 0.0
+
+            entry["_awakened_by_tierlist"] = any(token in awakened_set for token in ordered_keys)
+
         def _tier_sort_key(e: Dict[str, Any]):
-            slug = str(e.get("champion") or "").strip().lower()
-            name = str(e.get("raw") or "").strip().lower()
-            tier = str(e.get("tier") or tier_by_name.get(slug) or tier_by_name.get(name) or "").strip().upper()
-            score = float(e.get("score") or score_by_name.get(slug) or score_by_name.get(name) or 0.0)
+            tier = str(e.get("tier") or "").strip().upper()
+            score = float(e.get("score") or 0.0)
             return (tier_order.get(tier.lower(), 99), -score, -int(e.get("rarity") or e.get("stars") or 0), int(e.get("rank") or 0), -int(e.get("sig") or 0))
 
         def _sort_key(e: Dict[str, Any]):
@@ -2125,8 +2168,7 @@ async def build_roster_pages(core: Any, ctx_or_author: Any, parsed_filters: Opti
             filtered_entries = [
                 e for e in filtered_entries
                 if int(e.get("sig") or 0) < 1 and (
-                    str(e.get("champion") or "").strip().lower() in awakened_set
-                    or str(e.get("raw") or "").strip().lower() in awakened_set
+                    bool(e.get("_awakened_by_tierlist"))
                 )
             ]
         try:

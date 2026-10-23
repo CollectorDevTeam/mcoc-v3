@@ -261,6 +261,19 @@ class _RosterGroup(app_commands.Group):
         return selected
 
     def _tierlist_score_map(self) -> dict:
+        def _canonical_tokens(value: Any) -> List[str]:
+            base = str(value or "").strip().lower()
+            if not base:
+                return []
+            compact = re.sub(r"[^a-z0-9]+", "", base)
+            dashed = re.sub(r"[^a-z0-9]+", "-", base).strip("-")
+            undashed = dashed.replace("-", "") if dashed else ""
+            out = [base]
+            for token in (compact, dashed, undashed):
+                if token and token not in out:
+                    out.append(token)
+            return out
+
         cache = getattr(self.core, "cache", None)
         if not cache or not hasattr(cache, "_load_file"):
             return {}
@@ -280,18 +293,26 @@ class _RosterGroup(app_commands.Group):
                 score = float(row.get("score", 0) or 0)
             except Exception:
                 score = 0.0
-            for key in (
-                row.get("id"),
-                row.get("slug"),
-                row.get("name"),
-                row.get("en"),
-            ):
-                token = str(key or "").strip().lower()
-                if token and token not in scores:
-                    scores[token] = score
+            for key in (row.get("id"), row.get("slug"), row.get("name"), row.get("en")):
+                for token in _canonical_tokens(key):
+                    if token not in scores:
+                        scores[token] = score
         return scores
 
     def _tierlist_tier_map(self) -> dict:
+        def _canonical_tokens(value: Any) -> List[str]:
+            base = str(value or "").strip().lower()
+            if not base:
+                return []
+            compact = re.sub(r"[^a-z0-9]+", "", base)
+            dashed = re.sub(r"[^a-z0-9]+", "-", base).strip("-")
+            undashed = dashed.replace("-", "") if dashed else ""
+            out = [base]
+            for token in (compact, dashed, undashed):
+                if token and token not in out:
+                    out.append(token)
+            return out
+
         cache = getattr(self.core, "cache", None)
         if not cache or not hasattr(cache, "_load_file"):
             return {}
@@ -310,18 +331,26 @@ class _RosterGroup(app_commands.Group):
             tier = str(row.get("tier") or "").strip().upper()
             if not tier:
                 continue
-            for key in (
-                row.get("id"),
-                row.get("slug"),
-                row.get("name"),
-                row.get("en"),
-            ):
-                token = str(key or "").strip().lower()
-                if token and token not in tiers:
-                    tiers[token] = tier
+            for key in (row.get("id"), row.get("slug"), row.get("name"), row.get("en")):
+                for token in _canonical_tokens(key):
+                    if token not in tiers:
+                        tiers[token] = tier
         return tiers
 
     def _tierlist_awakened_set(self) -> set:
+        def _canonical_tokens(value: Any) -> List[str]:
+            base = str(value or "").strip().lower()
+            if not base:
+                return []
+            compact = re.sub(r"[^a-z0-9]+", "", base)
+            dashed = re.sub(r"[^a-z0-9]+", "-", base).strip("-")
+            undashed = dashed.replace("-", "") if dashed else ""
+            out = [base]
+            for token in (compact, dashed, undashed):
+                if token and token not in out:
+                    out.append(token)
+            return out
+
         cache = getattr(self.core, "cache", None)
         if not cache or not hasattr(cache, "_load_file"):
             return set()
@@ -339,14 +368,8 @@ class _RosterGroup(app_commands.Group):
                 continue
             if not bool(row.get("awakened", False)):
                 continue
-            for key in (
-                row.get("id"),
-                row.get("slug"),
-                row.get("name"),
-                row.get("en"),
-            ):
-                token = str(key or "").strip().lower()
-                if token:
+            for key in (row.get("id"), row.get("slug"), row.get("name"), row.get("en")):
+                for token in _canonical_tokens(key):
                     awakened_needed.add(token)
         return awakened_needed
 
@@ -391,14 +414,17 @@ class _RosterGroup(app_commands.Group):
                     continue
 
                 name = str((champ or {}).get("name") or slug).strip() or slug
+                keys = [slug, name.lower()]
+                keys.append(re.sub(r"[^a-z0-9]+", "", slug.lower()))
+                keys.append(re.sub(r"[^a-z0-9]+", "", name.lower()))
                 score = 0.0
-                for key in (slug, name.lower()):
+                for key in keys:
                     if key in score_map:
                         score = float(score_map[key])
                         break
 
                 tier = ""
-                for key in (slug, name.lower()):
+                for key in keys:
                     if key in tier_map:
                         tier = str(tier_map[key])
                         break
@@ -466,18 +492,21 @@ class _RosterGroup(app_commands.Group):
                     continue
 
                 name = str((champ or {}).get("name") or slug).strip() or slug
-                tierlist_match = any(token in awakened_needed for token in (slug, name.lower()))
+                keys = [slug, name.lower()]
+                keys.append(re.sub(r"[^a-z0-9]+", "", slug.lower()))
+                keys.append(re.sub(r"[^a-z0-9]+", "", name.lower()))
+                tierlist_match = any(token in awakened_needed for token in keys)
                 if not tierlist_match:
                     continue
 
                 score = 0.0
-                for key in (slug, name.lower()):
+                for key in keys:
                     if key in score_map:
                         score = float(score_map[key])
                         break
 
                 tier = ""
-                for key in (slug, name.lower()):
+                for key in keys:
                     if key in tier_map:
                         tier = str(tier_map[key])
                         break
