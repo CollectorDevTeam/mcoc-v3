@@ -356,16 +356,16 @@ def test_runtime_version_label_returns_commit_and_branch(monkeypatch):
     assert slash_account_module._runtime_version_label() == "runtime: b645348 (dev-slash)"
 
 
-def test_profile_settings_modal_has_single_roster_selector(monkeypatch):
-    from mcoc.slash.account import _ProfileSettingsModal
+def test_profile_settings_page_selector_has_single_roster_selector(monkeypatch):
+    from mcoc.slash.account import _ProfilePageSelectorView
 
     monkeypatch.setattr(
         "mcoc.slash.account.Account.get_selectable_rosters",
         lambda *a, **k: (["main"], "main"),
     )
 
-    modal = _ProfileSettingsModal(core=object(), user_id=42, profile={}, page=1)
-    roster_selector = modal.inputs.get("active_roster")
+    view = _ProfilePageSelectorView(core=object(), user_id=42, profile={}, mode="edit")
+    roster_selector = view.children[0]
 
     assert roster_selector is not None
     assert [option.value for option in roster_selector.options] == ["main"]
@@ -391,7 +391,7 @@ def test_account_manager_modal_errors_show_the_real_reason(monkeypatch):
 
     interaction = types.SimpleNamespace(response=_ResponseStub())
     import asyncio
-    asyncio.run(view.children[0].callback(interaction))
+    asyncio.run(view.children[1].callback(interaction))
 
     assert len(calls) == 1
     assert "modal blocked" in calls[0]["message"]

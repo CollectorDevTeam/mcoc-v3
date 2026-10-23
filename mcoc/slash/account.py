@@ -43,23 +43,14 @@ _PROFILE_PAGE_LAYOUTS = {
     1: [
         ("MCOC username", "mcoc_name", 100),
         ("Alliance", "alliance", 100),
-        ("MCOC roster", "active_roster", 100),
         ("Timezone", "timezone", 100),
         ("Website", "website", 250),
     ],
     2: [
         ("About", "about", 1000),
-        ("Job", "job", 100),
-        ("Age", "age", 50),
-        ("Gender", "gender", 50),
-        ("Invite", "invite", 250),
-    ],
-    3: [
         ("Started", "started", 100),
-        ("Privacy mode", "privacy_mode", 50),
-        ("Roster public", "roster_public", 20),
-        ("Display name", "display_name", 100),
-        ("MCOC ID", "mcoc_id", 50),
+        ("Invite", "invite", 250),
+        ("Gender", "gender", 50),
     ],
 }
 
@@ -88,8 +79,37 @@ class _ProfilePageSelectorView(discord.ui.View):
         self.profile = profile or {}
         self.mode = mode
 
-        pages = {"view": ["Info", "Details", "Privacy"], "edit": ["Info", "Details", "Privacy"]}
-        for label, page_number in zip(pages[mode], [1, 2, 3]):
+        roster_ids, active_id = Account.get_selectable_rosters(core, user_id)
+        if not roster_ids:
+            roster_ids = ["default"]
+        default_roster = active_id or roster_ids[0]
+        self.roster_selector = discord.ui.Select(
+            placeholder="MCOC roster",
+            options=[
+                discord.SelectOption(
+                    label=roster_id,
+                    value=roster_id,
+                    default=str(roster_id) == str(default_roster),
+                )
+                for roster_id in roster_ids
+            ],
+            min_values=1,
+            max_values=1,
+        )
+
+        async def _update_roster(interaction: discord.Interaction):
+            value = self.roster_selector.values[0] if self.roster_selector.values else default_roster
+            ok, msg = Account.select_active_roster(core, user_id, value)
+            if ok:
+                await interaction.response.send_message(msg, ephemeral=True)
+            else:
+                await interaction.response.send_message(msg, ephemeral=True)
+
+        self.roster_selector.callback = _update_roster
+        self.add_item(self.roster_selector)
+
+        pages = {"view": ["Info", "Details"], "edit": ["Info", "Details"]}
+        for label, page_number in zip(pages[mode], [1, 2]):
             button = discord.ui.Button(label=label, style=discord.ButtonStyle.primary)
 
             async def _open_page(interaction: discord.Interaction, page_number: int = page_number):
@@ -162,28 +182,6 @@ class _ProfileSettingsModal(discord.ui.Modal):
         self.inputs = {}
         for label, field_name, max_length in _PROFILE_PAGE_LAYOUTS.get(page, _PROFILE_PAGE_LAYOUTS[1]):
             default = self.profile.get(field_name) or ("about" if field_name == "about" else "")
-            if field_name == "active_roster":
-                roster_ids, active_id = Account.get_selectable_rosters(self.core, self.user_id)
-                if not roster_ids:
-                    roster_ids = ["default"]
-                default_roster = active_id or roster_ids[0]
-                options = [
-                    discord.SelectOption(
-                        label=roster_id,
-                        value=roster_id,
-                        default=str(roster_id) == str(default_roster),
-                    )
-                    for roster_id in roster_ids
-                ]
-                selector = discord.ui.Select(
-                    placeholder="MCOC roster",
-                    options=options,
-                    min_values=1,
-                    max_values=1,
-                )
-                self.inputs[field_name] = selector
-                self.add_item(selector)
-                continue
             if field_name == "timezone":
                 selector = discord.ui.Select(
                     placeholder="Timezone",
@@ -218,45 +216,17 @@ class _ProfileSettingsModal(discord.ui.Modal):
             self.add_item(text_input)
 
     async def on_submit(self, interaction: discord.Interaction):
-        permitted = {"private", "guild", "alliance", "public"}
         saved = []
         for field_name, input_obj in self.inputs.items():
             if hasattr(input_obj, "values"):
                 value = (input_obj.values[0] if getattr(input_obj, "values", None) else "").strip()
             else:
                 value = (getattr(input_obj, "value", "") or "").strip()
-            if value == "":
-                continue
 
-            if field_name == "privacy_mode":
-                lowered = value.lower()
-                if lowered not in permitted:
-                    await interaction.response.send_message(
-                        "Privacy mode must be one of: private, guild, alliance, public.",
-                        ephemeral=True,
-                    )
-                    return
-                value = lowered
-            elif field_name == "roster_public":
-                lowered = value.lower()
-                if lowered in {"1", "true", "yes", "on", "y"}:
-                    value = True
-                elif lowered in {"0", "false", "no", "off", "n"}:
-                    value = False
-                else:
-                    await interaction.response.send_message(
-                        "Roster public must be true/false, yes/no, or 1/0.",
-                        ephemeral=True,
-                    )
-                    return
-            elif field_name == "active_roster":
-                ok, msg = Account.select_active_roster(self.core, self.user_id, value)
-                if not ok:
-                    await interaction.response.send_message(msg, ephemeral=True)
-                    return
-                saved.append(field_name)
-                continue
-            elif value.lower() in {"clear", "none", "null", "unset"}:
+            if value == "":
+                value = None
+
+            if value is not None and value.lower() in {"clear", "none", "null", "unset"}:
                 value = None
 
             Account.set_profile_field(self.core, self.user_id, field_name, value)
@@ -428,8 +398,11 @@ class _AccountManagerView(discord.ui.View):
             if self.has_account:
                 await interaction.response.send_message("You already have an account configured.", ephemeral=True)
                 return
+            privacy_url = Account.POLICY_METADATA["privacy_policy"]["url"]
+            terms_url = Account.POLICY_METADATA["terms_of_service"]["url"]
             await interaction.response.send_message(
-                "CollectorBot stores only account fields you explicitly set. We do not save Discord API metadata.\n\nPlease review the privacy policy and then continue.",
+                "CollectorBot stores only account fields you explicitly set. We do not save Discord API metadata.\n\nPlease review our [Privacy Policy](%s) and [Terms of Service](%s) before continuing."
+                % (privacy_url, terms_url),
                 view=_AccountConsentView(core, user_id),
                 ephemeral=True,
             )

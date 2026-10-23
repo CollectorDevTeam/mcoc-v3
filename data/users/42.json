@@ -26,7 +26,8 @@
     "alliance": null,
     "job": null,
     "created_at": "2026-10-22T21:26:55.822270",
-    "updated_at": "2026-10-22T21:26:55.822270"
+    "updated_at": "2026-10-23T17:02:17.179166",
+    "active_roster": "default"
   },
   "privacy": {
     "mode": "private",
