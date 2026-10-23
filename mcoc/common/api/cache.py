@@ -342,13 +342,23 @@ class CacheManager:
 
     def get_prestige_value(self, slug: str, tier: int, rank: int, asc: int, sig: int = 0) -> Optional[int]:
         table = self.get_prestige_table(tier, rank, asc)
-        slug = (slug or "").strip().lower()
+        slug = (slug or "").strip()
+        slug_token = self._normalize_lookup_token(slug)
         if not table:
             return None
         for r in table.get("rows", []):
-            if (r.get("slug") or "").lower() == slug.lower() or (r.get("name") or "").lower() == slug.lower():
+            row_tokens = {
+                self._normalize_lookup_token(r.get("slug")),
+                self._normalize_lookup_token(r.get("name")),
+                self._normalize_lookup_token(r.get("id")),
+            }
+            if slug_token and slug_token in row_tokens:
                 sigs = r.get("sigs") or {}
                 # smoothing
+                return self._smooth_sig_value(sigs, sig)
+            # Support name variants with spaces/hyphens/punctuation stripped.
+            if slug and slug.lower() in {(str(r.get("slug") or "")).lower(), (str(r.get("name") or "")).lower()}:
+                sigs = r.get("sigs") or {}
                 return self._smooth_sig_value(sigs, sig)
         return None
 

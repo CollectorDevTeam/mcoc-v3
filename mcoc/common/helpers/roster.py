@@ -1925,8 +1925,20 @@ async def _resolve_prestige_for_entry(core: Any, entry: Dict[str, Any], prestige
             except Exception:
                 pass
 
+        # If the table is locally stale/missing this progression, refresh once before final fallback.
+        if cache and hasattr(cache, "check_update_prestige") and getattr(core, "api", None) is not None:
+            try:
+                await cache.check_update_prestige(core.api, force=False)
+                if cache and hasattr(cache, "get_prestige_value"):
+                    direct_prestige = cache.get_prestige_value(slug, stars, rank, asc, raw_sig)
+                    if isinstance(direct_prestige, (int, float)):
+                        return int(direct_prestige)
+            except Exception:
+                pass
+
         # Legacy map fallback for backward compatibility with older key format.
-        if key_legacy in (prestige_map or {}) and prestige_map.get(key_legacy) is not None:
+        # Only use this for baseline progression; progressed entries should never inherit a stale slug|stars value.
+        if rank <= 1 and raw_sig <= 0 and raw_asc <= 0 and key_legacy in (prestige_map or {}) and prestige_map.get(key_legacy) is not None:
             try:
                 return int(prestige_map.get(key_legacy))
             except Exception:
