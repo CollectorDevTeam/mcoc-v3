@@ -892,6 +892,14 @@ class _RosterGroup(app_commands.Group):
     @app_commands.command(name="list", description="List your roster with optional filters")
     async def list(self, interaction, hargs: Optional[str] = None):
         raw_hargs = str(hargs or "").strip()
+        sender = interaction.response.send_message
+        try:
+            await interaction.response.defer(ephemeral=False)
+            sender = interaction.followup.send if getattr(interaction.response, "is_done", lambda: False)() else interaction.response.send_message
+        except Exception:
+            # If defer fails, fall back to direct response attempt.
+            sender = interaction.response.send_message
+
         try:
             target_user, cleaned_hargs = await self._resolve_target_for_list(interaction, raw_hargs)
             parsed = parse_hargs(cleaned_hargs or "")
@@ -904,22 +912,22 @@ class _RosterGroup(app_commands.Group):
             )
 
             if not pager:
-                await interaction.response.send_message("No roster entries match your filters.", ephemeral=True)
+                await sender("No roster entries match your filters.", ephemeral=True)
                 return
 
             # add page numbers and send with PagesMenu if available
             try:
-                await interaction.response.send_message(embed=pager.pages[0], view=pager)
+                await sender(embed=pager.pages[0], view=pager)
             except Exception:
                 # fallback: send simple list
                 names = []
                 for page in pager.pages[:50]:
                     names.append(page.get("title") if isinstance(page, dict) else getattr(page, "title", None) or "Entry")
-                await interaction.response.send_message(f"Matches ({len(pager.pages)}): {', '.join(names)}", ephemeral=True)
+                await sender(f"Matches ({len(pager.pages)}): {', '.join(names)}", ephemeral=True)
         except Exception:
             log.exception("slash roster list failed")
             try:
-                await interaction.response.send_message("Roster list failed; please try again.", ephemeral=True)
+                await sender("Roster list failed; please try again.", ephemeral=True)
             except Exception:
                 pass
 

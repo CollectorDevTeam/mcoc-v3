@@ -617,14 +617,7 @@ def compute_top5_from_roster(parent: Any, roster: List[Dict[str, Any]], profile:
                 stars = int(e.get("rarity") or e.get("stars") or 0)
                 key = f"{slug}|{stars}"
                 p = None
-                if key in prestige_map and prestige_map.get(key) is not None:
-                    try:
-                        pm_value = int(prestige_map.get(key))
-                        if pm_value > 0:
-                            p = pm_value
-                    except Exception:
-                        p = None
-                if p is None and cache and hasattr(cache, "get_prestige_value"):
+                if cache and hasattr(cache, "get_prestige_value"):
                     try:
                         p = cache.get_prestige_value(
                             slug,
@@ -635,6 +628,7 @@ def compute_top5_from_roster(parent: Any, roster: List[Dict[str, Any]], profile:
                         )
                     except Exception:
                         p = None
+
                 if p is None and cache and hasattr(cache, "get_cocpit_abilities") and slug:
                     try:
                         ability_row = cache.get_cocpit_abilities(slug)
@@ -647,6 +641,15 @@ def compute_top5_from_roster(parent: Any, roster: List[Dict[str, Any]], profile:
                                     p = int(value)
                     except Exception:
                         p = None
+
+                if p is None and key in prestige_map and prestige_map.get(key) is not None:
+                    try:
+                        cached_prestige = int(prestige_map.get(key))
+                        if cached_prestige > 0:
+                            p = cached_prestige
+                    except Exception:
+                        p = None
+
                 name = slug
                 if cache:
                     try:

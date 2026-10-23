@@ -215,3 +215,46 @@ def test_slash_account_create_uses_backend_enroll_handler(monkeypatch):
     call = interaction.response.calls[0]
     assert call.get("content") == "Failed to start enrollment: policy backend unavailable"
     assert call.get("ephemeral") is True
+
+
+def test_account_compute_top5_from_roster_ignores_stale_prestige_cache():
+    class _Cache:
+        def get_prestige_value(self, slug, stars, rank, ascended, sig):
+            return {"abomination": 4200, "black-bolt": 3500}.get(slug, 0)
+
+    profile = {"prestige_map": {"abomination|6": 99999, "black-bolt|6": 99999}}
+    roster = [
+        {"champion": "abomination", "rarity": 6, "rank": 1, "sig": 0, "ascended": 0},
+        {"champion": "black-bolt", "rarity": 6, "rank": 1, "sig": 0, "ascended": 0},
+    ]
+
+    from mcoc.common.helpers import account as account_helpers
+
+    lines, total = account_helpers.compute_top5_from_roster(type("Core", (), {"cache": _Cache()})(), roster, profile)
+
+    assert total == 7700
+    assert "abomination" in lines[0]
+    assert "4200" in lines[0]
+    assert "black-bolt" in lines[1]
+    assert "3500" in lines[1]
+
+
+def test_slash_account_set_updates_profile_field(monkeypatch):
+    group = _AccountGroup(core=object())
+    interaction = _InteractionStub()
+
+    from mcoc.slash import account as slash_account_module
+
+    monkeypatch.setattr(
+        slash_account_module.Account,
+        "set_profile_field",
+        lambda *a, **k: True,
+    )
+
+    import asyncio
+    asyncio.run(_invoke(group.set, group, interaction, field="about", value="hello world"))
+
+    assert len(interaction.response.calls) == 1
+    call = interaction.response.calls[0]
+    assert call.get("content") == "Updated about: hello world"
+    assert call.get("ephemeral") is True

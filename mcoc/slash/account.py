@@ -92,6 +92,40 @@ class _AccountGroup(app_commands.Group):
             ephemeral=True,
         )
 
+    @app_commands.command(name="set", description="Set a profile field value")
+    @app_commands.describe(field="Profile field name", value="Value to store")
+    async def set(self, interaction: discord.Interaction, field: str, value: Optional[str] = None):
+        user_id = self._user_id(interaction)
+        name = (field or "").strip().lower()
+        if not name:
+            await interaction.response.send_message("Provide a profile field name to update.", ephemeral=True)
+            return
+
+        canonical = Account.FIELD_CANONICAL.get(name, name)
+        if not Account.validate_profile_field(name):
+            await interaction.response.send_message(
+                f"Unknown profile field: {field}. Allowed fields: {', '.join(sorted(Account.FIELD_CANONICAL.keys()))}",
+                ephemeral=True,
+            )
+            return
+
+        raw_value = value
+        if raw_value is None or str(raw_value).strip() == "":
+            stored_value = None
+        else:
+            text = str(raw_value).strip()
+            lowered = text.lower()
+            if lowered in {"clear", "none", "null", "unset"}:
+                stored_value = None
+            elif canonical in {"roster_public", "linked", "consent"}:
+                stored_value = lowered in {"1", "true", "yes", "on"}
+            else:
+                stored_value = text
+
+        ok = Account.set_profile_field(self.core, user_id, canonical, stored_value)
+        pretty = "not set" if stored_value is None else Account.stringify_setting_value(stored_value)
+        await interaction.response.send_message(f"Updated {canonical}: {pretty}" if ok else "Failed to update profile field.", ephemeral=True)
+
     @app_commands.command(name="privacy", description="View or set your privacy mode")
     @app_commands.describe(mode="private | guild | alliance | public")
     async def privacy(self, interaction: discord.Interaction, mode: Optional[str] = None):
