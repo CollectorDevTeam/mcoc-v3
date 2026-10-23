@@ -230,7 +230,7 @@ class _AccountManagerView(discord.ui.View):
 
         profile = Account.get_profile(core, user_id) or {}
         consented = Account.user_has_consented(core, user_id)
-        has_account = bool(profile)
+        has_account = Account.user_has_profile(core, user_id) if hasattr(Account, "user_has_profile") else bool(profile)
 
         view_btn = discord.ui.Button(label="VIEW", style=discord.ButtonStyle.primary)
         edit_btn = discord.ui.Button(label="EDIT", style=discord.ButtonStyle.primary)

@@ -250,6 +250,55 @@ def test_account_manager_no_profile_shows_create_only(monkeypatch):
     assert "CONSENT" not in labels
 
 
+def test_account_manager_after_consent_has_standard_actions(monkeypatch):
+    from mcoc.slash.account import _AccountManagerView
+
+    monkeypatch.setattr(
+        "mcoc.slash.account.Account.get_profile",
+        lambda *a, **k: {"consent": True, "privacy_mode": "private"},
+    )
+    monkeypatch.setattr(
+        "mcoc.slash.account.Account.user_has_consented",
+        lambda *a, **k: True,
+    )
+    monkeypatch.setattr(
+        "mcoc.slash.account.Account.user_has_profile",
+        lambda *a, **k: True,
+    )
+
+    view = _AccountManagerView(core=object(), user_id=42)
+    labels = [item.label for item in view.children]
+
+    assert labels == ["VIEW", "EDIT", "PRIVACY"]
+    assert "CREATE" not in labels
+    assert "CONSENT" not in labels
+
+
+def test_account_manager_decline_keeps_empty_profile_out_of_manager(monkeypatch):
+    from mcoc.slash.account import _AccountManagerView
+
+    monkeypatch.setattr(
+        "mcoc.slash.account.Account.get_profile",
+        lambda *a, **k: {"consent": False, "consent_ts": "2026-01-01T00:00:00Z"},
+    )
+    monkeypatch.setattr(
+        "mcoc.slash.account.Account.user_has_consented",
+        lambda *a, **k: False,
+    )
+    monkeypatch.setattr(
+        "mcoc.slash.account.Account.user_has_profile",
+        lambda *a, **k: False,
+    )
+
+    view = _AccountManagerView(core=object(), user_id=42)
+    labels = [item.label for item in view.children]
+
+    assert labels == ["CREATE"]
+    assert "VIEW" not in labels
+    assert "EDIT" not in labels
+    assert "PRIVACY" not in labels
+
+
 def test_slash_public_profile_command_uses_defer_and_followup(monkeypatch):
     from mcoc.slash.account import AccountSlashCog
 

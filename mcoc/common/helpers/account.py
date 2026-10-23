@@ -851,6 +851,21 @@ def build_profile_display(parent: Any, ctx_or_author: Any, target_id: int, viewe
 # ----------------------------
 # Enrollment / Consent flow
 # ----------------------------
+def user_has_profile(parent: Any, user_id: int) -> bool:
+    """Return True only when the stored profile has meaningful user info, not just consent metadata."""
+    try:
+        profile = get_profile(parent, user_id) or {}
+        if not isinstance(profile, dict):
+            return False
+        if not profile:
+            return False
+        system_fields = {"consent", "consent_ts", "consent_version", "consent_source", "created_at", "updated_at"}
+        return any(key not in system_fields for key in profile.keys())
+    except Exception:
+        log.exception("user_has_profile check failed for %s", user_id)
+        return False
+
+
 def user_has_consented(parent: Any, user_id: int) -> bool:
     try:
         profile = get_profile(parent, user_id) or {}
@@ -977,11 +992,16 @@ async def handle_consent_response(parent: Any, ctx: Any, user_id: int, agree: bo
                 return True, "Consent recorded. Thank you."
             return False, "Failed to record consent."
         else:
-            # record explicit decline
-            set_profile_field(parent, user_id, "consent", False)
-            set_profile_field(parent, user_id, "consent_ts", datetime.datetime.utcnow().isoformat())
-            log.info("consent:declined user=%s", user_id)
-            return True, "Decline recorded."
+            # record explicit decline, but do not treat a consent-only placeholder as an actual account.
+            if user_has_profile(parent, user_id):
+                set_profile_field(parent, user_id, "consent", False)
+                set_profile_field(parent, user_id, "consent_ts", datetime.datetime.utcnow().isoformat())
+                log.info("consent:declined user=%s", user_id)
+                return True, "You have declined enrollment. Your profile remains private."
+
+            delete_user_profile(parent, user_id)
+            log.info("consent:declined user=%s -> cleared empty profile", user_id)
+            return True, "You have declined enrollment. Your profile remains private."
     except Exception:
         log.exception("handle_consent_response failed for %s", user_id)
         return False, "Failed to record consent response."
