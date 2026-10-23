@@ -482,7 +482,7 @@ class AccountSlashCog(commands.Cog):
             core = bot
 
         await interaction.response.send_message(
-            f"Manage your account settings and privacy.\n\n{_runtime_version_label()}",
+            f"Manage your CollectorVerse account settings and privacy.\n\n{_runtime_version_label()}",
             view=_AccountManagerView(core, user_id),
             ephemeral=True,
         )

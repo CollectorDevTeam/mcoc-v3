@@ -252,7 +252,7 @@ def test_account_manager_no_profile_shows_create_only(monkeypatch):
     assert "CONSENT" not in labels
 
 
-def test_user_has_profile_rejects_default_placeholder_profile():
+def test_user_has_profile_rejects_default_placeholder_profile(monkeypatch):
     from mcoc.common.helpers import account as account_helpers
 
     profile = {
@@ -267,6 +267,7 @@ def test_user_has_profile_rejects_default_placeholder_profile():
         "created_at": None,
         "updated_at": None,
     }
+    monkeypatch.setattr(account_helpers, "get_profile", lambda *a, **k: profile)
 
     assert account_helpers.user_has_profile(object(), 42) is False
 
@@ -293,6 +294,18 @@ def test_account_manager_after_consent_has_standard_actions(monkeypatch):
     assert labels == ["VIEW", "EDIT", "PRIVACY"]
     assert "CREATE" not in labels
     assert "CONSENT" not in labels
+
+
+def test_user_has_profile_counts_created_account_record(monkeypatch):
+    from mcoc.common.helpers import account as account_helpers
+
+    monkeypatch.setattr(
+        account_helpers,
+        "get_profile",
+        lambda *a, **k: {"consent": True, "created_at": "2026-10-23T10:26:00Z", "privacy_mode": "private"},
+    )
+
+    assert account_helpers.user_has_profile(object(), 42) is True
 
 
 def test_account_manager_decline_keeps_empty_profile_out_of_manager(monkeypatch):

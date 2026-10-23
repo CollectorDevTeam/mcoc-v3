@@ -897,6 +897,7 @@ def user_has_profile(parent: Any, user_id: int) -> bool:
             return False
         if not profile:
             return False
+
         system_fields = {
             "consent",
             "consent_ts",
@@ -911,10 +912,21 @@ def user_has_profile(parent: Any, user_id: int) -> bool:
             "prestige_map",
             "top5",
         }
-        return any(
+
+        has_real_profile_fields = any(
             key not in system_fields and _is_meaningful_profile_value(value)
             for key, value in profile.items()
         )
+        if has_real_profile_fields:
+            return True
+
+        # A user who completed enrollment has a real record even if the profile remains mostly blank.
+        # This is distinct from a consent-only placeholder that was never created.
+        created_at = profile.get("created_at") or profile.get("updated_at")
+        if created_at not in (None, "", False):
+            return True
+
+        return bool(profile.get("consent")) and bool(profile.get("privacy_mode"))
     except Exception:
         log.exception("user_has_profile check failed for %s", user_id)
         return False
@@ -937,7 +949,9 @@ def _record_consent(parent: Any, user_id: int, *, version: str, source: str) -> 
         ok2 = set_profile_field(parent, user_id, "consent_ts", ts)
         ok3 = set_profile_field(parent, user_id, "consent_version", version)
         ok4 = set_profile_field(parent, user_id, "consent_source", source)
-        ok = bool(ok1 and ok2 and ok3 and ok4)
+        ok5 = set_profile_field(parent, user_id, "created_at", ts)
+        ok6 = set_profile_field(parent, user_id, "privacy_mode", "private")
+        ok = bool(ok1 and ok2 and ok3 and ok4 and ok5 and ok6)
         log.info("consent:recorded user=%s ok=%s version=%s source=%s", user_id, ok, version, source)
         return ok
     except Exception:
