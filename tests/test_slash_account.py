@@ -217,7 +217,7 @@ def test_slash_account_create_uses_backend_enroll_handler(monkeypatch):
     assert call.get("ephemeral") is True
 
 
-def test_slash_account_root_command_opens_action_view(monkeypatch):
+def test_slash_account_root_command_opens_account_manager(monkeypatch):
     from mcoc.slash.account import AccountSlashCog
 
     cog = AccountSlashCog(bot=object())
@@ -225,17 +225,29 @@ def test_slash_account_root_command_opens_action_view(monkeypatch):
 
     import asyncio
 
-    async def _fake_profile(*a, **k):
-        return object(), None
-
-    from mcoc.slash import account as slash_account_module
-    monkeypatch.setattr(slash_account_module.Account, "get_profile", lambda *a, **k: {"consent": True})
-    monkeypatch.setattr(slash_account_module.Account, "build_profile_display", _fake_profile)
-
     asyncio.run(_invoke(cog.account, cog, interaction))
 
     assert len(interaction.response.calls) == 1
-    assert interaction.response.calls[0].get("view") is not None
+    assert interaction.response.calls[0].get("content") == "Manage your account settings and privacy."
+
+
+def test_slash_public_profile_command_uses_defer_and_followup(monkeypatch):
+    from mcoc.slash.account import AccountSlashCog
+
+    cog = AccountSlashCog(bot=object())
+    interaction = _InteractionStub()
+    sentinel_embed = object()
+
+    from mcoc.slash import account as slash_account_module
+    monkeypatch.setattr(slash_account_module.Account, "build_profile_display", lambda *a, **k: (sentinel_embed, None))
+
+    import asyncio
+    asyncio.run(_invoke(cog.profile, cog, interaction, user=None))
+
+    assert len(interaction.response.calls) == 1
+    assert interaction.response.calls[0].get("defer") is True
+    assert len(interaction.followup.calls) == 1
+    assert interaction.followup.calls[0].get("embed") is sentinel_embed
 
 
 def test_account_compute_top5_from_roster_ignores_stale_prestige_cache():

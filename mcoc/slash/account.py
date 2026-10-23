@@ -21,65 +21,142 @@ from ..common.helpers import account as Account
 log = logging.getLogger("red.mcoc.slash.account")
 
 
-class _AccountActionView(discord.ui.View):
-    def __init__(self, core: Any, user_id: int, *, can_create: bool = True, can_agree: bool = True):
+class _ProfileSettingsModal(discord.ui.Modal):
+    def __init__(self, core: Any, user_id: int, profile: Optional[dict] = None):
+        super().__init__(title="Edit profile")
+        self.core = core
+        self.user_id = user_id
+        self.profile = profile or {}
+
+        profile_data = self.profile
+        self.mcoc_name = discord.ui.TextInput(
+            label="MCOC username",
+            default=str(profile_data.get("mcoc_name") or "")[:100],
+            required=False,
+            max_length=100,
+        )
+        self.alliance = discord.ui.TextInput(
+            label="Alliance",
+            default=str(profile_data.get("alliance") or "")[:100],
+            required=False,
+            max_length=100,
+        )
+        self.timezone = discord.ui.TextInput(
+            label="Timezone",
+            default=str(profile_data.get("timezone") or "")[:100],
+            required=False,
+            max_length=100,
+        )
+        self.website = discord.ui.TextInput(
+            label="Website",
+            default=str(profile_data.get("website") or "")[:250],
+            required=False,
+            max_length=250,
+        )
+        self.privacy_mode = discord.ui.TextInput(
+            label="Privacy mode",
+            default=str(profile_data.get("privacy_mode") or "private")[:50],
+            required=False,
+            max_length=50,
+        )
+        self.about = discord.ui.TextInput(
+            label="About",
+            default=str(profile_data.get("about") or profile_data.get("notes") or "")[:1000],
+            required=False,
+            max_length=1000,
+            style=discord.TextStyle.long,
+        )
+
+        for item in [
+            self.mcoc_name,
+            self.alliance,
+            self.timezone,
+            self.website,
+            self.privacy_mode,
+            self.about,
+        ]:
+            self.add_item(item)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        updates = {
+            "mcoc_name": self.mcoc_name.value,
+            "alliance": self.alliance.value,
+            "timezone": self.timezone.value,
+            "website": self.website.value,
+            "privacy_mode": self.privacy_mode.value,
+            "about": self.about.value,
+        }
+
+        permitted = {"private", "guild", "alliance", "public"}
+        saved = []
+        for field, raw in updates.items():
+            value = (raw or "").strip()
+            if value == "":
+                continue
+            if field == "privacy_mode":
+                lowered = value.lower()
+                if lowered not in permitted:
+                    await interaction.response.send_message(
+                        "Privacy mode must be one of: private, guild, alliance, public.",
+                        ephemeral=True,
+                    )
+                    return
+                value = lowered
+            Account.set_profile_field(self.core, self.user_id, field, value)
+            saved.append(field)
+
+        if not saved:
+            await interaction.response.send_message("No profile fields were updated.", ephemeral=True)
+            return
+
+        await interaction.response.send_message(
+            f"Updated profile fields: {', '.join(saved)}.",
+            ephemeral=True,
+        )
+
+
+class _AccountManagerView(discord.ui.View):
+    def __init__(self, core: Any, user_id: int):
         super().__init__(timeout=180)
         self.core = core
         self.user_id = user_id
 
-        profile_btn = discord.ui.Button(label="Profile", style=discord.ButtonStyle.primary)
-        settings_btn = discord.ui.Button(label="Settings", style=discord.ButtonStyle.secondary)
-        create_btn = discord.ui.Button(label="Create", style=discord.ButtonStyle.success)
-        agree_btn = discord.ui.Button(label="Agree", style=discord.ButtonStyle.danger)
+        edit_btn = discord.ui.Button(label="Edit Profile", style=discord.ButtonStyle.primary)
+        privacy_btn = discord.ui.Button(label="Privacy", style=discord.ButtonStyle.secondary)
+        link_btn = discord.ui.Button(label="Link", style=discord.ButtonStyle.success)
+        consent_btn = discord.ui.Button(label="Consent", style=discord.ButtonStyle.danger)
 
-        async def _profile_cb(interaction: discord.Interaction):
-            target = interaction.user
-            emb, text = Account.build_profile_display(
-                core,
-                interaction,
-                getattr(target, "id", None),
-                viewer_id=getattr(interaction.user, "id", None),
-                prefer_embed=True,
+        async def _edit_cb(interaction: discord.Interaction):
+            profile = Account.get_profile(core, user_id) or {}
+            await interaction.response.send_modal(_ProfileSettingsModal(core, user_id, profile))
+
+        async def _privacy_cb(interaction: discord.Interaction):
+            profile = Account.get_profile(core, user_id) or {}
+            current = profile.get("privacy_mode") or "private"
+            await interaction.response.send_message(
+                f"Current privacy mode: {current}\nUse /account privacy <private|guild|alliance|public>.",
+                ephemeral=True,
             )
-            if emb is not None:
-                await interaction.response.send_message(embed=emb, ephemeral=False)
-                return
-            await interaction.response.send_message(text or "No profile found for that user.", ephemeral=True)
 
-        async def _settings_cb(interaction: discord.Interaction):
-            pages = Account.build_settings_pages(
-                core,
-                interaction,
-                getattr(interaction.user, "id", None),
-                title_prefix=f"{getattr(interaction.user, 'display_name', 'User')} Account",
+        async def _link_cb(interaction: discord.Interaction):
+            await interaction.response.send_message(
+                "Use /account link <mcoc_id> to link your account.",
+                ephemeral=True,
             )
-            if not pages:
-                await interaction.response.send_message("No account settings found.", ephemeral=True)
-                return
-            if len(pages) == 1:
-                await interaction.response.send_message(embed=pages[0], ephemeral=False)
-                return
-            await interaction.response.send_message(embed=pages[0], view=CDTPagesMenu(pages, author=interaction.user), ephemeral=False)
 
-        async def _create_cb(interaction: discord.Interaction):
+        async def _consent_cb(interaction: discord.Interaction):
             ok, msg = await Account.enroll_command_handler(core, interaction, user_id)
             await interaction.response.send_message(msg if ok else f"Failed to start enrollment: {msg}", ephemeral=True)
 
-        async def _agree_cb(interaction: discord.Interaction):
-            _ok, msg = await Account.handle_consent_response(core, interaction, user_id, True)
-            await interaction.response.send_message(msg, ephemeral=True)
+        edit_btn.callback = _edit_cb
+        privacy_btn.callback = _privacy_cb
+        link_btn.callback = _link_cb
+        consent_btn.callback = _consent_cb
 
-        profile_btn.callback = _profile_cb
-        settings_btn.callback = _settings_cb
-        create_btn.callback = _create_cb
-        agree_btn.callback = _agree_cb
-
-        if can_create:
-            self.add_item(create_btn)
-        if can_agree:
-            self.add_item(agree_btn)
-        self.add_item(profile_btn)
-        self.add_item(settings_btn)
+        self.add_item(edit_btn)
+        self.add_item(privacy_btn)
+        self.add_item(link_btn)
+        self.add_item(consent_btn)
 
 
 class _AccountGroup(app_commands.Group):
@@ -237,7 +314,7 @@ class AccountSlashCog(commands.Cog):
         self.bot = bot
         self._group: Optional[_AccountGroup] = None
 
-    @app_commands.command(name="account", description="Open your MCOC account flow")
+    @app_commands.command(name="account", description="Manage your private account settings")
     async def account(self, interaction: discord.Interaction):
         user_id = getattr(interaction.user, "id", None)
         bot = getattr(self, "bot", None)
@@ -248,40 +325,74 @@ class AccountSlashCog(commands.Cog):
                 core = get_cog("MCOC") or get_cog("MCOCPrefix")
         if core is None:
             core = bot
-        profile = Account.get_profile(core, user_id) or {}
-        consented = Account.user_has_consented(core, user_id)
-        view = _AccountActionView(
-            core,
-            user_id,
-            can_create=not bool(profile),
-            can_agree=not consented,
-        )
+
         await interaction.response.send_message(
-            "Choose an account action below.",
-            view=view,
+            "Manage your account settings and privacy.",
+            view=_AccountManagerView(core, user_id),
             ephemeral=True,
         )
 
-    async def cog_load(self):
-        core = getattr(self.bot, "mcoc_core", None) or self.bot.get_cog("MCOC") or self.bot.get_cog("MCOCPrefix")
+    @app_commands.command(name="profile", description="View a public CollectorBot profile")
+    @app_commands.describe(user="Optional profile owner")
+    async def profile(self, interaction: discord.Interaction, user: Optional[discord.User] = None):
         try:
-            self._group = _AccountGroup(core or self.bot)
+            await interaction.response.defer(ephemeral=False)
         except Exception:
-            log.exception("Failed to initialize Account group")
+            pass
 
+        target = user or interaction.user
+        bot = getattr(self, "bot", None)
+        core = getattr(bot, "mcoc_core", None)
+        if core is None:
+            get_cog = getattr(bot, "get_cog", None)
+            if callable(get_cog):
+                core = get_cog("MCOC") or get_cog("MCOCPrefix")
+        if core is None:
+            core = bot
+
+        emb, text = Account.build_profile_display(
+            core,
+            interaction,
+            getattr(target, "id", None),
+            viewer_id=getattr(interaction.user, "id", None),
+            prefer_embed=True,
+        )
+
+        if emb is not None:
+            try:
+                await interaction.followup.send(embed=emb, ephemeral=False)
+            except Exception:
+                await interaction.response.send_message(embed=emb, ephemeral=False)
+            return
+
+        try:
+            await interaction.followup.send(text or "No profile found for that user.", ephemeral=True)
+        except Exception:
+            await interaction.response.send_message(text or "No profile found for that user.", ephemeral=True)
+
+    async def cog_load(self):
         try:
             self.bot.tree.remove_command("account")
         except Exception:
             pass
         try:
-            self.bot.tree.add_command(self.account, override=True)
-            log.info("Added root account command to slash tree")
+            self.bot.tree.remove_command("profile")
         except Exception:
-            log.exception("Failed to add root Account command to tree")
+            pass
+        try:
+            self.bot.tree.add_command(self.account, override=True)
+            self.bot.tree.add_command(self.profile, override=True)
+            log.info("Added account manager and profile commands to slash tree")
+        except Exception:
+            log.exception("Failed to add root account/profile commands to tree")
 
     async def cog_unload(self):
         try:
             self.bot.tree.remove_command("account")
+        except Exception:
+            pass
+        try:
+            self.bot.tree.remove_command("profile")
         except Exception:
             pass
         try:
