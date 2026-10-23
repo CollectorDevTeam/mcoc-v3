@@ -296,6 +296,46 @@ def test_account_manager_after_consent_has_standard_actions(monkeypatch):
     assert "CONSENT" not in labels
 
 
+def test_account_manager_rechecks_live_account_state_before_actions(monkeypatch):
+    from mcoc.slash.account import _AccountManagerView
+
+    state = {"has_account": False}
+
+    monkeypatch.setattr(
+        "mcoc.slash.account.Account.get_profile",
+        lambda *a, **k: {"mcoc_name": "tester"} if state["has_account"] else {},
+    )
+    monkeypatch.setattr(
+        "mcoc.slash.account.Account.user_has_consented",
+        lambda *a, **k: False,
+    )
+    monkeypatch.setattr(
+        "mcoc.slash.account.Account.user_has_profile",
+        lambda *a, **k: state["has_account"],
+    )
+
+    view = _AccountManagerView(core=object(), user_id=42)
+    assert [item.label for item in view.children] == ["CREATE"]
+
+    state["has_account"] = True
+    view._refresh_state()
+    assert view.has_account is True
+
+    calls = []
+
+    class _ResponseStub:
+        async def send_message(self, *args, **kwargs):
+            calls.append({"message": args[0], "kwargs": kwargs})
+
+    interaction = types.SimpleNamespace(response=_ResponseStub())
+    import asyncio
+    asyncio.run(view.children[0].callback(interaction))
+
+    assert len(calls) == 1
+    assert calls[0]["message"] == "You already have an account configured."
+    assert calls[0]["kwargs"]["ephemeral"] is True
+
+
 def test_user_has_profile_counts_created_account_record(monkeypatch):
     from mcoc.common.helpers import account as account_helpers
 

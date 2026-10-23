@@ -249,10 +249,10 @@ class _AccountManagerView(discord.ui.View):
         super().__init__(timeout=180)
         self.core = core
         self.user_id = user_id
-
-        profile = Account.get_profile(core, user_id) or {}
-        consented = Account.user_has_consented(core, user_id)
-        has_account = Account.user_has_profile(core, user_id) if hasattr(Account, "user_has_profile") else bool(profile)
+        self.profile = {}
+        self.consented = False
+        self.has_account = False
+        self._refresh_state()
 
         view_btn = discord.ui.Button(label="VIEW", style=discord.ButtonStyle.primary)
         edit_btn = discord.ui.Button(label="EDIT", style=discord.ButtonStyle.primary)
@@ -260,28 +260,32 @@ class _AccountManagerView(discord.ui.View):
         create_btn = discord.ui.Button(label="CREATE", style=discord.ButtonStyle.success)
         consent_btn = discord.ui.Button(label="CONSENT", style=discord.ButtonStyle.danger)
 
+        def _refresh_state_and_get_profile():
+            self._refresh_state()
+            return self.profile
+
         async def _view_cb(interaction: discord.Interaction):
-            if not has_account:
+            profile = _refresh_state_and_get_profile()
+            if not self.has_account:
                 await interaction.response.send_message("No account found. Use CREATE first.", ephemeral=True)
                 return
-            profile = Account.get_profile(core, user_id) or {}
             try:
                 await interaction.response.send_modal(_ViewProfileModal(core, user_id, profile))
             except Exception:
                 await interaction.response.send_message("Unable to open the profile view right now.", ephemeral=True)
 
         async def _edit_cb(interaction: discord.Interaction):
-            if not has_account:
+            profile = _refresh_state_and_get_profile()
+            if not self.has_account:
                 await interaction.response.send_message("No account found. Use CREATE first.", ephemeral=True)
                 return
-            profile = Account.get_profile(core, user_id) or {}
             try:
                 await interaction.response.send_modal(_ProfileSettingsModal(core, user_id, profile))
             except Exception:
                 await interaction.response.send_message("Unable to open the editor right now.", ephemeral=True)
 
         async def _privacy_cb(interaction: discord.Interaction):
-            profile = Account.get_profile(core, user_id) or {}
+            profile = _refresh_state_and_get_profile()
             current = profile.get("privacy_mode") or "private"
             await interaction.response.send_message(
                 f"Current privacy mode: {current}\nChoose your visibility below.",
@@ -290,7 +294,8 @@ class _AccountManagerView(discord.ui.View):
             )
 
         async def _create_cb(interaction: discord.Interaction):
-            if has_account:
+            self._refresh_state()
+            if self.has_account:
                 await interaction.response.send_message("You already have an account configured.", ephemeral=True)
                 return
             await interaction.response.send_message(
@@ -300,7 +305,8 @@ class _AccountManagerView(discord.ui.View):
             )
 
         async def _consent_cb(interaction: discord.Interaction):
-            if consented:
+            self._refresh_state()
+            if self.consented:
                 await interaction.response.send_message("You have already consented to the privacy policy.", ephemeral=True)
                 return
             await interaction.response.send_message(
@@ -315,14 +321,19 @@ class _AccountManagerView(discord.ui.View):
         create_btn.callback = _create_cb
         consent_btn.callback = _consent_cb
 
-        if has_account:
+        if self.has_account:
             self.add_item(view_btn)
             self.add_item(edit_btn)
             self.add_item(privacy_btn)
-            if not consented:
+            if not self.consented:
                 self.add_item(consent_btn)
         else:
             self.add_item(create_btn)
+
+    def _refresh_state(self):
+        self.profile = Account.get_profile(self.core, self.user_id) or {}
+        self.consented = Account.user_has_consented(self.core, self.user_id)
+        self.has_account = Account.user_has_profile(self.core, self.user_id) if hasattr(Account, "user_has_profile") else bool(self.profile)
 
 
 class _AccountGroup(app_commands.Group):
