@@ -162,13 +162,12 @@ class _RosterListControlsView(ui.View):
 
 
 class _RosterQuickFilterSelect(ui.Select):
-    def __init__(self, group: "_RosterGroup", target_user: Any, base_hargs: str, parsed_filters: dict, kind: str, anchor_message: Any):
+    def __init__(self, group: "_RosterGroup", target_user: Any, base_hargs: str, parsed_filters: dict, kind: str):
         self.group = group
         self.target_user = target_user
         self.base_hargs = base_hargs or ""
         self.parsed_filters = dict(parsed_filters or {})
         self.kind = kind
-        self.anchor_message = anchor_message
 
         if kind == "star":
             options = [
@@ -229,18 +228,16 @@ class _RosterQuickFilterSelect(ui.Select):
                 await interaction.response.send_message("No roster entries match the selected filters.", ephemeral=True)
                 return
             embed = pager.pages[0]
-            if self.anchor_message is not None and hasattr(self.anchor_message, "edit"):
-                await self.anchor_message.edit(embed=embed, view=pager)
-            await interaction.response.edit_message(content="Applied.", view=None)
+            await interaction.response.edit_message(embed=embed, view=pager)
         except Exception:
             log.exception("roster quick filter apply failed")
             await interaction.response.send_message("Unable to apply filter right now.", ephemeral=True)
 
 
 class _RosterQuickFilterPickerView(ui.View):
-    def __init__(self, group: "_RosterGroup", target_user: Any, base_hargs: str, parsed_filters: dict, kind: str, anchor_message: Any):
+    def __init__(self, group: "_RosterGroup", target_user: Any, base_hargs: str, parsed_filters: dict, kind: str):
         super().__init__(timeout=120)
-        self.add_item(_RosterQuickFilterSelect(group, target_user, base_hargs, parsed_filters, kind, anchor_message))
+        self.add_item(_RosterQuickFilterSelect(group, target_user, base_hargs, parsed_filters, kind))
 
 
 class _RosterFilterCategoryButton(ui.Button):
@@ -260,9 +257,8 @@ class _RosterFilterCategoryButton(ui.Button):
                 self.base_hargs,
                 self.parsed_filters,
                 self.kind,
-                getattr(interaction, "message", None),
             )
-            await interaction.response.send_message("Choose a value:", view=picker, ephemeral=True)
+            await interaction.response.edit_message(view=picker)
         except Exception:
             log.exception("roster filter category button failed")
             await interaction.response.send_message("Unable to open filter picker right now.", ephemeral=True)
@@ -343,7 +339,7 @@ class _RosterGroup(app_commands.Group):
             pass
         async def _open_filter_categories(_menu: CDTPagesMenu, interaction: Any) -> None:
             view = _RosterFilterCategoryView(self, target_user, base_hargs or "", parsed_filters)
-            await interaction.response.send_message("Filter picker:", view=view, ephemeral=True)
+            await interaction.response.edit_message(view=view)
 
         try:
             pager.filter_handler = _open_filter_categories
