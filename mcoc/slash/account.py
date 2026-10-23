@@ -21,6 +21,60 @@ from ..common.helpers import account as Account
 log = logging.getLogger("red.mcoc.slash.account")
 
 
+class _ViewProfileModal(discord.ui.Modal):
+    def __init__(self, core: Any, user_id: int, profile: Optional[dict] = None):
+        super().__init__(title="Your profile")
+        self.core = core
+        self.user_id = user_id
+        profile_data = profile or Account.get_profile(core, user_id) or {}
+
+        self.mcoc_name = discord.ui.TextInput(
+            label="MCOC username",
+            default=str(profile_data.get("mcoc_name") or "")[:100],
+            required=False,
+            max_length=100,
+            disabled=True,
+        )
+        self.alliance = discord.ui.TextInput(
+            label="Alliance",
+            default=str(profile_data.get("alliance") or "")[:100],
+            required=False,
+            max_length=100,
+            disabled=True,
+        )
+        self.timezone = discord.ui.TextInput(
+            label="Timezone",
+            default=str(profile_data.get("timezone") or "")[:100],
+            required=False,
+            max_length=100,
+            disabled=True,
+        )
+        self.website = discord.ui.TextInput(
+            label="Website",
+            default=str(profile_data.get("website") or "")[:250],
+            required=False,
+            max_length=250,
+            disabled=True,
+        )
+        self.privacy_mode = discord.ui.TextInput(
+            label="Privacy",
+            default=str(profile_data.get("privacy_mode") or "private")[:50],
+            required=False,
+            max_length=50,
+            disabled=True,
+        )
+        self.about = discord.ui.TextInput(
+            label="About",
+            default=str(profile_data.get("about") or profile_data.get("notes") or "")[:1000],
+            required=False,
+            max_length=1000,
+            style=discord.TextStyle.long,
+            disabled=True,
+        )
+        for item in [self.mcoc_name, self.alliance, self.timezone, self.website, self.privacy_mode, self.about]:
+            self.add_item(item)
+
+
 class _ProfileSettingsModal(discord.ui.Modal):
     def __init__(self, core: Any, user_id: int, profile: Optional[dict] = None):
         super().__init__(title="Edit profile")
@@ -29,71 +83,43 @@ class _ProfileSettingsModal(discord.ui.Modal):
         self.profile = profile or {}
 
         profile_data = self.profile
-        self.mcoc_name = discord.ui.TextInput(
-            label="MCOC username",
-            default=str(profile_data.get("mcoc_name") or "")[:100],
-            required=False,
-            max_length=100,
-        )
-        self.alliance = discord.ui.TextInput(
-            label="Alliance",
-            default=str(profile_data.get("alliance") or "")[:100],
-            required=False,
-            max_length=100,
-        )
-        self.timezone = discord.ui.TextInput(
-            label="Timezone",
-            default=str(profile_data.get("timezone") or "")[:100],
-            required=False,
-            max_length=100,
-        )
-        self.website = discord.ui.TextInput(
-            label="Website",
-            default=str(profile_data.get("website") or "")[:250],
-            required=False,
-            max_length=250,
-        )
-        self.privacy_mode = discord.ui.TextInput(
-            label="Privacy mode",
-            default=str(profile_data.get("privacy_mode") or "private")[:50],
-            required=False,
-            max_length=50,
-        )
-        self.about = discord.ui.TextInput(
-            label="About",
-            default=str(profile_data.get("about") or profile_data.get("notes") or "")[:1000],
-            required=False,
-            max_length=1000,
-            style=discord.TextStyle.long,
-        )
-
-        for item in [
-            self.mcoc_name,
-            self.alliance,
-            self.timezone,
-            self.website,
-            self.privacy_mode,
-            self.about,
-        ]:
-            self.add_item(item)
+        fields = [
+            ("MCOC username", "mcoc_name", 100),
+            ("Alliance", "alliance", 100),
+            ("Timezone", "timezone", 100),
+            ("Website", "website", 250),
+            ("Privacy mode", "privacy_mode", 50),
+            ("About", "about", 1000),
+        ]
+        self.inputs = {}
+        for label, field_name, max_length in fields:
+            default = profile_data.get(field_name) or ("about" if field_name == "about" else "")
+            if field_name == "about":
+                text_input = discord.ui.TextInput(
+                    label=label,
+                    default=str(default)[:max_length],
+                    required=False,
+                    max_length=max_length,
+                    style=discord.TextStyle.long,
+                )
+            else:
+                text_input = discord.ui.TextInput(
+                    label=label,
+                    default=str(default)[:max_length],
+                    required=False,
+                    max_length=max_length,
+                )
+            self.inputs[field_name] = text_input
+            self.add_item(text_input)
 
     async def on_submit(self, interaction: discord.Interaction):
-        updates = {
-            "mcoc_name": self.mcoc_name.value,
-            "alliance": self.alliance.value,
-            "timezone": self.timezone.value,
-            "website": self.website.value,
-            "privacy_mode": self.privacy_mode.value,
-            "about": self.about.value,
-        }
-
         permitted = {"private", "guild", "alliance", "public"}
         saved = []
-        for field, raw in updates.items():
-            value = (raw or "").strip()
+        for field_name, input_obj in self.inputs.items():
+            value = (input_obj.value or "").strip()
             if value == "":
                 continue
-            if field == "privacy_mode":
+            if field_name == "privacy_mode":
                 lowered = value.lower()
                 if lowered not in permitted:
                     await interaction.response.send_message(
@@ -102,8 +128,8 @@ class _ProfileSettingsModal(discord.ui.Modal):
                     )
                     return
                 value = lowered
-            Account.set_profile_field(self.core, self.user_id, field, value)
-            saved.append(field)
+            Account.set_profile_field(self.core, self.user_id, field_name, value)
+            saved.append(field_name)
 
         if not saved:
             await interaction.response.send_message("No profile fields were updated.", ephemeral=True)
@@ -115,18 +141,108 @@ class _ProfileSettingsModal(discord.ui.Modal):
         )
 
 
+class _AccountConsentView(discord.ui.View):
+    def __init__(self, core: Any, user_id: int):
+        super().__init__(timeout=180)
+        self.core = core
+        self.user_id = user_id
+
+        agree_btn = discord.ui.Button(label="AGREE", style=discord.ButtonStyle.success)
+        decline_btn = discord.ui.Button(label="DECLINE", style=discord.ButtonStyle.danger)
+
+        async def _agree_cb(interaction: discord.Interaction):
+            _ok, msg = await Account.handle_consent_response(core, interaction, user_id, True)
+            await interaction.response.send_message(msg, ephemeral=True)
+
+        async def _decline_cb(interaction: discord.Interaction):
+            _ok, msg = await Account.handle_consent_response(core, interaction, user_id, False)
+            await interaction.response.send_message(msg, ephemeral=True)
+
+        agree_btn.callback = _agree_cb
+        decline_btn.callback = _decline_cb
+        self.add_item(agree_btn)
+        self.add_item(decline_btn)
+
+
+class _AccountPrivacyView(discord.ui.View):
+    def __init__(self, core: Any, user_id: int):
+        super().__init__(timeout=180)
+        self.core = core
+        self.user_id = user_id
+
+        public_btn = discord.ui.Button(label="PUBLIC", style=discord.ButtonStyle.primary)
+        alliance_btn = discord.ui.Button(label="ALLIANCE", style=discord.ButtonStyle.secondary)
+        guild_btn = discord.ui.Button(label="GUILD", style=discord.ButtonStyle.secondary)
+        private_btn = discord.ui.Button(label="PRIVATE", style=discord.ButtonStyle.secondary)
+        delete_btn = discord.ui.Button(label="DELETE ACCOUNT", style=discord.ButtonStyle.danger)
+
+        async def _set_mode(mode: str):
+            ok = Account.set_profile_field(core, user_id, "privacy_mode", mode)
+            return ok, f"Privacy mode set to {mode}." if ok else "Failed to update privacy mode."
+
+        async def _public_cb(interaction: discord.Interaction):
+            ok, msg = await _set_mode("public")
+            await interaction.response.send_message(msg, ephemeral=True)
+
+        async def _alliance_cb(interaction: discord.Interaction):
+            ok, msg = await _set_mode("alliance")
+            await interaction.response.send_message(msg, ephemeral=True)
+
+        async def _guild_cb(interaction: discord.Interaction):
+            ok, msg = await _set_mode("guild")
+            await interaction.response.send_message(msg, ephemeral=True)
+
+        async def _private_cb(interaction: discord.Interaction):
+            ok, msg = await _set_mode("private")
+            await interaction.response.send_message(msg, ephemeral=True)
+
+        async def _delete_cb(interaction: discord.Interaction):
+            ok, msg = Account.delete_user_profile(core, user_id)
+            if ok:
+                await interaction.response.send_message(msg, ephemeral=True)
+                return
+            await interaction.response.send_message(msg, ephemeral=True)
+
+        public_btn.callback = _public_cb
+        alliance_btn.callback = _alliance_cb
+        guild_btn.callback = _guild_cb
+        private_btn.callback = _private_cb
+        delete_btn.callback = _delete_cb
+
+        self.add_item(public_btn)
+        self.add_item(alliance_btn)
+        self.add_item(guild_btn)
+        self.add_item(private_btn)
+        self.add_item(delete_btn)
+
+
 class _AccountManagerView(discord.ui.View):
     def __init__(self, core: Any, user_id: int):
         super().__init__(timeout=180)
         self.core = core
         self.user_id = user_id
 
-        edit_btn = discord.ui.Button(label="Edit Profile", style=discord.ButtonStyle.primary)
-        privacy_btn = discord.ui.Button(label="Privacy", style=discord.ButtonStyle.secondary)
-        link_btn = discord.ui.Button(label="Link", style=discord.ButtonStyle.success)
-        consent_btn = discord.ui.Button(label="Consent", style=discord.ButtonStyle.danger)
+        profile = Account.get_profile(core, user_id) or {}
+        consented = Account.user_has_consented(core, user_id)
+        has_account = bool(profile)
+
+        view_btn = discord.ui.Button(label="VIEW", style=discord.ButtonStyle.primary)
+        edit_btn = discord.ui.Button(label="EDIT", style=discord.ButtonStyle.primary)
+        privacy_btn = discord.ui.Button(label="PRIVACY", style=discord.ButtonStyle.secondary)
+        create_btn = discord.ui.Button(label="CREATE", style=discord.ButtonStyle.success)
+        consent_btn = discord.ui.Button(label="CONSENT", style=discord.ButtonStyle.danger)
+
+        async def _view_cb(interaction: discord.Interaction):
+            if not has_account:
+                await interaction.response.send_message("No account found. Use CREATE first.", ephemeral=True)
+                return
+            profile = Account.get_profile(core, user_id) or {}
+            await interaction.response.send_modal(_ViewProfileModal(core, user_id, profile))
 
         async def _edit_cb(interaction: discord.Interaction):
+            if not has_account:
+                await interaction.response.send_message("No account found. Use CREATE first.", ephemeral=True)
+                return
             profile = Account.get_profile(core, user_id) or {}
             await interaction.response.send_modal(_ProfileSettingsModal(core, user_id, profile))
 
@@ -134,29 +250,45 @@ class _AccountManagerView(discord.ui.View):
             profile = Account.get_profile(core, user_id) or {}
             current = profile.get("privacy_mode") or "private"
             await interaction.response.send_message(
-                f"Current privacy mode: {current}\nUse /account privacy <private|guild|alliance|public>.",
+                f"Current privacy mode: {current}\nChoose your visibility below.",
+                view=_AccountPrivacyView(core, user_id),
                 ephemeral=True,
             )
 
-        async def _link_cb(interaction: discord.Interaction):
+        async def _create_cb(interaction: discord.Interaction):
+            if has_account:
+                await interaction.response.send_message("You already have an account configured.", ephemeral=True)
+                return
             await interaction.response.send_message(
-                "Use /account link <mcoc_id> to link your account.",
+                "CollectorBot stores only account fields you explicitly set. We do not save Discord API metadata.\n\nPlease review the privacy policy and then continue.",
+                view=_AccountConsentView(core, user_id),
                 ephemeral=True,
             )
 
         async def _consent_cb(interaction: discord.Interaction):
-            ok, msg = await Account.enroll_command_handler(core, interaction, user_id)
-            await interaction.response.send_message(msg if ok else f"Failed to start enrollment: {msg}", ephemeral=True)
+            if consented:
+                await interaction.response.send_message("You have already consented to the privacy policy.", ephemeral=True)
+                return
+            await interaction.response.send_message(
+                "CollectorBot stores only the profile fields you explicitly enter. We do not save Discord account API metadata.\n\nReview the policy and choose your decision.",
+                view=_AccountConsentView(core, user_id),
+                ephemeral=True,
+            )
 
+        view_btn.callback = _view_cb
         edit_btn.callback = _edit_cb
         privacy_btn.callback = _privacy_cb
-        link_btn.callback = _link_cb
+        create_btn.callback = _create_cb
         consent_btn.callback = _consent_cb
 
-        self.add_item(edit_btn)
+        if has_account:
+            self.add_item(view_btn)
+            self.add_item(edit_btn)
+        else:
+            self.add_item(create_btn)
         self.add_item(privacy_btn)
-        self.add_item(link_btn)
-        self.add_item(consent_btn)
+        if not consented:
+            self.add_item(consent_btn)
 
 
 class _AccountGroup(app_commands.Group):
