@@ -231,6 +231,25 @@ def test_slash_account_root_command_opens_account_manager(monkeypatch):
     assert interaction.response.calls[0].get("content") == "Manage your account settings and privacy."
 
 
+def test_account_manager_no_profile_shows_create_only(monkeypatch):
+    from mcoc.slash.account import _AccountManagerView
+
+    monkeypatch.setattr(
+        "mcoc.slash.account.Account.get_profile",
+        lambda *a, **k: {},
+    )
+    monkeypatch.setattr(
+        "mcoc.slash.account.Account.user_has_consented",
+        lambda *a, **k: False,
+    )
+
+    view = _AccountManagerView(core=object(), user_id=42)
+    labels = [item.label for item in view.children]
+
+    assert labels == ["CREATE"]
+    assert "CONSENT" not in labels
+
+
 def test_slash_public_profile_command_uses_defer_and_followup(monkeypatch):
     from mcoc.slash.account import AccountSlashCog
 

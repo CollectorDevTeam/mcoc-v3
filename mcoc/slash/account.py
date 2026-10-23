@@ -170,11 +170,17 @@ class _AccountPrivacyView(discord.ui.View):
         self.core = core
         self.user_id = user_id
 
-        public_btn = discord.ui.Button(label="PUBLIC", style=discord.ButtonStyle.primary)
-        alliance_btn = discord.ui.Button(label="ALLIANCE", style=discord.ButtonStyle.secondary)
-        guild_btn = discord.ui.Button(label="GUILD", style=discord.ButtonStyle.secondary)
-        private_btn = discord.ui.Button(label="PRIVATE", style=discord.ButtonStyle.secondary)
-        delete_btn = discord.ui.Button(label="DELETE ACCOUNT", style=discord.ButtonStyle.danger)
+        current_mode = (Account.get_profile(core, user_id) or {}).get("privacy_mode") or "private"
+        current_mode = str(current_mode).lower()
+
+        def _style_for(mode: str) -> discord.ButtonStyle:
+            return discord.ButtonStyle.green if current_mode == mode.lower() else discord.ButtonStyle.gray
+
+        public_btn = discord.ui.Button(label="PUBLIC", style=_style_for("public"))
+        alliance_btn = discord.ui.Button(label="ALLIANCE", style=_style_for("alliance"))
+        guild_btn = discord.ui.Button(label="GUILD", style=_style_for("guild"))
+        private_btn = discord.ui.Button(label="PRIVATE", style=_style_for("private"))
+        delete_btn = discord.ui.Button(label="DELETE", style=discord.ButtonStyle.danger)
 
         async def _set_mode(mode: str):
             ok = Account.set_profile_field(core, user_id, "privacy_mode", mode)
@@ -237,14 +243,20 @@ class _AccountManagerView(discord.ui.View):
                 await interaction.response.send_message("No account found. Use CREATE first.", ephemeral=True)
                 return
             profile = Account.get_profile(core, user_id) or {}
-            await interaction.response.send_modal(_ViewProfileModal(core, user_id, profile))
+            try:
+                await interaction.response.send_modal(_ViewProfileModal(core, user_id, profile))
+            except Exception:
+                await interaction.response.send_message("Unable to open the profile view right now.", ephemeral=True)
 
         async def _edit_cb(interaction: discord.Interaction):
             if not has_account:
                 await interaction.response.send_message("No account found. Use CREATE first.", ephemeral=True)
                 return
             profile = Account.get_profile(core, user_id) or {}
-            await interaction.response.send_modal(_ProfileSettingsModal(core, user_id, profile))
+            try:
+                await interaction.response.send_modal(_ProfileSettingsModal(core, user_id, profile))
+            except Exception:
+                await interaction.response.send_message("Unable to open the editor right now.", ephemeral=True)
 
         async def _privacy_cb(interaction: discord.Interaction):
             profile = Account.get_profile(core, user_id) or {}
@@ -284,11 +296,11 @@ class _AccountManagerView(discord.ui.View):
         if has_account:
             self.add_item(view_btn)
             self.add_item(edit_btn)
+            self.add_item(privacy_btn)
+            if not consented:
+                self.add_item(consent_btn)
         else:
             self.add_item(create_btn)
-        self.add_item(privacy_btn)
-        if not consented:
-            self.add_item(consent_btn)
 
 
 class _AccountGroup(app_commands.Group):
