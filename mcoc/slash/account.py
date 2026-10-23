@@ -21,6 +21,17 @@ from ..common.helpers import account as Account
 log = logging.getLogger("red.mcoc.slash.account")
 
 
+def _runtime_version_label() -> str:
+    try:
+        import subprocess
+        result = subprocess.run(["git", "-C", __file__.rsplit("mcoc", 1)[0], "rev-parse", "--short", "HEAD"], capture_output=True, text=True, check=False)
+        if result.returncode == 0 and result.stdout.strip():
+            return f"runtime: {result.stdout.strip()}"
+    except Exception:
+        pass
+    return "runtime: local"
+
+
 class _ViewProfileModal(discord.ui.Modal):
     def __init__(self, core: Any, user_id: int, profile: Optional[dict] = None):
         super().__init__(title="Your profile")
@@ -471,7 +482,7 @@ class AccountSlashCog(commands.Cog):
             core = bot
 
         await interaction.response.send_message(
-            "Manage your account settings and privacy.",
+            f"Manage your account settings and privacy.\n\n{_runtime_version_label()}",
             view=_AccountManagerView(core, user_id),
             ephemeral=True,
         )

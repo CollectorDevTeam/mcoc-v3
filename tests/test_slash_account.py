@@ -228,7 +228,9 @@ def test_slash_account_root_command_opens_account_manager(monkeypatch):
     asyncio.run(_invoke(cog.account, cog, interaction))
 
     assert len(interaction.response.calls) == 1
-    assert interaction.response.calls[0].get("content") == "Manage your account settings and privacy."
+    content = interaction.response.calls[0].get("content")
+    assert content.startswith("Manage your account settings and privacy.")
+    assert "runtime:" in content.lower()
 
 
 def test_account_manager_no_profile_shows_create_only(monkeypatch):
