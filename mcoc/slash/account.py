@@ -39,66 +39,166 @@ def _runtime_version_label() -> str:
     return "runtime: local"
 
 
+_PROFILE_PAGE_LAYOUTS = {
+    1: [
+        ("MCOC username", "mcoc_name", 100),
+        ("Alliance", "alliance", 100),
+        ("MCOC roster", "active_roster", 100),
+        ("Timezone", "timezone", 100),
+        ("Website", "website", 250),
+    ],
+    2: [
+        ("About", "about", 1000),
+        ("Job", "job", 100),
+        ("Age", "age", 50),
+        ("Gender", "gender", 50),
+        ("Invite", "invite", 250),
+    ],
+    3: [
+        ("Started", "started", 100),
+        ("Privacy mode", "privacy_mode", 50),
+        ("Roster public", "roster_public", 20),
+        ("Display name", "display_name", 100),
+        ("MCOC ID", "mcoc_id", 50),
+    ],
+}
+
+_TIMEZONE_OPTIONS = [
+    discord.SelectOption(label="UTC", value="UTC"),
+    discord.SelectOption(label="America/New_York", value="America/New_York"),
+    discord.SelectOption(label="America/Chicago", value="America/Chicago"),
+    discord.SelectOption(label="America/Denver", value="America/Denver"),
+    discord.SelectOption(label="America/Los_Angeles", value="America/Los_Angeles"),
+    discord.SelectOption(label="Europe/London", value="Europe/London"),
+    discord.SelectOption(label="Europe/Paris", value="Europe/Paris"),
+    discord.SelectOption(label="Europe/Berlin", value="Europe/Berlin"),
+    discord.SelectOption(label="Asia/Dubai", value="Asia/Dubai"),
+    discord.SelectOption(label="Asia/Kolkata", value="Asia/Kolkata"),
+    discord.SelectOption(label="Asia/Singapore", value="Asia/Singapore"),
+    discord.SelectOption(label="Asia/Tokyo", value="Asia/Tokyo"),
+    discord.SelectOption(label="Australia/Sydney", value="Australia/Sydney"),
+]
+
+
+class _ProfilePageSelectorView(discord.ui.View):
+    def __init__(self, core: Any, user_id: int, profile: Optional[dict] = None, *, mode: str = "view"):
+        super().__init__(timeout=180)
+        self.core = core
+        self.user_id = user_id
+        self.profile = profile or {}
+        self.mode = mode
+
+        pages = {"view": ["Info", "Details", "Privacy"], "edit": ["Info", "Details", "Privacy"]}
+        for label, page_number in zip(pages[mode], [1, 2, 3]):
+            button = discord.ui.Button(label=label, style=discord.ButtonStyle.primary)
+
+            async def _open_page(interaction: discord.Interaction, page_number: int = page_number):
+                try:
+                    if mode == "view":
+                        modal = _ViewProfileModal(core, user_id, self.profile, page=page_number)
+                    else:
+                        modal = _ProfileSettingsModal(core, user_id, self.profile, page=page_number)
+                    await interaction.response.send_modal(modal)
+                except Exception as exc:
+                    detail = f"{type(exc).__name__}: {exc}" if str(exc) else type(exc).__name__
+                    await interaction.response.send_message(
+                        f"Unable to open the {mode} profile page right now: {detail}",
+                        ephemeral=True,
+                    )
+
+            button.callback = _open_page
+            self.add_item(button)
+
+
 class _ViewProfileModal(discord.ui.Modal):
-    def __init__(self, core: Any, user_id: int, profile: Optional[dict] = None):
-        super().__init__(title="Your profile")
+    def __init__(self, core: Any, user_id: int, profile: Optional[dict] = None, *, page: int = 1):
+        super().__init__(title=f"Your profile • page {page}")
         self.core = core
         self.user_id = user_id
         profile_data = profile or Account.get_profile(core, user_id) or {}
 
-        self.mcoc_name = discord.ui.TextInput(
-            label="MCOC username",
-            default=str(profile_data.get("mcoc_name") or "")[:100],
-            required=False,
-            max_length=100,
-        )
-        self.alliance = discord.ui.TextInput(
-            label="Alliance",
-            default=str(profile_data.get("alliance") or "")[:100],
-            required=False,
-            max_length=100,
-        )
-        self.timezone = discord.ui.TextInput(
-            label="Timezone",
-            default=str(profile_data.get("timezone") or "")[:100],
-            required=False,
-            max_length=100,
-        )
-        self.website = discord.ui.TextInput(
-            label="Website",
-            default=str(profile_data.get("website") or "")[:250],
-            required=False,
-            max_length=250,
-        )
-        self.about = discord.ui.TextInput(
-            label="About",
-            default=str(profile_data.get("about") or profile_data.get("notes") or "")[:1000],
-            required=False,
-            max_length=1000,
-            style=discord.TextStyle.long,
-        )
-        for item in [self.mcoc_name, self.alliance, self.timezone, self.website, self.about]:
-            self.add_item(item)
+        self.inputs = {}
+        for label, field_name, max_length in _PROFILE_PAGE_LAYOUTS.get(page, _PROFILE_PAGE_LAYOUTS[1]):
+            default = profile_data.get(field_name) or ("about" if field_name == "about" else "")
+            if field_name == "active_roster":
+                text_input = discord.ui.TextInput(
+                    label=label,
+                    default=str(default or "").strip()[:max_length],
+                    required=False,
+                    max_length=max_length,
+                )
+                text_input.disabled = True
+                self.inputs[field_name] = text_input
+                self.add_item(text_input)
+                continue
+            if field_name == "about":
+                text_input = discord.ui.TextInput(
+                    label=label,
+                    default=str(default)[:max_length],
+                    required=False,
+                    max_length=max_length,
+                    style=discord.TextStyle.long,
+                )
+            else:
+                text_input = discord.ui.TextInput(
+                    label=label,
+                    default=str(default)[:max_length],
+                    required=False,
+                    max_length=max_length,
+                )
+            text_input.disabled = True
+            self.inputs[field_name] = text_input
+            self.add_item(text_input)
 
 
 class _ProfileSettingsModal(discord.ui.Modal):
-    def __init__(self, core: Any, user_id: int, profile: Optional[dict] = None):
-        super().__init__(title="Edit profile")
+    def __init__(self, core: Any, user_id: int, profile: Optional[dict] = None, *, page: int = 1):
+        super().__init__(title=f"Edit profile • page {page}")
         self.core = core
         self.user_id = user_id
         self.profile = profile or {}
+        self.page = page
 
-        profile_data = self.profile
-        fields = [
-            ("MCOC username", "mcoc_name", 100),
-            ("Alliance", "alliance", 100),
-            ("Timezone", "timezone", 100),
-            ("Website", "website", 250),
-            ("About", "about", 1000),
-        ]
         self.inputs = {}
-        for label, field_name, max_length in fields:
-            default = profile_data.get(field_name) or ("about" if field_name == "about" else "")
+        for label, field_name, max_length in _PROFILE_PAGE_LAYOUTS.get(page, _PROFILE_PAGE_LAYOUTS[1]):
+            default = self.profile.get(field_name) or ("about" if field_name == "about" else "")
+            if field_name == "active_roster":
+                roster_ids, active_id = Account.get_selectable_rosters(self.core, self.user_id)
+                if not roster_ids:
+                    roster_ids = ["default"]
+                default_roster = active_id or roster_ids[0]
+                options = [
+                    discord.SelectOption(
+                        label=roster_id,
+                        value=roster_id,
+                        default=str(roster_id) == str(default_roster),
+                    )
+                    for roster_id in roster_ids
+                ]
+                selector = discord.ui.Select(
+                    placeholder="MCOC roster",
+                    options=options,
+                    min_values=1,
+                    max_values=1,
+                )
+                self.inputs[field_name] = selector
+                self.add_item(selector)
+                continue
+            if field_name == "timezone":
+                selector = discord.ui.Select(
+                    placeholder="Timezone",
+                    options=_TIMEZONE_OPTIONS,
+                    min_values=1,
+                    max_values=1,
+                )
+                selected_value = str(default).strip() if default else "UTC"
+                if selected_value not in {option.value for option in selector.options}:
+                    selector.options.append(discord.SelectOption(label=selected_value, value=selected_value))
+                for option in selector.options:
+                    option.default = option.value == selected_value
+                self.inputs[field_name] = selector
+                self.add_item(selector)
+                continue
             if field_name == "about":
                 text_input = discord.ui.TextInput(
                     label=label,
@@ -121,9 +221,13 @@ class _ProfileSettingsModal(discord.ui.Modal):
         permitted = {"private", "guild", "alliance", "public"}
         saved = []
         for field_name, input_obj in self.inputs.items():
-            value = (input_obj.value or "").strip()
+            if hasattr(input_obj, "values"):
+                value = (input_obj.values[0] if getattr(input_obj, "values", None) else "").strip()
+            else:
+                value = (getattr(input_obj, "value", "") or "").strip()
             if value == "":
                 continue
+
             if field_name == "privacy_mode":
                 lowered = value.lower()
                 if lowered not in permitted:
@@ -133,6 +237,28 @@ class _ProfileSettingsModal(discord.ui.Modal):
                     )
                     return
                 value = lowered
+            elif field_name == "roster_public":
+                lowered = value.lower()
+                if lowered in {"1", "true", "yes", "on", "y"}:
+                    value = True
+                elif lowered in {"0", "false", "no", "off", "n"}:
+                    value = False
+                else:
+                    await interaction.response.send_message(
+                        "Roster public must be true/false, yes/no, or 1/0.",
+                        ephemeral=True,
+                    )
+                    return
+            elif field_name == "active_roster":
+                ok, msg = Account.select_active_roster(self.core, self.user_id, value)
+                if not ok:
+                    await interaction.response.send_message(msg, ephemeral=True)
+                    return
+                saved.append(field_name)
+                continue
+            elif value.lower() in {"clear", "none", "null", "unset"}:
+                value = None
+
             Account.set_profile_field(self.core, self.user_id, field_name, value)
             saved.append(field_name)
 
@@ -264,7 +390,11 @@ class _AccountManagerView(discord.ui.View):
                 await interaction.response.send_message("No account found. Use CREATE first.", ephemeral=True)
                 return
             try:
-                await interaction.response.send_modal(_ViewProfileModal(core, user_id, profile))
+                await interaction.response.send_message(
+                    "Choose the profile page you want to view.",
+                    view=_ProfilePageSelectorView(core, user_id, profile, mode="view"),
+                    ephemeral=True,
+                )
             except Exception as exc:
                 detail = f"{type(exc).__name__}: {exc}" if str(exc) else type(exc).__name__
                 await interaction.response.send_message(f"Unable to open the profile view right now: {detail}", ephemeral=True)
@@ -275,7 +405,11 @@ class _AccountManagerView(discord.ui.View):
                 await interaction.response.send_message("No account found. Use CREATE first.", ephemeral=True)
                 return
             try:
-                await interaction.response.send_modal(_ProfileSettingsModal(core, user_id, profile))
+                await interaction.response.send_message(
+                    "Choose the section to edit.",
+                    view=_ProfilePageSelectorView(core, user_id, profile, mode="edit"),
+                    ephemeral=True,
+                )
             except Exception as exc:
                 detail = f"{type(exc).__name__}: {exc}" if str(exc) else type(exc).__name__
                 await interaction.response.send_message(f"Unable to open the editor right now: {detail}", ephemeral=True)

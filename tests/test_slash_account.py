@@ -356,27 +356,34 @@ def test_runtime_version_label_returns_commit_and_branch(monkeypatch):
     assert slash_account_module._runtime_version_label() == "runtime: b645348 (dev-slash)"
 
 
+def test_profile_settings_modal_has_single_roster_selector(monkeypatch):
+    from mcoc.slash.account import _ProfileSettingsModal
+
+    monkeypatch.setattr(
+        "mcoc.slash.account.Account.get_selectable_rosters",
+        lambda *a, **k: (["main"], "main"),
+    )
+
+    modal = _ProfileSettingsModal(core=object(), user_id=42, profile={}, page=1)
+    roster_selector = modal.inputs.get("active_roster")
+
+    assert roster_selector is not None
+    assert [option.value for option in roster_selector.options] == ["main"]
+    assert roster_selector.options[0].default is True
+
+
 def test_account_manager_modal_errors_show_the_real_reason(monkeypatch):
-    from mcoc.slash.account import _AccountManagerView
+    from mcoc.slash.account import _ProfilePageSelectorView
 
-    monkeypatch.setattr(
-        "mcoc.slash.account.Account.get_profile",
-        lambda *a, **k: {"mcoc_name": "tester"},
-    )
-    monkeypatch.setattr(
-        "mcoc.slash.account.Account.user_has_consented",
-        lambda *a, **k: False,
-    )
-    monkeypatch.setattr(
-        "mcoc.slash.account.Account.user_has_profile",
-        lambda *a, **k: True,
-    )
-
-    view = _AccountManagerView(core=object(), user_id=42)
+    view = _ProfilePageSelectorView(core=object(), user_id=42, profile={"mcoc_name": "tester"}, mode="view")
     calls = []
 
     class _ResponseStub:
+        def __init__(self):
+            self.calls = 0
+
         async def send_modal(self, *args, **kwargs):
+            self.calls += 1
             raise RuntimeError("modal blocked")
 
         async def send_message(self, *args, **kwargs):
