@@ -146,6 +146,16 @@ def test_account_settings_pages_exclude_privacy_from_generic_fields(monkeypatch)
     assert all("privacy_mode" not in getattr(field, "name", "") for field in field_names)
 
 
+def test_profile_edit_modal_timezone_uses_text_input_not_select():
+    from mcoc.slash.account import _ProfileSettingsModal
+
+    modal = _ProfileSettingsModal(core=object(), user_id=42, profile={"timezone": "UTC"}, page=1)
+    tz_input = modal.inputs["timezone"]
+
+    assert isinstance(tz_input, discord.ui.TextInput)
+    assert tz_input.default == "UTC"
+
+
 def test_slash_account_settings_multi_page_uses_pages_menu(monkeypatch):
     group = _AccountGroup(core=object())
     interaction = _InteractionStub()

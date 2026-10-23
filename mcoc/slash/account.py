@@ -185,19 +185,15 @@ class _ProfileSettingsModal(discord.ui.Modal):
         for label, field_name, max_length in _PROFILE_PAGE_LAYOUTS.get(page, _PROFILE_PAGE_LAYOUTS[1]):
             default = self.profile.get(field_name) or ("about" if field_name == "about" else "")
             if field_name == "timezone":
-                selector = discord.ui.Select(
-                    placeholder="Timezone",
-                    options=_TIMEZONE_OPTIONS,
-                    min_values=1,
-                    max_values=1,
+                text_input = discord.ui.TextInput(
+                    label=label,
+                    default=str(default or "UTC")[:max_length],
+                    required=False,
+                    max_length=max_length,
+                    placeholder="UTC / America/New_York / Europe/London",
                 )
-                selected_value = str(default).strip() if default else "UTC"
-                if selected_value not in {option.value for option in selector.options}:
-                    selector.options.append(discord.SelectOption(label=selected_value, value=selected_value))
-                for option in selector.options:
-                    option.default = option.value == selected_value
-                self.inputs[field_name] = selector
-                self.add_item(selector)
+                self.inputs[field_name] = text_input
+                self.add_item(text_input)
                 continue
             if field_name == "about":
                 text_input = discord.ui.TextInput(
