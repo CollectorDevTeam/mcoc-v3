@@ -229,7 +229,7 @@ def test_slash_account_root_command_opens_account_manager(monkeypatch):
 
     assert len(interaction.response.calls) == 1
     content = interaction.response.calls[0].get("content")
-    assert content.startswith("Manage your account settings and privacy.")
+    assert content.startswith("Manage your CollectorVerse account settings and privacy.")
     assert "runtime:" in content.lower()
 
 
@@ -356,6 +356,32 @@ def test_account_manager_privacy_mode_only_is_not_treated_as_real_account(monkey
     assert "VIEW" not in labels
     assert "EDIT" not in labels
     assert "PRIVACY" not in labels
+
+
+def test_account_privacy_view_updates_current_mode_in_place(monkeypatch):
+    from mcoc.slash.account import _AccountPrivacyView
+
+    class _R:
+        def __init__(self):
+            self.calls = []
+
+        async def edit_message(self, **kwargs):
+            self.calls.append(kwargs)
+
+        async def send_message(self, *args, **kwargs):
+            self.calls.append({"send": True, "args": args, "kwargs": kwargs})
+
+    interaction = types.SimpleNamespace(response=_R())
+    monkeypatch.setattr("mcoc.slash.account.Account.get_profile", lambda *a, **k: {"privacy_mode": "private"})
+    monkeypatch.setattr("mcoc.slash.account.Account.set_profile_field", lambda *a, **k: True)
+
+    view = _AccountPrivacyView(core=object(), user_id=42)
+    asyncio = __import__("asyncio")
+    asyncio.run(view.private_btn.callback(interaction))
+
+    assert view.current_mode == "private"
+    assert view.private_btn.style == __import__("discord").ButtonStyle.green
+    assert interaction.response.calls[0]["content"].startswith("Current privacy mode: private")
 
 
 def test_delete_user_profile_removes_underlying_settings_file_when_manager_has_no_delete_method(tmp_path):

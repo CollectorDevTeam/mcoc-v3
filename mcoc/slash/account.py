@@ -180,57 +180,68 @@ class _AccountPrivacyView(discord.ui.View):
         super().__init__(timeout=180)
         self.core = core
         self.user_id = user_id
-
-        current_mode = (Account.get_profile(core, user_id) or {}).get("privacy_mode") or "private"
-        current_mode = str(current_mode).lower()
+        self.current_mode = (Account.get_profile(core, user_id) or {}).get("privacy_mode") or "private"
+        self.current_mode = str(self.current_mode).lower()
 
         def _style_for(mode: str) -> discord.ButtonStyle:
-            return discord.ButtonStyle.green if current_mode == mode.lower() else discord.ButtonStyle.gray
+            return discord.ButtonStyle.green if self.current_mode == mode.lower() else discord.ButtonStyle.gray
 
-        public_btn = discord.ui.Button(label="PUBLIC", style=_style_for("public"))
-        alliance_btn = discord.ui.Button(label="ALLIANCE", style=_style_for("alliance"))
-        guild_btn = discord.ui.Button(label="GUILD", style=_style_for("guild"))
-        private_btn = discord.ui.Button(label="PRIVATE", style=_style_for("private"))
-        delete_btn = discord.ui.Button(label="DELETE", style=discord.ButtonStyle.danger)
+        self.public_btn = discord.ui.Button(label="PUBLIC", style=_style_for("public"))
+        self.alliance_btn = discord.ui.Button(label="ALLIANCE", style=_style_for("alliance"))
+        self.guild_btn = discord.ui.Button(label="GUILD", style=_style_for("guild"))
+        self.private_btn = discord.ui.Button(label="PRIVATE", style=_style_for("private"))
+        self.delete_btn = discord.ui.Button(label="DELETE", style=discord.ButtonStyle.danger)
 
-        async def _set_mode(mode: str):
+        self._refresh_styles()
+
+        async def _set_mode(mode: str, interaction: discord.Interaction):
             ok = Account.set_profile_field(core, user_id, "privacy_mode", mode)
-            return ok, f"Privacy mode set to {mode}." if ok else "Failed to update privacy mode."
+            if not ok:
+                await interaction.response.send_message("Failed to update privacy mode.", ephemeral=True)
+                return
+            self.current_mode = mode.lower()
+            self._refresh_styles()
+            await interaction.response.edit_message(
+                content=f"Current privacy mode: {self.current_mode}\nChoose your visibility below.",
+                view=self,
+            )
 
         async def _public_cb(interaction: discord.Interaction):
-            ok, msg = await _set_mode("public")
-            await interaction.response.send_message(msg, ephemeral=True)
+            await _set_mode("public", interaction)
 
         async def _alliance_cb(interaction: discord.Interaction):
-            ok, msg = await _set_mode("alliance")
-            await interaction.response.send_message(msg, ephemeral=True)
+            await _set_mode("alliance", interaction)
 
         async def _guild_cb(interaction: discord.Interaction):
-            ok, msg = await _set_mode("guild")
-            await interaction.response.send_message(msg, ephemeral=True)
+            await _set_mode("guild", interaction)
 
         async def _private_cb(interaction: discord.Interaction):
-            ok, msg = await _set_mode("private")
-            await interaction.response.send_message(msg, ephemeral=True)
+            await _set_mode("private", interaction)
 
         async def _delete_cb(interaction: discord.Interaction):
             ok, msg = Account.delete_user_profile(core, user_id)
-            if ok:
-                await interaction.response.send_message(msg, ephemeral=True)
-                return
             await interaction.response.send_message(msg, ephemeral=True)
 
-        public_btn.callback = _public_cb
-        alliance_btn.callback = _alliance_cb
-        guild_btn.callback = _guild_cb
-        private_btn.callback = _private_cb
-        delete_btn.callback = _delete_cb
+        self.public_btn.callback = _public_cb
+        self.alliance_btn.callback = _alliance_cb
+        self.guild_btn.callback = _guild_cb
+        self.private_btn.callback = _private_cb
+        self.delete_btn.callback = _delete_cb
 
-        self.add_item(public_btn)
-        self.add_item(alliance_btn)
-        self.add_item(guild_btn)
-        self.add_item(private_btn)
-        self.add_item(delete_btn)
+        self.add_item(self.public_btn)
+        self.add_item(self.alliance_btn)
+        self.add_item(self.guild_btn)
+        self.add_item(self.private_btn)
+        self.add_item(self.delete_btn)
+
+    def _refresh_styles(self):
+        for button, mode in [
+            (self.public_btn, "public"),
+            (self.alliance_btn, "alliance"),
+            (self.guild_btn, "guild"),
+            (self.private_btn, "private"),
+        ]:
+            button.style = discord.ButtonStyle.green if self.current_mode == mode else discord.ButtonStyle.gray
 
 
 class _AccountManagerView(discord.ui.View):
