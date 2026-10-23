@@ -252,6 +252,25 @@ def test_account_manager_no_profile_shows_create_only(monkeypatch):
     assert "CONSENT" not in labels
 
 
+def test_user_has_profile_rejects_default_placeholder_profile():
+    from mcoc.common.helpers import account as account_helpers
+
+    profile = {
+        "mcoc_id": None,
+        "mcoc_name": None,
+        "consent": False,
+        "consent_ts": None,
+        "website": None,
+        "timezone": None,
+        "alliance": None,
+        "job": None,
+        "created_at": None,
+        "updated_at": None,
+    }
+
+    assert account_helpers.user_has_profile(object(), 42) is False
+
+
 def test_account_manager_after_consent_has_standard_actions(monkeypatch):
     from mcoc.slash.account import _AccountManagerView
 

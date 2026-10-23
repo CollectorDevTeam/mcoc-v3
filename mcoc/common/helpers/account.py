@@ -877,8 +877,20 @@ def build_profile_display(parent: Any, ctx_or_author: Any, target_id: int, viewe
 # ----------------------------
 # Enrollment / Consent flow
 # ----------------------------
+def _is_meaningful_profile_value(value: Any) -> bool:
+    if value is None:
+        return False
+    if isinstance(value, str):
+        return bool(value.strip())
+    if isinstance(value, (list, tuple, set, dict)):
+        return len(value) > 0
+    if isinstance(value, bool):
+        return bool(value)
+    return True
+
+
 def user_has_profile(parent: Any, user_id: int) -> bool:
-    """Return True only when the stored profile has meaningful account data, not just consent/privacy metadata."""
+    """Return True only when the stored profile has meaningful account data, not just consent/privacy metadata or blank placeholders."""
     try:
         profile = get_profile(parent, user_id) or {}
         if not isinstance(profile, dict):
@@ -899,7 +911,10 @@ def user_has_profile(parent: Any, user_id: int) -> bool:
             "prestige_map",
             "top5",
         }
-        return any(key not in system_fields for key in profile.keys())
+        return any(
+            key not in system_fields and _is_meaningful_profile_value(value)
+            for key, value in profile.items()
+        )
     except Exception:
         log.exception("user_has_profile check failed for %s", user_id)
         return False
