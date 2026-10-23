@@ -108,6 +108,8 @@ class _ProfilePageSelectorView(discord.ui.View):
         self.roster_selector.callback = _update_roster
         self.add_item(self.roster_selector)
 
+        # Privacy is intentionally managed by the dedicated /account privacy flow.
+        # The profile editor should not expose privacy settings as a generic field.
         pages = {"view": ["Info", "Details"], "edit": ["Info", "Details"]}
         for label, page_number in zip(pages[mode], [1, 2]):
             button = discord.ui.Button(label=label, style=discord.ButtonStyle.primary)

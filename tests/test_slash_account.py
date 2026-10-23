@@ -1,5 +1,7 @@
 import types
 
+import discord
+
 from mcoc.slash.account import _AccountGroup
 
 
@@ -117,6 +119,31 @@ def test_slash_account_privacy_invalid_mode():
     call = interaction.response.calls[0]
     assert "Allowed privacy modes" in call.get("content")
     assert call.get("ephemeral") is True
+
+
+def test_slash_account_edit_page_has_no_privacy_field():
+    from mcoc.slash.account import _PROFILE_PAGE_LAYOUTS, _ProfilePageSelectorView
+
+    flattened = [field_name for page in _PROFILE_PAGE_LAYOUTS.values() for _, field_name, _ in page]
+    assert "privacy_mode" not in flattened
+
+    view = _ProfilePageSelectorView(core=object(), user_id=42, profile={"mcoc_name": "tester"}, mode="edit")
+    assert all(getattr(item, "label", "") != "PRIVACY" for item in view.children)
+    assert [getattr(item, "label", "") for item in view.children if isinstance(item, discord.ui.Button)] == ["Info", "Details"]
+
+
+def test_account_settings_pages_exclude_privacy_from_generic_fields(monkeypatch):
+    from mcoc.common.helpers import account as account_helper
+
+    profile = {"mcoc_name": "tester", "privacy_mode": "private"}
+    monkeypatch.setattr(account_helper, "get_profile", lambda *a, **k: profile)
+
+    pages = account_helper.build_settings_pages(object(), object(), 42, title_prefix="Tester")
+    assert pages
+    field_names = []
+    for page in pages:
+        field_names.extend(getattr(page, "fields", []))
+    assert all("privacy_mode" not in getattr(field, "name", "") for field in field_names)
 
 
 def test_slash_account_settings_multi_page_uses_pages_menu(monkeypatch):

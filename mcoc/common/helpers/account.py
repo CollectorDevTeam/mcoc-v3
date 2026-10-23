@@ -66,7 +66,6 @@ ALLOWED_PROFILE_FIELDS: Dict[str, Dict[str, str]] = {
     "mastery": {"type": "str", "desc": "Mastery build or link"},
     "started": {"type": "str", "desc": "Playing since (ISO date)"},
     "roster_public": {"type": "bool", "desc": "Make roster visible to guild"},
-    "privacy_mode": {"type": "str", "desc": "private|guild|alliance|public"},
     "linked": {"type": "bool", "desc": "Account linked flag"},
     "prestige_map": {"type": "dict", "desc": "Persisted prestige per champ"},
     "top5": {"type": "list", "desc": "Cached top 5 champion names"},
