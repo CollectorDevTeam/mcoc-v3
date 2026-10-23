@@ -2037,13 +2037,61 @@ async def build_roster_pages(core: Any, ctx_or_author: Any, parsed_filters: Opti
             except Exception:
                 e["prestige"] = None
 
-        # Sort filtered entries: prestige-aware, then tier/rank/sig
+        # Sort filtered entries: prestige-aware by default, or tierlist-aware for roster list toggles.
+        list_mode = str(parsed.get("list_mode") or parsed.get("sort_mode") or "default").lower()
+        tier_order = {"s+": 0, "s": 1, "a": 2, "b": 3, "c": 4, "d": 5, "e": 6, "f": 7}
+        score_by_name = {}
+        tier_by_name = {}
+        awakened_set = set()
+        try:
+            tierlist = getattr(cache, "_load_file", lambda *_args, **_kwargs: {})("tierlist") if cache else {}
+            if isinstance(tierlist, dict):
+                for row in tierlist.get("champions", []) or []:
+                    if not isinstance(row, dict):
+                        continue
+                    for key in (row.get("id"), row.get("slug"), row.get("name"), row.get("en")):
+                        token = str(key or "").strip().lower()
+                        if not token:
+                            continue
+                        if token not in score_by_name:
+                            try:
+                                score_by_name[token] = float(row.get("score", 0) or 0)
+                            except Exception:
+                                score_by_name[token] = 0.0
+                        if token not in tier_by_name:
+                            tier = str(row.get("tier") or "").strip()
+                            if tier:
+                                tier_by_name[token] = tier
+                        if bool(row.get("awakened", False)):
+                            awakened_set.add(token)
+        except Exception:
+            score_by_name = {}
+            tier_by_name = {}
+            awakened_set = set()
+
+        def _tier_sort_key(e: Dict[str, Any]):
+            slug = str(e.get("champion") or "").strip().lower()
+            name = str(e.get("raw") or "").strip().lower()
+            tier = str(e.get("tier") or tier_by_name.get(slug) or tier_by_name.get(name) or "").strip().upper()
+            score = float(e.get("score") or score_by_name.get(slug) or score_by_name.get(name) or 0.0)
+            return (tier_order.get(tier.lower(), 99), -score, -int(e.get("rarity") or e.get("stars") or 0), int(e.get("rank") or 0), -int(e.get("sig") or 0))
+
         def _sort_key(e: Dict[str, Any]):
             p = e.get("prestige")
+            if list_mode in {"tierlist", "awaken", "rankup"}:
+                return _tier_sort_key(e)
             if isinstance(p, (int, float)):
                 return (0, -float(p), -int(e.get("rarity") or e.get("stars") or 0), int(e.get("rank") or 0), -int(e.get("sig") or 0))
             return (1, -int(e.get("rarity") or e.get("stars") or 0), int(e.get("rank") or 0), -int(e.get("sig") or 0))
 
+        if list_mode == "awaken":
+            filtered_entries = [
+                e for e in filtered_entries
+                if int(e.get("sig") or 0) < 1 and (
+                    str(e.get("champion") or "").strip().lower() in awakened_set
+                    or str(e.get("raw") or "").strip().lower() in awakened_set
+                )
+            ]
         try:
             filtered_entries.sort(key=_sort_key)
         except Exception:

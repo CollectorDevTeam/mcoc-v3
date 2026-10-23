@@ -150,6 +150,41 @@ class _RosterAddModal(ui.Modal):
             await interaction.response.send_message("No roster entries were added.", ephemeral=True)
 
 
+class _RosterListControlsView(ui.View):
+    def __init__(self, group: "_RosterGroup", target_user: Any, base_hargs: str = "", *, timeout: float = 180.0):
+        super().__init__(timeout=timeout)
+        self.group = group
+        self.target_user = target_user
+        self.base_hargs = base_hargs or ""
+        for label, mode in (("AWAKEN", "awaken"), ("RANKUP", "rankup"), ("TIERLIST", "tierlist"), ("CLEAR", "default")):
+            self.add_item(_RosterListModeButton(group, target_user, self.base_hargs, label, mode))
+
+
+class _RosterListModeButton(ui.Button):
+    def __init__(self, group: "_RosterGroup", target_user: Any, base_hargs: str, label: str, mode: str):
+        super().__init__(label=label, style=discord.ButtonStyle.secondary)
+        self.group = group
+        self.target_user = target_user
+        self.base_hargs = base_hargs or ""
+        self.mode = mode or "default"
+
+    async def callback(self, interaction):
+        try:
+            parsed = parse_hargs(self.base_hargs or "")
+            parsed["list_mode"] = self.mode
+            pager = await make_roster_pager(self.group.core, self.target_user, raw_input=self.base_hargs or "", parsed_filters=parsed, author_for_controls=getattr(interaction, "user", self.target_user))
+            if not pager:
+                await interaction.response.send_message("No roster entries match the selected view.", ephemeral=True)
+                return
+            try:
+                await interaction.response.send_message(embed=pager.pages[0], view=pager)
+            except Exception:
+                await interaction.response.send_message(embed=pager.pages[0])
+        except Exception:
+            log.exception("roster list mode callback failed")
+            await interaction.response.send_message("Roster list is unavailable right now.", ephemeral=True)
+
+
 class _RosterGroup(app_commands.Group):
     def __init__(self, core: Any):
         super().__init__(name="roster", description="Manage your personal champion roster")
@@ -915,9 +950,9 @@ class _RosterGroup(app_commands.Group):
                 await sender("No roster entries match your filters.", ephemeral=True)
                 return
 
-            # add page numbers and send with PagesMenu if available
             try:
-                await sender(embed=pager.pages[0], view=pager)
+                list_view = _RosterListControlsView(self, target_user, cleaned_hargs or "")
+                await sender(embed=pager.pages[0], view=list_view)
             except Exception:
                 # fallback: send simple list
                 names = []

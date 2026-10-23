@@ -571,6 +571,37 @@ def test_slash_roster_list_mention_targets_other_user(monkeypatch):
     assert "<@99>" not in (captured["raw_input"] or "")
 
 
+def test_slash_roster_list_view_builds_filter_buttons():
+    from mcoc.slash import roster as slash_roster_module
+
+    champion_rows = [{"id": "abomination", "slug": "abomination", "name": "Abomination", "class": "science"}]
+    group = _RosterGroup(core=_CoreStub(champion_rows))
+    list_view = slash_roster_module._RosterListControlsView(group, types.SimpleNamespace(id=42, display_name="jjw"), "7*")
+    labels = [child.label for child in list_view.children]
+    assert labels == ["AWAKEN", "RANKUP", "TIERLIST", "CLEAR"]
+
+
+def test_slash_roster_list_button_mode_sets_list_mode_filter(monkeypatch):
+    from mcoc.slash import roster as slash_roster_module
+
+    champion_rows = [{"id": "abomination", "slug": "abomination", "name": "Abomination", "class": "science"}]
+    group = _RosterGroup(core=_CoreStub(champion_rows))
+    target = types.SimpleNamespace(id=42, display_name="jjw")
+    button = slash_roster_module._RosterListModeButton(group, target, "7*", "TIERLIST", "tierlist")
+    interaction = _InteractionStub(user_id=42)
+
+    captured = {}
+
+    async def _fake_make_roster_pager(core, ctx_or_author, **kwargs):
+        captured["parsed_filters"] = kwargs.get("parsed_filters")
+        return types.SimpleNamespace(pages=[{"title": "Roster"}])
+
+    monkeypatch.setattr(slash_roster_module, "make_roster_pager", _fake_make_roster_pager)
+    asyncio.run(button.callback(interaction))
+
+    assert captured["parsed_filters"]["list_mode"] == "tierlist"
+
+
 def test_slash_roster_modal_labels_fit_discord_limit():
     group = _RosterGroup(core=_CoreStub([]))
     rankup_modal = _RosterRankupModal(group, "all")
