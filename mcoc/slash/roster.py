@@ -172,7 +172,7 @@ class _RosterQuickFilterSelect(ui.Select):
 
         if kind == "star":
             options = [
-                discord.SelectOption(label="Any Star", value=""),
+                discord.SelectOption(label="Any Star", value="__any__"),
                 discord.SelectOption(label="7★", value="7"),
                 discord.SelectOption(label="6★", value="6"),
                 discord.SelectOption(label="5★", value="5"),
@@ -181,7 +181,7 @@ class _RosterQuickFilterSelect(ui.Select):
             placeholder = "Select star tier"
         elif kind == "rank":
             options = [
-                discord.SelectOption(label="Any Rank", value=""),
+                discord.SelectOption(label="Any Rank", value="__any__"),
                 discord.SelectOption(label="Rank 1", value="1"),
                 discord.SelectOption(label="Rank 2", value="2"),
                 discord.SelectOption(label="Rank 3", value="3"),
@@ -191,7 +191,7 @@ class _RosterQuickFilterSelect(ui.Select):
             placeholder = "Select rank"
         else:
             options = [
-                discord.SelectOption(label="All Classes", value=""),
+                discord.SelectOption(label="All Classes", value="__any__"),
                 discord.SelectOption(label="Science", value="science"),
                 discord.SelectOption(label="Skill", value="skill"),
                 discord.SelectOption(label="Mutant", value="mutant"),
@@ -206,18 +206,19 @@ class _RosterQuickFilterSelect(ui.Select):
     async def callback(self, interaction):
         parsed = dict(self.parsed_filters or {})
         selected = str((self.values or [""])[0] or "").strip().lower()
+        clear_selected = selected in {"", "__any__", "any", "all"}
         if self.kind == "star":
-            if selected and selected.isdigit():
+            if (not clear_selected) and selected.isdigit():
                 parsed["rarities"] = [int(selected)]
             else:
                 parsed.pop("rarities", None)
         elif self.kind == "rank":
-            if selected and selected.isdigit():
+            if (not clear_selected) and selected.isdigit():
                 parsed["ranks"] = [int(selected)]
             else:
                 parsed.pop("ranks", None)
         else:
-            if selected:
+            if not clear_selected:
                 parsed["classes"] = [selected]
             else:
                 parsed.pop("classes", None)
