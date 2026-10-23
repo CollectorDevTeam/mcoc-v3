@@ -214,7 +214,10 @@ def _normalize_prestige(value: Any) -> int:
         return 0
 
 
-def format_champion_line(champ_obj: ChampionLike, entry: Dict[str, Any], *, include_prestige: Optional[Any] = None) -> str:
+_PRESTIGE_UNSET = object()
+
+
+def format_champion_line(champ_obj: ChampionLike, entry: Dict[str, Any], *, include_prestige: Optional[Any] = _PRESTIGE_UNSET) -> str:
     """
     champ_obj: champion metadata from cache (may be None or dict)
     entry: canonical entry dict with keys: champion (slug), rarity, rank, sig, ascended
@@ -246,11 +249,14 @@ def format_champion_line(champ_obj: ChampionLike, entry: Dict[str, Any], *, incl
     sig = _safe_int(entry.get("sig"), 0)
     rank = _safe_int(entry.get("rank"), 1)
     asc = _safe_int(entry.get("ascended") or entry.get("asc"), 0)
-    prestige_value = include_prestige if include_prestige is not None else entry.get("prestige")
-    if prestige_value is None and champ is not None:
-        prestige_value = getattr(champ, "prestige", None)
-    if prestige_value is None and isinstance(champ_obj, Mapping):
-        prestige_value = champ_obj.get("prestige")
+    if include_prestige is _PRESTIGE_UNSET:
+        prestige_value = entry.get("prestige")
+        if prestige_value is None and champ is not None:
+            prestige_value = getattr(champ, "prestige", None)
+        if prestige_value is None and isinstance(champ_obj, Mapping):
+            prestige_value = champ_obj.get("prestige")
+    else:
+        prestige_value = include_prestige
     prestige = _normalize_prestige(prestige_value)
 
     asc_emoji = f"A{asc}" if asc > 0 else ""
@@ -267,7 +273,7 @@ def format_champion_line(champ_obj: ChampionLike, entry: Dict[str, Any], *, incl
     return f"{cls_emoji} {star_display} {name} r{rank} {sig_text}{asc_text} {prestige_text}".strip()
 
 
-def format_top5_prestige_line(champ_obj: Optional[Champion], entry: Dict[str, Any], *, include_prestige: Optional[Any] = None) -> str:
+def format_top5_prestige_line(champ_obj: Optional[Champion], entry: Dict[str, Any], *, include_prestige: Optional[Any] = _PRESTIGE_UNSET) -> str:
     """
     champ_obj: champion metadata from cache (may be None or Champion dataclass)
     entry: canonical entry dict with keys: champion (slug), rarity, rank, sig, ascended, prestige
@@ -310,9 +316,12 @@ def format_top5_prestige_line(champ_obj: Optional[Champion], entry: Dict[str, An
 
     cls_emoji = CLASS_EMOJI.get(cls, CLASS_EMOJI["all"])
 
-    prestige_value = include_prestige if include_prestige is not None else entry.get("prestige")
-    if prestige_value is None and champ is not None:
-        prestige_value = getattr(champ, "prestige", None)
+    if include_prestige is _PRESTIGE_UNSET:
+        prestige_value = entry.get("prestige")
+        if prestige_value is None and champ is not None:
+            prestige_value = getattr(champ, "prestige", None)
+    else:
+        prestige_value = include_prestige
     # sanitize prestige (handles "P12345" and strings)
     prestige_val = _normalize_prestige(prestige_value)
     prestige_text = f"{prestige_val:,}" if prestige_val > 0 else ""

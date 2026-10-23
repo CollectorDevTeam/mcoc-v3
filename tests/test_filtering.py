@@ -152,8 +152,20 @@ def test_format_champion_line_uses_prestige_when_available():
     champ = champion_from_dict({"id": "alpha", "name": "Alpha", "class": "skill", "prestige": 12345})
     line = format_champion_line(champ, {"champion": "alpha", "rarity": 6, "rank": 1, "sig": 0, "ascended": 0})
 
-    assert "[12,345]" in line
+    assert "12,345" in line
     assert "Alpha" in line
+
+
+def test_format_champion_line_respects_explicit_none_prestige_without_fallback():
+    champ = champion_from_dict({"id": "alpha", "name": "Alpha", "class": "skill", "prestige": 12345})
+    line = format_champion_line(
+        champ,
+        {"champion": "alpha", "rarity": 7, "rank": 3, "sig": 40, "ascended": 0},
+        include_prestige=None,
+    )
+
+    assert "Alpha" in line
+    assert "12,345" not in line
 
 
 def test_parse_query_and_match_support_class_tag_tokens():

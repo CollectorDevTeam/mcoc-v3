@@ -184,7 +184,8 @@ def _ensure_hook_registered(core):
 async def persist_user_prestige(core: Any, user_id: int) -> None:
     """
     Compute prestige for each roster entry using core.cache/index and persist
-    a small prestige_map into the user's profile: { "slug|stars": prestige }.
+    a small prestige_map into the user's profile keyed by progression:
+    { "slug|stars|rank|asc|sig": prestige }.
     Safe to call after add/update/remove roster operations.
     """
     try:
@@ -235,7 +236,7 @@ async def persist_user_prestige(core: Any, user_id: int) -> None:
                     except Exception:
                         prestige = None
 
-                key = f"{slug}|{stars}"
+                key = f"{slug}|{stars}|{rank}|{asc}|{sig}"
                 prestige_map[key] = int(prestige) if isinstance(prestige, (int, float)) else None
             except Exception:
                 continue
@@ -1893,11 +1894,12 @@ async def _resolve_prestige_for_entry(core: Any, entry: Dict[str, Any], prestige
         else:
             stars, rank, sig, asc = raw_stars, raw_rank, raw_sig, raw_asc
 
-        # fast path: persisted prestige_map
-        key = f"{slug}|{stars}"
-        if key in (prestige_map or {}) and prestige_map.get(key) is not None:
+        # fast path: persisted prestige_map (progression-specific)
+        key_exact = f"{slug}|{stars}|{rank}|{asc}|{sig}"
+        key_legacy = f"{slug}|{stars}"
+        if key_exact in (prestige_map or {}) and prestige_map.get(key_exact) is not None:
             try:
-                return int(prestige_map.get(key))
+                return int(prestige_map.get(key_exact))
             except Exception:
                 pass
 
@@ -1923,7 +1925,18 @@ async def _resolve_prestige_for_entry(core: Any, entry: Dict[str, Any], prestige
             except Exception:
                 pass
 
+        # Legacy map fallback for backward compatibility with older key format.
+        if key_legacy in (prestige_map or {}) and prestige_map.get(key_legacy) is not None:
+            try:
+                return int(prestige_map.get(key_legacy))
+            except Exception:
+                pass
+
         # final fallback: Cocpit abilities cache may include baseStats.Prestige.
+        # Only use this for baseline progression where base stats are representative.
+        if not (rank <= 1 and raw_sig <= 0 and asc <= 0):
+            return None
+
         if cache and hasattr(cache, "get_cocpit_abilities") and slug:
             try:
                 ability_row = cache.get_cocpit_abilities(slug)

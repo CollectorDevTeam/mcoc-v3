@@ -640,6 +640,7 @@ def compute_top5_from_roster(parent: Any, roster: List[Dict[str, Any]], profile:
             try:
                 slug = str(e.get("champion") or "").strip()
                 stars = int(e.get("rarity") or e.get("stars") or 0)
+                key_exact = f"{slug}|{stars}|{int(e.get('rank') or 1)}|{int(e.get('ascended') or 0)}|{int(e.get('sig') or 0)}"
                 key = f"{slug}|{stars}"
                 p = None
                 if cache and hasattr(cache, "get_prestige_value"):
@@ -664,6 +665,14 @@ def compute_top5_from_roster(parent: Any, roster: List[Dict[str, Any]], profile:
                                 value = base.get("Prestige") or base.get("prestige")
                                 if isinstance(value, (int, float)):
                                     p = int(value)
+                    except Exception:
+                        p = None
+
+                if p is None and key_exact in prestige_map and prestige_map.get(key_exact) is not None:
+                    try:
+                        cached_prestige = int(prestige_map.get(key_exact))
+                        if cached_prestige > 0:
+                            p = cached_prestige
                     except Exception:
                         p = None
 
@@ -721,6 +730,7 @@ def _compute_top5_roster_entries(parent: Any, roster: List[Dict[str, Any]], prof
                 rank = int(e.get("rank") or 1)
                 sig = int(e.get("sig") or 0)
                 ascended = int(e.get("ascended") or 0)
+                key_exact = f"{slug}|{rarity}|{rank}|{ascended}|{sig}"
                 key = f"{slug}|{rarity}"
 
                 p = None
@@ -740,6 +750,14 @@ def _compute_top5_roster_entries(parent: Any, roster: List[Dict[str, Any]], prof
                                 value = base.get("Prestige") or base.get("prestige")
                                 if isinstance(value, (int, float)):
                                     p = int(value)
+                    except Exception:
+                        p = None
+
+                if p is None and key_exact in prestige_map and prestige_map.get(key_exact) is not None:
+                    try:
+                        cached_prestige = int(prestige_map.get(key_exact))
+                        if cached_prestige > 0:
+                            p = cached_prestige
                     except Exception:
                         p = None
 
