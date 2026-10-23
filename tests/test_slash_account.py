@@ -217,6 +217,27 @@ def test_slash_account_create_uses_backend_enroll_handler(monkeypatch):
     assert call.get("ephemeral") is True
 
 
+def test_slash_account_root_command_opens_action_view(monkeypatch):
+    from mcoc.slash.account import AccountSlashCog
+
+    cog = AccountSlashCog(bot=object())
+    interaction = _InteractionStub()
+
+    import asyncio
+
+    async def _fake_profile(*a, **k):
+        return object(), None
+
+    from mcoc.slash import account as slash_account_module
+    monkeypatch.setattr(slash_account_module.Account, "get_profile", lambda *a, **k: {"consent": True})
+    monkeypatch.setattr(slash_account_module.Account, "build_profile_display", _fake_profile)
+
+    asyncio.run(_invoke(cog.account, cog, interaction))
+
+    assert len(interaction.response.calls) == 1
+    assert interaction.response.calls[0].get("view") is not None
+
+
 def test_account_compute_top5_from_roster_ignores_stale_prestige_cache():
     class _Cache:
         def get_prestige_value(self, slug, stars, rank, ascended, sig):
