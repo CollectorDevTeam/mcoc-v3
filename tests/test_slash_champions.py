@@ -484,17 +484,23 @@ def test_slash_roster_rankup_pages_group_by_tier_order(monkeypatch):
     from mcoc.slash import roster as slash_roster_module
 
     def _fake_embed(*_args, **kwargs):
-        return {"description": kwargs.get("description", ""), "title": kwargs.get("title", "")}
+        return {"description": kwargs.get("description", ""), "title": kwargs.get("title", ""), "fields": []}
+
+    def _fake_add_field(*_args, **kwargs):
+        emb = _args[1] if len(_args) > 1 else kwargs.get("emb")
+        emb.setdefault("fields", []).append({"name": kwargs.get("name", ""), "value": kwargs.get("value", "")})
 
     monkeypatch.setattr(slash_roster_module.CDTEmbed, "embed", _fake_embed)
+    monkeypatch.setattr(slash_roster_module.CDTEmbed, "add_field", _fake_add_field)
 
     suggestions = group._rankup_suggestions(42, "all", 7, 3)
     pages = group._build_rankup_pages(interaction, "all", 7, 3, suggestions)
-    description = pages[0]["description"]
+    field_names = [field["name"] for field in pages[0]["fields"]]
 
-    assert description.find("**S+**") < description.find("**A**") < description.find("**B**")
-    assert "1. " not in description
-    assert "<:cosmic2:" in description
+    assert "S+ TIER" in field_names
+    assert "A TIER" in field_names
+    assert "B TIER" in field_names
+    assert "<:cosmic2:" in pages[0]["fields"][0]["value"]
 
 
 def test_slash_roster_awaken_pages_group_by_tier_order(monkeypatch):
@@ -535,15 +541,22 @@ def test_slash_roster_awaken_pages_group_by_tier_order(monkeypatch):
     from mcoc.slash import roster as slash_roster_module
 
     def _fake_embed(*_args, **kwargs):
-        return {"description": kwargs.get("description", ""), "title": kwargs.get("title", "")}
+        return {"description": kwargs.get("description", ""), "title": kwargs.get("title", ""), "fields": []}
+
+    def _fake_add_field(*_args, **kwargs):
+        emb = _args[1] if len(_args) > 1 else kwargs.get("emb")
+        emb.setdefault("fields", []).append({"name": kwargs.get("name", ""), "value": kwargs.get("value", "")})
 
     monkeypatch.setattr(slash_roster_module.CDTEmbed, "embed", _fake_embed)
+    monkeypatch.setattr(slash_roster_module.CDTEmbed, "add_field", _fake_add_field)
 
     suggestions = group._awaken_suggestions(42, "all", 7, 3)
     pages = group._build_awaken_pages(interaction, "all", 7, 3, suggestions)
-    description = pages[0]["description"]
+    field_names = [field["name"] for field in pages[0]["fields"]]
 
-    assert description.find("**S+**") < description.find("**A**") < description.find("**B**")
+    assert "S+ TIER" in field_names
+    assert "A TIER" in field_names
+    assert "B TIER" in field_names
 
 
 def test_slash_roster_list_mention_targets_other_user(monkeypatch):
@@ -581,6 +594,56 @@ def test_slash_roster_list_view_builds_filter_buttons():
     assert labels == ["AWAKEN", "RANKUP", "TIERLIST", "CLEAR"]
 
 
+def test_slash_roster_list_default_uses_description_and_mode_uses_fields(monkeypatch):
+    from mcoc.slash import roster as slash_roster_module
+
+    champion_rows = [
+        {"id": "abomination", "slug": "abomination", "name": "Abomination", "class": "science"},
+        {"id": "black-bolt", "slug": "black-bolt", "name": "Black Bolt", "class": "cosmic"},
+    ]
+
+    class _CacheWithTierlist(_CacheStub):
+        def _load_file(self, name):
+            if name == "tierlist":
+                return {"champions": [
+                    {"id": "abomination", "name": "Abomination", "score": 70, "tier": "A"},
+                    {"id": "black-bolt", "name": "Black Bolt", "score": 95, "tier": "S+"},
+                ]}
+            return {}
+
+    class _UsersStub:
+        def list_roster(self, _user_id):
+            return [
+                {"champion": "abomination", "rarity": 7, "rank": 2, "sig": 0, "ascended": 0},
+                {"champion": "black-bolt", "rarity": 7, "rank": 2, "sig": 0, "ascended": 0},
+            ]
+
+    class _CoreWithUsers:
+        def __init__(self):
+            self.cache = _CacheWithTierlist(champion_rows)
+            self.users = _UsersStub()
+
+    group = _RosterGroup(core=_CoreWithUsers())
+    interaction = _InteractionStub(user_id=42)
+
+    async def _fake_make_roster_pager(core, ctx_or_author, **kwargs):
+        parsed = kwargs.get("parsed_filters") or {}
+        return types.SimpleNamespace(pages=[{"title": "Roster", "description": "list", "fields": [{"name": "S+ TIER", "value": "Black Bolt"}]}])
+
+    monkeypatch.setattr(slash_roster_module, "make_roster_pager", _fake_make_roster_pager)
+    interaction.message = types.SimpleNamespace(edit=None)
+
+    original = slash_roster_module._RosterListModeButton.callback
+    button = slash_roster_module._RosterListModeButton(group, interaction.user, "", "TIERLIST", "tierlist")
+    asyncio.run(button.callback(interaction))
+
+    default_pages = asyncio.run(slash_roster_module.build_roster_pages(group.core, interaction.user, {"list_mode": "default"}))
+    tier_pages = asyncio.run(slash_roster_module.build_roster_pages(group.core, interaction.user, {"list_mode": "tierlist"}))
+
+    assert default_pages[0].description and not default_pages[0].fields
+    assert tier_pages[0].fields and any(field.name == "S+ TIER" for field in tier_pages[0].fields)
+
+
 def test_slash_roster_list_button_mode_sets_list_mode_filter(monkeypatch):
     from mcoc.slash import roster as slash_roster_module
 
@@ -589,6 +652,7 @@ def test_slash_roster_list_button_mode_sets_list_mode_filter(monkeypatch):
     target = types.SimpleNamespace(id=42, display_name="jjw")
     button = slash_roster_module._RosterListModeButton(group, target, "7*", "TIERLIST", "tierlist")
     interaction = _InteractionStub(user_id=42)
+    interaction.message = types.SimpleNamespace(edit=None)
 
     captured = {}
 
@@ -596,10 +660,60 @@ def test_slash_roster_list_button_mode_sets_list_mode_filter(monkeypatch):
         captured["parsed_filters"] = kwargs.get("parsed_filters")
         return types.SimpleNamespace(pages=[{"title": "Roster"}])
 
+    async def _fake_edit(**kwargs):
+        captured["edit_kwargs"] = kwargs
+
+    interaction.message.edit = _fake_edit
     monkeypatch.setattr(slash_roster_module, "make_roster_pager", _fake_make_roster_pager)
     asyncio.run(button.callback(interaction))
 
     assert captured["parsed_filters"]["list_mode"] == "tierlist"
+    assert "edit_kwargs" in captured
+
+
+def test_slash_roster_rankup_pages_group_by_tier_into_fields():
+    from mcoc.slash import roster as slash_roster_module
+
+    champion_rows = [
+        {"id": "abomination", "slug": "abomination", "name": "Abomination", "class": "science"},
+        {"id": "black-bolt", "slug": "black-bolt", "name": "Black Bolt", "class": "cosmic"},
+        {"id": "wolverine", "slug": "wolverine", "name": "Wolverine", "class": "mutant"},
+    ]
+
+    class _CacheWithTierlist(_CacheStub):
+        def _load_file(self, name):
+            if name == "tierlist":
+                return {
+                    "champions": [
+                        {"id": "abomination", "name": "Abomination", "score": 70, "tier": "A"},
+                        {"id": "black-bolt", "name": "Black Bolt", "score": 95, "tier": "S+"},
+                        {"id": "wolverine", "name": "Wolverine", "score": 60, "tier": "B"},
+                    ]
+                }
+            return {}
+
+    class _UsersStub:
+        def list_roster(self, _user_id):
+            return [
+                {"champion": "abomination", "rarity": 7, "rank": 1, "sig": 0, "ascended": 0},
+                {"champion": "black-bolt", "rarity": 7, "rank": 1, "sig": 0, "ascended": 0},
+                {"champion": "wolverine", "rarity": 7, "rank": 1, "sig": 0, "ascended": 0},
+            ]
+
+    class _CoreWithUsers:
+        def __init__(self):
+            self.cache = _CacheWithTierlist(champion_rows)
+            self.users = _UsersStub()
+
+    group = _RosterGroup(core=_CoreWithUsers())
+    interaction = _InteractionStub()
+    suggestions = group._rankup_suggestions(42, "all", 7, 3)
+    pages = group._build_rankup_pages(interaction, "all", 7, 3, suggestions)
+    embed = pages[0]
+    names = [field.name for field in embed.fields]
+    assert "S+ TIER" in names
+    assert "A TIER" in names
+    assert "B TIER" in names
 
 
 def test_slash_roster_modal_labels_fit_discord_limit():

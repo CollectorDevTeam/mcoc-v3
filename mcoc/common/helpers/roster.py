@@ -1997,6 +1997,43 @@ async def build_roster_pages(core: Any, ctx_or_author: Any, parsed_filters: Opti
             except Exception:
                 continue
 
+        try:
+            tierlist = getattr(cache, "_load_file", lambda *_args, **_kwargs: {})("tierlist") if cache else {}
+        except Exception:
+            tierlist = {}
+
+        score_by_name = {}
+        tier_by_name = {}
+        if isinstance(tierlist, dict):
+            for row in tierlist.get("champions", []) or []:
+                if not isinstance(row, dict):
+                    continue
+                for key in (row.get("id"), row.get("slug"), row.get("name"), row.get("en")):
+                    token = str(key or "").strip().lower()
+                    if not token:
+                        continue
+                    if token not in score_by_name:
+                        try:
+                            score_by_name[token] = float(row.get("score", 0) or 0)
+                        except Exception:
+                            score_by_name[token] = 0.0
+                    if token not in tier_by_name:
+                        tier = str(row.get("tier") or "").strip()
+                        if tier:
+                            tier_by_name[token] = tier
+
+        for e in entries_with_meta:
+            slug = str(e.get("champion") or "").strip().lower()
+            name = str(e.get("raw") or "").strip().lower()
+            tier_value = str(e.get("tier") or tier_by_name.get(slug) or tier_by_name.get(name) or "").strip()
+            if tier_value:
+                e["tier"] = tier_value
+            score_value = e.get("score")
+            if score_value is None:
+                score_value = score_by_name.get(slug) or score_by_name.get(name) or 0.0
+                if score_value:
+                    e["score"] = float(score_value)
+
         # If explicit entries provided, prefer matching roster entries first
         explicit = parsed.get("explicit_entries") if isinstance(parsed, dict) else None
         filtered_entries: List[Dict[str, Any]] = []
@@ -2147,7 +2184,108 @@ async def build_roster_pages(core: Any, ctx_or_author: Any, parsed_filters: Opti
             except Exception:
                 return [{"title": "Roster", "description": "No champions match the filters.", "footer": {"text": f"Page 1 of 1{ROSTER_FOOTER}"}}]
 
-        # Chunk lines into pages
+        # Chunk lines into pages for the default roster view; tierlist-driven modes use field-based pages.
+        if list_mode in {"tierlist", "awaken", "rankup"}:
+            grouped_rows: List[Tuple[str, List[str]]] = []
+            seen_tiers = set()
+            for tier in ["S+", "S", "A", "B", "C", "D", "E", "F"]:
+                tier_rows = []
+                for entry in filtered_entries:
+                    tier_name = str(entry.get("tier") or "").strip().upper()
+                    if tier_name == tier:
+                        tier_rows.append(entry)
+                if not tier_rows:
+                    continue
+                seen_tiers.add(tier)
+                field_lines = []
+                for entry in tier_rows:
+                    try:
+                        champ_obj = None
+                        if cache:
+                            try:
+                                raw_champ = cache.get_champion(entry.get("champion"))
+                                if isinstance(raw_champ, dict):
+                                    champ_obj = champion_from_dict(raw_champ)
+                                elif isinstance(raw_champ, Champion):
+                                    champ_obj = raw_champ
+                            except Exception:
+                                pass
+                        if champ_obj and not entry.get("class"):
+                            try:
+                                entry["class"] = getattr(champ_obj, "class_name", None) or getattr(champ_obj, "class", None) or entry.get("class")
+                            except Exception:
+                                pass
+                        line = format_champion_line(champ_obj, entry, include_prestige=entry.get("prestige"))
+                    except TypeError:
+                        line = format_champion_line(champ_obj, entry)
+                    field_lines.append(line)
+                grouped_rows.append((f"{tier} TIER", field_lines))
+
+            other_rows = [entry for entry in filtered_entries if str(entry.get("tier") or "").strip().upper() not in seen_tiers]
+            if other_rows:
+                field_lines = []
+                for entry in other_rows:
+                    try:
+                        champ_obj = None
+                        if cache:
+                            try:
+                                raw_champ = cache.get_champion(entry.get("champion"))
+                                if isinstance(raw_champ, dict):
+                                    champ_obj = champion_from_dict(raw_champ)
+                                elif isinstance(raw_champ, Champion):
+                                    champ_obj = raw_champ
+                            except Exception:
+                                pass
+                        if champ_obj and not entry.get("class"):
+                            try:
+                                entry["class"] = getattr(champ_obj, "class_name", None) or getattr(champ_obj, "class", None) or entry.get("class")
+                            except Exception:
+                                pass
+                        line = format_champion_line(champ_obj, entry, include_prestige=entry.get("prestige"))
+                    except TypeError:
+                        line = format_champion_line(champ_obj, entry)
+                    field_lines.append(line)
+                grouped_rows.append(("OTHER TIER", field_lines))
+
+            if not grouped_rows:
+                grouped_rows = [("NO TIER", lines)]
+
+            page_chunks: List[List[Tuple[str, List[str]]]] = []
+            chunk: List[Tuple[str, List[str]]] = []
+            chunk_len = 0
+            for tier_name, field_lines in grouped_rows:
+                item_len = len(tier_name) + sum(len(line) for line in field_lines) + 2
+                if len(chunk) >= 5 or chunk_len + item_len > char_limit:
+                    page_chunks.append(chunk)
+                    chunk = []
+                    chunk_len = 0
+                chunk.append((tier_name, field_lines))
+                chunk_len += item_len
+            if chunk:
+                page_chunks.append(chunk)
+
+            title_count = len(filtered_entries)
+            prestige_vals = [int(x["prestige"]) for x in filtered_entries if isinstance(x.get("prestige"), (int, float))]
+            if prestige_vals:
+                top_30 = sorted(prestige_vals, reverse=True)[:30]
+                title_prestige = int(round(sum(top_30) / len(top_30))) if top_30 else "N/A"
+            else:
+                title_prestige = "N/A"
+            roster_title = f"Roster ({title_count} champions) [{title_prestige}]"
+
+            embed_pages: List[Any] = []
+            for i, chunk_fields in enumerate(page_chunks, start=1):
+                footer = f"Page {i} of {len(page_chunks)}{ROSTER_FOOTER}"
+                try:
+                    emb = CDTEmbed.embed(author_for_embed, title=roster_title, footer_text=footer)
+                    for field_name, field_lines in chunk_fields:
+                        CDTEmbed.add_field(author_for_embed, emb, name=field_name, value="\n".join(field_lines), inline=False)
+                    embed_pages.append(emb)
+                except Exception:
+                    page_dict = {"title": roster_title, "fields": [{"name": field_name, "value": "\n".join(field_lines), "inline": False} for field_name, field_lines in chunk_fields], "footer": {"text": footer}}
+                    embed_pages.append(page_dict)
+            return embed_pages
+
         page_texts: List[str] = []
         cur: List[str] = []
         cur_len = 0

@@ -176,10 +176,17 @@ class _RosterListModeButton(ui.Button):
             if not pager:
                 await interaction.response.send_message("No roster entries match the selected view.", ephemeral=True)
                 return
+            embed = pager.pages[0]
             try:
-                await interaction.response.send_message(embed=pager.pages[0], view=pager)
+                if hasattr(interaction.response, "edit_message"):
+                    await interaction.response.edit_message(embed=embed, view=pager)
+                    return
+                if getattr(interaction, "message", None) is not None and hasattr(interaction.message, "edit"):
+                    await interaction.message.edit(embed=embed, view=pager)
+                    return
+                await interaction.response.send_message(embed=embed, view=pager)
             except Exception:
-                await interaction.response.send_message(embed=pager.pages[0])
+                await interaction.response.send_message(embed=embed)
         except Exception:
             log.exception("roster list mode callback failed")
             await interaction.response.send_message("Roster list is unavailable right now.", ephemeral=True)
@@ -500,56 +507,43 @@ class _RosterGroup(app_commands.Group):
         if not suggestions:
             return [CDTEmbed.embed(interaction, title=title, description="No eligible champions found for these filters.")]
 
-        lines = []
+        grouped_fields = []
         seen_tiers = set()
         for tier in TIER_DISPLAY_ORDER:
             tier_rows = [row for row in suggestions if str(row.get("tier") or "").upper() == tier]
             if not tier_rows:
                 continue
             seen_tiers.add(tier)
-            lines.append(f"**{tier}**")
-            for row in tier_rows:
-                cls = str(row.get("class") or "").lower()
-                class_emoji = (CLASS_EMOJI.get(cls) or CLASS_EMOJI.get("all") or "").strip()
-                lines.append(
-                    f"{class_emoji} {row['name']} ({row['class'].title()}) {row['rarity']}★ r{row['rank']} -> r{row['target_rank']} | score {row['score']:.1f}"
-                )
-            lines.append("")
+            value = "\n".join(
+                f"{(CLASS_EMOJI.get(str(row.get('class') or '').lower()) or CLASS_EMOJI.get('all') or '')} {row['name']} ({str(row.get('class') or 'unknown').title()}) {row['rarity']}★ r{row['rank']} -> r{row['target_rank']} | score {row['score']:.1f}"
+                for row in tier_rows
+            )
+            grouped_fields.append((f"{tier} TIER", value))
 
         other_rows = [row for row in suggestions if str(row.get("tier") or "").upper() not in seen_tiers]
         if other_rows:
-            lines.append("**Other**")
-            for row in other_rows:
-                cls = str(row.get("class") or "").lower()
-                class_emoji = (CLASS_EMOJI.get(cls) or CLASS_EMOJI.get("all") or "").strip()
-                lines.append(
-                    f"{class_emoji} {row['name']} ({row['class'].title()}) {row['rarity']}★ r{row['rank']} -> r{row['target_rank']} | score {row['score']:.1f}"
-                )
+            grouped_fields.append(("OTHER TIER", "\n".join(
+                f"{(CLASS_EMOJI.get(str(row.get('class') or '').lower()) or CLASS_EMOJI.get('all') or '')} {row['name']} ({str(row.get('class') or 'unknown').title()}) {row['rarity']}★ r{row['rank']} -> r{row['target_rank']} | score {row['score']:.1f}"
+                for row in other_rows
+            )))
 
         page_chunks = []
         chunk = []
-        chunk_len = 0
-        for line in lines:
-            if len(chunk) >= 15 or chunk_len + len(line) + 1 > 1800:
+        for field_name, value in grouped_fields:
+            if len(chunk) >= 5:
                 page_chunks.append(chunk)
                 chunk = []
-                chunk_len = 0
-            chunk.append(line)
-            chunk_len += len(line) + 1
+            chunk.append((field_name, value))
         if chunk:
             page_chunks.append(chunk)
 
         pages = []
         total = len(page_chunks)
-        for i, page_lines in enumerate(page_chunks, start=1):
-            pages.append(
-                CDTEmbed.embed(
-                    interaction,
-                    title=title,
-                    description="\n".join(page_lines),
-                    footer_text=f"Page {i} of {total}",
-                )
-            )
+        for i, chunk_fields in enumerate(page_chunks, start=1):
+            emb = CDTEmbed.embed(interaction, title=title, footer_text=f"Page {i} of {total}")
+            for field_name, value in chunk_fields:
+                CDTEmbed.add_field(interaction, emb, name=field_name, value=value, inline=False)
+            pages.append(emb)
         return pages
 
     def _build_awaken_pages(self, interaction, class_filter: str, stars: int, min_rank: int, suggestions: List[dict], per_class_target: int = 0) -> List[Any]:
@@ -560,56 +554,43 @@ class _RosterGroup(app_commands.Group):
         if not suggestions:
             return [CDTEmbed.embed(interaction, title=title, description="No eligible champions found for these filters.")]
 
-        lines = []
+        grouped_fields = []
         seen_tiers = set()
         for tier in TIER_DISPLAY_ORDER:
             tier_rows = [row for row in suggestions if str(row.get("tier") or "").upper() == tier]
             if not tier_rows:
                 continue
             seen_tiers.add(tier)
-            lines.append(f"**{tier}**")
-            for row in tier_rows:
-                cls = str(row.get("class") or "").lower()
-                class_emoji = (CLASS_EMOJI.get(cls) or CLASS_EMOJI.get("all") or "").strip()
-                lines.append(
-                    f"{class_emoji} {row['name']} ({row['class'].title()}) {row['rarity']}★ r{row['rank']} s0 | score {row['score']:.1f}"
-                )
-            lines.append("")
+            value = "\n".join(
+                f"{(CLASS_EMOJI.get(str(row.get('class') or '').lower()) or CLASS_EMOJI.get('all') or '')} {row['name']} ({str(row.get('class') or 'unknown').title()}) {row['rarity']}★ r{row['rank']} s0 | score {row['score']:.1f}"
+                for row in tier_rows
+            )
+            grouped_fields.append((f"{tier} TIER", value))
 
         other_rows = [row for row in suggestions if str(row.get("tier") or "").upper() not in seen_tiers]
         if other_rows:
-            lines.append("**Other**")
-            for row in other_rows:
-                cls = str(row.get("class") or "").lower()
-                class_emoji = (CLASS_EMOJI.get(cls) or CLASS_EMOJI.get("all") or "").strip()
-                lines.append(
-                    f"{class_emoji} {row['name']} ({row['class'].title()}) {row['rarity']}★ r{row['rank']} s0 | score {row['score']:.1f}"
-                )
+            grouped_fields.append(("OTHER TIER", "\n".join(
+                f"{(CLASS_EMOJI.get(str(row.get('class') or '').lower()) or CLASS_EMOJI.get('all') or '')} {row['name']} ({str(row.get('class') or 'unknown').title()}) {row['rarity']}★ r{row['rank']} s0 | score {row['score']:.1f}"
+                for row in other_rows
+            )))
 
         page_chunks = []
         chunk = []
-        chunk_len = 0
-        for line in lines:
-            if len(chunk) >= 15 or chunk_len + len(line) + 1 > 1800:
+        for field_name, value in grouped_fields:
+            if len(chunk) >= 5:
                 page_chunks.append(chunk)
                 chunk = []
-                chunk_len = 0
-            chunk.append(line)
-            chunk_len += len(line) + 1
+            chunk.append((field_name, value))
         if chunk:
             page_chunks.append(chunk)
 
         pages = []
         total = len(page_chunks)
-        for i, page_lines in enumerate(page_chunks, start=1):
-            pages.append(
-                CDTEmbed.embed(
-                    interaction,
-                    title=title,
-                    description="\n".join(page_lines),
-                    footer_text=f"Page {i} of {total}",
-                )
-            )
+        for i, chunk_fields in enumerate(page_chunks, start=1):
+            emb = CDTEmbed.embed(interaction, title=title, footer_text=f"Page {i} of {total}")
+            for field_name, value in chunk_fields:
+                CDTEmbed.add_field(interaction, emb, name=field_name, value=value, inline=False)
+            pages.append(emb)
         return pages
 
     async def _add_entries(self, interaction, raw_input: str):
