@@ -336,6 +336,61 @@ def test_account_manager_rechecks_live_account_state_before_actions(monkeypatch)
     assert calls[0]["kwargs"]["ephemeral"] is True
 
 
+def test_runtime_version_label_returns_commit_and_branch(monkeypatch):
+    from mcoc.slash import account as slash_account_module
+
+    class _Result:
+        def __init__(self, returncode, stdout, stderr=""):
+            self.returncode = returncode
+            self.stdout = stdout
+            self.stderr = stderr
+
+    def _fake_run(cmd, capture_output, text, check):
+        if "--short" in cmd:
+            return _Result(0, "b645348\n", "")
+        if "--abbrev-ref" in cmd:
+            return _Result(0, "dev-slash\n", "")
+        return _Result(0, "", "")
+
+    monkeypatch.setattr(slash_account_module.subprocess, "run", _fake_run)
+    assert slash_account_module._runtime_version_label() == "runtime: b645348 (dev-slash)"
+
+
+def test_account_manager_modal_errors_show_the_real_reason(monkeypatch):
+    from mcoc.slash.account import _AccountManagerView
+
+    monkeypatch.setattr(
+        "mcoc.slash.account.Account.get_profile",
+        lambda *a, **k: {"mcoc_name": "tester"},
+    )
+    monkeypatch.setattr(
+        "mcoc.slash.account.Account.user_has_consented",
+        lambda *a, **k: False,
+    )
+    monkeypatch.setattr(
+        "mcoc.slash.account.Account.user_has_profile",
+        lambda *a, **k: True,
+    )
+
+    view = _AccountManagerView(core=object(), user_id=42)
+    calls = []
+
+    class _ResponseStub:
+        async def send_modal(self, *args, **kwargs):
+            raise RuntimeError("modal blocked")
+
+        async def send_message(self, *args, **kwargs):
+            calls.append({"message": args[0], "kwargs": kwargs})
+
+    interaction = types.SimpleNamespace(response=_ResponseStub())
+    import asyncio
+    asyncio.run(view.children[0].callback(interaction))
+
+    assert len(calls) == 1
+    assert "modal blocked" in calls[0]["message"]
+    assert calls[0]["kwargs"]["ephemeral"] is True
+
+
 def test_user_has_profile_counts_created_account_record(monkeypatch):
     from mcoc.common.helpers import account as account_helpers
 

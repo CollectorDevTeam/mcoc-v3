@@ -9,6 +9,7 @@
 #   1.0 2026-10-22  Initial slash account surface aligned to prefix account backend helpers.
 
 import logging
+import subprocess
 from typing import Optional, Any
 
 import discord
@@ -23,10 +24,16 @@ log = logging.getLogger("red.mcoc.slash.account")
 
 def _runtime_version_label() -> str:
     try:
-        import subprocess
-        result = subprocess.run(["git", "-C", __file__.rsplit("mcoc", 1)[0], "rev-parse", "--short", "HEAD"], capture_output=True, text=True, check=False)
-        if result.returncode == 0 and result.stdout.strip():
-            return f"runtime: {result.stdout.strip()}"
+        repo_root = __file__.rsplit("mcoc", 1)[0]
+        head = subprocess.run(["git", "-C", repo_root, "rev-parse", "--short", "HEAD"], capture_output=True, text=True, check=False)
+        branch = subprocess.run(["git", "-C", repo_root, "rev-parse", "--abbrev-ref", "HEAD"], capture_output=True, text=True, check=False)
+
+        head_value = (head.stdout or "").strip()
+        branch_value = (branch.stdout or "").strip()
+        if head_value and branch_value and branch_value not in {"HEAD", "detached"}:
+            return f"runtime: {head_value} ({branch_value})"
+        if head_value:
+            return f"runtime: {head_value}"
     except Exception:
         pass
     return "runtime: local"
@@ -44,35 +51,24 @@ class _ViewProfileModal(discord.ui.Modal):
             default=str(profile_data.get("mcoc_name") or "")[:100],
             required=False,
             max_length=100,
-            disabled=True,
         )
         self.alliance = discord.ui.TextInput(
             label="Alliance",
             default=str(profile_data.get("alliance") or "")[:100],
             required=False,
             max_length=100,
-            disabled=True,
         )
         self.timezone = discord.ui.TextInput(
             label="Timezone",
             default=str(profile_data.get("timezone") or "")[:100],
             required=False,
             max_length=100,
-            disabled=True,
         )
         self.website = discord.ui.TextInput(
             label="Website",
             default=str(profile_data.get("website") or "")[:250],
             required=False,
             max_length=250,
-            disabled=True,
-        )
-        self.privacy_mode = discord.ui.TextInput(
-            label="Privacy",
-            default=str(profile_data.get("privacy_mode") or "private")[:50],
-            required=False,
-            max_length=50,
-            disabled=True,
         )
         self.about = discord.ui.TextInput(
             label="About",
@@ -80,9 +76,8 @@ class _ViewProfileModal(discord.ui.Modal):
             required=False,
             max_length=1000,
             style=discord.TextStyle.long,
-            disabled=True,
         )
-        for item in [self.mcoc_name, self.alliance, self.timezone, self.website, self.privacy_mode, self.about]:
+        for item in [self.mcoc_name, self.alliance, self.timezone, self.website, self.about]:
             self.add_item(item)
 
 
@@ -99,7 +94,6 @@ class _ProfileSettingsModal(discord.ui.Modal):
             ("Alliance", "alliance", 100),
             ("Timezone", "timezone", 100),
             ("Website", "website", 250),
-            ("Privacy mode", "privacy_mode", 50),
             ("About", "about", 1000),
         ]
         self.inputs = {}
@@ -271,8 +265,9 @@ class _AccountManagerView(discord.ui.View):
                 return
             try:
                 await interaction.response.send_modal(_ViewProfileModal(core, user_id, profile))
-            except Exception:
-                await interaction.response.send_message("Unable to open the profile view right now.", ephemeral=True)
+            except Exception as exc:
+                detail = f"{type(exc).__name__}: {exc}" if str(exc) else type(exc).__name__
+                await interaction.response.send_message(f"Unable to open the profile view right now: {detail}", ephemeral=True)
 
         async def _edit_cb(interaction: discord.Interaction):
             profile = _refresh_state_and_get_profile()
@@ -281,8 +276,9 @@ class _AccountManagerView(discord.ui.View):
                 return
             try:
                 await interaction.response.send_modal(_ProfileSettingsModal(core, user_id, profile))
-            except Exception:
-                await interaction.response.send_message("Unable to open the editor right now.", ephemeral=True)
+            except Exception as exc:
+                detail = f"{type(exc).__name__}: {exc}" if str(exc) else type(exc).__name__
+                await interaction.response.send_message(f"Unable to open the editor right now: {detail}", ephemeral=True)
 
         async def _privacy_cb(interaction: discord.Interaction):
             profile = _refresh_state_and_get_profile()
