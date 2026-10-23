@@ -1,5 +1,5 @@
 from mcoc.common.helpers.champions import _champion_matches_filters, build_tier_pages, build_filter_flow_state, build_filter_picker_sections, _filter_picker_page_values, build_cocpit_ability_lines, build_cocpit_core_ability_fields, build_cocpit_synergy_intersection_lines
-from mcoc.common.helpers.roster import filter_roster_entries, _build_selection_option_label, parse_cocpit_roster_csv, import_roster_entries
+from mcoc.common.helpers.roster import filter_roster_entries, _build_selection_option_label, parse_cocpit_roster_csv, parse_roster_entries_with_errors, import_roster_entries
 from mcoc.common.utilities.formatters import format_tierlist_champion_line, format_champion_line
 from mcoc.common.helpers.types import MCOCAPP_TIERS, champion_from_dict
 from mcoc.common.utilities.query_parser import parse_query
@@ -176,6 +176,32 @@ def test_parse_query_and_match_support_class_tag_tokens():
 
     roster_entries = [{"champion": "alpha", "rarity": 6, "rank": 1, "sig": 0, "ascended": 0, "tags": ["bleed"], "class": "skill"}]
     assert filter_roster_entries(roster_entries, {"tags": ["skill"]}) == roster_entries
+
+
+def test_parse_roster_entries_with_errors_resolves_compact_fused_aliases():
+    class _Cache:
+        def get_champion(self, token):
+            key = str(token or "").strip().lower()
+            rows = {
+                "black-widow-deadly-origin": {"id": "black-widow-deadly-origin", "slug": "black-widow-deadly-origin", "name": "Black Widow Deadly Origin"},
+                "storm-pyramid-x": {"id": "storm-pyramid-x", "slug": "storm-pyramid-x", "name": "Storm Pyramid X"},
+            }
+            return rows.get(key)
+
+        def get_all_champions(self):
+            return [
+                {"id": "black-widow-deadly-origin", "slug": "black-widow-deadly-origin", "name": "Black Widow Deadly Origin"},
+                {"id": "storm-pyramid-x", "slug": "storm-pyramid-x", "name": "Storm Pyramid X"},
+            ]
+
+    text = "BlackWidowDeadlyOrigins r1s20\nStormPyramidX 7sr1s20"
+    entries, failed = parse_roster_entries_with_errors(text, _Cache())
+
+    assert failed == []
+    assert len(entries) == 2
+    slugs = {entry["champion"] for entry in entries}
+    assert "black-widow-deadly-origin" in slugs
+    assert "storm-pyramid-x" in slugs
 
 
 def test_filters_are_normalized_by_category_for_multi_select_filters():

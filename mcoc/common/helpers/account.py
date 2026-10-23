@@ -701,6 +701,92 @@ def compute_top5_from_roster(parent: Any, roster: List[Dict[str, Any]], profile:
         return [], None
 
 
+def _compute_top5_roster_entries(parent: Any, roster: List[Dict[str, Any]], profile: Union[Dict[str, Any], Any]) -> Tuple[List[Dict[str, Any]], Optional[int]]:
+    """Return top roster entries with resolved prestige and live progression metadata."""
+    try:
+        cache = getattr(parent, "cache", None)
+        prestige_map = {}
+        if isinstance(profile, dict):
+            prestige_map = profile.get("prestige_map", {}) or {}
+        else:
+            prestige_map = getattr(profile, "prestige_map", {}) or {}
+
+        entries: List[Dict[str, Any]] = []
+        for e in roster:
+            try:
+                slug = str(e.get("champion") or "").strip()
+                if not slug:
+                    continue
+                rarity = int(e.get("rarity") or e.get("stars") or 0)
+                rank = int(e.get("rank") or 1)
+                sig = int(e.get("sig") or 0)
+                ascended = int(e.get("ascended") or 0)
+                key = f"{slug}|{rarity}"
+
+                p = None
+                if cache and hasattr(cache, "get_prestige_value"):
+                    try:
+                        p = cache.get_prestige_value(slug, rarity, rank, ascended, sig)
+                    except Exception:
+                        p = None
+
+                if p is None and cache and hasattr(cache, "get_cocpit_abilities") and slug:
+                    try:
+                        ability_row = cache.get_cocpit_abilities(slug)
+                        if isinstance(ability_row, dict):
+                            raw = ability_row.get("raw") if isinstance(ability_row, dict) else None
+                            base = raw.get("baseStats") if isinstance(raw, dict) else None
+                            if isinstance(base, dict):
+                                value = base.get("Prestige") or base.get("prestige")
+                                if isinstance(value, (int, float)):
+                                    p = int(value)
+                    except Exception:
+                        p = None
+
+                if p is None and key in prestige_map and prestige_map.get(key) is not None:
+                    try:
+                        cached_prestige = int(prestige_map.get(key))
+                        if cached_prestige > 0:
+                            p = cached_prestige
+                    except Exception:
+                        p = None
+
+                name = slug
+                if cache:
+                    try:
+                        if hasattr(cache, "get_champion_obj"):
+                            cobj = cache.get_champion_obj(slug)
+                            if cobj:
+                                name = getattr(cobj, "name", None) or getattr(cobj, "slug", slug)
+                        else:
+                            raw = cache.get_champion(slug)
+                            if raw and isinstance(raw, dict):
+                                name = raw.get("name") or raw.get("slug") or slug
+                    except Exception:
+                        pass
+
+                entries.append(
+                    {
+                        "champion": slug,
+                        "name": name,
+                        "rarity": rarity,
+                        "rank": rank,
+                        "sig": sig,
+                        "ascended": ascended,
+                        "prestige": int(p) if isinstance(p, (int, float)) else 0,
+                    }
+                )
+            except Exception:
+                continue
+
+        entries.sort(key=lambda x: (-int(x.get("prestige") or 0), str(x.get("name") or "")))
+        total = sum(int(it.get("prestige") or 0) for it in entries) if entries else None
+        return entries[:5], total
+    except Exception:
+        log.exception("_compute_top5_roster_entries failed")
+        return [], None
+
+
 # -----------------------------
 # Profile display builder
 # -----------------------------
@@ -752,8 +838,10 @@ def build_profile_display(parent: Any, ctx_or_author: Any, target_id: int, viewe
 
             # Top5/Prestige: prefer active roster calculation, fallback to profile cache.
             roster = _resolve_active_roster_entries(users, target_id, profile)
+            top5_roster_entries: List[Dict[str, Any]] = []
             if roster:
                 top5_lines, total_prestige = compute_top5_from_roster(parent, roster, profile)
+                top5_roster_entries, _calc_total = _compute_top5_roster_entries(parent, roster, profile)
                 if not top5_lines or not isinstance(total_prestige, int) or total_prestige <= 0:
                     cached_lines, cached_total, _avg = compute_top5_from_profile(profile)
                     if cached_lines:
@@ -770,6 +858,31 @@ def build_profile_display(parent: Any, ctx_or_author: Any, target_id: int, viewe
                 try:
                     fmt = formatters_module.format_top5_prestige_line
                     cache = getattr(parent, "cache", None)
+                    if top5_roster_entries:
+                        for roster_entry in top5_roster_entries:
+                            champ_obj = None
+                            slug = str(roster_entry.get("champion") or "")
+                            if cache and slug:
+                                try:
+                                    if hasattr(cache, "get_champion_obj"):
+                                        champ_obj = cache.get_champion_obj(slug)
+                                    else:
+                                        raw = cache.get_champion(slug)
+                                        champ_obj = champion_from_dict(raw) if raw else None
+                                except Exception:
+                                    champ_obj = None
+                            entry = {
+                                "champion": slug,
+                                "rarity": int(roster_entry.get("rarity") or 0),
+                                "rank": int(roster_entry.get("rank") or 1),
+                                "sig": int(roster_entry.get("sig") or 0),
+                                "ascended": int(roster_entry.get("ascended") or 0),
+                                "prestige": int(roster_entry.get("prestige") or 0),
+                            }
+                            formatted_top5.append(fmt(champ_obj, entry))
+                        # Already fully formatted from live roster entries.
+                        top5_lines = []
+
                     for line in top5_lines:
                         # detect already formatted lines
                         if "]" in line and any(e in line for e in ("★", "<:", "🧬", "🛡️")):

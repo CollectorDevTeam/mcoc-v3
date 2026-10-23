@@ -369,6 +369,17 @@ def _normalize_candidate_name(name: str) -> str:
     return s
 
 
+def _strip_harg_artifacts(name: str) -> str:
+    """Remove embedded harg fragments from candidate champion names."""
+    s = str(name or "")
+    s = re.sub(r"(?i)\b[1-7]\s*(?:\*|★|stars?|s)?\b", " ", s)
+    s = re.sub(r"(?i)\br[1-5]\b", " ", s)
+    s = re.sub(r"(?i)\bs\d{1,4}\b", " ", s)
+    s = re.sub(r"(?i)\ba[0-2]\b", " ", s)
+    s = re.sub(r"\s+", " ", s).strip(" -_.,:;")
+    return s
+
+
 def _resolve_champion_slug(name: str, cache) -> str:
     """
     Resolve a champion name to a canonical slug using cache heuristics.
@@ -377,8 +388,10 @@ def _resolve_champion_slug(name: str, cache) -> str:
     if not name or not name.strip():
         raise ValueError("Empty champion name")
 
-    cand = name.strip()
+    cand_raw = name.strip()
+    cand = _strip_harg_artifacts(cand_raw) or cand_raw
     norm = _normalize_candidate_name(cand)
+    norm_compact = re.sub(r"[^a-z0-9]+", "", norm)
     candidates = [norm, norm.replace("-", "")]
 
     if cache:
@@ -391,12 +404,21 @@ def _resolve_champion_slug(name: str, cache) -> str:
                 pass
 
         lname = cand.lower()
+        lname_compact = re.sub(r"[^a-z0-9]+", "", lname)
+        lname_variants = {lname_compact}
+        if lname_compact.endswith("s") and len(lname_compact) > 4:
+            lname_variants.add(lname_compact[:-1])
         try:
             all_champs = getattr(cache, "all_champions", None) or getattr(cache, "get_all_champions", None)
             if callable(all_champs):
                 for champ in all_champs() or []:
                     cname = (champ.get("name") or "").lower()
-                    if cname == lname:
+                    cid = str(champ.get("id") or "").strip().lower()
+                    cslug = str(champ.get("slug") or "").strip().lower()
+                    cname_compact = re.sub(r"[^a-z0-9]+", "", cname)
+                    cid_compact = re.sub(r"[^a-z0-9]+", "", cid)
+                    cslug_compact = re.sub(r"[^a-z0-9]+", "", cslug)
+                    if cname == lname or cname_compact in lname_variants or cid_compact == norm_compact or cslug_compact == norm_compact:
                         return str(champ.get("id") or champ.get("slug") or lname).strip().lower()
         except Exception:
             pass
@@ -405,7 +427,20 @@ def _resolve_champion_slug(name: str, cache) -> str:
             all_champs = getattr(cache, "all_champions", None) or getattr(cache, "get_all_champions", None)
             for champ in (all_champs() or []):
                 cname = (champ.get("name") or "").lower()
-                if lname in cname or cname.startswith(lname):
+                cid = str(champ.get("id") or "").strip().lower()
+                cslug = str(champ.get("slug") or "").strip().lower()
+                cname_compact = re.sub(r"[^a-z0-9]+", "", cname)
+                cid_compact = re.sub(r"[^a-z0-9]+", "", cid)
+                cslug_compact = re.sub(r"[^a-z0-9]+", "", cslug)
+                if (
+                    lname in cname
+                    or cname.startswith(lname)
+                    or any(v and v in cname_compact for v in lname_variants)
+                    or any(v and cname_compact.startswith(v) for v in lname_variants)
+                    or any(v and cname_compact in v for v in lname_variants)
+                    or (norm_compact and norm_compact == cid_compact)
+                    or (norm_compact and norm_compact == cslug_compact)
+                ):
                     return str(champ.get("id") or champ.get("slug") or lname).strip().lower()
         except Exception:
             pass
