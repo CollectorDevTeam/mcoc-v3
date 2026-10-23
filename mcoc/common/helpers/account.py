@@ -402,9 +402,13 @@ def select_active_roster(parent: Any, user_id: int, roster_id: str) -> Tuple[boo
 def _ensure_user_manager_from_parent(parent: Any):
     """
     Resolve a UserDataManager instance from parent/core or fallback to module-level manager.
+    Accept a direct manager instance as well as a bot/core wrapper.
     """
     try:
         if parent is not None:
+            # Direct manager instance: it has the required APIs or file-backed path contract.
+            if any(hasattr(parent, name) for name in ("get_profile", "set_profile_field", "delete_user", "user_dir", "_path")):
+                return parent
             mgr = getattr(parent, "users", None) or getattr(parent, "user_manager", None)
             if mgr:
                 return mgr
@@ -496,13 +500,35 @@ def delete_user_profile(parent: Any, user_id: int) -> Tuple[bool, str]:
         users = _ensure_user_manager_from_parent(parent)
         if not users:
             return False, "User manager not available; cannot delete now."
+
+        # Try the direct manager API first.
         if hasattr(users, "delete_user"):
             deleted = users.delete_user(user_id)
             if deleted:
-                log.info("delete_user_profile: deleted user=%s", user_id)
+                log.info("delete_user_profile: deleted user=%s via manager API", user_id)
                 return True, "Your profile and roster have been deleted."
-            log.info("delete_user_profile: no file to delete for user=%s", user_id)
+            log.info("delete_user_profile: no file to delete for user=%s via manager API", user_id)
             return False, "No profile file found to delete."
+
+        # Fallback: use the concrete file path used by the backing JSON manager so we always remove the persisted settings file.
+        file_path = None
+        if hasattr(users, "_path"):
+            file_path = users._path(user_id)
+        elif hasattr(users, "user_dir"):
+            file_path = getattr(users, "user_dir") / f"{user_id}.json"
+
+        if file_path is not None:
+            try:
+                if file_path.exists():
+                    file_path.unlink()
+                    log.info("delete_user_profile: removed user file=%s user=%s", file_path, user_id)
+                    return True, "Your profile and roster have been deleted."
+                log.info("delete_user_profile: no file to delete for user=%s (path=%s)", user_id, file_path)
+                return False, "No profile file found to delete."
+            except Exception:
+                log.exception("delete_user_profile: failed to unlink file for user=%s path=%s", user_id, file_path)
+                return False, "Failed to delete profile."
+
         return False, "User manager does not support deletion."
     except Exception:
         log.exception("delete_user_profile failed for %s", user_id)
@@ -852,14 +878,27 @@ def build_profile_display(parent: Any, ctx_or_author: Any, target_id: int, viewe
 # Enrollment / Consent flow
 # ----------------------------
 def user_has_profile(parent: Any, user_id: int) -> bool:
-    """Return True only when the stored profile has meaningful user info, not just consent metadata."""
+    """Return True only when the stored profile has meaningful account data, not just consent/privacy metadata."""
     try:
         profile = get_profile(parent, user_id) or {}
         if not isinstance(profile, dict):
             return False
         if not profile:
             return False
-        system_fields = {"consent", "consent_ts", "consent_version", "consent_source", "created_at", "updated_at"}
+        system_fields = {
+            "consent",
+            "consent_ts",
+            "consent_version",
+            "consent_source",
+            "created_at",
+            "updated_at",
+            "privacy_mode",
+            "roster_public",
+            "linked",
+            "active_roster",
+            "prestige_map",
+            "top5",
+        }
         return any(key not in system_fields for key in profile.keys())
     except Exception:
         log.exception("user_has_profile check failed for %s", user_id)

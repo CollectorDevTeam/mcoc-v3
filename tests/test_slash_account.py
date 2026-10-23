@@ -299,6 +299,52 @@ def test_account_manager_decline_keeps_empty_profile_out_of_manager(monkeypatch)
     assert "PRIVACY" not in labels
 
 
+def test_account_manager_privacy_mode_only_is_not_treated_as_real_account(monkeypatch):
+    from mcoc.slash.account import _AccountManagerView
+
+    monkeypatch.setattr(
+        "mcoc.slash.account.Account.get_profile",
+        lambda *a, **k: {"privacy_mode": "private"},
+    )
+    monkeypatch.setattr(
+        "mcoc.slash.account.Account.user_has_consented",
+        lambda *a, **k: False,
+    )
+    monkeypatch.setattr(
+        "mcoc.slash.account.Account.user_has_profile",
+        lambda *a, **k: False,
+    )
+
+    view = _AccountManagerView(core=object(), user_id=42)
+    labels = [item.label for item in view.children]
+
+    assert labels == ["CREATE"]
+    assert "VIEW" not in labels
+    assert "EDIT" not in labels
+    assert "PRIVACY" not in labels
+
+
+def test_delete_user_profile_removes_underlying_settings_file_when_manager_has_no_delete_method(tmp_path):
+    from mcoc.common.helpers import account as account_helpers
+
+    class _Manager:
+        def __init__(self, base_dir):
+            self.user_dir = base_dir
+
+        def _path(self, user_id):
+            return self.user_dir / f"{user_id}.json"
+
+    manager = _Manager(tmp_path)
+    target = manager._path(123)
+    target.write_text('{"profile":{"mcoc_name":"tester"}}', encoding="utf-8")
+
+    ok, msg = account_helpers.delete_user_profile(manager, 123)
+
+    assert ok is True
+    assert target.exists() is False
+    assert "deleted" in msg.lower()
+
+
 def test_slash_public_profile_command_uses_defer_and_followup(monkeypatch):
     from mcoc.slash.account import AccountSlashCog
 
