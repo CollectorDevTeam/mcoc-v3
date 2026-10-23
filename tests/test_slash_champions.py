@@ -671,6 +671,51 @@ def test_slash_roster_list_button_mode_sets_list_mode_filter(monkeypatch):
     assert "edit_kwargs" in captured
 
 
+def test_slash_roster_list_clear_mode_removes_all_filters(monkeypatch):
+    from mcoc.slash import roster as slash_roster_module
+
+    champion_rows = [{"id": "abomination", "slug": "abomination", "name": "Abomination", "class": "science"}]
+    group = _RosterGroup(core=_CoreStub(champion_rows))
+    target = types.SimpleNamespace(id=42, display_name="jjw")
+    button = slash_roster_module._RosterListModeButton(
+        group,
+        target,
+        "7*",
+        "CLEAR",
+        "default",
+        parsed_filters={"list_mode": "tierlist", "rarities": [7], "ranks": [2], "classes": ["skill"]},
+    )
+    interaction = _InteractionStub(user_id=42)
+    interaction.message = types.SimpleNamespace(edit=None)
+
+    captured = {}
+
+    async def _fake_make_roster_pager(core, ctx_or_author, **kwargs):
+        captured["parsed_filters"] = kwargs.get("parsed_filters")
+        return types.SimpleNamespace(pages=[{"title": "Roster"}])
+
+    async def _fake_edit(**kwargs):
+        captured["edit_kwargs"] = kwargs
+
+    interaction.message.edit = _fake_edit
+    monkeypatch.setattr(slash_roster_module, "make_roster_pager", _fake_make_roster_pager)
+    asyncio.run(button.callback(interaction))
+
+    assert captured["parsed_filters"] == {}
+    assert "edit_kwargs" in captured
+
+
+def test_slash_roster_filter_category_view_has_expected_buttons():
+    from mcoc.slash import roster as slash_roster_module
+
+    champion_rows = [{"id": "abomination", "slug": "abomination", "name": "Abomination", "class": "science"}]
+    group = _RosterGroup(core=_CoreStub(champion_rows))
+    target = types.SimpleNamespace(id=42, display_name="jjw")
+    view = slash_roster_module._RosterFilterCategoryView(group, target, "7*", {})
+    labels = [child.label for child in view.children]
+    assert labels == ["STAR", "RANK", "CLASS", "CLOSE"]
+
+
 def test_slash_roster_rankup_pages_group_by_tier_into_fields():
     from mcoc.slash import roster as slash_roster_module
 

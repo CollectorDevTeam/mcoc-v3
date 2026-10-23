@@ -238,6 +238,7 @@ class _RosterQuickFilterPickerView(ui.View):
     def __init__(self, group: "_RosterGroup", target_user: Any, base_hargs: str, parsed_filters: dict, kind: str):
         super().__init__(timeout=120)
         self.add_item(_RosterQuickFilterSelect(group, target_user, base_hargs, parsed_filters, kind))
+        self.add_item(_RosterFilterCloseButton(group, target_user, base_hargs, parsed_filters))
 
 
 class _RosterFilterCategoryButton(ui.Button):
@@ -270,6 +271,32 @@ class _RosterFilterCategoryView(ui.View):
         self.add_item(_RosterFilterCategoryButton(group, target_user, base_hargs, parsed_filters, "STAR", "star"))
         self.add_item(_RosterFilterCategoryButton(group, target_user, base_hargs, parsed_filters, "RANK", "rank"))
         self.add_item(_RosterFilterCategoryButton(group, target_user, base_hargs, parsed_filters, "CLASS", "class"))
+        self.add_item(_RosterFilterCloseButton(group, target_user, base_hargs, parsed_filters))
+
+
+class _RosterFilterCloseButton(ui.Button):
+    def __init__(self, group: "_RosterGroup", target_user: Any, base_hargs: str, parsed_filters: dict):
+        super().__init__(label="CLOSE", style=discord.ButtonStyle.secondary)
+        self.group = group
+        self.target_user = target_user
+        self.base_hargs = base_hargs or ""
+        self.parsed_filters = dict(parsed_filters or {})
+
+    async def callback(self, interaction):
+        try:
+            pager = await self.group._build_roster_list_pager(
+                self.target_user,
+                self.base_hargs,
+                self.parsed_filters,
+                author_for_controls=getattr(interaction, "user", self.target_user),
+            )
+            if not pager:
+                await interaction.response.send_message("No roster entries match your filters.", ephemeral=True)
+                return
+            await interaction.response.edit_message(embed=pager.pages[0], view=pager)
+        except Exception:
+            log.exception("roster filter close failed")
+            await interaction.response.send_message("Unable to close filter right now.", ephemeral=True)
 
 
 class _RosterListModeButton(ui.Button):
@@ -283,10 +310,10 @@ class _RosterListModeButton(ui.Button):
 
     async def callback(self, interaction):
         try:
-            parsed = dict(self.parsed_filters or parse_hargs(self.base_hargs or ""))
             if self.mode == "default":
-                parsed.pop("list_mode", None)
+                parsed = {}
             else:
+                parsed = dict(self.parsed_filters or parse_hargs(self.base_hargs or ""))
                 parsed["list_mode"] = self.mode
             pager = await self.group._build_roster_list_pager(
                 self.target_user,
