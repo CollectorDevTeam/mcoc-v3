@@ -116,76 +116,15 @@ def test_slash_champ_search_has_name_autocomplete(monkeypatch):
     assert hasattr(group, "search")
 
 
-def test_slash_roster_add_accepts_multiple_champions_in_one_payload():
-    champion_rows = [
-        {"id": "abomination", "slug": "abomination", "name": "Abomination", "tags": ["poison"]},
-        {"id": "black-bolt", "slug": "black-bolt", "name": "Black Bolt", "tags": ["inhuman"]},
-    ]
-
-    calls = []
-
-    class _RosterUsersStub:
-        def add_champion(self, user_id, champ_slug, rarity, rank, sig=0, ascended=0, tags=None, **kwargs):
-            calls.append({
-                "user_id": user_id,
-                "champ_slug": champ_slug,
-                "rarity": rarity,
-                "rank": rank,
-                "sig": sig,
-                "ascended": ascended,
-                "tags": tags or [],
-            })
-
-    class _RosterCoreStub:
-        def __init__(self, champions):
-            self.cache = _CacheStub(champions)
-            self.users = _RosterUsersStub()
-
-    group = _RosterGroup(core=_RosterCoreStub(champion_rows))
-    interaction = _InteractionStub()
-
-    asyncio.run(_invoke(group.add, group, interaction, champion="Abomination 7*r1, Black Bolt 6*r3", hargs=""))
-
-    assert len(calls) == 2
-    assert {c["champ_slug"] for c in calls} == {"abomination", "black-bolt"}
-    assert interaction.response.calls[0].get("content", "").startswith("Added 2 champion")
-
-
-def test_slash_roster_add_prompts_modal_for_single_champion_without_hargs(monkeypatch):
-    champion_rows = [{"id": "abomination", "slug": "abomination", "name": "Abomination", "tags": ["poison"]}]
-    group = _RosterGroup(core=_CoreStub(champion_rows))
-    interaction = _InteractionStub()
-
-    called = {}
-
-    async def _fake_modal(interaction_obj, champion):
-        called["champion"] = champion
-
-    monkeypatch.setattr(group, "_prompt_single_champion_modal", _fake_modal)
-
-    asyncio.run(_invoke(group.add, group, interaction, champion="Abomination", hargs=None))
-
-    assert called["champion"] == "Abomination"
-
-
-def test_slash_roster_add_multiple_names_starts_modal_queue(monkeypatch):
+def test_slash_roster_legacy_commands_removed():
     champion_rows = [
         {"id": "abomination", "slug": "abomination", "name": "Abomination", "tags": ["poison"]},
         {"id": "black-bolt", "slug": "black-bolt", "name": "Black Bolt", "tags": ["inhuman"]},
     ]
     group = _RosterGroup(core=_CoreStub(champion_rows))
-    interaction = _InteractionStub()
 
-    called = {}
-
-    async def _fake_queue(interaction_obj, champions):
-        called["champions"] = champions
-
-    monkeypatch.setattr(group, "_prompt_modal_queue", _fake_queue)
-
-    asyncio.run(_invoke(group.add, group, interaction, champion="Abomination, Black Bolt", hargs=None))
-
-    assert called["champions"] == ["Abomination", "Black Bolt"]
+    for legacy in ("add", "remove", "update", "import_roster", "export", "clear"):
+        assert not hasattr(group, legacy)
 
 
 def test_slash_roster_champion_autocomplete_appends_after_comma():
@@ -201,16 +140,10 @@ def test_slash_roster_champion_autocomplete_appends_after_comma():
     assert any(v.startswith("Abomination, ") and "Black Bolt" in v for v in values)
 
 
-def test_slash_roster_rankup_opens_modal():
+def test_slash_roster_rankup_command_removed():
     champion_rows = [{"id": "abomination", "slug": "abomination", "name": "Abomination", "class": "science"}]
     group = _RosterGroup(core=_CoreStub(champion_rows))
-    interaction = _InteractionStub()
-
-    asyncio.run(_invoke(group.rankup, group, interaction))
-
-    assert len(interaction.response.calls) == 1
-    view = interaction.response.calls[0].get("view")
-    assert isinstance(view, _RankupClassSelectView)
+    assert not hasattr(group, "rankup")
 
 
 def test_slash_roster_rankup_modal_parses_inputs_and_calls_runner(monkeypatch):
@@ -298,16 +231,10 @@ def test_slash_roster_rankup_suggestions_sort_by_score():
     assert [item["slug"] for item in suggestions[:2]] == ["black-bolt", "abomination"]
 
 
-def test_slash_roster_awaken_opens_modal():
+def test_slash_roster_awaken_command_removed():
     champion_rows = [{"id": "abomination", "slug": "abomination", "name": "Abomination", "class": "science"}]
     group = _RosterGroup(core=_CoreStub(champion_rows))
-    interaction = _InteractionStub()
-
-    asyncio.run(_invoke(group.awaken, group, interaction))
-
-    assert len(interaction.response.calls) == 1
-    modal = interaction.response.calls[0].get("modal")
-    assert isinstance(modal, _RosterAwakenModal)
+    assert not hasattr(group, "awaken")
 
 
 def test_slash_roster_awaken_modal_parses_inputs_and_calls_runner(monkeypatch):

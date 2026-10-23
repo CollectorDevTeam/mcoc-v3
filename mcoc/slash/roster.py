@@ -11,9 +11,10 @@
 
 import logging
 import re
+import json
 from typing import Optional, Any, List, Tuple
 import discord
-from discord import Attachment, ui
+from discord import ui
 from redbot.core import commands
 from redbot.core import app_commands
 
@@ -22,13 +23,11 @@ log = logging.getLogger("red.mcoc.slash.roster")
 from ..common.utilities.hargs import parse_hargs
 from ..common.helpers.roster import (
     ensure_user_manager,
-    extract_entry_from_parsed,
     build_roster_pages,
     make_roster_pager,
     parse_roster_entries_from_input,
     parse_roster_entries_with_errors,
     import_roster_entries,
-    validate_entry_for_add,
 )
 from ..common.helpers.types import CLASS_EMOJI
 from ..common.components.componentsV2 import CDTEmbed, CDTPagesMenu, CDTConfirm
@@ -338,6 +337,286 @@ class _RosterListModeButton(ui.Button):
         except Exception:
             log.exception("roster list mode callback failed")
             await interaction.response.send_message("Roster list is unavailable right now.", ephemeral=True)
+
+
+class _RosterEditUpdateModal(ui.Modal):
+    def __init__(self, group: "_RosterGroup"):
+        super().__init__(title="Roster Edit: UPDATE")
+        self.group = group
+        self.entries = ui.TextInput(
+            label="Champions (bulk text)",
+            style=discord.TextStyle.paragraph,
+            placeholder="Examples:\nOnslaught 7*r2 s0\nKnull 7*r2 s0\nShang Chi 7*r3 s40",
+            required=True,
+            max_length=4000,
+        )
+        self.add_item(self.entries)
+
+    async def on_submit(self, interaction):
+        users = ensure_user_manager(self.group.core)
+        if not users:
+            await interaction.response.send_message("Roster storage is unavailable.", ephemeral=True)
+            return
+        raw = str(self.entries.value or "").strip()
+        if not raw:
+            await interaction.response.send_message("No entries provided.", ephemeral=True)
+            return
+
+        try:
+            parsed_entries, failed = parse_roster_entries_with_errors(raw, getattr(self.group.core, "cache", None))
+        except Exception as exc:
+            await interaction.response.send_message(f"Failed to parse entries: {exc}", ephemeral=True)
+            return
+
+        added = 0
+        updated = 0
+        for entry in parsed_entries:
+            try:
+                slug = str(entry.get("champion") or "").strip().lower()
+                rarity = int(entry.get("rarity") or 0)
+                if not slug or rarity <= 0:
+                    continue
+                changed = users.update_champion(
+                    interaction.user.id,
+                    champ_slug=slug,
+                    rarity=rarity,
+                    rank=entry.get("rank"),
+                    sig=entry.get("sig"),
+                    ascended=entry.get("ascended"),
+                    tags=entry.get("tags") or [],
+                )
+                if changed:
+                    updated += 1
+                    continue
+                users.add_champion(
+                    interaction.user.id,
+                    champ_slug=slug,
+                    rarity=rarity,
+                    rank=int(entry.get("rank") or 1),
+                    sig=int(entry.get("sig") or 0),
+                    ascended=int(entry.get("ascended") or 0),
+                    tags=entry.get("tags") or [],
+                )
+                added += 1
+            except Exception:
+                continue
+
+        lines = [f"UPDATE complete: added {added}, updated {updated}."]
+        if failed:
+            lines.append("Could not resolve: " + ", ".join(failed[:10]))
+        await interaction.response.send_message("\n".join(lines), ephemeral=True)
+
+
+class _RosterEditRemoveModal(ui.Modal):
+    def __init__(self, group: "_RosterGroup"):
+        super().__init__(title="Roster Edit: REMOVE")
+        self.group = group
+        self.entries = ui.TextInput(
+            label="Champions to remove",
+            style=discord.TextStyle.paragraph,
+            placeholder="Examples:\nOnslaught 7*\nKnull\nShang Chi 7*",
+            required=True,
+            max_length=4000,
+        )
+        self.add_item(self.entries)
+
+    async def on_submit(self, interaction):
+        users = ensure_user_manager(self.group.core)
+        if not users:
+            await interaction.response.send_message("Roster storage is unavailable.", ephemeral=True)
+            return
+        raw = str(self.entries.value or "").strip()
+        if not raw:
+            await interaction.response.send_message("No entries provided.", ephemeral=True)
+            return
+
+        removed = 0
+        unresolved: List[str] = []
+        try:
+            parsed_entries, failed = parse_roster_entries_with_errors(raw, getattr(self.group.core, "cache", None))
+        except Exception:
+            parsed_entries, failed = [], [raw]
+
+        for entry in parsed_entries:
+            try:
+                slug = str(entry.get("champion") or "").strip().lower()
+                rarity = int(entry.get("rarity") or 0) if entry.get("rarity") else None
+                removed += int(users.remove_champion(interaction.user.id, slug, rarity) or 0)
+            except Exception:
+                continue
+
+        # best-effort fallback removal for unresolved plain tokens
+        for token in failed:
+            text = str(token or "").strip()
+            if not text:
+                continue
+            try:
+                count = int(users.remove_champion(interaction.user.id, text, None) or 0)
+                removed += count
+                if count == 0:
+                    unresolved.append(text)
+            except Exception:
+                unresolved.append(text)
+
+        lines = [f"REMOVE complete: removed {removed} entries."]
+        if unresolved:
+            lines.append("Not found: " + ", ".join(unresolved[:10]))
+        await interaction.response.send_message("\n".join(lines), ephemeral=True)
+
+
+class _RosterSettingSingleValueModal(ui.Modal):
+    def __init__(self, group: "_RosterGroup", *, title: str, field: str, label: str, placeholder: str):
+        super().__init__(title=title)
+        self.group = group
+        self.field = field
+        self.value_input = ui.TextInput(label=label, placeholder=placeholder, required=False, max_length=100)
+        self.add_item(self.value_input)
+
+    async def on_submit(self, interaction):
+        users = ensure_user_manager(self.group.core)
+        if not users:
+            await interaction.response.send_message("Roster storage is unavailable.", ephemeral=True)
+            return
+        value = str(self.value_input.value or "").strip() or None
+        try:
+            users.set_profile_field(interaction.user.id, self.field, value)
+            shown = value if value is not None else "<cleared>"
+            await interaction.response.send_message(f"Saved {self.field}: {shown}", ephemeral=True)
+        except Exception:
+            await interaction.response.send_message("Unable to save setting right now.", ephemeral=True)
+
+
+class _RosterDeleteConfirmView(ui.View):
+    def __init__(self, group: "_RosterGroup"):
+        super().__init__(timeout=60)
+        self.group = group
+
+    @ui.button(label="CONFIRM DELETE", style=discord.ButtonStyle.danger)
+    async def confirm_delete(self, interaction, _button):
+        users = ensure_user_manager(self.group.core)
+        if not users:
+            await interaction.response.send_message("Roster storage is unavailable.", ephemeral=True)
+            return
+        ok = bool(users.delete_user(interaction.user.id))
+        await interaction.response.edit_message(content=("Roster deleted." if ok else "No roster file found."), view=None)
+
+    @ui.button(label="CANCEL", style=discord.ButtonStyle.secondary)
+    async def cancel_delete(self, interaction, _button):
+        await interaction.response.edit_message(content="Delete cancelled.", view=None)
+
+
+class _RosterDataImportModal(ui.Modal):
+    def __init__(self, group: "_RosterGroup"):
+        super().__init__(title="Roster Data: IMPORT")
+        self.group = group
+        self.payload = ui.TextInput(
+            label="Paste JSON export or roster text",
+            style=discord.TextStyle.paragraph,
+            required=True,
+            max_length=4000,
+        )
+        self.add_item(self.payload)
+
+    async def on_submit(self, interaction):
+        users = ensure_user_manager(self.group.core)
+        if not users:
+            await interaction.response.send_message("Roster storage is unavailable.", ephemeral=True)
+            return
+
+        text = str(self.payload.value or "").strip()
+        if not text:
+            await interaction.response.send_message("No import data provided.", ephemeral=True)
+            return
+
+        # Prefer full JSON import when possible.
+        try:
+            obj = json.loads(text)
+            if isinstance(obj, dict):
+                users.import_data(interaction.user.id, obj)
+                await interaction.response.send_message("Data import complete.", ephemeral=True)
+                return
+        except Exception:
+            pass
+
+        try:
+            entries = parse_roster_entries_from_input(text, getattr(self.group.core, "cache", None))
+            result = import_roster_entries(self.group.core, interaction.user.id, entries)
+            imported = int(result.get("imported", 0) or 0)
+            errors = result.get("errors", []) or []
+            msg = f"Roster import complete: {imported} entries imported."
+            if errors:
+                msg += f"\nFirst error: {errors[0]}"
+            await interaction.response.send_message(msg, ephemeral=True)
+        except Exception as exc:
+            await interaction.response.send_message(f"Import failed: {exc}", ephemeral=True)
+
+
+class _RosterEditBackButton(ui.Button):
+    def __init__(self, group: "_RosterGroup"):
+        super().__init__(label="BACK", style=discord.ButtonStyle.secondary)
+        self.group = group
+
+    async def callback(self, interaction):
+        await interaction.response.edit_message(content="Roster Edit", view=_RosterEditRootView(self.group))
+
+
+class _RosterEditSettingsView(ui.View):
+    def __init__(self, group: "_RosterGroup"):
+        super().__init__(timeout=180)
+        self.group = group
+        self.add_item(_RosterEditBackButton(group))
+
+    @ui.button(label="SET MCOC ID", style=discord.ButtonStyle.primary)
+    async def set_mcoc_id(self, interaction, _button):
+        await interaction.response.send_modal(_RosterSettingSingleValueModal(self.group, title="Roster Settings: MCOC ID", field="mcoc_id", label="MCOC ID", placeholder="Your in-game MCOC ID"))
+
+    @ui.button(label="SET MCOC USERNAME", style=discord.ButtonStyle.primary)
+    async def set_mcoc_username(self, interaction, _button):
+        await interaction.response.send_modal(_RosterSettingSingleValueModal(self.group, title="Roster Settings: MCOC Username", field="mcoc_name", label="MCOC Username", placeholder="Your in-game display name"))
+
+    @ui.button(label="DELETE ROSTER", style=discord.ButtonStyle.danger)
+    async def delete_roster(self, interaction, _button):
+        await interaction.response.edit_message(content="Confirm roster deletion:", view=_RosterDeleteConfirmView(self.group))
+
+
+class _RosterEditDataView(ui.View):
+    def __init__(self, group: "_RosterGroup"):
+        super().__init__(timeout=180)
+        self.group = group
+        self.add_item(_RosterEditBackButton(group))
+
+    @ui.button(label="IMPORT", style=discord.ButtonStyle.primary)
+    async def import_data(self, interaction, _button):
+        await interaction.response.send_modal(_RosterDataImportModal(self.group))
+
+    @ui.button(label="EXPORT", style=discord.ButtonStyle.primary)
+    async def export_data(self, interaction, _button):
+        users = ensure_user_manager(self.group.core)
+        data = users.export(interaction.user.id) if users else {}
+        payload = discord.utils.escape_markdown(json.dumps(data, ensure_ascii=True))
+        await interaction.response.send_message(f"```json\n{payload}\n```", ephemeral=True)
+
+
+class _RosterEditRootView(ui.View):
+    def __init__(self, group: "_RosterGroup"):
+        super().__init__(timeout=180)
+        self.group = group
+
+    @ui.button(label="UPDATE", style=discord.ButtonStyle.primary)
+    async def update_entries(self, interaction, _button):
+        await interaction.response.send_modal(_RosterEditUpdateModal(self.group))
+
+    @ui.button(label="REMOVE", style=discord.ButtonStyle.primary)
+    async def remove_entries(self, interaction, _button):
+        await interaction.response.send_modal(_RosterEditRemoveModal(self.group))
+
+    @ui.button(label="SETTINGS", style=discord.ButtonStyle.secondary)
+    async def settings(self, interaction, _button):
+        await interaction.response.edit_message(content="Roster Edit > SETTINGS", view=_RosterEditSettingsView(self.group))
+
+    @ui.button(label="DATA", style=discord.ButtonStyle.secondary)
+    async def data(self, interaction, _button):
+        await interaction.response.edit_message(content="Roster Edit > DATA", view=_RosterEditDataView(self.group))
 
 
 class _RosterGroup(app_commands.Group):
@@ -797,47 +1076,6 @@ class _RosterGroup(app_commands.Group):
             pages.append(emb)
         return pages
 
-    async def _add_entries(self, interaction, raw_input: str):
-        cache = getattr(self.core, "cache", None)
-        try:
-            entries, failed = parse_roster_entries_with_errors(raw_input, cache)
-        except Exception:
-            entries, failed = [], []
-
-        if not entries:
-            return False
-
-        users = ensure_user_manager(self.core)
-        added = 0
-        added_lines = []
-        for entry in entries:
-            try:
-                users.add_champion(
-                    interaction.user.id,
-                    entry["champion"],
-                    int(entry["rarity"]),
-                    int(entry["rank"]),
-                    int(entry.get("sig", 0)),
-                    int(entry.get("ascended", 0)),
-                    tags=entry.get("tags", []),
-                )
-                added += 1
-                champ = cache.get_champion(entry["champion"]) if cache else None
-                name = champ.get("name") if isinstance(champ, dict) else entry["champion"]
-                added_lines.append(f"{name} {entry['rarity']}* r{entry['rank']} s{entry.get('sig', 0)}")
-            except Exception:
-                log.exception("Failed to add roster entry %s", entry)
-
-        if added:
-            message = f"Added {added} champion(s) to your roster."
-            if added_lines:
-                message += "\n" + "\n".join(added_lines[:20])
-            if failed:
-                message += "\n\nCould not resolve: " + ", ".join(failed[:10])
-            await interaction.response.send_message(message)
-            return True
-        return False
-
     # Autocomplete: champion names (prefer index)
     async def champion_autocomplete(self, interaction, current: str):
         raw = str(current or "")
@@ -952,159 +1190,12 @@ class _RosterGroup(app_commands.Group):
         return interaction.user, cleaned
 
     # -------------------------
-    # /roster add
+    # /roster edit
     # -------------------------
-    @app_commands.command(name="add", description="Add a champion to your roster")
-    @app_commands.autocomplete(champion=champion_autocomplete, hargs=hargs_autocomplete)
-    async def add(self, interaction, champion: str, hargs: Optional[str] = None):
-        cache = getattr(self.core, "cache", None)
-        champion_text = str(champion or "").strip()
-        hargs_text = str(hargs or "").strip()
-        raw_input = " ".join(part for part in (champion_text, hargs_text) if part).strip()
+    @app_commands.command(name="edit", description="Edit roster entries, settings, and data")
+    async def edit(self, interaction):
+        await interaction.response.send_message("Roster Edit", view=_RosterEditRootView(self), ephemeral=True)
 
-        has_harg_markers = bool(re.search(r"(?:\d\s*(?:\*|★)|\br\d+\b|\bs\d{1,4}\b|\ba\d+\b)", champion_text, flags=re.IGNORECASE))
-        if hargs_text or has_harg_markers:
-            try:
-                entries, failed = parse_roster_entries_with_errors(raw_input, cache)
-            except Exception:
-                entries, failed = [], []
-            if entries:
-                await self._add_entries(interaction, raw_input)
-                return
-
-        if not hargs_text:
-            candidates = self._split_champion_candidates(champion_text)
-            if len(candidates) > 1:
-                await self._prompt_modal_queue(interaction, candidates)
-                return
-            # Bare champion names should open the modal instead of silently defaulting to rank 1 / rarity 7.
-            await self._prompt_single_champion_modal(interaction, champion_text)
-            return
-
-        parsed = parse_hargs(hargs or "")
-        entry = extract_entry_from_parsed(parsed)
-
-        champ = None
-        if cache:
-            try:
-                champ = cache.get_champion(champion)
-            except Exception:
-                champ = None
-
-        if not champ:
-            await interaction.response.send_message(f"Champion `{champion}` not found.", ephemeral=True)
-            return
-
-        if not validate_entry_for_add(entry):
-            await interaction.response.send_message("Adding a champion requires rarity and rank (e.g., `6*r3`).", ephemeral=True)
-            return
-
-        users = ensure_user_manager(self.core)
-        try:
-            users.add_champion(
-                interaction.user.id,
-                champ_slug=champ.get("id") or champ.get("slug"),
-                rarity=entry["rarity"],
-                rank=entry["rank"],
-                sig=entry.get("sig", 0),
-                tags=entry.get("tags", []),
-            )
-        except Exception:
-            log.exception("Failed to add champion to roster")
-            await interaction.response.send_message("Failed to add champion to roster.", ephemeral=True)
-            return
-
-        try:
-            embed = await CDTEmbed.roster_entry_embed(interaction, champ, {
-                "rarity": entry["rarity"],
-                "rank": entry["rank"],
-                "sig": entry.get("sig", 0),
-                "tags": entry.get("tags", []),
-                "ascended": entry.get("ascended", 0),
-            })
-        except Exception:
-            embed = None
-
-        await interaction.response.send_message(f"Added **{champ.get('name','Unknown')}** to your roster.", embed=embed)
-
-    @app_commands.command(name="rankup", description="Suggest rankup candidates from your roster")
-    async def rankup(self, interaction):
-        await interaction.response.send_message(
-            "Choose a class for rankup suggestions:",
-            view=_RankupClassSelectView(self),
-            ephemeral=True,
-        )
-
-    @app_commands.command(name="awaken", description="Suggest awakening candidates from your roster")
-    async def awaken(self, interaction):
-        await interaction.response.send_modal(_RosterAwakenModal(self))
-
-    # -------------------------
-    # /roster remove
-    # -------------------------
-    @app_commands.command(name="remove", description="Remove a champion from your roster")
-    @app_commands.autocomplete(champion=champion_autocomplete)
-    async def remove(self, interaction, champion: str, hargs: Optional[str] = None):
-        parsed = parse_hargs(hargs or "")
-        rarity = parsed["rarities"][0] if parsed["rarities"] else None
-
-        users = ensure_user_manager(self.core)
-        try:
-            removed = users.remove_champion(interaction.user.id, champion, rarity)
-        except Exception:
-            log.exception("Failed to remove champion from roster")
-            removed = 0
-
-        if removed == 0:
-            await interaction.response.send_message("No matching champion found in your roster.", ephemeral=True)
-        else:
-            await interaction.response.send_message(f"Removed {removed} entries for `{champion}`.")
-
-    # -------------------------
-    # /roster update
-    # -------------------------
-    @app_commands.command(name="update", description="Update a champion entry in your roster")
-    @app_commands.autocomplete(champion=champion_autocomplete)
-    async def update(self, interaction, champion: str, hargs: str):
-        parsed = parse_hargs(hargs or "")
-        entry = extract_entry_from_parsed(parsed)
-
-        if entry.get("rarity") is None:
-            await interaction.response.send_message("Updating a champion requires rarity (e.g., `6*`).", ephemeral=True)
-            return
-
-        users = ensure_user_manager(self.core)
-        try:
-            updated = users.update_champion(
-                interaction.user.id,
-                champ_slug=champion,
-                rarity=entry["rarity"],
-                rank=entry.get("rank"),
-                sig=entry.get("sig"),
-                tags=entry.get("tags"),
-            )
-        except Exception:
-            log.exception("Failed to update champion")
-            updated = False
-
-        if not updated:
-            await interaction.response.send_message("Champion not found in your roster.", ephemeral=True)
-            return
-
-        cache = getattr(self.core, "cache", None)
-        champ = cache.get_champion(champion) if cache else None
-        try:
-            embed = await CDTEmbed.roster_entry_embed(interaction, champ, {
-                "rarity": entry["rarity"],
-                "rank": entry.get("rank") or 0,
-                "sig": entry.get("sig") or 0,
-                "tags": entry.get("tags") or [],
-                "ascended": entry.get("ascended") or 0
-            })
-        except Exception:
-            embed = None
-
-        await interaction.response.send_message(f"Updated **{champ.get('name','Unknown') if champ else champion}**.", embed=embed)
 
     # -------------------------
     # /roster list
@@ -1143,46 +1234,6 @@ class _RosterGroup(app_commands.Group):
                 await sender("Roster list failed; please try again.", ephemeral=True)
             except Exception:
                 pass
-
-    # -------------------------
-    # /roster export
-    # -------------------------
-    @app_commands.command(name="export", description="Export your roster as JSON")
-    async def export(self, interaction):
-        users = ensure_user_manager(self.core)
-        data = users.export(interaction.user.id) if users else {}
-        import discord
-        json_text = discord.utils.escape_markdown(str(data))
-        await interaction.response.send_message(f"Your roster data:\n```json\n{json_text}\n```")
-
-    @app_commands.command(name="import", description="Import a roster from a Cocpit CSV export")
-    async def import_roster(self, interaction, file: Attachment):
-        try:
-            payload = await file.read()
-            text = payload.decode("utf-8-sig", errors="replace")
-            entries = parse_roster_entries_from_input(text, getattr(self.core, "cache", None))
-            result = import_roster_entries(self.core, interaction.user.id, entries)
-        except Exception as exc:
-            log.exception("slash roster import failed")
-            await interaction.response.send_message(f"Failed to import roster CSV: {exc}", ephemeral=True)
-            return
-
-        imported = result.get("imported", 0)
-        errors = result.get("errors", []) or []
-        message = f"Imported {imported} roster entr{'y' if imported == 1 else 'ies'} from {getattr(file, 'filename', 'upload')}."
-        if errors:
-            message = f"{message}\nFirst error: {errors[0]}"
-        await interaction.response.send_message(message, ephemeral=True)
-
-    # -------------------------
-    # /roster clear
-    # -------------------------
-    @app_commands.command(name="clear", description="Clear your entire roster")
-    async def clear(self, interaction):
-        users = ensure_user_manager(self.core)
-        if users:
-            users.delete_user(interaction.user.id)
-        await interaction.response.send_message("Your roster has been cleared.")
 
 # Cog wrapper for slash roster group
 class RosterSlashCog(commands.Cog):
