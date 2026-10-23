@@ -217,6 +217,16 @@ def _normalize_prestige(value: Any) -> int:
 _PRESTIGE_UNSET = object()
 
 
+def _entry_has_progression(entry: Optional[Dict[str, Any]]) -> bool:
+    if not isinstance(entry, dict):
+        return False
+    rarity = _safe_int(entry.get("rarity") or entry.get("stars"), 1)
+    rank = _safe_int(entry.get("rank"), 1)
+    sig = _safe_int(entry.get("sig"), 0)
+    asc = _safe_int(entry.get("ascended") or entry.get("asc"), 0)
+    return rarity >= 7 or rank != 1 or sig != 0 or asc != 0
+
+
 def format_champion_line(champ_obj: ChampionLike, entry: Dict[str, Any], *, include_prestige: Optional[Any] = _PRESTIGE_UNSET) -> str:
     """
     champ_obj: champion metadata from cache (may be None or dict)
@@ -251,9 +261,9 @@ def format_champion_line(champ_obj: ChampionLike, entry: Dict[str, Any], *, incl
     asc = _safe_int(entry.get("ascended") or entry.get("asc"), 0)
     if include_prestige is _PRESTIGE_UNSET:
         prestige_value = entry.get("prestige")
-        if prestige_value is None and champ is not None:
+        if prestige_value is None and not _entry_has_progression(entry) and champ is not None:
             prestige_value = getattr(champ, "prestige", None)
-        if prestige_value is None and isinstance(champ_obj, Mapping):
+        if prestige_value is None and not _entry_has_progression(entry) and isinstance(champ_obj, Mapping):
             prestige_value = champ_obj.get("prestige")
     else:
         prestige_value = include_prestige
@@ -318,7 +328,7 @@ def format_top5_prestige_line(champ_obj: Optional[Champion], entry: Dict[str, An
 
     if include_prestige is _PRESTIGE_UNSET:
         prestige_value = entry.get("prestige")
-        if prestige_value is None and champ is not None:
+        if prestige_value is None and not _entry_has_progression(entry) and champ is not None:
             prestige_value = getattr(champ, "prestige", None)
     else:
         prestige_value = include_prestige

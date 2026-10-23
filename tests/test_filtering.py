@@ -156,6 +156,18 @@ def test_format_champion_line_uses_prestige_when_available():
     assert "Alpha" in line
 
 
+def test_format_champion_line_ignores_base_champion_prestige_for_progressed_entries():
+    champ = champion_from_dict({"id": "shang-chi", "name": "Shang Chi", "class": "skill", "prestige": 11880})
+    line = format_champion_line(
+        champ,
+        {"champion": "shang-chi", "rarity": 7, "rank": 3, "sig": 40, "ascended": 0},
+    )
+
+    assert "Shang Chi" in line
+    assert "11,880" not in line
+    assert "r3" in line
+
+
 def test_format_champion_line_respects_explicit_none_prestige_without_fallback():
     champ = champion_from_dict({"id": "alpha", "name": "Alpha", "class": "skill", "prestige": 12345})
     line = format_champion_line(
