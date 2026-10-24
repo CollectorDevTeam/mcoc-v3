@@ -181,6 +181,10 @@ if discord is None:
         async def start(self, ctx):
             return None
 
+    class CDTAutoCleanupView:
+        def __init__(self, *args, **kwargs):
+            pass
+
     cdt_embed = CDTEmbed.embed
     champion_embed = CDTEmbed.champion_embed
     roster_entry_embed = CDTEmbed.roster_entry_embed
@@ -188,6 +192,39 @@ if discord is None:
     brand_view = CDTEmbed.brand_view
 
 else:
+    class CDTAutoCleanupView(discord.ui.View):
+        """View that removes interactive components when it times out."""
+
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.message: Optional[Any] = None
+
+        async def interaction_check(self, interaction: Any) -> bool:
+            try:
+                msg = getattr(interaction, "message", None)
+                if msg is not None:
+                    self.message = msg
+            except Exception:
+                pass
+            return True
+
+        async def bind_to_interaction_response(self, interaction: Any) -> None:
+            try:
+                if getattr(interaction, "message", None) is not None:
+                    self.message = interaction.message
+                    return
+                if hasattr(interaction, "original_response"):
+                    self.message = await interaction.original_response()
+            except Exception:
+                pass
+
+        async def on_timeout(self):
+            try:
+                if self.message is not None:
+                    await self.message.edit(view=None)
+            except Exception:
+                pass
+
     class CDTEmbed:
         """Static helpers to build branded embeds and optional component Views."""
 
@@ -396,7 +433,7 @@ else:
             except Exception:
                 pass
 
-    class CDTConfirm(discord.ui.View):
+    class CDTConfirm(CDTAutoCleanupView):
         def __init__(self, *, timeout: float = 30.0, ephemeral: bool = True, confirm_label: str = "Yes", cancel_label: str = "No"):
             super().__init__(timeout=timeout)
             self.value: Optional[bool] = None
@@ -635,9 +672,7 @@ else:
         async def on_timeout(self):
             try:
                 if self.message:
-                    for item in self.children:
-                        item.disabled = True
-                    await self.message.edit(view=self)
+                    await self.message.edit(view=None)
             except Exception:
                 pass
 

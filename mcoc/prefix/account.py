@@ -284,14 +284,14 @@ class AccountPrefix(commands.Cog):
         if not await self._require_parent(ctx):
             return
         user_id = getattr(ctx.author, "id", None)
-        modes = {"private", "guild", "alliance", "public"}
+        modes = {"private", "alliance", "public"}
         if mode is None:
             profile = Account.get_profile(self.parent, user_id) or {}
             current = profile.get("privacy_mode") or "public"
             await safe_send_ctx(ctx, f"Current privacy mode: {current}")
             return
         if mode.lower() not in modes:
-            await safe_send_ctx(ctx, "Allowed privacy modes: private, guild, alliance, public.")
+            await safe_send_ctx(ctx, "Allowed privacy modes: private, alliance, public.")
             return
         ok = Account.set_profile_field(self.parent, user_id, "privacy_mode", mode.lower())
         await safe_send_ctx(ctx, "Privacy mode updated." if ok else "Failed to update privacy mode.")

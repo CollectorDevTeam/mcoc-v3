@@ -16,10 +16,32 @@ import discord
 from redbot.core import commands
 from redbot.core import app_commands
 
-from ..common.components.componentsV2 import CDTPagesMenu
+from ..common.components.componentsV2 import CDTPagesMenu, CDTAutoCleanupView
 from ..common.helpers import account as Account
 
 log = logging.getLogger("red.mcoc.slash.account")
+
+
+def _runtime_version_label() -> str:
+    try:
+        short = subprocess.run(["git", "rev-parse", "--short", "HEAD"], capture_output=True, text=True, check=True).stdout.strip()
+        branch = subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"], capture_output=True, text=True, check=True).stdout.strip()
+        if short and branch:
+            return f"runtime: {short} ({branch})"
+    except Exception:
+        pass
+    return "runtime: unknown"
+
+
+async def _edit_or_send(interaction: discord.Interaction, content: str, *, view=None, ephemeral: bool = True):
+    try:
+        if hasattr(interaction.response, "edit_message"):
+            await interaction.response.edit_message(content=content, view=view)
+            return
+    except Exception:
+        pass
+    await interaction.response.send_message(content, view=view, ephemeral=ephemeral)
+
 
 _PROFILE_PAGE_LAYOUTS = {
     1: [
@@ -53,7 +75,7 @@ _TIMEZONE_OPTIONS = [
 ]
 
 
-class _ProfilePageSelectorView(discord.ui.View):
+class _ProfilePageSelectorView(CDTAutoCleanupView):
     def __init__(self, core: Any, user_id: int, profile: Optional[dict] = None, *, mode: str = "view"):
         super().__init__(timeout=180)
         self.core = core
@@ -82,10 +104,7 @@ class _ProfilePageSelectorView(discord.ui.View):
         async def _update_roster(interaction: discord.Interaction):
             value = self.roster_selector.values[0] if self.roster_selector.values else default_roster
             ok, msg = Account.select_active_roster(core, user_id, value)
-            if ok:
-                await interaction.response.send_message(msg, ephemeral=True)
-            else:
-                await interaction.response.send_message(msg, ephemeral=True)
+            await interaction.response.edit_message(content=msg, view=self)
 
         self.roster_selector.callback = _update_roster
         self.add_item(self.roster_selector)
@@ -222,7 +241,7 @@ class _ProfileSettingsModal(discord.ui.Modal):
         )
 
 
-class _AccountConsentView(discord.ui.View):
+class _AccountConsentView(CDTAutoCleanupView):
     def __init__(self, core: Any, user_id: int):
         super().__init__(timeout=180)
         self.core = core
@@ -233,11 +252,11 @@ class _AccountConsentView(discord.ui.View):
 
         async def _agree_cb(interaction: discord.Interaction):
             _ok, msg = await Account.handle_consent_response(core, interaction, user_id, True)
-            await interaction.response.send_message(msg, ephemeral=True)
+            await interaction.response.edit_message(content=msg, view=None)
 
         async def _decline_cb(interaction: discord.Interaction):
             _ok, msg = await Account.handle_consent_response(core, interaction, user_id, False)
-            await interaction.response.send_message(msg, ephemeral=True)
+            await interaction.response.edit_message(content=msg, view=None)
 
         agree_btn.callback = _agree_cb
         decline_btn.callback = _decline_cb
@@ -245,7 +264,7 @@ class _AccountConsentView(discord.ui.View):
         self.add_item(decline_btn)
 
 
-class _AccountPrivacyView(discord.ui.View):
+class _AccountPrivacyView(CDTAutoCleanupView):
     def __init__(self, core: Any, user_id: int):
         super().__init__(timeout=180)
         self.core = core
@@ -258,7 +277,6 @@ class _AccountPrivacyView(discord.ui.View):
 
         self.public_btn = discord.ui.Button(label="PUBLIC", style=_style_for("public"))
         self.alliance_btn = discord.ui.Button(label="ALLIANCE", style=_style_for("alliance"))
-        self.guild_btn = discord.ui.Button(label="GUILD", style=_style_for("guild"))
         self.private_btn = discord.ui.Button(label="PRIVATE", style=_style_for("private"))
         self.delete_btn = discord.ui.Button(label="DELETE", style=discord.ButtonStyle.danger)
 
@@ -282,25 +300,23 @@ class _AccountPrivacyView(discord.ui.View):
         async def _alliance_cb(interaction: discord.Interaction):
             await _set_mode("alliance", interaction)
 
-        async def _guild_cb(interaction: discord.Interaction):
-            await _set_mode("guild", interaction)
-
         async def _private_cb(interaction: discord.Interaction):
             await _set_mode("private", interaction)
 
         async def _delete_cb(interaction: discord.Interaction):
             ok, msg = Account.delete_user_profile(core, user_id)
+            if ok:
+                await interaction.response.edit_message(content=msg, view=None)
+                return
             await interaction.response.send_message(msg, ephemeral=True)
 
         self.public_btn.callback = _public_cb
         self.alliance_btn.callback = _alliance_cb
-        self.guild_btn.callback = _guild_cb
         self.private_btn.callback = _private_cb
         self.delete_btn.callback = _delete_cb
 
         self.add_item(self.public_btn)
         self.add_item(self.alliance_btn)
-        self.add_item(self.guild_btn)
         self.add_item(self.private_btn)
         self.add_item(self.delete_btn)
 
@@ -308,13 +324,12 @@ class _AccountPrivacyView(discord.ui.View):
         for button, mode in [
             (self.public_btn, "public"),
             (self.alliance_btn, "alliance"),
-            (self.guild_btn, "guild"),
             (self.private_btn, "private"),
         ]:
             button.style = discord.ButtonStyle.green if self.current_mode == mode else discord.ButtonStyle.gray
 
 
-class _AccountManagerView(discord.ui.View):
+class _AccountManagerView(CDTAutoCleanupView):
     def __init__(self, core: Any, user_id: int):
         super().__init__(timeout=180)
         self.core = core
@@ -337,66 +352,66 @@ class _AccountManagerView(discord.ui.View):
         async def _view_cb(interaction: discord.Interaction):
             profile = _refresh_state_and_get_profile()
             if not self.has_account:
-                await interaction.response.send_message("No account found. Use CREATE first.", ephemeral=True)
+                await _edit_or_send(interaction, "No account found. Use CREATE first.", ephemeral=True)
                 return
             try:
-                await interaction.response.send_message(
-                    "Choose the profile page you want to view.",
-                    view=_ProfilePageSelectorView(core, user_id, profile, mode="view"),
-                    ephemeral=True,
-                )
+                view = _ProfilePageSelectorView(core, user_id, profile, mode="view")
+                await _edit_or_send(interaction, "Choose the profile page you want to view.", view=view, ephemeral=True)
+                await view.bind_to_interaction_response(interaction)
             except Exception as exc:
                 detail = f"{type(exc).__name__}: {exc}" if str(exc) else type(exc).__name__
-                await interaction.response.send_message(f"Unable to open the profile view right now: {detail}", ephemeral=True)
+                await _edit_or_send(interaction, f"Unable to open the profile view right now: {detail}", ephemeral=True)
 
         async def _edit_cb(interaction: discord.Interaction):
             profile = _refresh_state_and_get_profile()
             if not self.has_account:
-                await interaction.response.send_message("No account found. Use CREATE first.", ephemeral=True)
+                await _edit_or_send(interaction, "No account found. Use CREATE first.", ephemeral=True)
                 return
             try:
-                await interaction.response.send_message(
-                    "Choose the section to edit.",
-                    view=_ProfilePageSelectorView(core, user_id, profile, mode="edit"),
-                    ephemeral=True,
-                )
+                view = _ProfilePageSelectorView(core, user_id, profile, mode="edit")
+                await _edit_or_send(interaction, "Choose the section to edit.", view=view, ephemeral=True)
+                await view.bind_to_interaction_response(interaction)
             except Exception as exc:
                 detail = f"{type(exc).__name__}: {exc}" if str(exc) else type(exc).__name__
-                await interaction.response.send_message(f"Unable to open the editor right now: {detail}", ephemeral=True)
+                await _edit_or_send(interaction, f"Unable to open the editor right now: {detail}", ephemeral=True)
 
         async def _privacy_cb(interaction: discord.Interaction):
             profile = _refresh_state_and_get_profile()
             current = profile.get("privacy_mode") or "public"
-            await interaction.response.send_message(
-                f"Current privacy mode: {current}\nChoose your visibility below.",
-                view=_AccountPrivacyView(core, user_id),
-                ephemeral=True,
-            )
+            view = _AccountPrivacyView(core, user_id)
+            await _edit_or_send(interaction, f"Current privacy mode: {current}\nChoose your visibility below.", view=view, ephemeral=True)
+            await view.bind_to_interaction_response(interaction)
 
         async def _create_cb(interaction: discord.Interaction):
             self._refresh_state()
             if self.has_account:
-                await interaction.response.send_message("You already have an account configured.", ephemeral=True)
+                await _edit_or_send(interaction, "You already have an account configured.", ephemeral=True)
                 return
             privacy_url = Account.POLICY_METADATA["privacy_policy"]["url"]
             terms_url = Account.POLICY_METADATA["terms_of_service"]["url"]
-            await interaction.response.send_message(
+            view = _AccountConsentView(core, user_id)
+            await _edit_or_send(
+                interaction,
                 "CollectorBot stores only account fields you explicitly set. We do not save Discord API metadata.\n\nPlease review our [Privacy Policy](%s) and [Terms of Service](%s) before continuing."
                 % (privacy_url, terms_url),
-                view=_AccountConsentView(core, user_id),
+                view=view,
                 ephemeral=True,
             )
+            await view.bind_to_interaction_response(interaction)
 
         async def _consent_cb(interaction: discord.Interaction):
             self._refresh_state()
             if self.consented:
-                await interaction.response.send_message("You have already consented to the privacy policy.", ephemeral=True)
+                await _edit_or_send(interaction, "You have already consented to the privacy policy.", ephemeral=True)
                 return
-            await interaction.response.send_message(
+            view = _AccountConsentView(core, user_id)
+            await _edit_or_send(
+                interaction,
                 "CollectorBot stores only the profile fields you explicitly enter. We do not save Discord account API metadata.\n\nReview the policy and choose your decision.",
-                view=_AccountConsentView(core, user_id),
+                view=view,
                 ephemeral=True,
             )
+            await view.bind_to_interaction_response(interaction)
 
         view_btn.callback = _view_cb
         edit_btn.callback = _edit_cb
@@ -525,10 +540,10 @@ class _AccountGroup(app_commands.Group):
         await interaction.response.send_message(f"Updated {canonical}: {pretty}" if ok else "Failed to update profile field.", ephemeral=True)
 
     @app_commands.command(name="privacy", description="View or set your privacy mode")
-    @app_commands.describe(mode="private | guild | alliance | public")
+    @app_commands.describe(mode="private | alliance | public")
     async def privacy(self, interaction: discord.Interaction, mode: Optional[str] = None):
         user_id = self._user_id(interaction)
-        modes = {"private", "guild", "alliance", "public"}
+        modes = {"private", "alliance", "public"}
         if mode is None:
             profile = Account.get_profile(self.core, user_id) or {}
             current = profile.get("privacy_mode") or "public"
@@ -537,7 +552,7 @@ class _AccountGroup(app_commands.Group):
 
         lowered = mode.lower().strip()
         if lowered not in modes:
-            await interaction.response.send_message("Allowed privacy modes: private, guild, alliance, public.", ephemeral=True)
+            await interaction.response.send_message("Allowed privacy modes: private, alliance, public.", ephemeral=True)
             return
 
         ok = Account.set_profile_field(self.core, user_id, "privacy_mode", lowered)
@@ -586,11 +601,13 @@ class AccountSlashCog(commands.Cog):
         if core is None:
             core = bot
 
+        view = _AccountManagerView(core, user_id)
         await interaction.response.send_message(
-            f"Manage your CollectorVerse account settings and privacy.\nPrivacy policy: [here](<https://raw.githubusercontent.com/CollectorDevTeam/mcoc-v3/main/mcoc/privacy_policy.md>)\nTerms of service: [here](<https://raw.githubusercontent.com/CollectorDevTeam/mcoc-v3/main/mcoc/terms_of_service.md>)",
-            view=_AccountManagerView(core, user_id),
+            f"Manage your CollectorVerse account settings and privacy.\nPrivacy policy: [here](<https://raw.githubusercontent.com/CollectorDevTeam/mcoc-v3/main/mcoc/privacy_policy.md>)\nTerms of service: [here](<https://raw.githubusercontent.com/CollectorDevTeam/mcoc-v3/main/mcoc/terms_of_service.md>)\n{_runtime_version_label()}",
+            view=view,
             ephemeral=True,
         )
+        await view.bind_to_interaction_response(interaction)
 
     @app_commands.command(name="profile", description="View a public CollectorBot profile")
     @app_commands.describe(user="Optional profile owner")

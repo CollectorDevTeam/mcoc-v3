@@ -409,6 +409,40 @@ def test_profile_settings_page_selector_has_single_roster_selector(monkeypatch):
     assert roster_selector.options[0].default is True
 
 
+def test_account_manager_view_action_edits_active_message(monkeypatch):
+    from mcoc.slash.account import _AccountManagerView
+
+    monkeypatch.setattr(
+        "mcoc.slash.account.Account.get_profile",
+        lambda *a, **k: {"mcoc_name": "tester", "privacy_mode": "private"},
+    )
+    monkeypatch.setattr(
+        "mcoc.slash.account.Account.user_has_consented",
+        lambda *a, **k: True,
+    )
+    monkeypatch.setattr(
+        "mcoc.slash.account.Account.user_has_profile",
+        lambda *a, **k: True,
+    )
+
+    view = _AccountManagerView(core=object(), user_id=42)
+    calls = []
+
+    class _ResponseStub:
+        async def edit_message(self, **kwargs):
+            calls.append({"edit_message": True, **kwargs})
+
+        async def send_message(self, *args, **kwargs):
+            calls.append({"send_message": True, "args": args, "kwargs": kwargs})
+
+    interaction = types.SimpleNamespace(user=types.SimpleNamespace(id=42), response=_ResponseStub())
+    import asyncio
+    asyncio.run(view.children[0].callback(interaction))
+
+    assert any("edit_message" in call for call in calls)
+    assert not any("send_message" in call for call in calls)
+
+
 def test_account_manager_modal_errors_show_the_real_reason(monkeypatch):
     from mcoc.slash.account import _ProfilePageSelectorView
 

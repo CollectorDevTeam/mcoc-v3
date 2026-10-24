@@ -31,7 +31,7 @@ from ..common.helpers.roster import (
     start_roster_operation_flow,
 )
 from ..common.helpers.types import CLASS_EMOJI
-from ..common.components.componentsV2 import CDTEmbed, CDTPagesMenu, CDTConfirm
+from ..common.components.componentsV2 import CDTEmbed, CDTPagesMenu, CDTConfirm, CDTAutoCleanupView
 
 
 ROSTER_CLASSES = {"science", "skill", "mutant", "tech", "cosmic", "mystic"}
@@ -150,7 +150,7 @@ class _RosterAddModal(ui.Modal):
             await interaction.response.send_message("No roster entries were added.", ephemeral=True)
 
 
-class _RosterListControlsView(ui.View):
+class _RosterListControlsView(CDTAutoCleanupView):
     def __init__(self, group: "_RosterGroup", target_user: Any, base_hargs: str = "", parsed_filters: Optional[dict] = None, *, timeout: float = 180.0):
         super().__init__(timeout=timeout)
         self.group = group
@@ -234,7 +234,7 @@ class _RosterQuickFilterSelect(ui.Select):
             await interaction.response.send_message("Unable to apply filter right now.", ephemeral=True)
 
 
-class _RosterQuickFilterPickerView(ui.View):
+class _RosterQuickFilterPickerView(CDTAutoCleanupView):
     def __init__(self, group: "_RosterGroup", target_user: Any, base_hargs: str, parsed_filters: dict, kind: str):
         super().__init__(timeout=120)
         self.add_item(_RosterQuickFilterSelect(group, target_user, base_hargs, parsed_filters, kind))
@@ -351,7 +351,7 @@ class _RosterRemoveCancelButton(ui.Button):
         await interaction.response.edit_message(content="Roster remove cancelled.", embed=None, view=None)
 
 
-class _RosterRemoveWorkflowView(ui.View):
+class _RosterRemoveWorkflowView(CDTAutoCleanupView):
     def __init__(
         self,
         group: "_RosterGroup",
@@ -423,7 +423,7 @@ class _RosterFilterCategoryButton(ui.Button):
             await interaction.response.send_message("Unable to open filter picker right now.", ephemeral=True)
 
 
-class _RosterFilterCategoryView(ui.View):
+class _RosterFilterCategoryView(CDTAutoCleanupView):
     def __init__(self, group: "_RosterGroup", target_user: Any, base_hargs: str, parsed_filters: dict):
         super().__init__(timeout=120)
         self.add_item(_RosterFilterCategoryButton(group, target_user, base_hargs, parsed_filters, "STAR", "star"))
@@ -645,7 +645,7 @@ class _RosterSettingSingleValueModal(ui.Modal):
             await interaction.response.send_message("Unable to save setting right now.", ephemeral=True)
 
 
-class _RosterDeleteConfirmView(ui.View):
+class _RosterDeleteConfirmView(CDTAutoCleanupView):
     def __init__(self, group: "_RosterGroup"):
         super().__init__(timeout=60)
         self.group = group
@@ -719,7 +719,7 @@ class _RosterEditBackButton(ui.Button):
         await interaction.response.edit_message(content="Roster Edit", view=_RosterEditRootView(self.group))
 
 
-class _RosterEditSettingsView(ui.View):
+class _RosterEditSettingsView(CDTAutoCleanupView):
     def __init__(self, group: "_RosterGroup"):
         super().__init__(timeout=180)
         self.group = group
@@ -738,7 +738,7 @@ class _RosterEditSettingsView(ui.View):
         await interaction.response.edit_message(content="Confirm roster deletion:", view=_RosterDeleteConfirmView(self.group))
 
 
-class _RosterEditDataView(ui.View):
+class _RosterEditDataView(CDTAutoCleanupView):
     def __init__(self, group: "_RosterGroup"):
         super().__init__(timeout=180)
         self.group = group
@@ -756,7 +756,7 @@ class _RosterEditDataView(ui.View):
         await interaction.response.send_message(f"```json\n{payload}\n```", ephemeral=True)
 
 
-class _RosterEditRootView(ui.View):
+class _RosterEditRootView(CDTAutoCleanupView):
     def __init__(self, group: "_RosterGroup"):
         super().__init__(timeout=180)
         self.group = group
@@ -939,10 +939,17 @@ class _RosterGroup(app_commands.Group):
                     except Exception:
                         is_done = False
                 if is_done and hasattr(self.interaction, "followup"):
-                    await self.interaction.followup.send(embed=embed, view=view)
+                    msg = await self.interaction.followup.send(embed=embed, view=view, wait=True)
+                    if view is not None and hasattr(view, "message"):
+                        view.message = msg
                     return
                 if response and hasattr(response, "send_message"):
                     await response.send_message(embed=embed, view=view)
+                    try:
+                        if view is not None and hasattr(view, "message") and hasattr(self.interaction, "original_response"):
+                            view.message = await self.interaction.original_response()
+                    except Exception:
+                        pass
                     return
                 raise RuntimeError("Interaction does not support send_message")
 
@@ -991,6 +998,7 @@ class _RosterGroup(app_commands.Group):
 
         view = _RosterRemoveWorkflowView(self, interaction.user, entries)
         await interaction.response.send_message(embed=view.build_embed(), view=view)
+        await view.bind_to_interaction_response(interaction)
         return True
 
     def _champion_rows(self) -> List[Tuple[str, str]]:
@@ -1468,6 +1476,10 @@ class _RosterGroup(app_commands.Group):
         try:
             menu = CDTPagesMenu(pages, author=interaction.user)
             await interaction.response.send_message(embed=pages[0], view=menu)
+            try:
+                menu.message = await interaction.original_response()
+            except Exception:
+                pass
         except Exception:
             await interaction.response.send_message(embed=pages[0])
 
@@ -1480,6 +1492,10 @@ class _RosterGroup(app_commands.Group):
         try:
             menu = CDTPagesMenu(pages, author=interaction.user)
             await interaction.response.send_message(embed=pages[0], view=menu)
+            try:
+                menu.message = await interaction.original_response()
+            except Exception:
+                pass
         except Exception:
             await interaction.response.send_message(embed=pages[0])
 
@@ -1558,7 +1574,9 @@ class _RosterGroup(app_commands.Group):
     # -------------------------
     @app_commands.command(name="edit", description="Edit roster entries, settings, and data")
     async def edit(self, interaction):
-        await interaction.response.send_message("Roster Edit", view=_RosterEditRootView(self), ephemeral=True)
+        view = _RosterEditRootView(self)
+        await interaction.response.send_message("Roster Edit", view=view, ephemeral=True)
+        await view.bind_to_interaction_response(interaction)
 
 
     # -------------------------
@@ -1585,7 +1603,16 @@ class _RosterGroup(app_commands.Group):
                 return
 
             try:
-                await sender(embed=pager.pages[0], view=pager)
+                response_done = bool(getattr(interaction.response, "is_done", lambda: False)())
+                if response_done and hasattr(interaction, "followup"):
+                    msg = await interaction.followup.send(embed=pager.pages[0], view=pager, wait=True)
+                    pager.message = msg
+                else:
+                    await interaction.response.send_message(embed=pager.pages[0], view=pager)
+                    try:
+                        pager.message = await interaction.original_response()
+                    except Exception:
+                        pass
             except Exception:
                 # fallback: send simple list
                 names = []
@@ -1708,7 +1735,7 @@ class _RankupClassButton(ui.Button):
         await interaction.response.send_modal(_RosterRankupModal(self.group, self.class_filter))
 
 
-class _RankupClassSelectView(ui.View):
+class _RankupClassSelectView(CDTAutoCleanupView):
     def __init__(self, group: _RosterGroup):
         super().__init__(timeout=120)
         for class_filter in ("cosmic", "mystic", "mutant", "tech", "skill", "science", "all"):

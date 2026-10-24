@@ -24,7 +24,7 @@ ACCOUNT_GROUP_HELP = {
     "account_unlink": "Unlink your Discord account from an in-game account. Usage: //mcoc account unlink",
     "account_delete": "Delete your user data file. Usage: //mcoc account delete",
     "account_privacy": "Manage privacy settings. Usage: //mcoc account privacy <subcommand>",
-    "account_privacy_mode": "Set privacy mode. Usage: //mcoc account privacy mode <private|guild|alliance|public>",
+    "account_privacy_mode": "Set privacy mode. Usage: //mcoc account privacy mode <private|alliance|public>",
     "account_privacy_allow_guild": "Allow sharing with a specific guild. Usage: //mcoc account privacy allow_guild <guild_id>",
     "account_privacy_revoke_guild": "Revoke sharing with a specific guild. Usage: //mcoc account privacy revoke_guild <guild_id>",
 }
