@@ -1,5 +1,5 @@
 from mcoc.common.helpers.champions import _champion_matches_filters, build_tier_pages, build_filter_flow_state, build_filter_picker_sections, _filter_picker_page_values, build_cocpit_ability_lines, build_cocpit_core_ability_fields, build_cocpit_synergy_intersection_lines
-from mcoc.common.helpers.roster import filter_roster_entries, _build_selection_option_label, parse_cocpit_roster_csv, parse_roster_entries_with_errors, import_roster_entries
+from mcoc.common.helpers.roster import filter_roster_entries, _build_selection_option_label, parse_cocpit_roster_csv, parse_roster_entries_with_errors, import_roster_entries, build_roster_pages
 from mcoc.common.utilities.formatters import format_tierlist_champion_line, format_champion_line
 from mcoc.common.helpers.types import MCOCAPP_TIERS, champion_from_dict
 from mcoc.common.utilities.query_parser import parse_query
@@ -244,6 +244,48 @@ def test_filters_are_normalized_by_category_for_multi_select_filters():
     assert _champion_matches_filters(champ, {"tags": ["bleed", "incinerate"]}) is True
     assert _champion_matches_filters(champ, {"abilities": ["incinerate"], "immunities": ["bleed-immunity"]}) is True
     assert _champion_matches_filters(champ, {"classes": ["skill"], "tags": ["science"]}) is False
+
+
+def test_build_roster_pages_class_filter_uses_cache_champion_class_when_entry_missing_class():
+    class _UsersStub:
+        def list_roster(self, _user_id):
+            return [
+                {"champion": "shang-chi", "rarity": 7, "rank": 3, "sig": 40, "ascended": 0},
+                {"champion": "shuri", "rarity": 7, "rank": 1, "sig": 20, "ascended": 0},
+            ]
+
+        def get_profile(self, _user_id):
+            return {"profile": {"prestige_map": {}}}
+
+    class _CacheStub:
+        def get_champion(self, slug):
+            rows = {
+                "shang-chi": {"id": "shang-chi", "slug": "shang-chi", "name": "Shang Chi", "class": "skill"},
+                "shuri": {"id": "shuri", "slug": "shuri", "name": "Shuri", "class": "tech"},
+            }
+            return rows.get(str(slug or "").strip().lower())
+
+        def _load_file(self, _name):
+            return {}
+
+        def get_prestige_value(self, _slug, _tier, _rank, _asc, _sig):
+            return None
+
+    class _CoreStub:
+        def __init__(self):
+            self.users = _UsersStub()
+            self.cache = _CacheStub()
+            self.cacheindex = None
+            self.api = None
+
+    author = type("_Author", (), {"id": 42, "display_name": "jjw"})()
+    pages = asyncio.run(build_roster_pages(_CoreStub(), author, {"classes": ["skill"]}))
+
+    assert pages
+    first = pages[0]
+    description = getattr(first, "description", "") or ""
+    assert "Shang Chi" in description
+    assert "Shuri" not in description
 
 
 def test_tierlist_pages_group_by_defined_tier_order_and_color():

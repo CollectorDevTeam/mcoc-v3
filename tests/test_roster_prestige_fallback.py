@@ -42,7 +42,7 @@ class _RefreshCacheStub(_CacheStub):
         return True
 
 
-def test_resolve_prestige_uses_cocpit_base_stats_fallback():
+def test_resolve_prestige_does_not_use_cocpit_base_stats_for_progressed_entries():
     core = _CoreStub()
     entry = {
         "champion": "colossus",
@@ -52,7 +52,7 @@ def test_resolve_prestige_uses_cocpit_base_stats_fallback():
         "ascended": 1,
     }
     value = asyncio.run(_resolve_prestige_for_entry(core, entry, {}))
-    assert value == 12580
+    assert value is None
 
 
 def test_resolve_prestige_refreshes_missing_cache_value_before_falling_back():

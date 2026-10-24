@@ -123,8 +123,10 @@ def test_slash_roster_legacy_commands_removed():
     ]
     group = _RosterGroup(core=_CoreStub(champion_rows))
 
-    for legacy in ("add", "remove", "update", "import_roster", "export", "clear"):
+    for legacy in ("update", "import_roster", "export", "clear"):
         assert not hasattr(group, legacy)
+    assert hasattr(group, "add")
+    assert hasattr(group, "remove")
 
 
 def test_slash_roster_champion_autocomplete_appends_after_comma():
@@ -144,6 +146,112 @@ def test_slash_roster_rankup_command_removed():
     champion_rows = [{"id": "abomination", "slug": "abomination", "name": "Abomination", "class": "science"}]
     group = _RosterGroup(core=_CoreStub(champion_rows))
     assert not hasattr(group, "rankup")
+
+
+def test_slash_roster_add_parses_bulk_text_without_modal(monkeypatch):
+    champion_rows = [{"id": "okoye", "slug": "okoye", "name": "Okoye", "class": "skill"}]
+    group = _RosterGroup(core=_CoreStub(champion_rows))
+    interaction = _InteractionStub(user_id=42)
+
+    from mcoc.slash import roster as slash_roster_module
+
+    class _UsersStub:
+        def __init__(self):
+            self.added = []
+
+        def add_champion(self, user_id, slug, rarity, rank, sig, ascended, tags=None):
+            self.added.append((user_id, slug, rarity, rank, sig, ascended, tags or []))
+
+    users = _UsersStub()
+
+    monkeypatch.setattr(slash_roster_module, "ensure_user_manager", lambda _core: users)
+    monkeypatch.setattr(
+        slash_roster_module,
+        "parse_roster_entries_with_errors",
+        lambda _text, _cache: ([{"champion": "okoye", "rarity": 6, "rank": 3, "sig": 0, "ascended": 0, "tags": []}], ["badtoken"]),
+    )
+
+    asyncio.run(_invoke(group.add, group, interaction, champions="6sr3okoye badtoken"))
+
+    assert users.added
+    assert interaction.response.calls
+    assert "ADD complete" in str(interaction.response.calls[0].get("content") or "")
+    assert "Could not resolve" in str(interaction.response.calls[0].get("content") or "")
+    assert all("modal" not in call for call in interaction.response.calls)
+
+
+def test_slash_roster_add_without_args_launches_picker(monkeypatch):
+    champion_rows = [{"id": "okoye", "slug": "okoye", "name": "Okoye", "class": "skill"}]
+    group = _RosterGroup(core=_CoreStub(champion_rows))
+    interaction = _InteractionStub(user_id=42)
+
+    from mcoc.slash import roster as slash_roster_module
+
+    called = {}
+
+    async def _fake_start(core, ctx, operation, parsed_filters=None):
+        called["core"] = core
+        called["ctx"] = ctx
+        called["operation"] = operation
+        called["parsed_filters"] = parsed_filters
+        return True
+
+    monkeypatch.setattr(slash_roster_module, "start_roster_operation_flow", _fake_start)
+
+    asyncio.run(_invoke(group.add, group, interaction, champions=None))
+
+    assert called.get("operation") == "add"
+    assert called.get("parsed_filters") == {}
+
+
+def test_slash_roster_remove_with_text_uses_bulk_parser(monkeypatch):
+    champion_rows = [{"id": "okoye", "slug": "okoye", "name": "Okoye", "class": "skill"}]
+    group = _RosterGroup(core=_CoreStub(champion_rows))
+    interaction = _InteractionStub(user_id=42)
+
+    from mcoc.slash import roster as slash_roster_module
+
+    class _UsersStub:
+        def __init__(self):
+            self.removed = []
+
+        def remove_champion(self, user_id, slug, rarity=None):
+            self.removed.append((user_id, slug, rarity))
+            return 1
+
+    users = _UsersStub()
+    monkeypatch.setattr(slash_roster_module, "ensure_user_manager", lambda _core: users)
+    monkeypatch.setattr(
+        slash_roster_module,
+        "parse_roster_entries_with_errors",
+        lambda _text, _cache: ([{"champion": "okoye", "rarity": 6, "rank": 3, "sig": 0, "ascended": 0, "tags": []}], ["badtoken"]),
+    )
+
+    asyncio.run(_invoke(group.remove, group, interaction, champions="6sr3okoye badtoken"))
+
+    assert users.removed
+    assert "REMOVE complete" in str(interaction.response.calls[0].get("content") or "")
+
+
+def test_slash_roster_remove_without_args_launches_workflow(monkeypatch):
+    champion_rows = [{"id": "okoye", "slug": "okoye", "name": "Okoye", "class": "skill"}]
+    group = _RosterGroup(core=_CoreStub(champion_rows))
+    interaction = _InteractionStub(user_id=42)
+
+    from mcoc.slash import roster as slash_roster_module
+
+    class _UsersStub:
+        def list_roster(self, _user_id):
+            return [{"champion": "okoye", "rarity": 7, "rank": 2, "sig": 0, "ascended": 0}]
+
+    monkeypatch.setattr(slash_roster_module, "ensure_user_manager", lambda _core: _UsersStub())
+
+    asyncio.run(_invoke(group.remove, group, interaction, champions=None))
+
+    assert interaction.response.calls
+    payload = interaction.response.calls[0]
+    assert payload.get("embed") is not None
+    assert payload.get("view") is not None
 
 
 def test_slash_roster_rankup_modal_parses_inputs_and_calls_runner(monkeypatch):

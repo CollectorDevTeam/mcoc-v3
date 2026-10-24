@@ -2053,6 +2053,16 @@ async def build_roster_pages(core: Any, ctx_or_author: Any, parsed_filters: Opti
                 e.setdefault("sig", int(e.get("sig") or 0))
                 e.setdefault("ascended", int(e.get("ascended") or 0))
                 e.setdefault("tags", e.get("tags") or [])
+                # Attach champion class metadata before filter evaluation so class filters work.
+                if not e.get("class") and cache and e.get("champion"):
+                    try:
+                        champ_row = cache.get_champion(e.get("champion"))
+                    except Exception:
+                        champ_row = None
+                    if isinstance(champ_row, dict):
+                        champ_class = champ_row.get("class") or champ_row.get("class_name")
+                        if champ_class:
+                            e["class"] = str(champ_class).strip().lower()
                 entries_with_meta.append(e)
             except Exception:
                 continue

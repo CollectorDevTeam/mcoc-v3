@@ -28,6 +28,7 @@ from ..common.helpers.roster import (
     parse_roster_entries_from_input,
     parse_roster_entries_with_errors,
     import_roster_entries,
+    start_roster_operation_flow,
 )
 from ..common.helpers.types import CLASS_EMOJI
 from ..common.components.componentsV2 import CDTEmbed, CDTPagesMenu, CDTConfirm
@@ -238,6 +239,164 @@ class _RosterQuickFilterPickerView(ui.View):
         super().__init__(timeout=120)
         self.add_item(_RosterQuickFilterSelect(group, target_user, base_hargs, parsed_filters, kind))
         self.add_item(_RosterFilterCloseButton(group, target_user, base_hargs, parsed_filters))
+
+
+def _roster_remove_entry_key(entry: dict) -> str:
+    slug = str(entry.get("champion") or "").strip().lower()
+    rarity = int(entry.get("rarity") or entry.get("stars") or 0)
+    return f"{slug}|{rarity}"
+
+
+class _RosterRemoveSelect(ui.Select):
+    def __init__(self, group: "_RosterGroup", entries: List[dict], *, selected_keys: Optional[set] = None):
+        self.group = group
+        selected_keys = selected_keys or set()
+        options = []
+        for entry in entries:
+            value = _roster_remove_entry_key(entry)
+            options.append(
+                discord.SelectOption(
+                    label=group._format_remove_entry_label(entry),
+                    value=value,
+                    default=value in selected_keys,
+                )
+            )
+        super().__init__(placeholder="Select champions to remove", min_values=0, max_values=max(1, len(options)), options=options)
+
+    async def callback(self, interaction):
+        view = self.view
+        if not isinstance(view, _RosterRemoveWorkflowView):
+            return
+        start = view.page_index * view.page_size
+        end = start + view.page_size
+        page_entries = view.entries[start:end]
+        page_keys = {_roster_remove_entry_key(e) for e in page_entries}
+        chosen = set(self.values)
+        selected_keys = (view.selected_keys - page_keys) | chosen
+        new_view = _RosterRemoveWorkflowView(
+            view.group,
+            view.target_user,
+            view.entries,
+            page_index=view.page_index,
+            selected_keys=selected_keys,
+        )
+        await interaction.response.edit_message(embed=new_view.build_embed(), view=new_view)
+
+
+class _RosterRemovePageButton(ui.Button):
+    def __init__(self, *, label: str, delta: int):
+        super().__init__(label=label, style=discord.ButtonStyle.secondary, row=3)
+        self.delta = delta
+
+    async def callback(self, interaction):
+        view = self.view
+        if not isinstance(view, _RosterRemoveWorkflowView):
+            return
+        new_index = max(0, min(view.max_page_index(), view.page_index + self.delta))
+        new_view = _RosterRemoveWorkflowView(
+            view.group,
+            view.target_user,
+            view.entries,
+            page_index=new_index,
+            selected_keys=view.selected_keys,
+        )
+        await interaction.response.edit_message(embed=new_view.build_embed(), view=new_view)
+
+
+class _RosterRemoveActionButton(ui.Button):
+    def __init__(self):
+        super().__init__(label="REMOVE", style=discord.ButtonStyle.danger, row=3)
+
+    async def callback(self, interaction):
+        view = self.view
+        if not isinstance(view, _RosterRemoveWorkflowView):
+            return
+        if not view.selected_keys:
+            await interaction.response.send_message("Select at least one champion before removing.", ephemeral=True)
+            return
+
+        users = ensure_user_manager(view.group.core)
+        if not users:
+            await interaction.response.send_message("Roster storage is unavailable.", ephemeral=True)
+            return
+
+        removed = 0
+        unresolved: List[str] = []
+        for key in sorted(view.selected_keys):
+            try:
+                slug, rarity_raw = key.split("|", 1)
+                rarity = int(rarity_raw)
+            except Exception:
+                unresolved.append(str(key))
+                continue
+            try:
+                count = int(users.remove_champion(interaction.user.id, slug, rarity) or 0)
+                removed += count
+                if count == 0:
+                    unresolved.append(f"{slug} {rarity}★")
+            except Exception:
+                unresolved.append(f"{slug} {rarity}★")
+
+        lines = [f"REMOVE complete: removed {removed} entries."]
+        if unresolved:
+            lines.append("Not found: " + ", ".join(unresolved[:10]))
+        await interaction.response.edit_message(content="\n".join(lines), embed=None, view=None)
+
+
+class _RosterRemoveCancelButton(ui.Button):
+    def __init__(self):
+        super().__init__(label="CANCEL", style=discord.ButtonStyle.secondary, row=3)
+
+    async def callback(self, interaction):
+        await interaction.response.edit_message(content="Roster remove cancelled.", embed=None, view=None)
+
+
+class _RosterRemoveWorkflowView(ui.View):
+    def __init__(
+        self,
+        group: "_RosterGroup",
+        target_user: Any,
+        entries: List[dict],
+        *,
+        page_index: int = 0,
+        selected_keys: Optional[set] = None,
+    ):
+        super().__init__(timeout=180)
+        self.group = group
+        self.target_user = target_user
+        self.entries = list(entries)
+        self.page_index = max(0, page_index)
+        self.page_size = 25
+        self.selected_keys = set(selected_keys or set())
+
+        start = self.page_index * self.page_size
+        end = start + self.page_size
+        current_entries = self.entries[start:end]
+
+        if current_entries:
+            self.add_item(_RosterRemoveSelect(group, current_entries, selected_keys=self.selected_keys))
+        if self.page_index > 0:
+            self.add_item(_RosterRemovePageButton(label="Prev", delta=-1))
+        if end < len(self.entries):
+            self.add_item(_RosterRemovePageButton(label="Next", delta=1))
+        self.add_item(_RosterRemoveActionButton())
+        self.add_item(_RosterRemoveCancelButton())
+
+    def max_page_index(self) -> int:
+        if not self.entries:
+            return 0
+        return max(0, (len(self.entries) - 1) // self.page_size)
+
+    def build_embed(self) -> Any:
+        total_pages = self.max_page_index() + 1
+        return CDTEmbed.embed(
+            self.target_user,
+            title="Roster Remove",
+            description=(
+                "Select champions from your roster, then press REMOVE.\n"
+                f"Page {self.page_index + 1}/{total_pages} | Selected {len(self.selected_keys)}"
+            ),
+        )
 
 
 class _RosterFilterCategoryButton(ui.Button):
@@ -665,6 +824,174 @@ class _RosterGroup(app_commands.Group):
 
     def _split_champion_candidates(self, raw: str) -> List[str]:
         return [token.strip() for token in re.split(r"[,;\n]+", raw or "") if token and token.strip()]
+
+    def _format_remove_entry_label(self, entry: dict) -> str:
+        slug = str(entry.get("champion") or "").strip().lower()
+        rarity = int(entry.get("rarity") or entry.get("stars") or 0)
+        rank = int(entry.get("rank") or 1)
+        sig = int(entry.get("sig") or 0)
+        asc = int(entry.get("ascended") or 0)
+        name = slug
+        cache = getattr(self.core, "cache", None)
+        try:
+            champ = cache.get_champion(slug) if cache else None
+        except Exception:
+            champ = None
+        if isinstance(champ, dict):
+            name = str(champ.get("name") or champ.get("id") or champ.get("slug") or slug)
+        label = f"{name} {rarity}★ r{rank} s{sig}"
+        if asc:
+            label = f"{label} A{asc}"
+        return label[:100]
+
+    async def _remove_from_text(self, interaction: Any, raw: str) -> None:
+        users = ensure_user_manager(self.core)
+        if not users:
+            await interaction.response.send_message("Roster storage is unavailable.", ephemeral=True)
+            return
+
+        text = str(raw or "").strip()
+        if not text:
+            await interaction.response.send_message("Please provide champion entries to remove.", ephemeral=True)
+            return
+
+        removed = 0
+        unresolved: List[str] = []
+        try:
+            parsed_entries, failed = parse_roster_entries_with_errors(text, getattr(self.core, "cache", None))
+        except Exception:
+            parsed_entries, failed = [], [text]
+
+        for entry in parsed_entries:
+            try:
+                slug = str(entry.get("champion") or "").strip().lower()
+                rarity = int(entry.get("rarity") or 0) if entry.get("rarity") else None
+                removed += int(users.remove_champion(interaction.user.id, slug, rarity) or 0)
+            except Exception:
+                continue
+
+        for token in failed:
+            candidate = str(token or "").strip()
+            if not candidate:
+                continue
+            try:
+                count = int(users.remove_champion(interaction.user.id, candidate, None) or 0)
+                removed += count
+                if count == 0:
+                    unresolved.append(candidate)
+            except Exception:
+                unresolved.append(candidate)
+
+        lines = [f"REMOVE complete: removed {removed} entries."]
+        if unresolved:
+            lines.append("Not found: " + ", ".join(unresolved[:10]))
+        await interaction.response.send_message("\n".join(lines), ephemeral=True)
+
+    async def _add_from_text(self, interaction: Any, raw: str) -> None:
+        users = ensure_user_manager(self.core)
+        if not users:
+            await interaction.response.send_message("Roster storage is unavailable.", ephemeral=True)
+            return
+
+        text = str(raw or "").strip()
+        if not text:
+            await interaction.response.send_message("Please provide champion entries to add.", ephemeral=True)
+            return
+
+        try:
+            parsed_entries, failed = parse_roster_entries_with_errors(text, getattr(self.core, "cache", None))
+        except Exception as exc:
+            await interaction.response.send_message(f"Failed to parse entries: {exc}", ephemeral=True)
+            return
+
+        if not parsed_entries:
+            bad = ", ".join(failed[:10]) if failed else text
+            await interaction.response.send_message(f"No valid entries parsed. Could not resolve: {bad}", ephemeral=True)
+            return
+
+        try:
+            result = import_roster_entries(self.core, interaction.user.id, parsed_entries, users=users)
+            added = int(result.get("imported") or 0)
+            errors = list(result.get("errors") or [])
+        except Exception as exc:
+            await interaction.response.send_message(f"Failed to import roster entries: {exc}", ephemeral=True)
+            return
+
+        lines = [f"ADD complete: added {added} entries."]
+        if failed:
+            lines.append("Could not resolve: " + ", ".join(failed[:10]))
+        if errors:
+            lines.append("Storage issues: " + ", ".join(str(e) for e in errors[:5]))
+        await interaction.response.send_message("\n".join(lines), ephemeral=True)
+
+    async def _start_operation_picker(self, interaction: Any, operation: str) -> bool:
+        class _InteractionSendAdapter:
+            def __init__(self, inter: Any):
+                self.interaction = inter
+                self.author = getattr(inter, "user", None)
+
+            async def send(self, *, embed=None, view=None):
+                response = getattr(self.interaction, "response", None)
+                is_done = False
+                if response and hasattr(response, "is_done"):
+                    try:
+                        is_done = bool(response.is_done())
+                    except Exception:
+                        is_done = False
+                if is_done and hasattr(self.interaction, "followup"):
+                    await self.interaction.followup.send(embed=embed, view=view)
+                    return
+                if response and hasattr(response, "send_message"):
+                    await response.send_message(embed=embed, view=view)
+                    return
+                raise RuntimeError("Interaction does not support send_message")
+
+        try:
+            return await start_roster_operation_flow(self.core, _InteractionSendAdapter(interaction), operation, parsed_filters={})
+        except Exception:
+            log.exception("slash roster %s picker launch failed", operation)
+            return False
+
+    async def _start_remove_picker(self, interaction: Any) -> bool:
+        users = ensure_user_manager(self.core)
+        if not users or not hasattr(users, "list_roster"):
+            return False
+        try:
+            entries = users.list_roster(interaction.user.id) or []
+        except Exception:
+            entries = []
+
+        if not entries:
+            await interaction.response.send_message("Your roster is empty.", ephemeral=True)
+            return True
+
+        cache = getattr(self.core, "cache", None)
+
+        def _name_for(entry: dict) -> str:
+            slug = str(entry.get("champion") or "").strip().lower()
+            try:
+                champ = cache.get_champion(slug) if cache else None
+            except Exception:
+                champ = None
+            if isinstance(champ, dict):
+                return str(champ.get("name") or champ.get("id") or champ.get("slug") or slug).strip().lower()
+            return slug
+
+        try:
+            entries.sort(
+                key=lambda e: (
+                    -int(e.get("rarity") or e.get("stars") or 0),
+                    -int(e.get("rank") or 1),
+                    -int(e.get("sig") or 0),
+                    _name_for(e),
+                )
+            )
+        except Exception:
+            pass
+
+        view = _RosterRemoveWorkflowView(self, interaction.user, entries)
+        await interaction.response.send_message(embed=view.build_embed(), view=view)
+        return True
 
     def _champion_rows(self) -> List[Tuple[str, str]]:
         champs = getattr(self.core, "cache", None) and self.core.cache.get_all_champions() or []
@@ -1188,6 +1515,43 @@ class _RosterGroup(app_commands.Group):
                 pass
 
         return interaction.user, cleaned
+
+    # -------------------------
+    # /roster add
+    # -------------------------
+    @app_commands.command(name="add", description="Add champions to your roster (bulk text or workflow picker)")
+    @app_commands.autocomplete(champions=champion_autocomplete)
+    async def add(self, interaction, champions: Optional[str] = None):
+        text = str(champions or "").strip()
+        if text:
+            await self._add_from_text(interaction, text)
+            return
+
+        started = await self._start_operation_picker(interaction, "add")
+
+        if not started:
+            await interaction.response.send_message(
+                "Unable to open the roster picker right now. Provide champion shorthand in /roster add <champions>.",
+                ephemeral=True,
+            )
+
+    # -------------------------
+    # /roster remove
+    # -------------------------
+    @app_commands.command(name="remove", description="Remove champions from your roster (bulk text or workflow picker)")
+    @app_commands.autocomplete(champions=champion_autocomplete)
+    async def remove(self, interaction, champions: Optional[str] = None):
+        text = str(champions or "").strip()
+        if text:
+            await self._remove_from_text(interaction, text)
+            return
+
+        started = await self._start_remove_picker(interaction)
+        if not started:
+            await interaction.response.send_message(
+                "Unable to open the remove picker right now. Provide champion shorthand in /roster remove <champions>.",
+                ephemeral=True,
+            )
 
     # -------------------------
     # /roster edit
