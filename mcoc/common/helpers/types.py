@@ -454,6 +454,6 @@ def userdata_from_useraccount(account: UserAccount) -> UserData:
         "user_id": str(account.user_id),
         "roster": [],
         "profile": profile,
-        "privacy": {"mode": "private"},
+        "privacy": {"mode": "public"},
         "alliances": {},
     }

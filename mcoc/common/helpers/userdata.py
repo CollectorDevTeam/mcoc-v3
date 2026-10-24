@@ -158,7 +158,7 @@ class UserDataManager:
                 "updated_at": None,
             },
             "privacy": {
-                "mode": "private",  # private | alliance | guild | public
+                "mode": "public",  # private | alliance | guild | public
                 "share_with_alliance": False,
                 "share_with_guilds": [],  # list of guild ids (ints)
             },
@@ -462,7 +462,7 @@ class UserDataManager:
             return True
         data = self._load(owner_id)
         privacy = data.get("privacy", {}) or {}
-        mode = privacy.get("mode", "private")
+        mode = privacy.get("mode", "public")
         if mode == "public":
             return True
         if mode == "private":

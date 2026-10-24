@@ -1080,7 +1080,7 @@ def _record_consent(parent: Any, user_id: int, *, version: str, source: str) -> 
         ok3 = set_profile_field(parent, user_id, "consent_version", version)
         ok4 = set_profile_field(parent, user_id, "consent_source", source)
         ok5 = set_profile_field(parent, user_id, "created_at", ts)
-        ok6 = set_profile_field(parent, user_id, "privacy_mode", "private")
+        ok6 = set_profile_field(parent, user_id, "privacy_mode", "public")
         ok = bool(ok1 and ok2 and ok3 and ok4 and ok5 and ok6)
         log.info("consent:recorded user=%s ok=%s version=%s source=%s", user_id, ok, version, source)
         return ok

@@ -287,7 +287,7 @@ class AccountPrefix(commands.Cog):
         modes = {"private", "guild", "alliance", "public"}
         if mode is None:
             profile = Account.get_profile(self.parent, user_id) or {}
-            current = profile.get("privacy_mode") or "private"
+            current = profile.get("privacy_mode") or "public"
             await safe_send_ctx(ctx, f"Current privacy mode: {current}")
             return
         if mode.lower() not in modes:

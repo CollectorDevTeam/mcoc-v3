@@ -21,24 +21,6 @@ from ..common.helpers import account as Account
 
 log = logging.getLogger("red.mcoc.slash.account")
 
-
-def _runtime_version_label() -> str:
-    try:
-        repo_root = __file__.rsplit("mcoc", 1)[0]
-        head = subprocess.run(["git", "-C", repo_root, "rev-parse", "--short", "HEAD"], capture_output=True, text=True, check=False)
-        branch = subprocess.run(["git", "-C", repo_root, "rev-parse", "--abbrev-ref", "HEAD"], capture_output=True, text=True, check=False)
-
-        head_value = (head.stdout or "").strip()
-        branch_value = (branch.stdout or "").strip()
-        if head_value and branch_value and branch_value not in {"HEAD", "detached"}:
-            return f"runtime: {head_value} ({branch_value})"
-        if head_value:
-            return f"runtime: {head_value}"
-    except Exception:
-        pass
-    return "runtime: local"
-
-
 _PROFILE_PAGE_LAYOUTS = {
     1: [
         ("MCOC username", "mcoc_name", 100),
@@ -268,7 +250,7 @@ class _AccountPrivacyView(discord.ui.View):
         super().__init__(timeout=180)
         self.core = core
         self.user_id = user_id
-        self.current_mode = (Account.get_profile(core, user_id) or {}).get("privacy_mode") or "private"
+        self.current_mode = (Account.get_profile(core, user_id) or {}).get("privacy_mode") or "public"
         self.current_mode = str(self.current_mode).lower()
 
         def _style_for(mode: str) -> discord.ButtonStyle:
@@ -384,7 +366,7 @@ class _AccountManagerView(discord.ui.View):
 
         async def _privacy_cb(interaction: discord.Interaction):
             profile = _refresh_state_and_get_profile()
-            current = profile.get("privacy_mode") or "private"
+            current = profile.get("privacy_mode") or "public"
             await interaction.response.send_message(
                 f"Current privacy mode: {current}\nChoose your visibility below.",
                 view=_AccountPrivacyView(core, user_id),
@@ -549,7 +531,7 @@ class _AccountGroup(app_commands.Group):
         modes = {"private", "guild", "alliance", "public"}
         if mode is None:
             profile = Account.get_profile(self.core, user_id) or {}
-            current = profile.get("privacy_mode") or "private"
+            current = profile.get("privacy_mode") or "public"
             await interaction.response.send_message(f"Current privacy mode: {current}", ephemeral=True)
             return
 
@@ -605,7 +587,7 @@ class AccountSlashCog(commands.Cog):
             core = bot
 
         await interaction.response.send_message(
-            f"Manage your CollectorVerse account settings and privacy.\n\n{_runtime_version_label()}",
+            f"Manage your CollectorVerse account settings and privacy.\nPrivacy policy: [here](<https://raw.githubusercontent.com/CollectorDevTeam/mcoc-v3/main/mcoc/privacy_policy.md>)\nTerms of service: [here](<https://raw.githubusercontent.com/CollectorDevTeam/mcoc-v3/main/mcoc/terms_of_service.md>)",
             view=_AccountManagerView(core, user_id),
             ephemeral=True,
         )
