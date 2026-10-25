@@ -203,6 +203,11 @@ class _RosterQuickFilterSelect(ui.Select):
         super().__init__(placeholder=placeholder, min_values=1, max_values=1, options=options)
 
     async def callback(self, interaction):
+        try:
+            await interaction.response.defer()
+        except Exception:
+            pass
+
         parsed = dict(self.parsed_filters or {})
         selected = str((self.values or [""])[0] or "").strip().lower()
         clear_selected = selected in {"", "__any__", "any", "all"}
@@ -225,13 +230,19 @@ class _RosterQuickFilterSelect(ui.Select):
         try:
             pager = await self.group._build_roster_list_pager(self.target_user, self.base_hargs, parsed, author_for_controls=getattr(interaction, "user", self.target_user))
             if not pager:
-                await interaction.response.send_message("No roster entries match the selected filters.", ephemeral=True)
+                await interaction.followup.send("No roster entries match the selected filters.", ephemeral=True)
                 return
             embed = pager.pages[0]
-            await interaction.response.edit_message(embed=embed, view=pager)
+            try:
+                await interaction.edit_original_response(embed=embed, view=pager)
+            except Exception:
+                await interaction.response.edit_message(embed=embed, view=pager)
         except Exception:
             log.exception("roster quick filter apply failed")
-            await interaction.response.send_message("Unable to apply filter right now.", ephemeral=True)
+            try:
+                await interaction.followup.send("Unable to apply filter right now.", ephemeral=True)
+            except Exception:
+                await interaction.response.send_message("Unable to apply filter right now.", ephemeral=True)
 
 
 class _RosterQuickFilterPickerView(CDTAutoCleanupView):
@@ -442,6 +453,10 @@ class _RosterFilterCloseButton(ui.Button):
 
     async def callback(self, interaction):
         try:
+            await interaction.response.defer()
+        except Exception:
+            pass
+        try:
             pager = await self.group._build_roster_list_pager(
                 self.target_user,
                 self.base_hargs,
@@ -449,12 +464,18 @@ class _RosterFilterCloseButton(ui.Button):
                 author_for_controls=getattr(interaction, "user", self.target_user),
             )
             if not pager:
-                await interaction.response.send_message("No roster entries match your filters.", ephemeral=True)
+                await interaction.followup.send("No roster entries match your filters.", ephemeral=True)
                 return
-            await interaction.response.edit_message(embed=pager.pages[0], view=pager)
+            try:
+                await interaction.edit_original_response(embed=pager.pages[0], view=pager)
+            except Exception:
+                await interaction.response.edit_message(embed=pager.pages[0], view=pager)
         except Exception:
             log.exception("roster filter close failed")
-            await interaction.response.send_message("Unable to close filter right now.", ephemeral=True)
+            try:
+                await interaction.followup.send("Unable to close filter right now.", ephemeral=True)
+            except Exception:
+                await interaction.response.send_message("Unable to close filter right now.", ephemeral=True)
 
 
 class _RosterListModeButton(ui.Button):
@@ -468,6 +489,10 @@ class _RosterListModeButton(ui.Button):
 
     async def callback(self, interaction):
         try:
+            await interaction.response.defer()
+        except Exception:
+            pass
+        try:
             if self.mode == "default":
                 parsed = {}
             else:
@@ -480,22 +505,22 @@ class _RosterListModeButton(ui.Button):
                 author_for_controls=getattr(interaction, "user", self.target_user),
             )
             if not pager:
-                await interaction.response.send_message("No roster entries match the selected view.", ephemeral=True)
+                await interaction.followup.send("No roster entries match the selected view.", ephemeral=True)
                 return
             embed = pager.pages[0]
             try:
-                if hasattr(interaction.response, "edit_message"):
-                    await interaction.response.edit_message(embed=embed, view=pager)
-                    return
-                if getattr(interaction, "message", None) is not None and hasattr(interaction.message, "edit"):
-                    await interaction.message.edit(embed=embed, view=pager)
-                    return
-                await interaction.response.send_message(embed=embed, view=pager)
+                await interaction.edit_original_response(embed=embed, view=pager)
             except Exception:
-                await interaction.response.send_message(embed=embed)
+                try:
+                    await interaction.response.edit_message(embed=embed, view=pager)
+                except Exception:
+                    await interaction.followup.send(embed=embed, view=pager, wait=True)
         except Exception:
             log.exception("roster list mode callback failed")
-            await interaction.response.send_message("Roster list is unavailable right now.", ephemeral=True)
+            try:
+                await interaction.followup.send("Roster list is unavailable right now.", ephemeral=True)
+            except Exception:
+                await interaction.response.send_message("Roster list is unavailable right now.", ephemeral=True)
 
 
 class _RosterEditUpdateModal(ui.Modal):

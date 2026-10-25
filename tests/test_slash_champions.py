@@ -8,12 +8,20 @@ from mcoc.slash.roster import _RosterGroup, _RosterRankupModal, _RosterAwakenMod
 class _ResponseStub:
     def __init__(self):
         self.calls = []
+        self.deferred = False
 
     async def send_message(self, content=None, **kwargs):
         self.calls.append({"content": content, **kwargs})
 
     async def send_modal(self, modal):
         self.calls.append({"modal": modal})
+
+    async def defer(self, **kwargs):
+        self.deferred = True
+        self.calls.append({"defer": True, **kwargs})
+
+    async def edit_message(self, **kwargs):
+        self.calls.append({"edit_message": True, **kwargs})
 
 
 class _InteractionStub:
@@ -22,6 +30,10 @@ class _InteractionStub:
         self.guild = None
         self.client = None
         self.response = _ResponseStub()
+        self.followup = types.SimpleNamespace(send=self._noop_followup)
+
+    async def _noop_followup(self, *args, **kwargs):
+        return None
 
 
 class _CacheStub:
@@ -686,7 +698,16 @@ def test_slash_roster_list_button_mode_sets_list_mode_filter(monkeypatch):
     group = _RosterGroup(core=_CoreStub(champion_rows))
     target = types.SimpleNamespace(id=42, display_name="jjw")
     button = slash_roster_module._RosterListModeButton(group, target, "7*", "TIERLIST", "tierlist")
-    interaction = _InteractionStub(user_id=42)
+
+    class _DeferredInteraction(_InteractionStub):
+        def __init__(self):
+            super().__init__(user_id=42)
+            self.original_response = []
+
+        async def edit_original_response(self, **kwargs):
+            self.original_response.append(kwargs)
+
+    interaction = _DeferredInteraction()
     interaction.message = types.SimpleNamespace(edit=None)
 
     captured = {}
@@ -695,15 +716,12 @@ def test_slash_roster_list_button_mode_sets_list_mode_filter(monkeypatch):
         captured["parsed_filters"] = kwargs.get("parsed_filters")
         return types.SimpleNamespace(pages=[{"title": "Roster"}])
 
-    async def _fake_edit(**kwargs):
-        captured["edit_kwargs"] = kwargs
-
-    interaction.message.edit = _fake_edit
     monkeypatch.setattr(slash_roster_module, "make_roster_pager", _fake_make_roster_pager)
     asyncio.run(button.callback(interaction))
 
     assert captured["parsed_filters"]["list_mode"] == "tierlist"
-    assert "edit_kwargs" in captured
+    assert interaction.response.deferred is True
+    assert interaction.original_response
 
 
 def test_slash_roster_list_clear_mode_removes_all_filters(monkeypatch):
@@ -729,10 +747,10 @@ def test_slash_roster_list_clear_mode_removes_all_filters(monkeypatch):
         captured["parsed_filters"] = kwargs.get("parsed_filters")
         return types.SimpleNamespace(pages=[{"title": "Roster"}])
 
-    async def _fake_edit(**kwargs):
+    async def _fake_edit_message(**kwargs):
         captured["edit_kwargs"] = kwargs
 
-    interaction.message.edit = _fake_edit
+    interaction.response.edit_message = _fake_edit_message
     monkeypatch.setattr(slash_roster_module, "make_roster_pager", _fake_make_roster_pager)
     asyncio.run(button.callback(interaction))
 
