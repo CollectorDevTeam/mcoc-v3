@@ -702,14 +702,25 @@ class _RosterDataImportModal(ui.Modal):
         self.add_item(self.payload)
 
     async def on_submit(self, interaction):
+        try:
+            await interaction.response.defer(ephemeral=True)
+        except Exception:
+            pass
+
         users = ensure_user_manager(self.group.core)
         if not users:
-            await interaction.response.send_message("Roster storage is unavailable.", ephemeral=True)
+            try:
+                await interaction.followup.send("Roster storage is unavailable.", ephemeral=True)
+            except Exception:
+                await interaction.response.send_message("Roster storage is unavailable.", ephemeral=True)
             return
 
         text = str(self.payload.value or "").strip()
         if not text:
-            await interaction.response.send_message("No import data provided.", ephemeral=True)
+            try:
+                await interaction.followup.send("No import data provided.", ephemeral=True)
+            except Exception:
+                await interaction.response.send_message("No import data provided.", ephemeral=True)
             return
 
         # Prefer full JSON import when possible.
@@ -717,7 +728,10 @@ class _RosterDataImportModal(ui.Modal):
             obj = json.loads(text)
             if isinstance(obj, dict):
                 users.import_data(interaction.user.id, obj)
-                await interaction.response.send_message("Data import complete.", ephemeral=True)
+                try:
+                    await interaction.followup.send("Data import complete.", ephemeral=True)
+                except Exception:
+                    await interaction.response.send_message("Data import complete.", ephemeral=True)
                 return
         except Exception:
             pass
@@ -730,9 +744,15 @@ class _RosterDataImportModal(ui.Modal):
             msg = f"Roster import complete: {imported} entries imported."
             if errors:
                 msg += f"\nFirst error: {errors[0]}"
-            await interaction.response.send_message(msg, ephemeral=True)
+            try:
+                await interaction.followup.send(msg, ephemeral=True)
+            except Exception:
+                await interaction.response.send_message(msg, ephemeral=True)
         except Exception as exc:
-            await interaction.response.send_message(f"Import failed: {exc}", ephemeral=True)
+            try:
+                await interaction.followup.send(f"Import failed: {exc}", ephemeral=True)
+            except Exception:
+                await interaction.response.send_message(f"Import failed: {exc}", ephemeral=True)
 
 
 class _RosterEditBackButton(ui.Button):
@@ -775,10 +795,19 @@ class _RosterEditDataView(CDTAutoCleanupView):
 
     @ui.button(label="EXPORT", style=discord.ButtonStyle.primary)
     async def export_data(self, interaction, _button):
+        try:
+            await interaction.response.defer(ephemeral=True)
+        except Exception:
+            pass
+
         users = ensure_user_manager(self.group.core)
         data = users.export(interaction.user.id) if users else {}
         payload = discord.utils.escape_markdown(json.dumps(data, ensure_ascii=True))
-        await interaction.response.send_message(f"```json\n{payload}\n```", ephemeral=True)
+        message = f"```json\n{payload}\n```"
+        try:
+            await interaction.followup.send(message, ephemeral=True)
+        except Exception:
+            await interaction.response.send_message(message, ephemeral=True)
 
 
 class _RosterEditRootView(CDTAutoCleanupView):

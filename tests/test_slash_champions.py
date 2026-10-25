@@ -769,6 +769,62 @@ def test_slash_roster_filter_category_view_has_expected_buttons():
     assert labels == ["STAR", "RANK", "CLASS", "CLOSE"]
 
 
+def test_slash_roster_export_data_defers_then_follows_up(monkeypatch):
+    from mcoc.slash import roster as slash_roster_module
+
+    group = _RosterGroup(core=_CoreStub([]))
+    interaction = _InteractionStub(user_id=42)
+    captured = {}
+
+    class _UsersStub:
+        def export(self, user_id):
+            return {"user_id": user_id, "roster": []}
+
+    async def _fake_followup(message=None, **kwargs):
+        captured["message"] = message
+        captured["kwargs"] = kwargs
+        return None
+
+    interaction.followup = types.SimpleNamespace(send=_fake_followup)
+    monkeypatch.setattr(slash_roster_module, "ensure_user_manager", lambda _core: _UsersStub())
+
+    view = slash_roster_module._RosterEditDataView(group)
+    asyncio.run(view.export_data.callback(interaction))
+
+    assert interaction.response.deferred is True
+    assert "```json" in str(captured["message"])
+
+
+def test_slash_roster_import_modal_defers_then_follows_up(monkeypatch):
+    from mcoc.slash import roster as slash_roster_module
+
+    group = _RosterGroup(core=_CoreStub([]))
+    interaction = _InteractionStub(user_id=42)
+    captured = {}
+
+    class _UsersStub:
+        def import_data(self, user_id, payload):
+            self.user_id = user_id
+            self.payload = payload
+
+    users = _UsersStub()
+
+    async def _fake_followup(message=None, **kwargs):
+        captured["message"] = message
+        captured["kwargs"] = kwargs
+        return None
+
+    interaction.followup = types.SimpleNamespace(send=_fake_followup)
+    monkeypatch.setattr(slash_roster_module, "ensure_user_manager", lambda _core: users)
+
+    modal = slash_roster_module._RosterDataImportModal(group)
+    modal.payload._value = '{"user_id": 42, "roster": []}'
+    asyncio.run(modal.on_submit(interaction))
+
+    assert interaction.response.deferred is True
+    assert captured["message"] == "Data import complete."
+
+
 def test_slash_roster_rankup_pages_group_by_tier_into_fields():
     from mcoc.slash import roster as slash_roster_module
 
