@@ -112,6 +112,63 @@ class UserDataManager:
                 changed = True
         return deduped, changed
 
+    @staticmethod
+    def _normalize_privacy_mode(value: Any) -> str:
+        mode = str(value or "").strip().lower()
+        if mode in {"private", "alliance", "guild", "public"}:
+            return mode
+        return "public"
+
+    @classmethod
+    def _canonicalize_roster_entry(cls, entry: Any) -> Dict[str, Any]:
+        if not isinstance(entry, dict):
+            return {}
+
+        champion = str(entry.get("champion") or "").strip().lower()
+        rarity = entry.get("rarity")
+        if rarity is None:
+            rarity = entry.get("stars")
+        try:
+            stars = int(rarity) if rarity is not None else 0
+        except (TypeError, ValueError):
+            stars = 0
+
+        if not champion or stars <= 0:
+            return {}
+
+        tags = entry.get("tags") or []
+        return {
+            "champion": champion,
+            "rarity": stars,
+            "rank": int(entry.get("rank") or 1),
+            "sig": int(entry.get("sig") or 0),
+            "ascended": int(entry.get("ascended") or 0),
+            "tags": list(tags) if isinstance(tags, list) else [str(tags)] if tags else [],
+        }
+
+    def _canonicalize_user_data(self, user_id: int, data: Dict[str, Any]) -> Dict[str, Any]:
+        if not isinstance(data, dict):
+            return self._default_user_data(user_id)
+
+        normalized = dict(data)
+        normalized["user_id"] = str(user_id)
+
+        roster_entries: List[Dict[str, Any]] = []
+        for entry in normalized.get("roster", []) or []:
+            canon_entry = self._canonicalize_roster_entry(entry)
+            if canon_entry:
+                roster_entries.append(canon_entry)
+        normalized["roster"] = roster_entries
+
+        profile = dict(normalized.get("profile") or {})
+        privacy = dict(normalized.get("privacy") or {})
+        mode = self._normalize_privacy_mode(profile.get("privacy_mode") or privacy.get("mode") or "public")
+        profile["privacy_mode"] = mode
+        privacy["mode"] = mode
+        normalized["profile"] = profile
+        normalized["privacy"] = privacy
+        return normalized
+
     def _read_json_blocking(self, path: pathlib.Path) -> Any:
         with open(path, "r", encoding="utf-8") as f:
             return json.load(f)
@@ -156,6 +213,7 @@ class UserDataManager:
                 "job": None,
                 "created_at": None,
                 "updated_at": None,
+                "privacy_mode": "public",
             },
             "privacy": {
                 "mode": "public",  # private | alliance | guild | public
@@ -181,7 +239,7 @@ class UserDataManager:
             data.setdefault("profile", self._default_user_data(user_id)["profile"])
             data.setdefault("privacy", self._default_user_data(user_id)["privacy"])
             data.setdefault("alliances", {})
-            return data
+            return self._canonicalize_user_data(user_id, data)
         except Exception:
             log.exception("Failed to load user data for %s; returning default", user_id)
             return self._default_user_data(user_id)
@@ -189,6 +247,9 @@ class UserDataManager:
     def _save(self, user_id: int, data: Dict[str, Any]) -> None:
         path = self._path(user_id)
         try:
+            if not isinstance(data, dict):
+                data = self._default_user_data(user_id)
+            data = self._canonicalize_user_data(user_id, data)
             # ensure timestamps for profile
             prof = data.setdefault("profile", {})
             if not prof.get("created_at"):
@@ -341,6 +402,10 @@ class UserDataManager:
         data = self._load(user_id)
         profile = data.setdefault("profile", {})
         profile[field] = value
+        if field == "privacy_mode":
+            mode = self._normalize_privacy_mode(value)
+            profile["privacy_mode"] = mode
+            data.setdefault("privacy", {})["mode"] = mode
         profile["updated_at"] = __import__("datetime").datetime.utcnow().isoformat()
         if not profile.get("created_at"):
             profile["created_at"] = profile["updated_at"]
@@ -355,10 +420,12 @@ class UserDataManager:
     # Privacy operations (sync)
     # -----------------------------
     def set_privacy_mode(self, user_id: int, mode: str) -> None:
-        if mode not in ("private", "alliance", "guild", "public"):
+        normalized = self._normalize_privacy_mode(mode)
+        if normalized not in ("private", "alliance", "guild", "public"):
             raise ValueError("Invalid privacy mode")
         data = self._load(user_id)
-        data.setdefault("privacy", {})["mode"] = str(mode)
+        data.setdefault("privacy", {})["mode"] = normalized
+        data.setdefault("profile", {})["privacy_mode"] = normalized
         self._save(user_id, data)
 
     def allow_guild(self, user_id: int, guild_id: int) -> None:
@@ -396,13 +463,14 @@ class UserDataManager:
     # Export / Import (sync)
     # -----------------------------
     def export(self, user_id: int) -> Dict[str, Any]:
-        return self._load(user_id)
+        data = self._load(user_id)
+        return self._canonicalize_user_data(user_id, data)
 
     def import_data(self, user_id: int, data: Dict[str, Any]) -> None:
         # Basic validation: ensure dict-like
         if not isinstance(data, dict):
             raise ValueError("import_data expects a dict")
-        self._save(user_id, data)
+        self._save(user_id, self._canonicalize_user_data(user_id, data))
 
     # -----------------------------
     # Delete user data (sync)

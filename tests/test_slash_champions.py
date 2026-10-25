@@ -960,6 +960,75 @@ def test_slash_champ_search_returns_pages(monkeypatch):
     assert interaction.response.calls[0].get("view") is sentinel_view
 
 
+def test_userdata_export_canonicalizes_roster_and_privacy(tmp_path):
+    from mcoc.common.helpers.userdata import UserDataManager
+
+    manager = UserDataManager(tmp_path)
+    manager._save(
+        42,
+        {
+            "user_id": "42",
+            "roster": [
+                {
+                    "champion": "colossus",
+                    "rarity": 7,
+                    "stars": 7,
+                    "rank": 3,
+                    "sig": 60,
+                    "ascended": 1,
+                    "tags": [],
+                    "prestige": None,
+                    "name": "Colossus",
+                }
+            ],
+            "profile": {"mcoc_name": "JJW", "privacy_mode": "public"},
+            "privacy": {"mode": "private", "share_with_alliance": False, "share_with_guilds": []},
+            "alliances": {},
+        },
+    )
+
+    exported = manager.export(42)
+
+    assert exported["profile"]["privacy_mode"] == "public"
+    assert exported["privacy"]["mode"] == "public"
+    assert "name" not in exported["roster"][0]
+    assert "prestige" not in exported["roster"][0]
+    assert "stars" not in exported["roster"][0]
+
+
+def test_userdata_import_normalizes_legacy_privacy_and_trimmed_roster(tmp_path):
+    from mcoc.common.helpers.userdata import UserDataManager
+
+    manager = UserDataManager(tmp_path)
+    payload = {
+        "user_id": "42",
+        "roster": [
+            {
+                "champion": "colossus",
+                "rarity": 7,
+                "stars": 7,
+                "rank": 3,
+                "sig": 60,
+                "ascended": 1,
+                "tags": [],
+                "prestige": None,
+                "name": "Colossus",
+            }
+        ],
+        "profile": {"mcoc_name": "JJW", "privacy_mode": "public"},
+        "privacy": {"mode": "private", "share_with_alliance": False, "share_with_guilds": []},
+    }
+
+    manager.import_data(42, payload)
+    saved = manager._load(42)
+
+    assert saved["profile"]["privacy_mode"] == "public"
+    assert saved["privacy"]["mode"] == "public"
+    assert "name" not in saved["roster"][0]
+    assert "prestige" not in saved["roster"][0]
+    assert "stars" not in saved["roster"][0]
+
+
 def test_slash_champ_synergies_multi_team_adds_unactivated_page(monkeypatch):
     champions = [
         {"id": "abomination", "slug": "abomination", "name": "Abomination", "synergies": []},
