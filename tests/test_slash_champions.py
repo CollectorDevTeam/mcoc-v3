@@ -780,8 +780,8 @@ def test_slash_roster_export_data_defers_then_follows_up(monkeypatch):
         def export(self, user_id):
             return {"user_id": user_id, "roster": []}
 
-    async def _fake_followup(message=None, **kwargs):
-        captured["message"] = message
+    async def _fake_followup(*args, **kwargs):
+        captured["args"] = args
         captured["kwargs"] = kwargs
         return None
 
@@ -792,7 +792,34 @@ def test_slash_roster_export_data_defers_then_follows_up(monkeypatch):
     asyncio.run(view.export_data.callback(interaction))
 
     assert interaction.response.deferred is True
-    assert "```json" in str(captured["message"])
+    assert "```json" in str(captured["args"][0])
+
+
+def test_slash_roster_export_large_payload_uses_file_attachment(monkeypatch):
+    from mcoc.slash import roster as slash_roster_module
+
+    group = _RosterGroup(core=_CoreStub([]))
+    interaction = _InteractionStub(user_id=42)
+    captured = {}
+
+    class _UsersStub:
+        def export(self, user_id):
+            return {"user_id": user_id, "roster": ["x" * 5000] * 10}
+
+    async def _fake_followup(*args, **kwargs):
+        captured["args"] = args
+        captured["kwargs"] = kwargs
+        return None
+
+    interaction.followup = types.SimpleNamespace(send=_fake_followup)
+    monkeypatch.setattr(slash_roster_module, "ensure_user_manager", lambda _core: _UsersStub())
+
+    view = slash_roster_module._RosterEditDataView(group)
+    asyncio.run(view.export_data.callback(interaction))
+
+    assert interaction.response.deferred is True
+    assert captured["kwargs"].get("file") is not None
+    assert captured["args"][0] == "Roster export attached."
 
 
 def test_slash_roster_import_modal_defers_then_follows_up(monkeypatch):

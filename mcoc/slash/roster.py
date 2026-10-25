@@ -9,6 +9,7 @@
 #   1.0 2026-09-01  Initial stabilized API header
 
 
+import io
 import logging
 import re
 import json
@@ -800,14 +801,29 @@ class _RosterEditDataView(CDTAutoCleanupView):
         except Exception:
             pass
 
-        users = ensure_user_manager(self.group.core)
-        data = users.export(interaction.user.id) if users else {}
-        payload = discord.utils.escape_markdown(json.dumps(data, ensure_ascii=True))
-        message = f"```json\n{payload}\n```"
         try:
-            await interaction.followup.send(message, ephemeral=True)
-        except Exception:
-            await interaction.response.send_message(message, ephemeral=True)
+            users = ensure_user_manager(self.group.core)
+            data = users.export(interaction.user.id) if users else {}
+            payload = json.dumps(data, ensure_ascii=True, default=str)
+            if len(payload) <= 1800:
+                message = f"```json\n{discord.utils.escape_markdown(payload)}\n```"
+                try:
+                    await interaction.followup.send(message, ephemeral=True)
+                except Exception:
+                    await interaction.response.send_message(message, ephemeral=True)
+                return
+
+            file_obj = discord.File(io.BytesIO(payload.encode("utf-8")), filename="roster-export.json")
+            try:
+                await interaction.followup.send("Roster export attached.", file=file_obj, ephemeral=True)
+            except Exception:
+                await interaction.response.send_message("Roster export attached.", file=file_obj, ephemeral=True)
+        except Exception as exc:
+            msg = f"Export failed: {exc}"
+            try:
+                await interaction.followup.send(msg, ephemeral=True)
+            except Exception:
+                await interaction.response.send_message(msg, ephemeral=True)
 
 
 class _RosterEditRootView(CDTAutoCleanupView):
