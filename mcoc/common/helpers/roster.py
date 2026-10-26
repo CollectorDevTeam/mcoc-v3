@@ -2383,11 +2383,16 @@ async def build_roster_pages(core: Any, ctx_or_author: Any, parsed_filters: Opti
                 title_prestige = int(round(sum(top_30) / len(top_30))) if top_30 else "N/A"
             else:
                 title_prestige = "N/A"
-            roster_title = f"Roster ({title_count} champions) [{title_prestige}]"
+            if list_mode == "rankup":
+                roster_title = "ROSTER RANK-UP"
+            elif list_mode == "awaken":
+                roster_title = "ROSTER AWAKEN"
+            else:
+                roster_title = f"Roster ({title_count} champions) [{title_prestige}]"
 
             embed_pages: List[Any] = []
             for i, chunk_fields in enumerate(page_chunks, start=1):
-                footer = f"Page {i} of {len(page_chunks)}{ROSTER_FOOTER}"
+                footer = f"Page {i} of {len(page_chunks)} | CollectorDevTeam | [mcoc.app](https://mcoc.app)" if list_mode in {"rankup", "awaken"} else f"Page {i} of {len(page_chunks)}{ROSTER_FOOTER}"
                 try:
                     emb = CDTEmbed.embed(author_for_embed, title=roster_title, footer_text=footer)
                     for field_name, field_lines in chunk_fields:
@@ -2419,12 +2424,17 @@ async def build_roster_pages(core: Any, ctx_or_author: Any, parsed_filters: Opti
             title_prestige = int(round(sum(top_30) / len(top_30))) if top_30 else "N/A"
         else:
             title_prestige = "N/A"
-        roster_title = f"Roster ({title_count} champions) [{title_prestige}]"
+        if list_mode == "rankup":
+            roster_title = "ROSTER RANK-UP"
+        elif list_mode == "awaken":
+            roster_title = "ROSTER AWAKEN"
+        else:
+            roster_title = f"Roster ({title_count} champions) [{title_prestige}]"
 
         embed_pages: List[Any] = []
         try:
             for i, ptext in enumerate(page_texts):
-                footer = f"Page {i+1} of {len(page_texts)}{ROSTER_FOOTER}"
+                footer = f"Page {i+1} of {len(page_texts)} | CollectorDevTeam | [mcoc.app](https://mcoc.app)" if list_mode in {"rankup", "awaken"} else f"Page {i+1} of {len(page_texts)}{ROSTER_FOOTER}"
                 emb = CDTEmbed.embed(author_for_embed, title=roster_title, description=ptext, footer_text=footer)
                 try:
                     CDTEmbed.set_footer(author_for_embed, emb, text=footer)

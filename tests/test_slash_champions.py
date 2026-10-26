@@ -620,7 +620,7 @@ def test_slash_roster_awaken_pages_group_by_tier_order(monkeypatch):
     from mcoc.slash import roster as slash_roster_module
 
     def _fake_embed(*_args, **kwargs):
-        return {"description": kwargs.get("description", ""), "title": kwargs.get("title", ""), "fields": []}
+        return {"description": kwargs.get("description", ""), "title": kwargs.get("title", ""), "fields": [], "footer_text": kwargs.get("footer_text", "")}
 
     def _fake_add_field(*_args, **kwargs):
         emb = _args[1] if len(_args) > 1 else kwargs.get("emb")
@@ -636,6 +636,59 @@ def test_slash_roster_awaken_pages_group_by_tier_order(monkeypatch):
     assert "S+ TIER" in field_names
     assert "A TIER" in field_names
     assert "B TIER" in field_names
+
+
+def test_slash_roster_rankup_and_awaken_pages_use_requested_title_and_footer(monkeypatch):
+    champion_rows = [
+        {"id": "abomination", "slug": "abomination", "name": "Abomination", "class": "science"},
+        {"id": "black-bolt", "slug": "black-bolt", "name": "Black Bolt", "class": "cosmic"},
+    ]
+
+    class _CacheWithTierlist(_CacheStub):
+        def _load_file(self, name):
+            if name == "tierlist":
+                return {
+                    "champions": [
+                        {"id": "abomination", "name": "Abomination", "score": 70, "tier": "A"},
+                        {"id": "black-bolt", "name": "Black Bolt", "score": 95, "tier": "S+"},
+                    ]
+                }
+            return {}
+
+    class _UsersStub:
+        def list_roster(self, _user_id):
+            return [
+                {"champion": "abomination", "rarity": 7, "rank": 1, "sig": 0, "ascended": 0},
+                {"champion": "black-bolt", "rarity": 7, "rank": 1, "sig": 0, "ascended": 0},
+            ]
+
+    class _CoreWithUsers:
+        def __init__(self):
+            self.cache = _CacheWithTierlist(champion_rows)
+            self.users = _UsersStub()
+
+    group = _RosterGroup(core=_CoreWithUsers())
+    interaction = _InteractionStub()
+
+    from mcoc.slash import roster as slash_roster_module
+
+    def _fake_embed(*_args, **kwargs):
+        return {"description": kwargs.get("description", ""), "title": kwargs.get("title", ""), "fields": [], "footer_text": kwargs.get("footer_text", "")}
+
+    def _fake_add_field(*_args, **kwargs):
+        emb = _args[1] if len(_args) > 1 else kwargs.get("emb")
+        emb.setdefault("fields", []).append({"name": kwargs.get("name", ""), "value": kwargs.get("value", "")})
+
+    monkeypatch.setattr(slash_roster_module.CDTEmbed, "embed", _fake_embed)
+    monkeypatch.setattr(slash_roster_module.CDTEmbed, "add_field", _fake_add_field)
+
+    rank_pages = group._build_rankup_pages(interaction, "all", 7, 3, group._rankup_suggestions(42, "all", 7, 3))
+    awaken_pages = group._build_awaken_pages(interaction, "all", 7, 3, group._awaken_suggestions(42, "all", 7, 3))
+
+    assert rank_pages[0]["title"] == "ROSTER RANK-UP"
+    assert rank_pages[0]["footer_text"] == "Page 1 of 1 | CollectorDevTeam | [mcoc.app](https://mcoc.app)"
+    assert awaken_pages[0]["title"] == "ROSTER AWAKEN"
+    assert awaken_pages[0]["footer_text"] == "Page 1 of 1 | CollectorDevTeam | [mcoc.app](https://mcoc.app)"
 
 
 def test_slash_roster_list_mention_targets_other_user(monkeypatch):
