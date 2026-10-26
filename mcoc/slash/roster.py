@@ -1232,6 +1232,21 @@ class _RosterGroup(app_commands.Group):
                     awakened_needed.add(token)
         return awakened_needed
 
+    @staticmethod
+    def _max_rank_for_rarity(stars: int, champion_slug: Optional[str] = None) -> int:
+        slug = str(champion_slug or "").strip().lower()
+        if int(stars) == 1 and slug in {"summoned-symbiote", "summoned symbiote", "summonedsymbiote"}:
+            return 5
+        return {
+            7: 6,
+            6: 5,
+            5: 4,
+            4: 5,
+            3: 4,
+            2: 3,
+            1: 2,
+        }.get(int(stars), 1)
+
     def _rankup_suggestions(
         self,
         user_id: int,
@@ -1265,6 +1280,10 @@ class _RosterGroup(app_commands.Group):
                 champ_class = self._resolve_entry_class(cache, slug)
                 if rank >= int(target_rank) and champ_class in class_counts:
                     class_counts[champ_class] += 1
+
+                max_rank = self._max_rank_for_rarity(rarity, slug)
+                if rank >= max_rank:
+                    continue
                 if rank >= int(target_rank):
                     continue
 

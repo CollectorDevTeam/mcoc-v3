@@ -351,6 +351,38 @@ def test_slash_roster_rankup_suggestions_sort_by_score():
     assert [item["slug"] for item in suggestions[:2]] == ["black-bolt", "abomination"]
 
 
+def test_slash_roster_rankup_excludes_max_rank_champions_and_keeps_symbiote_exception():
+    champion_rows = [
+        {"id": "abomination", "slug": "abomination", "name": "Abomination", "class": "science"},
+        {"id": "summoned-symbiote", "slug": "summoned-symbiote", "name": "Summoned Symbiote", "class": "science"},
+        {"id": "black-bolt", "slug": "black-bolt", "name": "Black Bolt", "class": "cosmic"},
+    ]
+
+    class _CacheWithTierlist(_CacheStub):
+        def _load_file(self, name):
+            if name == "tierlist":
+                return {"champions": [{"id": "abomination", "name": "Abomination", "score": 40}, {"id": "black-bolt", "name": "Black Bolt", "score": 90}, {"id": "summoned-symbiote", "name": "Summoned Symbiote", "score": 60}]}
+            return {}
+
+    class _UsersStub:
+        def list_roster(self, _user_id):
+            return [
+                {"champion": "abomination", "rarity": 1, "rank": 2, "sig": 0, "ascended": 0},
+                {"champion": "summoned-symbiote", "rarity": 1, "rank": 4, "sig": 0, "ascended": 0},
+                {"champion": "black-bolt", "rarity": 7, "rank": 6, "sig": 0, "ascended": 0},
+            ]
+
+    class _CoreWithUsers:
+        def __init__(self):
+            self.cache = _CacheWithTierlist(champion_rows)
+            self.users = _UsersStub()
+
+    group = _RosterGroup(core=_CoreWithUsers())
+    suggestions = group._rankup_suggestions(42, "all", 1, 5)
+
+    assert [item["slug"] for item in suggestions] == ["summoned-symbiote"]
+
+
 def test_slash_roster_awaken_command_removed():
     champion_rows = [{"id": "abomination", "slug": "abomination", "name": "Abomination", "class": "science"}]
     group = _RosterGroup(core=_CoreStub(champion_rows))
