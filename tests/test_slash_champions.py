@@ -1029,6 +1029,21 @@ def test_userdata_import_normalizes_legacy_privacy_and_trimmed_roster(tmp_path):
     assert "stars" not in saved["roster"][0]
 
 
+def test_userdata_add_champion_persists_canonical_roster_shape(tmp_path):
+    from mcoc.common.helpers.userdata import UserDataManager
+
+    manager = UserDataManager(tmp_path)
+    manager.add_champion(42, "Colossus", 7, 3, 60, ascended=1, tags=[])
+
+    saved = manager._load(42)
+
+    assert saved["roster"][0]["champion"] == "colossus"
+    assert saved["roster"][0]["rarity"] == 7
+    assert "stars" not in saved["roster"][0]
+    assert "prestige" not in saved["roster"][0]
+    assert "name" not in saved["roster"][0]
+
+
 def test_slash_champ_synergies_multi_team_adds_unactivated_page(monkeypatch):
     champions = [
         {"id": "abomination", "slug": "abomination", "name": "Abomination", "synergies": []},

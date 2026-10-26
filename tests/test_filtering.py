@@ -3,7 +3,19 @@ from mcoc.common.helpers.roster import filter_roster_entries, _build_selection_o
 from mcoc.common.utilities.formatters import format_tierlist_champion_line, format_champion_line
 from mcoc.common.helpers.types import MCOCAPP_TIERS, champion_from_dict
 from mcoc.common.utilities.query_parser import parse_query
+from mcoc.common.utilities.hargs import parse_hargs
 import asyncio
+
+
+def test_parse_hargs_supports_compact_star_rank_shortcuts():
+    filters = parse_hargs("7sr2")
+    assert filters["rarities"] == [7]
+    assert filters["ranks"] == [2]
+
+    filters = parse_hargs("7sr2 cosmic")
+    assert filters["rarities"] == [7]
+    assert filters["ranks"] == [2]
+    assert filters["classes"] == ["cosmic"]
 
 
 def test_parse_query_tracks_immunity_tokens_and_rarity():
