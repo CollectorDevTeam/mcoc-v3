@@ -422,6 +422,10 @@ class _RosterFilterCategoryButton(ui.Button):
 
     async def callback(self, interaction):
         try:
+            await interaction.response.defer()
+        except Exception:
+            pass
+        try:
             picker = _RosterQuickFilterPickerView(
                 self.group,
                 self.target_user,
@@ -429,10 +433,13 @@ class _RosterFilterCategoryButton(ui.Button):
                 self.parsed_filters,
                 self.kind,
             )
-            await interaction.response.edit_message(view=picker)
+            await interaction.edit_original_response(view=picker)
         except Exception:
             log.exception("roster filter category button failed")
-            await interaction.response.send_message("Unable to open filter picker right now.", ephemeral=True)
+            try:
+                await interaction.followup.send("Unable to open filter picker right now.", ephemeral=True)
+            except Exception:
+                await interaction.response.send_message("Unable to open filter picker right now.", ephemeral=True)
 
 
 class _RosterFilterCategoryView(CDTAutoCleanupView):
