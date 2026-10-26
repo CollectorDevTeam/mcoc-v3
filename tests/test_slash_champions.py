@@ -673,7 +673,7 @@ def test_slash_roster_rankup_and_awaken_pages_use_requested_title_and_footer(mon
     from mcoc.slash import roster as slash_roster_module
 
     def _fake_embed(*_args, **kwargs):
-        return {"description": kwargs.get("description", ""), "title": kwargs.get("title", ""), "fields": [], "footer_text": kwargs.get("footer_text", "")}
+        return {"description": kwargs.get("description", ""), "title": kwargs.get("title", ""), "url": kwargs.get("url"), "fields": [], "footer_text": kwargs.get("footer_text", "")}
 
     def _fake_add_field(*_args, **kwargs):
         emb = _args[1] if len(_args) > 1 else kwargs.get("emb")
@@ -686,9 +686,16 @@ def test_slash_roster_rankup_and_awaken_pages_use_requested_title_and_footer(mon
     awaken_pages = group._build_awaken_pages(interaction, "all", 7, 3, group._awaken_suggestions(42, "all", 7, 3))
 
     assert rank_pages[0]["title"] == "ROSTER RANK-UP"
-    assert rank_pages[0]["footer_text"] == "Page 1 of 1 | CollectorDevTeam | [mcoc.app](https://mcoc.app)"
+    assert rank_pages[0]["url"] == "https://mcoc.app"
+    assert rank_pages[0]["footer_text"] == "Page 1 of 1 | CollectorDevTeam | https://mcoc.app"
     assert awaken_pages[0]["title"] == "ROSTER AWAKEN"
-    assert awaken_pages[0]["footer_text"] == "Page 1 of 1 | CollectorDevTeam | [mcoc.app](https://mcoc.app)"
+    assert awaken_pages[0]["url"] == "https://mcoc.app"
+    assert awaken_pages[0]["footer_text"] == "Page 1 of 1 | CollectorDevTeam | https://mcoc.app"
+
+    tierlist_pages = asyncio.run(slash_roster_module.build_roster_pages(group.core, interaction.user, {"list_mode": "tierlist"}))
+    assert tierlist_pages[0]["title"] == "ROSTER BY TIERS"
+    assert tierlist_pages[0]["url"] == "https://mcoc.app"
+    assert tierlist_pages[0]["footer_text"] == "Page 1 of 1 | CollectorDevTeam | https://mcoc.app"
 
 
 def test_slash_roster_list_mention_targets_other_user(monkeypatch):

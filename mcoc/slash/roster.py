@@ -1409,7 +1409,7 @@ class _RosterGroup(app_commands.Group):
     def _build_rankup_pages(self, interaction, class_filter: str, stars: int, target_rank: int, suggestions: List[dict], per_class_target: int = 0) -> List[Any]:
         title = "ROSTER RANK-UP"
         if not suggestions:
-            return [CDTEmbed.embed(interaction, title=title, description="No eligible champions found for these filters.", footer_text=f"Page 1 of 1 | CollectorDevTeam | [mcoc.app](https://mcoc.app)")]
+            return [CDTEmbed.embed(interaction, title=title, description="No eligible champions found for these filters.", url="https://mcoc.app", footer_text="Page 1 of 1 | CollectorDevTeam | https://mcoc.app")]
 
         grouped_fields = []
         seen_tiers = set()
@@ -1443,9 +1443,9 @@ class _RosterGroup(app_commands.Group):
 
         pages = []
         total = len(page_chunks)
-        footer = " | CollectorDevTeam | [mcoc.app](https://mcoc.app)"
+        footer = " | CollectorDevTeam | https://mcoc.app"
         for i, chunk_fields in enumerate(page_chunks, start=1):
-            emb = CDTEmbed.embed(interaction, title=title, footer_text=f"Page {i} of {total}{footer}")
+            emb = CDTEmbed.embed(interaction, title=title, url="https://mcoc.app", footer_text=f"Page {i} of {total}{footer}")
             for field_name, value in chunk_fields:
                 CDTEmbed.add_field(interaction, emb, name=field_name, value=value, inline=False)
             pages.append(emb)
@@ -1454,7 +1454,7 @@ class _RosterGroup(app_commands.Group):
     def _build_awaken_pages(self, interaction, class_filter: str, stars: int, min_rank: int, suggestions: List[dict], per_class_target: int = 0) -> List[Any]:
         title = "ROSTER AWAKEN"
         if not suggestions:
-            return [CDTEmbed.embed(interaction, title=title, description="No eligible champions found for these filters.", footer_text=f"Page 1 of 1 | CollectorDevTeam | [mcoc.app](https://mcoc.app)")]
+            return [CDTEmbed.embed(interaction, title=title, description="No eligible champions found for these filters.", url="https://mcoc.app", footer_text="Page 1 of 1 | CollectorDevTeam | https://mcoc.app")]
 
         grouped_fields = []
         seen_tiers = set()
@@ -1488,9 +1488,9 @@ class _RosterGroup(app_commands.Group):
 
         pages = []
         total = len(page_chunks)
-        footer = " | CollectorDevTeam | [mcoc.app](https://mcoc.app)"
+        footer = " | CollectorDevTeam | https://mcoc.app"
         for i, chunk_fields in enumerate(page_chunks, start=1):
-            emb = CDTEmbed.embed(interaction, title=title, footer_text=f"Page {i} of {total}{footer}")
+            emb = CDTEmbed.embed(interaction, title=title, url="https://mcoc.app", footer_text=f"Page {i} of {total}{footer}")
             for field_name, value in chunk_fields:
                 CDTEmbed.add_field(interaction, emb, name=field_name, value=value, inline=False)
             pages.append(emb)
