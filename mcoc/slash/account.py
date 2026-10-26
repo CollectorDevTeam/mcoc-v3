@@ -22,6 +22,10 @@ from ..common.helpers import account as Account
 log = logging.getLogger("red.mcoc.slash.account")
 
 
+def user_has_collectorverse_premium(member: Any) -> bool:
+    return Account.user_has_collectorverse_premium(member)
+
+
 def _runtime_version_label() -> str:
     try:
         short = subprocess.run(["git", "rev-parse", "--short", "HEAD"], capture_output=True, text=True, check=True).stdout.strip()
@@ -76,19 +80,21 @@ _TIMEZONE_OPTIONS = [
 
 
 class _ProfilePageSelectorView(CDTAutoCleanupView):
-    def __init__(self, core: Any, user_id: int, profile: Optional[dict] = None, *, mode: str = "view"):
+    def __init__(self, core: Any, user_id: int, profile: Optional[dict] = None, *, mode: str = "view", member: Optional[discord.Member] = None):
         super().__init__(timeout=180)
         self.core = core
         self.user_id = user_id
         self.profile = profile or {}
         self.mode = mode
+        self.member = member
 
         roster_ids, active_id = Account.get_selectable_rosters(core, user_id)
         if not roster_ids:
             roster_ids = ["default"]
         default_roster = active_id or roster_ids[0]
+        premium = user_has_collectorverse_premium(member)
         self.roster_selector = discord.ui.Select(
-            placeholder="MCOC roster",
+            placeholder="Premium membership required" if not premium else "MCOC roster",
             options=[
                 discord.SelectOption(
                     label=roster_id,
@@ -99,10 +105,18 @@ class _ProfilePageSelectorView(CDTAutoCleanupView):
             ],
             min_values=1,
             max_values=1,
+            disabled=not premium and len(roster_ids) > 1,
         )
 
         async def _update_roster(interaction: discord.Interaction):
             value = self.roster_selector.values[0] if self.roster_selector.values else default_roster
+            if not user_has_collectorverse_premium(interaction.user):
+                if len(roster_ids) > 1 and str(value).lower() != str(default_roster).lower():
+                    await interaction.response.edit_message(
+                        content="Premium membership is required to switch to a different active roster.",
+                        view=self,
+                    )
+                    return
             ok, msg = Account.select_active_roster(core, user_id, value)
             await interaction.response.edit_message(content=msg, view=self)
 
@@ -355,7 +369,7 @@ class _AccountManagerView(CDTAutoCleanupView):
                 await _edit_or_send(interaction, "No account found. Use CREATE first.", ephemeral=True)
                 return
             try:
-                view = _ProfilePageSelectorView(core, user_id, profile, mode="view")
+                view = _ProfilePageSelectorView(core, user_id, profile, mode="view", member=interaction.user)
                 await _edit_or_send(interaction, "Choose the profile page you want to view.", view=view, ephemeral=True)
                 await view.bind_to_interaction_response(interaction)
             except Exception as exc:
@@ -368,7 +382,7 @@ class _AccountManagerView(CDTAutoCleanupView):
                 await _edit_or_send(interaction, "No account found. Use CREATE first.", ephemeral=True)
                 return
             try:
-                view = _ProfilePageSelectorView(core, user_id, profile, mode="edit")
+                view = _ProfilePageSelectorView(core, user_id, profile, mode="edit", member=interaction.user)
                 await _edit_or_send(interaction, "Choose the section to edit.", view=view, ephemeral=True)
                 await view.bind_to_interaction_response(interaction)
             except Exception as exc:
@@ -484,12 +498,19 @@ class _AccountGroup(app_commands.Group):
     @app_commands.command(name="select", description="View or set your active roster")
     async def select(self, interaction: discord.Interaction, roster: Optional[str] = None):
         user_id = self._user_id(interaction)
+        roster_ids, active_id = Account.get_selectable_rosters(self.core, user_id)
         if roster:
+            requested = str(roster).strip()
+            if not user_has_collectorverse_premium(interaction.user):
+                if len(roster_ids) > 1 and (not active_id or requested.lower() != str(active_id).lower()):
+                    await interaction.response.send_message(
+                        "Premium membership is required to switch to a different active roster.",
+                        ephemeral=True,
+                    )
+                    return
             ok, msg = Account.select_active_roster(self.core, user_id, roster)
             await interaction.response.send_message(msg, ephemeral=not ok)
             return
-
-        roster_ids, active_id = Account.get_selectable_rosters(self.core, user_id)
         if not roster_ids:
             await interaction.response.send_message("No rosters are available yet. Import or add champions first.", ephemeral=True)
             return

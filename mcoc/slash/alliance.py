@@ -10,6 +10,7 @@ from redbot.core import app_commands, commands
 
 from ..common.components.componentsV2 import CDTAutoCleanupView
 from ..common.helpers import alliance as Alliance
+from ..common.helpers.account import user_has_collectorverse_premium
 from ..common.helpers.roster import ensure_user_manager
 
 log = logging.getLogger("red.mcoc.slash.alliance")
@@ -73,6 +74,10 @@ def _is_alliance_member(author: discord.Member, guild: discord.Guild, cfg: dict)
         if role_obj and role_obj in author.roles:
             return True
     return False
+
+
+def _is_premium_user(author: discord.Member) -> bool:
+    return user_has_collectorverse_premium(author)
 
 
 def _caps_for(author: discord.Member, guild: discord.Guild, cfg: Optional[dict]) -> Set[str]:
@@ -247,14 +252,20 @@ class _AllianceCreateConfirmView(CDTAutoCleanupView):
             f"Description: {self.state.description or '-'}",
             f"Invite: {self.state.invite_url or '-'}",
             "",
-            "Press YES to apply, or NO to cancel.",
+            "Assigned role slots:",
         ]
+        for key in _required_role_keys(self.state.type_name):
+            rid = self.state.role_map.get(key)
+            lines.append(f"- {key}: <@&{rid}>" if rid else f"- {key}: auto-create")
+        lines.append("")
+        lines.append("Press YES to apply, or NO to cancel.")
         return "\n".join(lines)
 
     @discord.ui.button(label="YES", style=discord.ButtonStyle.success)
     async def yes(self, interaction: discord.Interaction, _button: discord.ui.Button):
+        await interaction.response.edit_message(content="Working... creating alliance roles and configuration.", view=None)
         ok, msg = await self.cog._apply_create_settings(interaction, self.state)
-        await interaction.response.edit_message(content=msg, view=None)
+        await interaction.edit_original_response(content=msg)
         if not ok:
             log.warning("Alliance create workflow failed: %s", msg)
 
@@ -311,24 +322,29 @@ class _AllianceManageConfirmView(CDTAutoCleanupView):
         self.state = state
 
     def build_text(self) -> str:
-        return "\n".join(
-            [
-                "Alliance Manage: Page 3",
-                "Confirm Settings?",
-                f"Name: {self.state.name}",
-                f"Tag: {self.state.tag or '-'}",
-                f"Type: {self.state.type_name}",
-                f"Description: {self.state.description or '-'}",
-                f"Invite: {self.state.invite_url or '-'}",
-                "",
-                "Press YES to apply, or NO to cancel.",
-            ]
-        )
+        lines = [
+            "Alliance Manage: Page 3",
+            "Confirm Settings?",
+            f"Name: {self.state.name}",
+            f"Tag: {self.state.tag or '-'}",
+            f"Type: {self.state.type_name}",
+            f"Description: {self.state.description or '-'}",
+            f"Invite: {self.state.invite_url or '-'}",
+            "",
+            "Assigned role slots:",
+        ]
+        for key in _required_role_keys(self.state.type_name):
+            rid = self.state.role_map.get(key)
+            lines.append(f"- {key}: <@&{rid}>" if rid else f"- {key}: auto-create")
+        lines.append("")
+        lines.append("Press YES to apply, or NO to cancel.")
+        return "\n".join(lines)
 
     @discord.ui.button(label="YES", style=discord.ButtonStyle.success)
     async def yes(self, interaction: discord.Interaction, _button: discord.ui.Button):
+        await interaction.response.edit_message(content="Working... updating alliance roles and configuration.", view=None)
         ok, msg = await self.cog._apply_manage_settings(interaction, self.state)
-        await interaction.response.edit_message(content=msg, view=None)
+        await interaction.edit_original_response(content=msg)
         if not ok:
             log.warning("Alliance manage workflow failed: %s", msg)
 
@@ -338,15 +354,33 @@ class _AllianceManageConfirmView(CDTAutoCleanupView):
 
 
 class _AllianceSettingsView(CDTAutoCleanupView):
-    def __init__(self, cog: "AllianceSlashCog", caps: Set[str]):
+    def __init__(self, cog: "AllianceSlashCog", caps: Set[str], guild: discord.Guild, author: discord.Member, cfg: Optional[dict]):
         super().__init__(timeout=180)
         self.cog = cog
         self.caps = caps
+        self.guild = guild
+        self.author = author
+        self.cfg = cfg
+        self.clear_items()
 
-        self.create_btn.disabled = "create" not in caps
-        self.reports_btn.disabled = "reports" not in caps
-        self.manage_btn.disabled = "manage" not in caps
-        self.delete_btn.disabled = "delete" not in caps
+        has_alliance = bool(cfg)
+        can_create = "create" in caps and not has_alliance and _is_premium_user(author)
+        self.create_btn.disabled = not can_create
+        self.reports_btn.disabled = "reports" not in caps or not has_alliance
+        self.manage_btn.disabled = "manage" not in caps or not has_alliance
+        self.delete_btn.disabled = "delete" not in caps or not has_alliance
+
+        if not has_alliance:
+            if can_create:
+                self.add_item(self.create_btn)
+            return
+
+        if "reports" in caps:
+            self.add_item(self.reports_btn)
+        if "manage" in caps:
+            self.add_item(self.manage_btn)
+        if "delete" in caps:
+            self.add_item(self.delete_btn)
 
     @discord.ui.button(label="CREATE", style=discord.ButtonStyle.primary)
     async def create_btn(self, interaction: discord.Interaction, _button: discord.ui.Button):
@@ -458,7 +492,7 @@ class _AllianceReportsView(CDTAutoCleanupView):
             return
         cfg = Alliance.get_guild_config(guild.id)
         caps = _caps_for(interaction.user, guild, cfg)
-        view = _AllianceSettingsView(self.cog, caps)
+        view = _AllianceSettingsView(self.cog, caps, guild, interaction.user, cfg)
         await interaction.response.edit_message(content="Alliance settings: choose a workflow.", view=view)
         await view.bind_to_interaction_response(interaction)
 
@@ -506,7 +540,7 @@ class _AllianceGroup(app_commands.Group):
         author = interaction.user
         cfg = Alliance.get_guild_config(guild.id)
         caps = _caps_for(author, guild, cfg)
-        view = _AllianceSettingsView(self.cog, caps)
+        view = _AllianceSettingsView(self.cog, caps, guild, author, cfg)
 
         if not caps:
             await interaction.response.send_message(

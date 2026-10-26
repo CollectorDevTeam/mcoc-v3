@@ -108,6 +108,32 @@ def test_slash_account_select_no_rosters(monkeypatch):
     assert call.get("ephemeral") is True
 
 
+def test_slash_account_select_requires_premium_for_roster_switch(monkeypatch):
+    group = _AccountGroup(core=object())
+    interaction = _InteractionStub()
+
+    from mcoc.slash import account as slash_account_module
+
+    monkeypatch.setattr(
+        slash_account_module.Account,
+        "get_selectable_rosters",
+        lambda *a, **k: (["main", "alt"], "main"),
+    )
+    monkeypatch.setattr(
+        slash_account_module,
+        "user_has_collectorverse_premium",
+        lambda user: False,
+    )
+
+    import asyncio
+    asyncio.run(_invoke(group.select, group, interaction, roster="alt"))
+
+    assert len(interaction.response.calls) == 1
+    call = interaction.response.calls[0]
+    assert "Premium membership is required" in call.get("content")
+    assert call.get("ephemeral") is True
+
+
 def test_slash_account_privacy_invalid_mode():
     group = _AccountGroup(core=object())
     interaction = _InteractionStub()

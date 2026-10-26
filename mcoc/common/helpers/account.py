@@ -48,6 +48,20 @@ except Exception:
 
 log = logging.getLogger("red.mcoc.account_helpers")
 
+COLLECTORVERSE_PREMIUM_ROLE_IDS = {
+    585537521023189003,
+    736631216035594302,
+}
+
+
+def user_has_collectorverse_premium(user: Any) -> bool:
+    """Return True when the Discord user owns one of the CollectorVerse premium roles."""
+    if user is None:
+        return False
+    roles = getattr(user, "roles", None) or []
+    return any(getattr(role, "id", None) in COLLECTORVERSE_PREMIUM_ROLE_IDS for role in roles)
+
+
 # -----------------------------
 # Public metadata for profile fields
 # -----------------------------
