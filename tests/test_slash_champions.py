@@ -1,6 +1,7 @@
 import asyncio
 import types
 
+from mcoc.common.helpers.roster import build_roster_pages
 from mcoc.slash.champions import _ChampionGroup
 from mcoc.slash.roster import _RosterGroup, _RosterRankupModal, _RosterAwakenModal, _RankupClassSelectView
 
@@ -523,6 +524,43 @@ def test_slash_roster_awaken_per_class_target_uses_awakened_gap():
 
     # Science already has an awakened entry (sig > 0), so only mutant should remain to fill target.
     assert [item["slug"] for item in suggestions] == ["wolverine"]
+
+
+def test_build_roster_pages_reuses_champion_lookups():
+    champion_rows = [
+        {"id": "abomination", "slug": "abomination", "name": "Abomination", "class": "science"},
+        {"id": "black-bolt", "slug": "black-bolt", "name": "Black Bolt", "class": "cosmic"},
+    ]
+
+    class _CacheWithCounter(_CacheStub):
+        def __init__(self, champions):
+            super().__init__(champions)
+            self.calls = {}
+
+        def get_champion(self, token):
+            key = str(token or "").strip().lower()
+            self.calls[key] = self.calls.get(key, 0) + 1
+            return super().get_champion(token)
+
+    class _UsersStub:
+        def list_roster(self, _user_id):
+            return [
+                {"champion": "abomination", "rarity": 7, "rank": 2, "sig": 0, "ascended": 0},
+                {"champion": "black-bolt", "rarity": 7, "rank": 2, "sig": 0, "ascended": 0},
+            ]
+
+    class _CoreWithUsers:
+        def __init__(self):
+            self.cache = _CacheWithCounter(champion_rows)
+            self.users = _UsersStub()
+
+    core = _CoreWithUsers()
+    author = types.SimpleNamespace(id=42, display_name="viewer")
+
+    pages = asyncio.run(build_roster_pages(core, author, parsed_filters={}))
+
+    assert pages
+    assert all(count <= 2 for count in core.cache.calls.values())
 
 
 def test_slash_roster_rankup_pages_group_by_tier_order(monkeypatch):

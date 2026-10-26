@@ -2026,6 +2026,23 @@ async def build_roster_pages(core: Any, ctx_or_author: Any, parsed_filters: Opti
         cache = getattr(core, "cache", None)
         parsed = parsed_filters or {}
 
+        champion_lookup_cache: Dict[str, Any] = {}
+
+        def get_champion_meta(token: Any) -> Any:
+            if token is None:
+                return None
+            key = str(token).strip().lower()
+            if key in champion_lookup_cache:
+                return champion_lookup_cache[key]
+            result = None
+            try:
+                if cache:
+                    result = cache.get_champion(token)
+            except Exception:
+                result = None
+            champion_lookup_cache[key] = result
+            return result
+
         # load profile (may be dict or module-level UserData shape)
         profile_raw = {}
         try:
@@ -2056,7 +2073,7 @@ async def build_roster_pages(core: Any, ctx_or_author: Any, parsed_filters: Opti
                 # Attach champion class metadata before filter evaluation so class filters work.
                 if not e.get("class") and cache and e.get("champion"):
                     try:
-                        champ_row = cache.get_champion(e.get("champion"))
+                        champ_row = get_champion_meta(e.get("champion"))
                     except Exception:
                         champ_row = None
                     if isinstance(champ_row, dict):
@@ -2071,11 +2088,12 @@ async def build_roster_pages(core: Any, ctx_or_author: Any, parsed_filters: Opti
             tierlist = getattr(cache, "_load_file", lambda *_args, **_kwargs: {})("tierlist") if cache else {}
         except Exception:
             tierlist = {}
+        tierlist_rows = (tierlist.get("champions", []) if isinstance(tierlist, dict) else [])
 
         score_by_name = {}
         tier_by_name = {}
         if isinstance(tierlist, dict):
-            for row in tierlist.get("champions", []) or []:
+            for row in tierlist_rows:
                 if not isinstance(row, dict):
                     continue
                 for key in (row.get("id"), row.get("slug"), row.get("name"), row.get("en")):
@@ -2167,7 +2185,7 @@ async def build_roster_pages(core: Any, ctx_or_author: Any, parsed_filters: Opti
         try:
             tierlist = getattr(cache, "_load_file", lambda *_args, **_kwargs: {})("tierlist") if cache else {}
             if isinstance(tierlist, dict):
-                for row in tierlist.get("champions", []) or []:
+                for row in tierlist_rows:
                     if not isinstance(row, dict):
                         continue
                     for key in (row.get("id"), row.get("slug"), row.get("name"), row.get("en")):
@@ -2194,7 +2212,7 @@ async def build_roster_pages(core: Any, ctx_or_author: Any, parsed_filters: Opti
             keys.extend(_canonical_tokens(entry.get("raw")))
             try:
                 if cache:
-                    champ_row = cache.get_champion(entry.get("champion"))
+                    champ_row = get_champion_meta(entry.get("champion"))
                     if isinstance(champ_row, dict):
                         keys.extend(_canonical_tokens(champ_row.get("id")))
                         keys.extend(_canonical_tokens(champ_row.get("slug")))
@@ -2253,7 +2271,7 @@ async def build_roster_pages(core: Any, ctx_or_author: Any, parsed_filters: Opti
                 champ_obj = None
                 if cache:
                     try:
-                        raw_champ = cache.get_champion(entry.get("champion"))
+                        raw_champ = get_champion_meta(entry.get("champion"))
                         # cache.get_champion may return dict or dataclass; normalize to Champion dataclass
                         if isinstance(raw_champ, dict):
                             champ_obj = champion_from_dict(raw_champ)
@@ -2315,7 +2333,7 @@ async def build_roster_pages(core: Any, ctx_or_author: Any, parsed_filters: Opti
                         champ_obj = None
                         if cache:
                             try:
-                                raw_champ = cache.get_champion(entry.get("champion"))
+                                raw_champ = get_champion_meta(entry.get("champion"))
                                 if isinstance(raw_champ, dict):
                                     champ_obj = champion_from_dict(raw_champ)
                                 elif isinstance(raw_champ, Champion):
@@ -2341,7 +2359,7 @@ async def build_roster_pages(core: Any, ctx_or_author: Any, parsed_filters: Opti
                         champ_obj = None
                         if cache:
                             try:
-                                raw_champ = cache.get_champion(entry.get("champion"))
+                                raw_champ = get_champion_meta(entry.get("champion"))
                                 if isinstance(raw_champ, dict):
                                     champ_obj = champion_from_dict(raw_champ)
                                 elif isinstance(raw_champ, Champion):
