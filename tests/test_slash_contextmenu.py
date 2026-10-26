@@ -25,6 +25,18 @@ def test_contextmenu_is_consolidated_to_single_command():
     assert 'ContextMenu(name="Roster Add"' not in text
 
 
+def test_contextmenu_button_callbacks_use_message_edits():
+    import inspect
+    import mcoc.slash.contextmenu as contextmenu_module
+
+    class_text = inspect.getsource(contextmenu_module._CollectorVerseUserActionView)
+    helper_text = inspect.getsource(contextmenu_module._edit_or_send)
+
+    assert "edit_message" in helper_text
+    assert "_ctx_roster_add(interaction, self.target, edit_existing=True)" in class_text
+    assert "_ctx_roster_remove(interaction, self.target, edit_existing=True)" in class_text
+
+
 def test_contextmenu_alliance_manage_has_bg_actions():
     import inspect
     import mcoc.slash.contextmenu as contextmenu_module

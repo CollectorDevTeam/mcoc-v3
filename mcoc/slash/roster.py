@@ -1020,6 +1020,11 @@ class _RosterGroup(app_commands.Group):
                     if view is not None and hasattr(view, "message"):
                         view.message = msg
                     return
+                if getattr(self.interaction, "message", None) is not None and response and hasattr(response, "edit_message"):
+                    await response.edit_message(content=None, embed=embed, view=view)
+                    if view is not None and hasattr(view, "message"):
+                        view.message = getattr(self.interaction, "message", None)
+                    return
                 if response and hasattr(response, "send_message"):
                     await response.send_message(embed=embed, view=view)
                     try:
@@ -1046,7 +1051,10 @@ class _RosterGroup(app_commands.Group):
             entries = []
 
         if not entries:
-            await interaction.response.send_message("Your roster is empty.", ephemeral=True)
+            if getattr(interaction, "message", None) is not None and hasattr(interaction.response, "edit_message"):
+                await interaction.response.edit_message(content="Your roster is empty.", embed=None, view=None)
+            else:
+                await interaction.response.send_message("Your roster is empty.", ephemeral=True)
             return True
 
         cache = getattr(self.core, "cache", None)
@@ -1074,7 +1082,10 @@ class _RosterGroup(app_commands.Group):
             pass
 
         view = _RosterRemoveWorkflowView(self, interaction.user, entries)
-        await interaction.response.send_message(embed=view.build_embed(), view=view)
+        if getattr(interaction, "message", None) is not None and hasattr(interaction.response, "edit_message"):
+            await interaction.response.edit_message(content=None, embed=view.build_embed(), view=view)
+        else:
+            await interaction.response.send_message(embed=view.build_embed(), view=view)
         await view.bind_to_interaction_response(interaction)
         return True
 
