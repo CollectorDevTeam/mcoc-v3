@@ -161,6 +161,35 @@ def test_slash_roster_rankup_command_removed():
     assert not hasattr(group, "rankup")
 
 
+def test_build_roster_pages_reuses_cached_pages_for_same_roster_state(monkeypatch):
+    import mcoc.common.helpers.roster as roster_mod
+
+    roster_mod._ROSTER_PAGE_CACHE.clear()
+
+    champion_rows = [{"id": "abomination", "slug": "abomination", "name": "Abomination", "class": "science"}]
+    user = types.SimpleNamespace(id=42)
+    calls = {"count": 0}
+
+    class _UsersStub:
+        def list_roster(self, _user_id):
+            calls["count"] += 1
+            return [{"champion": "abomination", "rarity": 7, "rank": 1, "sig": 0, "ascended": 0, "tags": []}]
+
+    monkeypatch.setattr(roster_mod, "ensure_user_manager", lambda _core: _UsersStub())
+    monkeypatch.setattr(roster_mod, "_ensure_hook_registered", lambda _core: None)
+
+    async def _go():
+        first = await build_roster_pages(_CoreStub(champion_rows), user, {"rarities": [7]})
+        second = await build_roster_pages(_CoreStub(champion_rows), user, {"rarities": [7]})
+        return first, second
+
+    first_pages, second_pages = asyncio.run(_go())
+
+    assert calls["count"] == 1
+    assert first_pages and second_pages
+    assert first_pages[0] is second_pages[0]
+
+
 def test_slash_roster_add_parses_bulk_text_without_modal(monkeypatch):
     champion_rows = [{"id": "okoye", "slug": "okoye", "name": "Okoye", "class": "skill"}]
     group = _RosterGroup(core=_CoreStub(champion_rows))

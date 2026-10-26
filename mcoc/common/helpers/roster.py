@@ -31,6 +31,7 @@ import io
 import re
 import logging
 import asyncio
+import time
 
 from mcoc.common.components.componentsV2 import CDTEmbed, CDTPagesMenu
 from mcoc.common.helpers.champions import start_champion_filter_flow
@@ -131,6 +132,53 @@ ROSTER_SELECTION_LIMIT = 75
 
 # module-level debounce map
 _persist_pending: Dict[int, asyncio.Task] = {}
+
+ROSTER_PAGE_CACHE_TTL_SECONDS = 180.0
+_ROSTER_PAGE_CACHE: Dict[Tuple[Any, str, Tuple[Tuple[str, Any], ...]], Tuple[float, List[Any]]] = {}
+
+
+def _freeze_cache_value(value: Any) -> Any:
+    if isinstance(value, dict):
+        return tuple(sorted((str(k), _freeze_cache_value(v)) for k, v in value.items()))
+    if isinstance(value, list):
+        return tuple(_freeze_cache_value(v) for v in value)
+    if isinstance(value, set):
+        return tuple(sorted(_freeze_cache_value(v) for v in value))
+    if isinstance(value, tuple):
+        return tuple(_freeze_cache_value(v) for v in value)
+    return value
+
+
+def _get_roster_page_cache_key(user_id: Any, parsed_filters: Optional[Dict[str, Any]]) -> Optional[Tuple[Any, str, Tuple[Tuple[str, Any], ...]]]:
+    if user_id is None:
+        return None
+    normalized = dict(parsed_filters or {})
+    return (user_id, str(normalized.get("list_mode") or "default"), _freeze_cache_value(normalized))
+
+
+def _prune_roster_page_cache() -> None:
+    cutoff = time.monotonic() - ROSTER_PAGE_CACHE_TTL_SECONDS
+    for key, (stamp, _pages) in list(_ROSTER_PAGE_CACHE.items()):
+        if stamp < cutoff:
+            _ROSTER_PAGE_CACHE.pop(key, None)
+
+
+def _is_cacheable_roster_page(page: Any) -> bool:
+    if page is None:
+        return False
+    if isinstance(page, dict):
+        return False
+    return hasattr(page, "description") or hasattr(page, "fields") or hasattr(page, "title")
+
+
+def _cache_roster_pages(cache_key: Optional[Tuple[Any, str, Tuple[Tuple[str, Any], ...]]], pages: List[Any]) -> None:
+    if cache_key is None:
+        return
+    if not pages or not all(_is_cacheable_roster_page(page) for page in pages):
+        _ROSTER_PAGE_CACHE.pop(cache_key, None)
+        return
+    _ROSTER_PAGE_CACHE[cache_key] = (time.monotonic(), list(pages))
+
 
 # -----------------------------
 # Utilities: user manager
@@ -2006,6 +2054,16 @@ async def build_roster_pages(core: Any, ctx_or_author: Any, parsed_filters: Opti
     if user_id is None:
         raise ValueError("build_roster_pages requires ctx_or_author with an .id attribute")
 
+    cache_key = _get_roster_page_cache_key(user_id, parsed_filters)
+    if cache_key is not None:
+        _prune_roster_page_cache()
+        cached = _ROSTER_PAGE_CACHE.get(cache_key)
+        if cached is not None:
+            cached_pages = list(cached[1])
+            if cached_pages and all(_is_cacheable_roster_page(page) for page in cached_pages):
+                return cached_pages
+            _ROSTER_PAGE_CACHE.pop(cache_key, None)
+
     try:
         users = ensure_user_manager(core)
         _ensure_hook_registered(core)
@@ -2310,9 +2368,13 @@ async def build_roster_pages(core: Any, ctx_or_author: Any, parsed_filters: Opti
         if not lines:
             try:
                 emb = CDTEmbed.embed(author_for_embed, title="Roster", description="No champions match the filters.", footer_text=f"Page 1 of 1{ROSTER_FOOTER}")
-                return [emb]
+                pages = [emb]
+                _cache_roster_pages(cache_key, pages)
+                return pages
             except Exception:
-                return [{"title": "Roster", "description": "No champions match the filters.", "footer": {"text": f"Page 1 of 1{ROSTER_FOOTER}"}}]
+                pages = [{"title": "Roster", "description": "No champions match the filters.", "footer": {"text": f"Page 1 of 1{ROSTER_FOOTER}"}}]
+                _cache_roster_pages(cache_key, pages)
+                return pages
 
         # Chunk lines into pages for the default roster view; tierlist-driven modes use field-based pages.
         if list_mode in {"tierlist", "awaken", "rankup"}:
@@ -2421,6 +2483,7 @@ async def build_roster_pages(core: Any, ctx_or_author: Any, parsed_filters: Opti
                 except Exception:
                     page_dict = {"title": roster_title, "fields": [{"name": field_name, "value": "\n".join(field_lines), "inline": False} for field_name, field_lines in chunk_fields], "footer": {"text": footer}}
                     embed_pages.append(page_dict)
+            _cache_roster_pages(cache_key, embed_pages)
             return embed_pages
 
         page_texts: List[str] = []
@@ -2463,12 +2526,14 @@ async def build_roster_pages(core: Any, ctx_or_author: Any, parsed_filters: Opti
                 except Exception:
                     pass
                 embed_pages.append(emb)
+            _cache_roster_pages(cache_key, embed_pages)
             return embed_pages
         except Exception:
             # fallback to dict pages
             out = []
             for i, ptext in enumerate(page_texts):
                 out.append({"title": roster_title, "description": ptext, "footer": {"text": f"Page {i+1} of {len(page_texts)}{ROSTER_FOOTER}"}})
+            _cache_roster_pages(cache_key, out)
             return out
 
     except Exception:
