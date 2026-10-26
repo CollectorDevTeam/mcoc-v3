@@ -14,13 +14,11 @@ Responsibilities:
  - initialize shared systems (mcoc.common.core.init_common_systems)
  - attach the shared core container to bot.mcoc_core
  - perform optional async initialization of common systems
- - register the compatibility prefix root (MCOCPrefix)
- - register top-level feature cogs when available (AccountPrefix, RosterPrefix, AlliancePrefix, ChampionsPrefix, MCOCAdminPrefix)
- - load optional slash root and diagnostics if present
+ - load the slash root and diagnostics if present
 
-This file intentionally prefers explicit Cog registration for the feature modules
-so top-level commands (//account, //roster, //alliance, //champ) are available
-immediately and can be reloaded independently during development.
+Legacy prefix UI is intentionally not loaded by default. The slash-first command
+surface is the active runtime entrypoint; the old prefix commands remain in the
+repository for reference but are no longer registered during bot startup.
 """
 
 from typing import Any
@@ -60,59 +58,7 @@ async def setup(bot: Any) -> None:
         except Exception:
             log.exception("Unexpected error during common core async init")
 
-    # 3) Register the compatibility prefix root (//mcoc)
-    try:
-        from .prefix.core import MCOCPrefix
-        try:
-            await bot.add_cog(MCOCPrefix(bot))
-            log.debug("MCOCPrefix loaded")
-        except Exception:
-            try:
-                result = bot.add_cog(MCOCPrefix(bot))
-                if inspect.isawaitable(result):
-                    await result
-                log.debug("MCOCPrefix loaded (async fallback)")
-            except Exception:
-                log.exception("Failed to add MCOCPrefix cog")
-    except Exception:
-        log.exception("Failed to import MCOCPrefix (compatibility root)")
-
-    # 4) Register top-level prefix feature cogs if present.
-    #    These are optional; failures are non-fatal but logged.
-    #    Registering them here ensures //account, //roster, //alliance, //champ, //mcocadmin exist.
-    feature_cogs = [
-        ("mcoc.prefix.account", "AccountPrefix"),
-        ("mcoc.prefix.roster", "RosterPrefix"),
-        ("mcoc.prefix.alliance", "AlliancePrefix"),
-        ("mcoc.prefix.champions", "ChampionsPrefix"),
-        ("mcoc.prefix.admin", "MCOCAdminPrefix"),
-    ]
-
-    for module_path, class_name in feature_cogs:
-        try:
-            mod = __import__(module_path, fromlist=[class_name])
-            cog_cls = getattr(mod, class_name, None)
-            if cog_cls is None:
-                log.debug("Module %s loaded but %s not found; skipping", module_path, class_name)
-                continue
-            try:
-                await bot.add_cog(cog_cls(bot))
-                log.debug("Loaded feature cog %s from %s", class_name, module_path)
-            except Exception:
-                try:
-                    result = bot.add_cog(cog_cls(bot))
-                    if inspect.isawaitable(result):
-                        await result
-                    log.debug("Loaded feature cog %s (async fallback) from %s", class_name, module_path)
-                except Exception:
-                    log.exception("Failed to add feature cog %s from %s", class_name, module_path)
-        except ModuleNotFoundError:
-            # Not installed in this environment; skip quietly at debug level
-            log.debug("Feature module %s not present; skipping", module_path)
-        except Exception:
-            log.exception("Failed to import feature module %s", module_path)
-
-    # 5) Optional: load slash root if available (non-fatal)
+    # 3) Optional: load slash root if available (non-fatal)
     try:
         from .slash.core import MCOCSlash  # type: ignore
         try:
@@ -131,7 +77,7 @@ async def setup(bot: Any) -> None:
     except Exception:
         log.exception("Failed to import MCOCSlash (non-fatal)")
 
-    # 6) Optional diagnostics cog (non-fatal)
+    # 4) Optional diagnostics cog (non-fatal)
     try:
         from .diagnostics.diagnostics import Diagnostics  # type: ignore
         try:

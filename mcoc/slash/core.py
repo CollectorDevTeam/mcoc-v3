@@ -41,9 +41,11 @@ class MCOCSlash(commands.Cog):
     async def _attach_slash_cogs(self):
         slash_cogs = [
             ("mcoc.slash.champions", "ChampionSlashCog"),
+            ("mcoc.slash.alliance", "AllianceSlashCog"),
             ("mcoc.slash.roster", "RosterSlashCog"),
             ("mcoc.slash.account", "AccountSlashCog"),
             ("mcoc.slash.admin", "AdminSlashCog"),
+            ("mcoc.slash.contextmenu", "ContextMenuSlashCog"),
         ]
 
         for module_name, class_name in slash_cogs:
@@ -129,6 +131,7 @@ class MCOCSlash(commands.Cog):
         """Ensure loaded slash cog groups are actually attached to the app command tree."""
         cogs = [
             "ChampionSlashCog",
+            "AllianceSlashCog",
             "RosterSlashCog",
             "AccountSlashCog",
             "AdminSlashCog",

@@ -31,9 +31,55 @@ import time
 
 log = logging.getLogger("red.mcoc.alliance")
 
+ALLIANCE_TYPE_SIMPLE = "simple"
+ALLIANCE_TYPE_ADVANCED = "advanced"
+_ALLIANCE_TYPE_ALIASES = {
+    "simple": ALLIANCE_TYPE_SIMPLE,
+    "advanced": ALLIANCE_TYPE_ADVANCED,
+    "complex": ALLIANCE_TYPE_ADVANCED,
+}
+
+_CORE_ROLE_KEYS = ["alliance", "officers", "members", "leader", "managers"]
+_SIMPLE_BG_KEYS = ["bg1", "bg2", "bg3"]
+_ADVANCED_AQ_KEYS = ["aqbg1", "aqbg2", "aqbg3"]
+_ADVANCED_AW_KEYS = ["awbg1", "awbg2", "awbg3"]
+_ALL_BG_KEYS = _SIMPLE_BG_KEYS + _ADVANCED_AQ_KEYS + _ADVANCED_AW_KEYS
+
 # persistent storage path
 DATA_PATH = pathlib.Path("data") / "account" / "alliances.json"
 DATA_PATH.parent.mkdir(parents=True, exist_ok=True)
+
+
+def normalize_alliance_type(type_: Optional[str]) -> str:
+    return _ALLIANCE_TYPE_ALIASES.get(str(type_ or "").strip().lower(), ALLIANCE_TYPE_SIMPLE)
+
+
+def expected_battlegroup_keys(type_: Optional[str]) -> List[str]:
+    type_norm = normalize_alliance_type(type_)
+    if type_norm == ALLIANCE_TYPE_ADVANCED:
+        return list(_ADVANCED_AQ_KEYS + _ADVANCED_AW_KEYS)
+    return list(_SIMPLE_BG_KEYS)
+
+
+def _role_display_name(alliance_name: str, key: str) -> str:
+    name = (alliance_name or "Alliance").strip() or "Alliance"
+    labels = {
+        "alliance": "Alliance",
+        "officers": "Officers",
+        "members": "Members",
+        "leader": "Leader",
+        "managers": "Managers",
+        "bg1": "BG1",
+        "bg2": "BG2",
+        "bg3": "BG3",
+        "aqbg1": "AQBG1",
+        "aqbg2": "AQBG2",
+        "aqbg3": "AQBG3",
+        "awbg1": "AWBG1",
+        "awbg2": "AWBG2",
+        "awbg3": "AWBG3",
+    }
+    return f"{name} {labels.get(key, key.upper())}"
 
 
 # -----------------------------
@@ -108,26 +154,19 @@ async def create_or_link_role(guild, role_name: str, key: str, role_obj=None) ->
 async def register_alliance(guild, alliance_name: str, alliance_tag: Optional[str] = None, type_: str = "simple") -> bool:
     """
     Register an alliance on this guild.
-    - simple: create core roles (alliance, officers, members)
-    - complex: create core roles plus leader and battlegroup roles
+    - simple: create core roles plus BG1/BG2/BG3
+    - advanced: create core roles plus AQBG1/2/3 and AWBG1/2/3
     """
     try:
         cfg = get_guild_config(guild.id) or {}
-        cfg["type"] = type_
+        type_norm = normalize_alliance_type(type_)
+        cfg["type"] = type_norm
         cfg.setdefault("roles", {})
 
-        # core roles
-        await create_or_link_role(guild, f"{alliance_name} Alliance", "alliance")
-        await create_or_link_role(guild, f"{alliance_name} Officers", "officers")
-        await create_or_link_role(guild, f"{alliance_name} Members", "members")
-
-        if type_ and type_.lower() == "complex":
-            await create_or_link_role(guild, f"{alliance_name} Leader", "leader")
-            await create_or_link_role(guild, f"{alliance_name} BG1", "bg1")
-            await create_or_link_role(guild, f"{alliance_name} BG2", "bg2")
-            await create_or_link_role(guild, f"{alliance_name} BG3", "bg3")
-            await create_or_link_role(guild, f"{alliance_name} AQBG1", "aqbg1")
-            await create_or_link_role(guild, f"{alliance_name} AWBG1", "awbg1")
+        role_keys = list(_CORE_ROLE_KEYS)
+        role_keys.extend(expected_battlegroup_keys(type_norm))
+        for key in role_keys:
+            await create_or_link_role(guild, _role_display_name(alliance_name, key), key)
 
         cfg.setdefault("info", {})["name"] = alliance_name
         if alliance_tag:
@@ -207,6 +246,18 @@ async def join_alliance(member, guild, role_key: str = "members") -> Tuple[bool,
         if not role_obj:
             return False, "Configured role not found on server."
         await member.add_roles(role_obj, reason="Joining alliance via mcoc")
+
+        # Alliance + members roles are mandatory membership rails.
+        for base_key in ("alliance", "members"):
+            base_cfg = roles.get(base_key)
+            if not isinstance(base_cfg, dict):
+                continue
+            base_role = guild.get_role(base_cfg.get("id"))
+            if base_role and base_role not in member.roles:
+                try:
+                    await member.add_roles(base_role, reason=f"Alliance membership baseline: {base_key}")
+                except Exception:
+                    log.exception("Failed to add baseline role %s to member %s", base_key, member.id)
 
         if member.id not in mids:
             mids.append(member.id)
@@ -374,19 +425,19 @@ def set_alliance_info_field(guild_id: int, field: str, value: Union[str, None]) 
 def set_alliance_type(guild_id: int, type_: str, guild_obj=None) -> bool:
     try:
         cfg = get_guild_config(guild_id) or {}
-        type_norm = (type_ or "").lower()
-        if type_norm not in ("simple", "complex"):
-            return False
+        type_norm = normalize_alliance_type(type_)
         cfg["type"] = type_norm
         set_guild_config(guild_id, cfg)
 
-        if type_norm == "complex" and guild_obj is not None:
+        if guild_obj is not None:
             name = cfg.get("info", {}).get("name", "Alliance")
-            keys = ["leader", "bg1", "bg2", "bg3", "aqbg1", "awbg1"]
+            keys = list(_CORE_ROLE_KEYS)
+            keys.extend(expected_battlegroup_keys(type_norm))
+
             async def _ensure_roles():
                 for k in keys:
                     if not cfg.get("roles", {}).get(k):
-                        await create_or_link_role(guild_obj, f"{name} {k.upper() if k.startswith('bg') else k.capitalize()}", k)
+                        await create_or_link_role(guild_obj, _role_display_name(name, k), k)
             try:
                 loop = asyncio.get_event_loop()
                 if loop.is_running():
@@ -438,12 +489,98 @@ def get_officer_ids(guild_id: int) -> List[int]:
         return []
 
 
+def get_alliance_diagnostics(guild) -> Dict[str, Any]:
+    """
+    Validate alliance role constraints for managers.
+
+    Rules:
+    - Alliance role max size: 30
+    - Active battlegroup roles max size: 10 each
+    - Battlegroup members must also have alliance role
+    """
+    cfg = get_guild_config(getattr(guild, "id", 0)) or {}
+    result = {
+        "ok": True,
+        "type": normalize_alliance_type(cfg.get("type", "simple")),
+        "issues": [],
+        "lines": [],
+    }
+    if not cfg:
+        result["ok"] = False
+        result["issues"].append("No alliance configuration found for this guild.")
+        result["lines"].append("No alliance configuration found for this guild.")
+        return result
+
+    roles = cfg.get("roles", {}) or {}
+    type_norm = result["type"]
+    bg_keys = expected_battlegroup_keys(type_norm)
+
+    alliance_cfg = roles.get("alliance")
+    alliance_role = guild.get_role(alliance_cfg.get("id")) if isinstance(alliance_cfg, dict) else None
+    alliance_members = set(alliance_role.members) if alliance_role else set()
+    if alliance_role is None:
+        result["ok"] = False
+        result["issues"].append("Alliance role is not configured or missing on the server.")
+        result["lines"].append("[ERROR] alliance role missing")
+    else:
+        count = len(alliance_role.members)
+        if count > 30:
+            result["ok"] = False
+            result["issues"].append(f"Alliance role has {count} members (max 30).")
+            result["lines"].append(f"[ERROR] alliance members={count}/30")
+        else:
+            result["lines"].append(f"[OK] alliance members={count}/30")
+
+    result["lines"].append(f"Alliance type: {type_norm}")
+    for key in bg_keys:
+        role_cfg = roles.get(key)
+        if not isinstance(role_cfg, dict):
+            result["ok"] = False
+            result["issues"].append(f"Role `{key}` is not configured.")
+            result["lines"].append(f"[ERROR] {key} role missing")
+            continue
+        role_obj = guild.get_role(role_cfg.get("id"))
+        if role_obj is None:
+            result["ok"] = False
+            result["issues"].append(f"Role `{key}` no longer exists on the server.")
+            result["lines"].append(f"[ERROR] {key} role not found")
+            continue
+
+        member_count = len(role_obj.members)
+        status = "OK"
+        if member_count > 10:
+            result["ok"] = False
+            status = "ERROR"
+            result["issues"].append(f"Role `{key}` has {member_count} members (max 10).")
+
+        missing_alliance = []
+        if alliance_role is not None:
+            for member in role_obj.members:
+                if member not in alliance_members:
+                    missing_alliance.append(member)
+        if missing_alliance:
+            result["ok"] = False
+            status = "ERROR"
+            names = ", ".join(getattr(m, "display_name", str(getattr(m, "id", "?"))) for m in missing_alliance[:6])
+            if len(missing_alliance) > 6:
+                names += ", ..."
+            result["issues"].append(f"Role `{key}` has members missing alliance role: {names}")
+
+        result["lines"].append(f"[{status}] {key} members={member_count}/10")
+
+    return result
+
+
 # Backwards-compatible alias
 alliance_info = get_alliance_info
 
 
 # Public exports
 __all__ = (
+    "ALLIANCE_TYPE_SIMPLE",
+    "ALLIANCE_TYPE_ADVANCED",
+    "normalize_alliance_type",
+    "expected_battlegroup_keys",
     "get_guild_config",
     "set_guild_config",
     "remove_guild_config",
@@ -464,4 +601,5 @@ __all__ = (
     "add_officer_by_id",
     "remove_officer_by_id",
     "get_officer_ids",
+    "get_alliance_diagnostics",
 )
