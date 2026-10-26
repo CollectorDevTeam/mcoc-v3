@@ -14,6 +14,17 @@ def test_slash_core_loads_contextmenu_cog():
     assert "ContextMenuSlashCog" in text
 
 
+def test_contextmenu_is_consolidated_to_single_command():
+    import inspect
+    import mcoc.slash.contextmenu as contextmenu_module
+
+    text = inspect.getsource(contextmenu_module.ContextMenuSlashCog.cog_load)
+
+    assert 'ContextMenu(name="CollectorVerse"' in text
+    assert 'ContextMenu(name="CollectorVerse Profile"' not in text
+    assert 'ContextMenu(name="Roster Add"' not in text
+
+
 def test_contextmenu_alliance_manage_has_bg_actions():
     import inspect
     import mcoc.slash.contextmenu as contextmenu_module

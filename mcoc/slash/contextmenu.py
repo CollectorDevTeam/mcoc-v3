@@ -165,6 +165,42 @@ class _AllianceMemberRoleButton(discord.ui.Button):
         await interaction.response.send_message("This action is no longer available.", ephemeral=True)
 
 
+class _CollectorVerseUserActionView(CDTAutoCleanupView):
+    def __init__(self, cog: "ContextMenuSlashCog", actor: discord.Member, target: discord.Member):
+        super().__init__(timeout=180)
+        self.cog = cog
+        self.actor = actor
+        self.target = target
+
+    @discord.ui.button(label="Profile", style=discord.ButtonStyle.primary, row=0)
+    async def profile(self, interaction: discord.Interaction, _button: discord.ui.Button):
+        await self.cog._send_profile(interaction, self.target)
+
+    @discord.ui.button(label="Roster", style=discord.ButtonStyle.primary, row=0)
+    async def roster(self, interaction: discord.Interaction, _button: discord.ui.Button):
+        await self.cog._send_roster(interaction, self.target)
+
+    @discord.ui.button(label="Profile Settings", style=discord.ButtonStyle.secondary, row=0)
+    async def profile_settings(self, interaction: discord.Interaction, _button: discord.ui.Button):
+        await self.cog._ctx_profile_settings(interaction, self.target)
+
+    @discord.ui.button(label="Roster Add", style=discord.ButtonStyle.secondary, row=1)
+    async def roster_add(self, interaction: discord.Interaction, _button: discord.ui.Button):
+        await self.cog._ctx_roster_add(interaction, self.target)
+
+    @discord.ui.button(label="Roster Remove", style=discord.ButtonStyle.secondary, row=1)
+    async def roster_remove(self, interaction: discord.Interaction, _button: discord.ui.Button):
+        await self.cog._ctx_roster_remove(interaction, self.target)
+
+    @discord.ui.button(label="Alliance Invite", style=discord.ButtonStyle.success, row=1)
+    async def alliance_invite(self, interaction: discord.Interaction, _button: discord.ui.Button):
+        await self.cog._ctx_alliance_invite(interaction, self.target)
+
+    @discord.ui.button(label="Alliance Manage", style=discord.ButtonStyle.success, row=1)
+    async def alliance_manage(self, interaction: discord.Interaction, _button: discord.ui.Button):
+        await self.cog._ctx_alliance_manage(interaction, self.target)
+
+
 class ContextMenuSlashCog(commands.Cog):
     def __init__(self, bot: Any):
         self.bot = bot
@@ -304,16 +340,36 @@ class ContextMenuSlashCog(commands.Cog):
         )
         await view.bind_to_interaction_response(interaction)
 
+    async def _ctx_collectorverse(self, interaction: discord.Interaction, user: discord.Member):
+        view = _CollectorVerseUserActionView(self, interaction.user, user)
+        await interaction.response.send_message(
+            f"CollectorVerse actions for {user.mention}",
+            view=view,
+            ephemeral=True,
+        )
+        await view.bind_to_interaction_response(interaction)
+
     async def cog_load(self):
+        # Consolidated to one context command to stay under Discord user-command limits.
         menus = [
-            app_commands.ContextMenu(name="CollectorVerse Profile", callback=self._ctx_profile),
-            app_commands.ContextMenu(name="Profile Settings", callback=self._ctx_profile_settings),
-            app_commands.ContextMenu(name="CollectorVerse Roster", callback=self._ctx_roster),
-            app_commands.ContextMenu(name="Roster Add", callback=self._ctx_roster_add),
-            app_commands.ContextMenu(name="Roster Remove", callback=self._ctx_roster_remove),
-            app_commands.ContextMenu(name="Alliance Invite", callback=self._ctx_alliance_invite),
-            app_commands.ContextMenu(name="Alliance Manage", callback=self._ctx_alliance_manage),
+            app_commands.ContextMenu(name="CollectorVerse", callback=self._ctx_collectorverse),
         ]
+
+        legacy_names = [
+            "CollectorVerse Profile",
+            "Profile Settings",
+            "CollectorVerse Roster",
+            "Roster Add",
+            "Roster Remove",
+            "Alliance Invite",
+            "Alliance Manage",
+        ]
+
+        for legacy_name in legacy_names:
+            try:
+                self.bot.tree.remove_command(legacy_name, type=discord.AppCommandType.user)
+            except Exception:
+                pass
 
         for menu in menus:
             try:
