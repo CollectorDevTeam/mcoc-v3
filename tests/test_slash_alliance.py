@@ -38,6 +38,21 @@ def test_alliance_settings_view_has_required_buttons():
     assert "DELETE" in text
 
 
+def test_alliance_owner_sees_create_when_no_alliance_exists():
+    import types
+    import mcoc.slash.alliance as alliance_module
+
+    guild = types.SimpleNamespace(id=99, name="Test Guild", owner_id=42)
+    author = types.SimpleNamespace(id=42, roles=[], guild_permissions=types.SimpleNamespace(administrator=True))
+
+    caps = alliance_module._caps_for(author, guild, None)
+    assert "create" in caps
+
+    view = alliance_module._AllianceSettingsView(object(), caps, guild, author, None)
+    labels = [getattr(item, "label", "") for item in view.children if hasattr(item, "label")]
+    assert "CREATE" in labels
+
+
 def test_alliance_profile_is_display_only_without_manage_button():
     import inspect
     import mcoc.slash.alliance as alliance_module

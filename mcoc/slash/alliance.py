@@ -364,7 +364,7 @@ class _AllianceSettingsView(CDTAutoCleanupView):
         self.clear_items()
 
         has_alliance = bool(cfg)
-        can_create = "create" in caps and not has_alliance and _is_premium_user(author)
+        can_create = "create" in caps and not has_alliance
         self.create_btn.disabled = not can_create
         self.reports_btn.disabled = "reports" not in caps or not has_alliance
         self.manage_btn.disabled = "manage" not in caps or not has_alliance
