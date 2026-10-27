@@ -20,8 +20,8 @@ def test_contextmenu_is_split_into_roster_and_alliance_commands():
 
     text = inspect.getsource(contextmenu_module.ContextMenuSlashCog.cog_load)
 
-    assert 'ContextMenu(name="CollectorVerse Roster"' in text
-    assert 'ContextMenu(name="CollectorVerse Alliance"' in text
+    assert 'ContextMenu(name="MCOC Roster"' in text
+    assert 'ContextMenu(name="MCOC Alliance"' in text
     assert 'ContextMenu(name="CollectorVerse"' not in text
     assert 'ContextMenu(name="CollectorVerse Profile"' not in text
     assert 'ContextMenu(name="Roster Add"' not in text
@@ -55,3 +55,18 @@ def test_contextmenu_alliance_manage_has_bg_actions():
     assert "Set AWBG2" in text
     assert "Set AWBG3" in text
     assert "Set Manager" in text
+
+
+def test_roster_edit_settings_contains_import_export_and_no_data_button():
+    import inspect
+    import mcoc.slash.roster as roster_module
+
+    root_text = inspect.getsource(roster_module._RosterEditRootView)
+    settings_text = inspect.getsource(roster_module._RosterEditSettingsView)
+
+    assert 'label="DATA"' not in root_text
+    assert 'label="MCOC ID"' in settings_text
+    assert 'label="MCOC USERNAME"' in settings_text
+    assert 'label="IMPORT"' in settings_text
+    assert 'label="EXPORT"' in settings_text
+    assert 'label="DELETE"' in settings_text

@@ -778,15 +778,50 @@ class _RosterEditSettingsView(CDTAutoCleanupView):
         self.group = group
         self.add_item(_RosterEditBackButton(group))
 
-    @ui.button(label="SET MCOC ID", style=discord.ButtonStyle.primary)
+    @ui.button(label="MCOC ID", style=discord.ButtonStyle.primary)
     async def set_mcoc_id(self, interaction, _button):
         await interaction.response.send_modal(_RosterSettingSingleValueModal(self.group, title="Roster Settings: MCOC ID", field="mcoc_id", label="MCOC ID", placeholder="Your in-game MCOC ID"))
 
-    @ui.button(label="SET MCOC USERNAME", style=discord.ButtonStyle.primary)
+    @ui.button(label="MCOC USERNAME", style=discord.ButtonStyle.primary)
     async def set_mcoc_username(self, interaction, _button):
         await interaction.response.send_modal(_RosterSettingSingleValueModal(self.group, title="Roster Settings: MCOC Username", field="mcoc_name", label="MCOC Username", placeholder="Your in-game display name"))
 
-    @ui.button(label="DELETE ROSTER", style=discord.ButtonStyle.danger)
+    @ui.button(label="IMPORT", style=discord.ButtonStyle.primary)
+    async def import_data(self, interaction, _button):
+        await interaction.response.send_modal(_RosterDataImportModal(self.group))
+
+    @ui.button(label="EXPORT", style=discord.ButtonStyle.primary)
+    async def export_data(self, interaction, _button):
+        try:
+            await interaction.response.defer(ephemeral=True)
+        except Exception:
+            pass
+
+        try:
+            users = ensure_user_manager(self.group.core)
+            data = users.export(interaction.user.id) if users else {}
+            payload = json.dumps(data, ensure_ascii=True, default=str)
+            if len(payload) <= 1800:
+                message = f"```json\n{discord.utils.escape_markdown(payload)}\n```"
+                try:
+                    await interaction.followup.send(message, ephemeral=True)
+                except Exception:
+                    await interaction.response.send_message(message, ephemeral=True)
+                return
+
+            file_obj = discord.File(io.BytesIO(payload.encode("utf-8")), filename="roster-export.json")
+            try:
+                await interaction.followup.send("Roster export attached.", file=file_obj, ephemeral=True)
+            except Exception:
+                await interaction.response.send_message("Roster export attached.", file=file_obj, ephemeral=True)
+        except Exception as exc:
+            msg = f"Export failed: {exc}"
+            try:
+                await interaction.followup.send(msg, ephemeral=True)
+            except Exception:
+                await interaction.response.send_message(msg, ephemeral=True)
+
+    @ui.button(label="DELETE", style=discord.ButtonStyle.danger)
     async def delete_roster(self, interaction, _button):
         await interaction.response.edit_message(content="Confirm roster deletion:", view=_RosterDeleteConfirmView(self.group))
 
@@ -849,10 +884,6 @@ class _RosterEditRootView(CDTAutoCleanupView):
     @ui.button(label="SETTINGS", style=discord.ButtonStyle.secondary)
     async def settings(self, interaction, _button):
         await interaction.response.edit_message(content="Roster Edit > SETTINGS", view=_RosterEditSettingsView(self.group))
-
-    @ui.button(label="DATA", style=discord.ButtonStyle.secondary)
-    async def data(self, interaction, _button):
-        await interaction.response.edit_message(content="Roster Edit > DATA", view=_RosterEditDataView(self.group))
 
 
 class _RosterGroup(app_commands.Group):

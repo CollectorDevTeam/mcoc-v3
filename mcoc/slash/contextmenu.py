@@ -401,8 +401,8 @@ class ContextMenuSlashCog(commands.Cog):
 
     async def cog_load(self):
         menus = [
-            app_commands.ContextMenu(name="CollectorVerse Roster", callback=self._ctx_roster),
-            app_commands.ContextMenu(name="CollectorVerse Alliance", callback=self._ctx_alliance),
+            app_commands.ContextMenu(name="MCOC Roster", callback=self._ctx_roster),
+            app_commands.ContextMenu(name="MCOC Alliance", callback=self._ctx_alliance),
         ]
 
         legacy_names = [
@@ -410,6 +410,9 @@ class ContextMenuSlashCog(commands.Cog):
             "CollectorVerse Profile",
             "Profile Settings",
             "CollectorVerse Roster",
+            "CollectorVerse Alliance",
+            "MCOC Roster",
+            "MCOC Alliance",
             "Roster Add",
             "Roster Remove",
             "Alliance Invite",
