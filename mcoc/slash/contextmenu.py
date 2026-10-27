@@ -11,6 +11,8 @@ from ..common.components.componentsV2 import CDTAutoCleanupView
 from ..common.helpers import account as Account
 from ..common.helpers import alliance as Alliance
 from ..common.helpers.roster import make_roster_pager
+from . import account as AccountSlash
+from . import alliance as AllianceSlash
 from .account import _AccountManagerView
 
 log = logging.getLogger("red.mcoc.slash.contextmenu")
@@ -45,9 +47,26 @@ async def _edit_or_send(
         await response.send_message(content=content, embed=embed, view=view, ephemeral=ephemeral)
 
 
-class _AllianceManageMemberView(CDTAutoCleanupView):
+class _MCOCAuthorLockedView(CDTAutoCleanupView):
+    """Context-menu views restricted to the invoking user."""
+
+    def __init__(self, actor_id: int, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.actor_id = actor_id
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        allowed = await super().interaction_check(interaction)
+        if not allowed:
+            return False
+        if getattr(interaction.user, "id", None) == self.actor_id:
+            return True
+        await _edit_or_send(interaction, content="Only the message author can use these buttons.", ephemeral=True)
+        return False
+
+
+class _AllianceManageMemberView(_MCOCAuthorLockedView):
     def __init__(self, core: Any, manager: discord.Member, target: discord.Member):
-        super().__init__(timeout=180)
+        super().__init__(getattr(manager, "id", 0), timeout=180)
         self.core = core
         self.manager = manager
         self.target = target
@@ -203,7 +222,44 @@ class _MCOCActionButton(discord.ui.Button):
         if isinstance(view, _MCOCAllianceSectionView):
             await view.handle(interaction, self.action)
             return
+        if isinstance(view, _MCOCAccountSettingsView):
+            await view.handle(interaction, self.action)
+            return
         await _edit_or_send(interaction, content="This action is no longer available.")
+
+
+class _MCOCBackButton(discord.ui.Button):
+    def __init__(self):
+        super().__init__(label="BACK", style=discord.ButtonStyle.secondary, row=4)
+
+    async def callback(self, interaction: discord.Interaction):
+        view = self.view
+        if isinstance(view, _MCOCSectionViewBase):
+            await view.go_back(interaction)
+            return
+        await _edit_or_send(interaction, content="This action is no longer available.")
+
+
+class _MCOCSectionViewBase(_MCOCAuthorLockedView):
+    def __init__(self, cog: "ContextMenuSlashCog", actor: discord.Member, target: discord.Member, *, timeout: float = 180):
+        super().__init__(getattr(actor, "id", 0), timeout=timeout)
+        self.cog = cog
+        self.actor = actor
+        self.target = target
+
+    async def go_back(self, interaction: discord.Interaction):
+        main = _MCOCMainView(self.cog, self.actor, self.target)
+        await _edit_or_send(interaction, content=f"MCOC > {self.target.mention}", view=main, ephemeral=True)
+        await main.bind_to_interaction_response(interaction)
+
+
+class _ViewBackButton(discord.ui.Button):
+    def __init__(self, callback):
+        super().__init__(label="BACK", style=discord.ButtonStyle.secondary, row=4)
+        self._callback = callback
+
+    async def callback(self, interaction: discord.Interaction):
+        await self._callback(interaction)
 
 
 class _CollectorVerseUserActionView(CDTAutoCleanupView):
@@ -244,9 +300,9 @@ class _CollectorVerseUserActionView(CDTAutoCleanupView):
         await self.cog._ctx_alliance_manage(interaction, self.target, edit_existing=True)
 
 
-class _MCOCMainView(CDTAutoCleanupView):
+class _MCOCMainView(_MCOCAuthorLockedView):
     def __init__(self, cog: "ContextMenuSlashCog", actor: discord.Member, target: discord.Member):
-        super().__init__(timeout=180)
+        super().__init__(getattr(actor, "id", 0), timeout=180)
         self.cog = cog
         self.actor = actor
         self.target = target
@@ -272,13 +328,11 @@ class _MCOCMainView(CDTAutoCleanupView):
             return
 
 
-class _MCOCUserSectionView(CDTAutoCleanupView):
+class _MCOCUserSectionView(_MCOCSectionViewBase):
     def __init__(self, cog: "ContextMenuSlashCog", actor: discord.Member, target: discord.Member):
-        super().__init__(timeout=180)
-        self.cog = cog
-        self.actor = actor
-        self.target = target
+        super().__init__(cog, actor, target, timeout=180)
         self.add_item(_MCOCActionButton("SETTINGS", "settings", style=discord.ButtonStyle.secondary))
+        self.add_item(_MCOCBackButton())
 
     async def handle(self, interaction: discord.Interaction, action: str):
         if action == "settings":
@@ -286,16 +340,14 @@ class _MCOCUserSectionView(CDTAutoCleanupView):
             return
 
 
-class _MCOCRosterSectionView(CDTAutoCleanupView):
+class _MCOCRosterSectionView(_MCOCSectionViewBase):
     def __init__(self, cog: "ContextMenuSlashCog", actor: discord.Member, target: discord.Member):
-        super().__init__(timeout=180)
-        self.cog = cog
-        self.actor = actor
-        self.target = target
+        super().__init__(cog, actor, target, timeout=180)
         self.add_item(_MCOCActionButton("ADD", "add", style=discord.ButtonStyle.green))
         self.add_item(_MCOCActionButton("REMOVE", "remove", style=discord.ButtonStyle.red))
         self.add_item(_MCOCActionButton("SETTINGS", "settings", style=discord.ButtonStyle.secondary))
         self.add_item(_MCOCActionButton("LIST", "list", style=discord.ButtonStyle.primary))
+        self.add_item(_MCOCBackButton())
 
     async def handle(self, interaction: discord.Interaction, action: str):
         if action == "add":
@@ -315,16 +367,14 @@ class _MCOCRosterSectionView(CDTAutoCleanupView):
             return
 
 
-class _MCOCAllianceSectionView(CDTAutoCleanupView):
+class _MCOCAllianceSectionView(_MCOCSectionViewBase):
     def __init__(self, cog: "ContextMenuSlashCog", actor: discord.Member, target: discord.Member):
-        super().__init__(timeout=180)
-        self.cog = cog
-        self.actor = actor
-        self.target = target
+        super().__init__(cog, actor, target, timeout=180)
         self.add_item(_MCOCActionButton("REPORTS", "reports", style=discord.ButtonStyle.primary))
         self.add_item(_MCOCActionButton("SETTINGS", "settings", style=discord.ButtonStyle.secondary))
         self.add_item(_MCOCActionButton("ASSIGN ROLE", "assign", style=discord.ButtonStyle.secondary))
         self.add_item(_MCOCActionButton("PROFILE", "profile", style=discord.ButtonStyle.primary))
+        self.add_item(_MCOCBackButton())
 
     async def handle(self, interaction: discord.Interaction, action: str):
         if action == "reports":
@@ -339,7 +389,7 @@ class _MCOCAllianceSectionView(CDTAutoCleanupView):
             if not Alliance.is_alliance_manager(interaction.user, guild):
                 await _edit_or_send(interaction, content="You do not have alliance management permissions.")
                 return
-            await self.cog._send_alliance_reports(interaction, guild)
+            await self.cog._ctx_alliance_reports_workflow(interaction)
             return
         if action == "settings":
             guild = getattr(interaction, "guild", None)
@@ -349,7 +399,7 @@ class _MCOCAllianceSectionView(CDTAutoCleanupView):
             if not Alliance.is_alliance_manager(interaction.user, guild):
                 await _edit_or_send(interaction, content="You do not have alliance management permissions.")
                 return
-            await self.cog._ctx_alliance_manage(interaction, self.target, edit_existing=True)
+            await self.cog._ctx_alliance_settings_manage_workflow(interaction)
             return
         if action == "assign":
             guild = getattr(interaction, "guild", None)
@@ -366,6 +416,84 @@ class _MCOCAllianceSectionView(CDTAutoCleanupView):
             return
 
 
+class _MCOCAccountSettingsView(_MCOCSectionViewBase):
+    def __init__(self, cog: "ContextMenuSlashCog", actor: discord.Member, target: discord.Member):
+        super().__init__(cog, actor, target, timeout=180)
+        self.add_item(_MCOCActionButton("VIEW", "view", style=discord.ButtonStyle.primary))
+        self.add_item(_MCOCActionButton("EDIT", "edit", style=discord.ButtonStyle.primary))
+        self.add_item(_MCOCActionButton("PRIVACY", "privacy", style=discord.ButtonStyle.secondary))
+        self.add_item(_MCOCBackButton())
+
+    async def _go_to_user_settings_root(self, interaction: discord.Interaction):
+        view = _MCOCAccountSettingsView(self.cog, self.actor, self.target)
+        await _edit_or_send(
+            interaction,
+            content="MCOC > USER > Manage your CollectorVerse account settings and privacy.",
+            view=view,
+            ephemeral=True,
+        )
+        await view.bind_to_interaction_response(interaction)
+
+    def _attach_back_and_author_guard(self, view: CDTAutoCleanupView):
+        actor_id = getattr(self.actor, "id", 0)
+
+        original_check = getattr(view, "interaction_check", None)
+
+        async def _guard(interaction: discord.Interaction):
+            if callable(original_check):
+                ok = await original_check(interaction)
+                if not ok:
+                    return False
+            if getattr(interaction.user, "id", None) != actor_id:
+                await _edit_or_send(interaction, content="Only the message author can use these buttons.", ephemeral=True)
+                return False
+            return True
+
+        view.interaction_check = _guard  # type: ignore[attr-defined]
+        view.add_item(_ViewBackButton(self._go_to_user_settings_root))
+
+    async def handle(self, interaction: discord.Interaction, action: str):
+        if action == "view":
+            profile = Account.get_profile(self.cog.core, self.target.id) or {}
+            view = AccountSlash._ProfilePageSelectorView(
+                self.cog.core,
+                self.target.id,
+                profile,
+                mode="view",
+                member=interaction.user,
+            )
+            self._attach_back_and_author_guard(view)
+            await _edit_or_send(interaction, content="MCOC > USER > VIEW > Choose the profile page you want to view.", view=view, ephemeral=True)
+            await view.bind_to_interaction_response(interaction)
+            return
+        if action == "edit":
+            profile = Account.get_profile(self.cog.core, self.target.id) or {}
+            view = AccountSlash._ProfilePageSelectorView(
+                self.cog.core,
+                self.target.id,
+                profile,
+                mode="edit",
+                member=interaction.user,
+            )
+            self._attach_back_and_author_guard(view)
+            await _edit_or_send(interaction, content="MCOC > USER > EDIT > Choose the section to edit.", view=view, ephemeral=True)
+            await view.bind_to_interaction_response(interaction)
+            return
+        if action == "privacy":
+            profile = Account.get_profile(self.cog.core, self.target.id) or {}
+            current = profile.get("privacy_mode") or "public"
+            view = AccountSlash._AccountPrivacyView(self.cog.core, self.target.id)
+            self._attach_back_and_author_guard(view)
+            await _edit_or_send(
+                interaction,
+                content=f"MCOC > USER > PRIVACY > Current privacy mode: {current}\nChoose your visibility below.",
+                view=view,
+                ephemeral=True,
+            )
+            await view.bind_to_interaction_response(interaction)
+            return
+
+
 class ContextMenuSlashCog(commands.Cog):
     def __init__(self, bot: Any):
         self.bot = bot
@@ -373,11 +501,6 @@ class ContextMenuSlashCog(commands.Cog):
         self._registered_menus: list[app_commands.ContextMenu] = []
 
     async def _send_profile(self, interaction: discord.Interaction, target: discord.User):
-        try:
-            await interaction.response.defer(ephemeral=False)
-        except Exception:
-            pass
-
         emb, text = Account.build_profile_display(
             self.core,
             interaction,
@@ -387,24 +510,19 @@ class ContextMenuSlashCog(commands.Cog):
         )
 
         if emb is not None:
-            await interaction.followup.send(embed=emb, ephemeral=False)
+            await _edit_or_send(interaction, content=None, embed=emb, ephemeral=False)
             return
-        await interaction.followup.send(text or "No profile found for that user.", ephemeral=True)
+        await _edit_or_send(interaction, content=text or "No profile found for that user.", ephemeral=True)
 
     async def _send_roster(self, interaction: discord.Interaction, target: discord.User):
-        try:
-            await interaction.response.defer(ephemeral=False)
-        except Exception:
-            pass
-
         pager = await make_roster_pager(self.core, target, raw_input="", parsed_filters={}, author_for_controls=interaction.user)
         if not pager or not getattr(pager, "pages", None):
-            await interaction.followup.send("No roster entries found for that user.", ephemeral=True)
+            await _edit_or_send(interaction, content="No roster entries found for that user.", ephemeral=True)
             return
 
-        msg = await interaction.followup.send(embed=pager.pages[0], view=pager, wait=True)
+        await _edit_or_send(interaction, content=None, embed=pager.pages[0], view=pager, ephemeral=False)
         try:
-            pager.message = msg
+            pager.message = getattr(interaction, "message", None) or await interaction.original_response()
         except Exception:
             pass
 
@@ -416,8 +534,13 @@ class ContextMenuSlashCog(commands.Cog):
             await _edit_or_send(interaction, content="You can only edit your own profile settings from this menu.")
             return
 
-        view = _AccountManagerView(self.core, user.id)
-        await _edit_or_send(interaction, content="Manage your CollectorVerse account settings and privacy.", view=view)
+        view = _MCOCAccountSettingsView(self, interaction.user, user)
+        await _edit_or_send(
+            interaction,
+            content=f"MCOC > USER > Manage your CollectorVerse account settings and privacy.",
+            view=view,
+            ephemeral=True,
+        )
         await view.bind_to_interaction_response(interaction)
 
     async def _ctx_roster(self, interaction: discord.Interaction, user: discord.Member):
@@ -516,7 +639,54 @@ class ContextMenuSlashCog(commands.Cog):
         if not Alliance.is_alliance_manager(interaction.user, guild):
             await _edit_or_send(interaction, content="You do not have alliance management permissions.")
             return
-        await _edit_or_send(interaction, content="Alliance reports are available via the existing `/alliance` workflow.")
+        await self._ctx_alliance_reports_workflow(interaction)
+
+    async def _ctx_alliance_reports_workflow(self, interaction: discord.Interaction):
+        guild = getattr(interaction, "guild", None)
+        if guild is None:
+            await _edit_or_send(interaction, content="This action can only be used in a server.")
+            return
+        alliance_cog = self.bot.get_cog("AllianceSlashCog")
+        if alliance_cog is None:
+            await _edit_or_send(interaction, content="Alliance workflow is not available right now.")
+            return
+        view = AllianceSlash._AllianceReportsView(alliance_cog)
+        await _edit_or_send(interaction, content=f"MCOC > ALLIANCE > REPORTS\n{view.build_menu_text(guild)}", view=view, ephemeral=True)
+        await view.bind_to_interaction_response(interaction)
+
+    async def _ctx_alliance_settings_manage_workflow(self, interaction: discord.Interaction):
+        guild = getattr(interaction, "guild", None)
+        if guild is None:
+            await _edit_or_send(interaction, content="This action can only be used in a server.")
+            return
+        alliance_cog = self.bot.get_cog("AllianceSlashCog")
+        if alliance_cog is None:
+            await _edit_or_send(interaction, content="Alliance workflow is not available right now.")
+            return
+        cfg = Alliance.get_guild_config(guild.id)
+        caps = AllianceSlash._caps_for(interaction.user, guild, cfg)
+        if "manage" not in caps:
+            await _edit_or_send(interaction, content="You do not have alliance management permissions.")
+            return
+        if not cfg:
+            await _edit_or_send(interaction, content="No alliance is configured for this guild.")
+            return
+        info = cfg.get("info", {}) or {}
+        state = AllianceSlash._AllianceCreateState(
+            guild_id=guild.id,
+            author_id=getattr(interaction.user, "id", 0),
+            name=str(info.get("name") or guild.name),
+            tag=str(info.get("tag") or ""),
+            description=str(info.get("description") or ""),
+            invite_url=str(info.get("invite") or ""),
+            type_name=Alliance.normalize_alliance_type(cfg.get("type", Alliance.ALLIANCE_TYPE_SIMPLE)),
+            role_map={
+                key: int(role_cfg.get("id"))
+                for key, role_cfg in (cfg.get("roles") or {}).items()
+                if isinstance(role_cfg, dict) and role_cfg.get("id")
+            },
+        )
+        await interaction.response.send_modal(AllianceSlash._AllianceManageInfoModal(alliance_cog, state))
 
     async def _ctx_roster_edit_settings(self, interaction: discord.Interaction, user: discord.Member):
         if user.id != getattr(interaction.user, "id", None):
