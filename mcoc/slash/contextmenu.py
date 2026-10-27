@@ -184,7 +184,31 @@ class _AllianceMemberRoleButton(discord.ui.Button):
         await _edit_or_send(interaction, content="This action is no longer available.")
 
 
+class _MCOCActionButton(discord.ui.Button):
+    def __init__(self, label: str, action: str, *, style: discord.ButtonStyle = discord.ButtonStyle.secondary):
+        super().__init__(label=label, style=style)
+        self.action = action
+
+    async def callback(self, interaction: discord.Interaction):
+        view = self.view
+        if isinstance(view, _MCOCMainView):
+            await view.navigate(interaction, self.action)
+            return
+        if isinstance(view, _MCOCUserSectionView):
+            await view.handle(interaction, self.action)
+            return
+        if isinstance(view, _MCOCRosterSectionView):
+            await view.handle(interaction, self.action)
+            return
+        if isinstance(view, _MCOCAllianceSectionView):
+            await view.handle(interaction, self.action)
+            return
+        await _edit_or_send(interaction, content="This action is no longer available.")
+
+
 class _CollectorVerseUserActionView(CDTAutoCleanupView):
+    """Compatibility wrapper kept for legacy tests and older menu entry points."""
+
     def __init__(self, cog: "ContextMenuSlashCog", actor: discord.Member, target: discord.Member):
         super().__init__(timeout=180)
         self.cog = cog
@@ -193,29 +217,11 @@ class _CollectorVerseUserActionView(CDTAutoCleanupView):
 
     @discord.ui.button(label="Profile", style=discord.ButtonStyle.primary, row=0)
     async def profile(self, interaction: discord.Interaction, _button: discord.ui.Button):
-        emb, text = Account.build_profile_display(
-            self.cog.core,
-            interaction,
-            getattr(self.target, "id", None),
-            viewer_id=getattr(interaction.user, "id", None),
-            prefer_embed=True,
-        )
-        if emb is not None:
-            await _edit_or_send(interaction, content=None, embed=emb, view=self, ephemeral=False)
-            return
-        await _edit_or_send(interaction, content=text or "No profile found for that user.", view=self)
+        await self.cog._send_profile(interaction, self.target)
 
     @discord.ui.button(label="Roster", style=discord.ButtonStyle.primary, row=0)
     async def roster(self, interaction: discord.Interaction, _button: discord.ui.Button):
-        pager = await make_roster_pager(self.cog.core, self.target, raw_input="", parsed_filters={}, author_for_controls=interaction.user)
-        if not pager or not getattr(pager, "pages", None):
-            await _edit_or_send(interaction, content="No roster entries found for that user.", view=self)
-            return
-        await _edit_or_send(interaction, content=None, embed=pager.pages[0], view=pager, ephemeral=False)
-        try:
-            pager.message = getattr(interaction, "message", None)
-        except Exception:
-            pass
+        await self.cog._send_roster(interaction, self.target)
 
     @discord.ui.button(label="Profile Settings", style=discord.ButtonStyle.secondary, row=0)
     async def profile_settings(self, interaction: discord.Interaction, _button: discord.ui.Button):
@@ -236,6 +242,128 @@ class _CollectorVerseUserActionView(CDTAutoCleanupView):
     @discord.ui.button(label="Alliance Manage", style=discord.ButtonStyle.success, row=1)
     async def alliance_manage(self, interaction: discord.Interaction, _button: discord.ui.Button):
         await self.cog._ctx_alliance_manage(interaction, self.target, edit_existing=True)
+
+
+class _MCOCMainView(CDTAutoCleanupView):
+    def __init__(self, cog: "ContextMenuSlashCog", actor: discord.Member, target: discord.Member):
+        super().__init__(timeout=180)
+        self.cog = cog
+        self.actor = actor
+        self.target = target
+        self.add_item(_MCOCActionButton("USER", "user", style=discord.ButtonStyle.secondary))
+        self.add_item(_MCOCActionButton("ROSTER", "roster", style=discord.ButtonStyle.green))
+        self.add_item(_MCOCActionButton("ALLIANCE", "alliance", style=discord.ButtonStyle.primary))
+
+    async def navigate(self, interaction: discord.Interaction, action: str):
+        if action == "user":
+            view = _MCOCUserSectionView(self.cog, self.actor, self.target)
+            await _edit_or_send(interaction, content=f"MCOC > USER for {self.target.mention}", view=view, ephemeral=True)
+            await view.bind_to_interaction_response(interaction)
+            return
+        if action == "roster":
+            view = _MCOCRosterSectionView(self.cog, self.actor, self.target)
+            await _edit_or_send(interaction, content=f"MCOC > ROSTER for {self.target.mention}", view=view, ephemeral=True)
+            await view.bind_to_interaction_response(interaction)
+            return
+        if action == "alliance":
+            view = _MCOCAllianceSectionView(self.cog, self.actor, self.target)
+            await _edit_or_send(interaction, content=f"MCOC > ALLIANCE for {self.target.mention}", view=view, ephemeral=True)
+            await view.bind_to_interaction_response(interaction)
+            return
+
+
+class _MCOCUserSectionView(CDTAutoCleanupView):
+    def __init__(self, cog: "ContextMenuSlashCog", actor: discord.Member, target: discord.Member):
+        super().__init__(timeout=180)
+        self.cog = cog
+        self.actor = actor
+        self.target = target
+        self.add_item(_MCOCActionButton("SETTINGS", "settings", style=discord.ButtonStyle.secondary))
+
+    async def handle(self, interaction: discord.Interaction, action: str):
+        if action == "settings":
+            await self.cog._ctx_profile_settings(interaction, self.target, edit_existing=True)
+            return
+
+
+class _MCOCRosterSectionView(CDTAutoCleanupView):
+    def __init__(self, cog: "ContextMenuSlashCog", actor: discord.Member, target: discord.Member):
+        super().__init__(timeout=180)
+        self.cog = cog
+        self.actor = actor
+        self.target = target
+        self.add_item(_MCOCActionButton("ADD", "add", style=discord.ButtonStyle.green))
+        self.add_item(_MCOCActionButton("REMOVE", "remove", style=discord.ButtonStyle.red))
+        self.add_item(_MCOCActionButton("SETTINGS", "settings", style=discord.ButtonStyle.secondary))
+        self.add_item(_MCOCActionButton("LIST", "list", style=discord.ButtonStyle.primary))
+
+    async def handle(self, interaction: discord.Interaction, action: str):
+        if action == "add":
+            await self.cog._ctx_roster_add(interaction, self.target, edit_existing=True)
+            return
+        if action == "remove":
+            await self.cog._ctx_roster_remove(interaction, self.target, edit_existing=True)
+            return
+        if action == "settings":
+            if self.target.id != getattr(interaction.user, "id", None):
+                await _edit_or_send(interaction, content="Roster settings are only available for your own roster.")
+                return
+            await self.cog._ctx_roster_edit_settings(interaction, self.target)
+            return
+        if action == "list":
+            await self.cog._send_roster(interaction, self.target)
+            return
+
+
+class _MCOCAllianceSectionView(CDTAutoCleanupView):
+    def __init__(self, cog: "ContextMenuSlashCog", actor: discord.Member, target: discord.Member):
+        super().__init__(timeout=180)
+        self.cog = cog
+        self.actor = actor
+        self.target = target
+        self.add_item(_MCOCActionButton("REPORTS", "reports", style=discord.ButtonStyle.primary))
+        self.add_item(_MCOCActionButton("SETTINGS", "settings", style=discord.ButtonStyle.secondary))
+        self.add_item(_MCOCActionButton("ASSIGN ROLE", "assign", style=discord.ButtonStyle.secondary))
+        self.add_item(_MCOCActionButton("PROFILE", "profile", style=discord.ButtonStyle.primary))
+
+    async def handle(self, interaction: discord.Interaction, action: str):
+        if action == "reports":
+            guild = getattr(interaction, "guild", None)
+            if guild is None:
+                await _edit_or_send(interaction, content="This action can only be used in a server.")
+                return
+            cfg = Alliance.get_guild_config(guild.id)
+            if not cfg:
+                await _edit_or_send(interaction, content="No alliance is configured for this guild.")
+                return
+            if not Alliance.is_alliance_manager(interaction.user, guild):
+                await _edit_or_send(interaction, content="You do not have alliance management permissions.")
+                return
+            await self.cog._send_alliance_reports(interaction, guild)
+            return
+        if action == "settings":
+            guild = getattr(interaction, "guild", None)
+            if guild is None:
+                await _edit_or_send(interaction, content="This action can only be used in a server.")
+                return
+            if not Alliance.is_alliance_manager(interaction.user, guild):
+                await _edit_or_send(interaction, content="You do not have alliance management permissions.")
+                return
+            await self.cog._ctx_alliance_manage(interaction, self.target, edit_existing=True)
+            return
+        if action == "assign":
+            guild = getattr(interaction, "guild", None)
+            if guild is None:
+                await _edit_or_send(interaction, content="This action can only be used in a server.")
+                return
+            if not Alliance.is_alliance_manager(interaction.user, guild):
+                await _edit_or_send(interaction, content="You do not have alliance management permissions.")
+                return
+            await self.cog._ctx_alliance_manage(interaction, self.target, edit_existing=True)
+            return
+        if action == "profile":
+            await self.cog._send_profile(interaction, self.target)
+            return
 
 
 class ContextMenuSlashCog(commands.Cog):
@@ -376,33 +504,31 @@ class ContextMenuSlashCog(commands.Cog):
         await view.bind_to_interaction_response(interaction)
 
     async def _ctx_alliance(self, interaction: discord.Interaction, user: discord.Member):
-        if user.id != getattr(interaction.user, "id", None):
-            await self._send_profile(interaction, user)
-            return
+        view = _MCOCMainView(self, interaction.user, user)
+        await _edit_or_send(interaction, content=f"MCOC > {user.mention}", view=view, ephemeral=True)
+        await view.bind_to_interaction_response(interaction)
 
-        guild = getattr(interaction, "guild", None)
-        if guild is None:
-            await _edit_or_send(interaction, content="This action can only be used in a server.")
-            return
-
+    async def _send_alliance_reports(self, interaction: discord.Interaction, guild: discord.Guild):
         cfg = Alliance.get_guild_config(guild.id)
         if not cfg:
-            await _edit_or_send(interaction, content="No alliance is configured for this guild. Use `/alliance` to create one.")
+            await _edit_or_send(interaction, content="No alliance is configured for this guild.")
             return
+        if not Alliance.is_alliance_manager(interaction.user, guild):
+            await _edit_or_send(interaction, content="You do not have alliance management permissions.")
+            return
+        await _edit_or_send(interaction, content="Alliance reports are available via the existing `/alliance` workflow.")
 
-        view = _CollectorVerseUserActionView(self, interaction.user, user)
-        await _edit_or_send(
-            interaction,
-            content=f"CollectorVerse alliance actions for {user.mention}.",
-            view=view,
-            ephemeral=True,
-        )
+    async def _ctx_roster_edit_settings(self, interaction: discord.Interaction, user: discord.Member):
+        if user.id != getattr(interaction.user, "id", None):
+            await _edit_or_send(interaction, content="Roster settings are only available for your own roster.")
+            return
+        view = _AccountManagerView(self.core, user.id)
+        await _edit_or_send(interaction, content="Manage your MCOC roster settings.", view=view)
         await view.bind_to_interaction_response(interaction)
 
     async def cog_load(self):
         menus = [
-            app_commands.ContextMenu(name="MCOC Roster", callback=self._ctx_roster),
-            app_commands.ContextMenu(name="MCOC Alliance", callback=self._ctx_alliance),
+            app_commands.ContextMenu(name="MCOC", callback=self._ctx_alliance),
         ]
 
         legacy_names = [

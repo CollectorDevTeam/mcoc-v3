@@ -14,14 +14,15 @@ def test_slash_core_loads_contextmenu_cog():
     assert "ContextMenuSlashCog" in text
 
 
-def test_contextmenu_is_split_into_roster_and_alliance_commands():
+def test_contextmenu_is_consolidated_to_moc_command():
     import inspect
     import mcoc.slash.contextmenu as contextmenu_module
 
     text = inspect.getsource(contextmenu_module.ContextMenuSlashCog.cog_load)
 
-    assert 'ContextMenu(name="MCOC Roster"' in text
-    assert 'ContextMenu(name="MCOC Alliance"' in text
+    assert 'ContextMenu(name="MCOC"' in text
+    assert 'ContextMenu(name="MCOC Roster"' not in text
+    assert 'ContextMenu(name="MCOC Alliance"' not in text
     assert 'ContextMenu(name="CollectorVerse"' not in text
     assert 'ContextMenu(name="CollectorVerse Profile"' not in text
     assert 'ContextMenu(name="Roster Add"' not in text
