@@ -293,6 +293,12 @@ class ContextMenuSlashCog(commands.Cog):
         await view.bind_to_interaction_response(interaction)
 
     async def _ctx_roster(self, interaction: discord.Interaction, user: discord.Member):
+        if user.id == getattr(interaction.user, "id", None):
+            view = _CollectorVerseUserActionView(self, interaction.user, user)
+            await _edit_or_send(interaction, content="CollectorVerse roster actions for you.", view=view, ephemeral=True)
+            await view.bind_to_interaction_response(interaction)
+            return
+
         await self._send_roster(interaction, user)
 
     async def _ctx_roster_add(self, interaction: discord.Interaction, user: discord.Member, *, edit_existing: bool = False):
@@ -369,22 +375,38 @@ class ContextMenuSlashCog(commands.Cog):
         await _edit_or_send(interaction, content=f"Alliance manage for {user.mention}. Choose an action:", view=view)
         await view.bind_to_interaction_response(interaction)
 
-    async def _ctx_collectorverse(self, interaction: discord.Interaction, user: discord.Member):
+    async def _ctx_alliance(self, interaction: discord.Interaction, user: discord.Member):
+        if user.id != getattr(interaction.user, "id", None):
+            await self._send_profile(interaction, user)
+            return
+
+        guild = getattr(interaction, "guild", None)
+        if guild is None:
+            await _edit_or_send(interaction, content="This action can only be used in a server.")
+            return
+
+        cfg = Alliance.get_guild_config(guild.id)
+        if not cfg:
+            await _edit_or_send(interaction, content="No alliance is configured for this guild. Use `/alliance` to create one.")
+            return
+
         view = _CollectorVerseUserActionView(self, interaction.user, user)
-        await interaction.response.send_message(
-            f"CollectorVerse actions for {user.mention}",
+        await _edit_or_send(
+            interaction,
+            content=f"CollectorVerse alliance actions for {user.mention}.",
             view=view,
             ephemeral=True,
         )
         await view.bind_to_interaction_response(interaction)
 
     async def cog_load(self):
-        # Consolidated to one context command to stay under Discord user-command limits.
         menus = [
-            app_commands.ContextMenu(name="CollectorVerse", callback=self._ctx_collectorverse),
+            app_commands.ContextMenu(name="CollectorVerse Roster", callback=self._ctx_roster),
+            app_commands.ContextMenu(name="CollectorVerse Alliance", callback=self._ctx_alliance),
         ]
 
         legacy_names = [
+            "CollectorVerse",
             "CollectorVerse Profile",
             "Profile Settings",
             "CollectorVerse Roster",
