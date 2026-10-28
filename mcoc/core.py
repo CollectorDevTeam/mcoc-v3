@@ -1,83 +1,99 @@
-from redbot.core import commands, Config
-import discord
-import asyncio
-from .api import MCOCHubAPI
-from .cache import CacheManager
-from .champions import ChampionsCommands
-from .roster import RosterCommands
-from .admin import AdminCommands
-from .alliance import AllianceCommands
+# Path: mcoc/core.py
+# File-Version: 1.0
+# File-Id: f8e367b2-24bd-436b-834c-b26b77bc6af9
+# Purpose: Provide the main setup function for the MCOC package, initializing shared systems and registering feature cogs.
+# Public-API: setup
+# Last-Modified: 2026-09-01
+# Used-By: mcoc/common/core.py, mcoc/diagnostics/diagnostics.py, mcoc/prefix/core.py, mcoc/slash/core.py
+# Changelog:
+#   1.0 2026-09-01  Initial stabilized API header
+"""
+Unified package loader for MCOC.
 
-class CollectorBot(commands.Cog):
-    """CollectorBot: MCOC data, roster tools, and admin controls."""
+Responsibilities:
+ - initialize shared systems (mcoc.common.core.init_common_systems)
+ - attach the shared core container to bot.mcoc_core
+ - perform optional async initialization of common systems
+ - load the slash root and diagnostics if present
 
-    def __init__(self, bot):
-        self.bot = bot
-        self.api = MCOCHubAPI()
-        self.cache = CacheManager()
-        self.config = Config.get_conf(self, identifier=9876543210)
-        self.config.register_global(
-            sync_interval=24,
-            cache_version=0,
-            collector_devteam_role=None
-        )
+Legacy prefix UI is intentionally not loaded by default. The slash-first command
+surface is the active runtime entrypoint; the old prefix commands remain in the
+repository for reference but are no longer registered during bot startup.
+"""
 
-        # Load submodules
-        self.champions = ChampionsCommands(self)
-        self.roster = RosterCommands(self)
-        self.admin = AdminCommands(self)
-        self.alliance = AllianceCommands(self)
+from typing import Any
+import inspect
+import logging
 
-        # Background sync
-        self.sync_task = bot.loop.create_task(self._sync_loop())
+log = logging.getLogger("red.mcoc")
 
-    async def _sync_loop(self):
-        await self.bot.wait_until_ready()
-        while True:
-            interval = await self.config.sync_interval()
-            await self.sync_data()
-            await asyncio.sleep(interval * 3600)
 
-    async def sync_data(self):
-        # TODO: call API client, diff, update cache
-        champions = await self.api.get_champions()
-        abilities = await self.api.get_abilities()
-        tags = await self.api.get_tags()
-        synergies = await self.api.get_synergies()
+async def setup(bot: Any) -> None:
+    """
+    Async setup entrypoint called by Red when the mcoc package is loaded.
+    """
+    # 1) Initialize shared systems and attach to bot.mcoc_core
+    core = None
+    try:
+        from .common.core import init_common_systems
+        core = init_common_systems(bot)
+        # attach to bot explicitly (init_common_systems does this, but be explicit)
+        setattr(bot, "mcoc_core", core)
+    except Exception:
+        log.exception("Failed to create common core container")
+        core = None
 
-        #TODO: diff + cache updates
-        self.cache._diff_and_save("champions", champions)
-        self.cache._diff_and_save("abilities", abilities)
-        self.cache._diff_and_save("tags", tags)
-        self.cache._diff_and_save("synergies", synergies)
-        self.cache._save_metadata()
-        return True
+    # 2) Optional async initialization of common systems (idempotent)
+    if core is not None:
+        try:
+            # async_init may raise or be missing; guard defensively
+            async_init = getattr(core, "async_init", None)
+            if callable(async_init):
+                try:
+                    await async_init()
+                except Exception:
+                    log.exception("common core async_init failed (continuing)")
+            else:
+                log.debug("common core has no async_init; skipping")
+        except Exception:
+            log.exception("Unexpected error during common core async init")
 
-    async def cog_load(self):
-            # Register slash commands
-            self.bot.tree.add_command(self.champions.info)
-            self.bot.tree.add_command(self.champions.abilities)
-            self.bot.tree.add_command(self.champions.synergies)
-            self.bot.tree.add_command(self.champions.tags)
-            self.bot.tree.add_command(self.champions.stats)
+    # 3) Optional: load slash root if available (non-fatal)
+    try:
+        from .slash.core import MCOCSlash  # type: ignore
+        try:
+            await bot.add_cog(MCOCSlash(bot))
+            log.debug("MCOCSlash loaded")
+        except Exception:
+            try:
+                result = bot.add_cog(MCOCSlash(bot))
+                if inspect.isawaitable(result):
+                    await result
+                log.debug("MCOCSlash loaded (async fallback)")
+            except Exception:
+                log.exception("Failed to add MCOCSlash cog")
+    except ModuleNotFoundError:
+        log.debug("Slash core not present; skipping")
+    except Exception:
+        log.exception("Failed to import MCOCSlash (non-fatal)")
 
-            self.bot.tree.add_command(self.roster.add)
-            self.bot.tree.add_command(self.roster.remove)
-            self.bot.tree.add_command(self.roster.update)
-            self.bot.tree.add_command(self.roster.list)
-            self.bot.tree.add_command(self.roster.export)
-            self.bot.tree.add_command(self.roster.clear)
+    # 4) Optional diagnostics cog (non-fatal)
+    try:
+        from .diagnostics.diagnostics import Diagnostics  # type: ignore
+        try:
+            await bot.add_cog(Diagnostics(bot))
+            log.debug("Diagnostics loaded")
+        except Exception:
+            try:
+                result = bot.add_cog(Diagnostics(bot))
+                if inspect.isawaitable(result):
+                    await result
+                log.debug("Diagnostics loaded (async fallback)")
+            except Exception:
+                log.exception("Failed to add Diagnostics cog")
+    except ModuleNotFoundError:
+        log.debug("Diagnostics module not present; skipping")
+    except Exception:
+        log.exception("Failed to import Diagnostics (non-fatal)")
 
-    # Slash command groups
-    @commands.group()
-    async def mcoc(self, ctx):
-        """MCOC commands."""
-        pass
-
-    @commands.group()
-    async def mcocadmin(self, ctx):
-        """Admin commands."""
-        pass
-
-async def setup(bot):
-    await bot.add_cog(CollectorBot(bot))
+    log.debug("mcoc package setup complete")

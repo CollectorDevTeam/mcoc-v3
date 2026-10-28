@@ -1,0 +1,602 @@
+{
+    "availableRanks": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+    ],
+    "maxSigLevel": 200,
+    "baseStats": {
+        "Prestige": 23460,
+        "Attack": 5318,
+        "Health": 80443,
+        "Armor": 962,
+        "Crit Rate": 777,
+        "Crit Resist": 289,
+        "Crit Damage": 1463,
+        "Block Prof": 7800,
+        "NRG Resist": 0,
+        "Phys Resist": 0
+    },
+    "sigAbilityDisplayName": "WELCOME TO MURDERWORLD!",
+    "sigAbilities": {
+        "Passive": [
+            {
+                "id": "arc_sig_5s_steadfast",
+                "iconFilename": "https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/S-83.svg",
+                "text": "Just before Arcade Auto-Blocks an attack, gain a non-stacking <span class=\"tooltip\">Steadfast<span class=\"tooltiptext\"><img src=\"https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/S-83.svg\" class=\"tooltip-icon\"><span class=\"tooltip-title\">Steadfast</span><br>While active, Unblockable Attacks can be blocked as though they weren't</span></span> Buff for <span style=\"color: #16982bff\">3.61</span> seconds, paused during the Opponent's Special Attacks. This will not trigger if the attack is a Heavy Attack, or if the Opponent has an Undermine effect."
+            },
+            {
+                "id": "arc_sig_5s_torment",
+                "iconFilename": "https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/uniE742-59202.svg",
+                "text": "When the Opponent enters a <span style=\"color: #00cc6d\">Poisonous Cloud</span>, inflict a <span style=\"color: #16982bff\">7.01%</span> <span class=\"tooltip\">Torment<span class=\"tooltiptext\"><img src=\"https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/uniE742-59202.svg\" class=\"tooltip-icon\"><span class=\"tooltip-title\">Torment</span><br>Increases the duration of all incoming Damaging Debuffs.</span></span> Debuff for 8 seconds. This starts paused, and is unpaused when the Opponent exits the <span style=\"color: #00cc6d\">Poisonous Cloud</span>. Max stacks: 3."
+            }
+        ]
+    },
+    "coreAbilities": {
+        "Persistent Prize Tickets - Max: 5": [
+            {
+                "id": "arc_init_pv_tix",
+                "iconFilename": "https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/bullet-8226.svg",
+                "text": "Arcade starts each Quest with 3 <span style=\"color: #37bfff\">Persistent Prize Tickets</span>. When winning a fight as an Attacker, convert 50% of all <span style=\"color: #d4d121\">Arcade Tokens</span> into <span style=\"color: #37bfff\">Persistent Prize Tickets</span> (rounded down). If a fight is won with fewer than 2 <span style=\"color: #d4d121\">Arcade Tokens</span>, gain 1 <span style=\"color: #37bfff\">Persistent Prize Ticket</span> anyways."
+            },
+            {
+                "id": "arc_set_pv_tix_tokens",
+                "iconFilename": "https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/bullet-8226.svg",
+                "text": "<span style=\"color: #37bfff\">Persistent Prize Tickets</span> can be spent in the Pre-Fight Screen to activate a <span style=\"color: #bc22c6\">Fabulous Prize</span>. <span style=\"color: #bc22c6\">Fabulous Prizes</span> can only be used by Arcade, and last until his Opponent is defeated. These are always active as a Defender."
+            }
+        ],
+        "Pre-Fight Ability - Fabulous Prizes": [
+            {
+                "id": "arc_fab_pwrup_aa",
+                "iconFilename": "https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/bullet-8226.svg",
+                "text": "<span style=\"color: #bc22c6\">Power-Up:</span> Personal effects and the Stun from the Parry Mastery gain +100% Ability Accuracy. If Arcade is not fighting a Cosmic Champion, he also gains Incinerate Immunity. Costs 1 <span style=\"color: #37bfff\">Persistent Prize Ticket</span>."
+            },
+            {
+                "id": "arc_fab_chtcd_co",
+                "iconFilename": "https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/bullet-8226.svg",
+                "text": "<span style=\"color: #bc22c6\">Cheat Code:</span> The Opponent's True Strike, True Accuracy, and True Sense effects suffer -100% Ability Accuracy. If Arcade is not fighting a Cosmic Champion, he also gains Poison Immunity. Costs 2 <span style=\"color: #37bfff\">Persistent Prize Tickets</span>."
+            },
+            {
+                "id": "arc_fab_gmwzrd_co",
+                "iconFilename": "https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/bullet-8226.svg",
+                "text": "<span style=\"color: #bc22c6\">Game Wizard:</span> The duration of personal Damaging Debuffs cannot be reduced. If Arcade is not fighting a Cosmic Champion, he also gains Shock Immunity. Costs 3 <span style=\"color: #37bfff\">Persistent Prize Tickets</span>."
+            }
+        ],
+        "Always Active": [
+            {
+                "id": "arc_aa_ctech_fry",
+                "iconFilename": "https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/bullet-8226.svg",
+                "text": "Arcade does not benefit from the Collar Tech Mastery. Instead, he gains <span style=\"color: #16982bff\">+159.54</span> Attack Rating for each rank invested and reduces the Opponent's Defensive Combat Power Rate by 7% for each unique personal Damaging Debuff on them."
+            },
+            {
+                "id": "arc_aa_l4_sp3_lock",
+                "iconFilename": "https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/bullet-8226.svg",
+                "text": "As an Attacker, Arcade's fourth Light Attack disables his Special Attack 3 for 0.50 seconds."
+            }
+        ],
+        "Arcade Tokens - Max: 10": [
+            {
+                "id": "arc_tokens",
+                "iconFilename": "https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/uniE914-59668.svg",
+                "text": "Whenever the Opponent would be Poisoned, Arcade gains 1 <span style=\"color: #d4d121\">Arcade Token</span>. As a Defender, he gains 1 additional <span style=\"color: #d4d121\">Arcade Token</span> if a Poison is not prevented by Immunity, and gains 3 on the final hit of Special Attack 2 on hit, Block or <span class=\"tooltip\">Dodge<span class=\"tooltiptext\"><span class=\"tooltip-title\">Dodge</span><br>Dodge back to avoid an incoming Basic Attack or contact Special Attack hit. The Dexterity Mastery increases the window for a successful Dodge and allows you to avoid non-contact Special Attacks.</span></span>."
+            },
+            {
+                "id": "arc_token_rmv",
+                "iconFilename": "https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/bullet-8226.svg",
+                "text": "Each <span style=\"color: #d4d121\">Arcade Token</span> increases Armor Rating and the potency of personal Damaging Debuffs by 10%. When knocked down, lose 2 <span style=\"color: #d4d121\">Arcade Tokens</span>."
+            },
+            {
+                "id": "arc_token_ab_passive",
+                "iconFilename": "https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/X-88.svg",
+                "text": "While Arcade has 10 <span style=\"color: #d4d121\">Arcade Tokens</span>, or 3 or more as a Defender, he gains an indefinite Auto-Block Passive granting a 100% chance to Auto-Block incoming attacks. Arcade cannot Auto-Block the Opponent's Heavy Attacks."
+            },
+            {
+                "id": "arc_token_ab_charge",
+                "iconFilename": "https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/X-88.svg",
+                "text": "With 2 or more <span style=\"color: #d4d121\">Arcade Tokens</span>, Arcade also has a 100% chance to Auto-Block attacks while charging or releasing his own Heavy Attack."
+            },
+            {
+                "id": "arc_ab_shock",
+                "iconFilename": "https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/O-79.svg",
+                "text": "When Auto-Blocking an attack, inflict a <span class=\"tooltip\">Shock<span class=\"tooltiptext\"><img src=\"https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/O-79.svg\" class=\"tooltip-icon\"><span class=\"tooltip-title\">Shock</span><br>Deals Energy Damage while active.</span></span> Debuff dealing <span style=\"color: #16982bff\">6381.6</span> Energy Damage over 3 seconds, trigger the <span class=\"tooltip\">Parry<span class=\"tooltiptext\"><img src=\"https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/greater-62.svg\" class=\"tooltip-icon\"><span class=\"tooltip-title\">Parry</span><br>Performing a Well-Timed Block activates the Parry Mastery, increasing Block Proficiency and Stunning the Opponent for a period of time.</span></span> Mastery if it is active, and consume 8 <span style=\"color: #d4d121\">Arcade Tokens</span>, or 3 as a Defender."
+            }
+        ],
+        "Trap - Poisonous Cloud": [
+            {
+                "id": "arc_trappool_rmv",
+                "iconFilename": "https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/z-122.svg",
+                "text": "After the second hit of his Heavy Attack, Arcade deploys a <span style=\"color: #00cc6d\">Poisonous Cloud</span>. <span style=\"color: #00cc6d\">Poisonous Clouds</span> last for 10 seconds, and active <span style=\"color: #00cc6d\">Poisonous Clouds</span> are removed when deploying a new one."
+            },
+            {
+                "id": "arc_trappool_tv_poison",
+                "iconFilename": "https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/z-122.svg",
+                "text": "When the Opponent enters a <span style=\"color: #00cc6d\">Poisonous Cloud</span>, gain 1 <span style=\"color: #d4d121\">Arcade Token</span>. Each second the Opponent is inside the <span style=\"color: #00cc6d\">Poisonous Cloud</span>, they are inflicted with a <span class=\"tooltip\">Poison<span class=\"tooltiptext\"><img src=\"https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/z-122.svg\" class=\"tooltip-icon\"><span class=\"tooltip-title\">Poison</span><br>While active, deals Direct Damage and reduces Regeneration Rate by 30% of its current value.</span></span> Debuff dealing <span style=\"color: #16982bff\">3722.6</span> Direct Damage over 10 seconds."
+            }
+        ],
+        "Trap - Booby Trap": [
+            {
+                "id": "arc_trapbot_tv_start",
+                "iconFilename": "https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/s-115.svg",
+                "text": "At the start of each fight, a <span style=\"color: #fcba03\">Booby Trap</span> is placed in the Defender's corner. The <span style=\"color: #fcba03\">Booby Trap</span> will not be placed if the Opponent is also Arcade."
+            },
+            {
+                "id": "arc_sp1_bias",
+                "iconFilename": "https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/bullet-8226.svg",
+                "text": "While the Opponent is on top of the <span style=\"color: #fcba03\">Booby Trap</span>, they are 60% more likely to launch a Special Attack."
+            },
+            {
+                "id": "arc_trapbot_tv_stun",
+                "iconFilename": "https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/s-115.svg",
+                "text": "If the Opponent is not performing a Special Attack and they are on top of the <span style=\"color: #fcba03\">Booby Trap</span>, charging or releasing Arcade's Heavy Attack causes it to explode and Passively Stuns the Opponent for 3 seconds."
+            },
+            {
+                "id": "arc_trapbot_tv_stun_rfrsh_pool",
+                "iconFilename": "https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/bullet-8226.svg",
+                "text": "While the Opponent is inside of a <span style=\"color: #00cc6d\">Poisonous Cloud</span> and they are Stunned by this explosion, the existing <span style=\"color: #00cc6d\">Poisonous Cloud</span> will be refreshed instead of deploying a new one."
+            },
+            {
+                "id": "arc_trapbot_tv_cd_fst",
+                "iconFilename": "https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/bullet-8226.svg",
+                "text": "After exploding, the <span style=\"color: #fcba03\">Booby Trap</span> goes on standby for 20 seconds, or 10 seconds as a Defender. As an Attacker, this expires 15% faster per unique personal Damaging Debuff on the Opponent."
+            }
+        ],
+        "Special Attack 1": [
+            {
+                "id": "arc_trappool_tv_trigwhiff_sp1",
+                "iconFilename": "https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/bullet-8226.svg",
+                "text": "After the second hit of this attack, deploy a <span style=\"color: #00cc6d\">Poisonous Cloud</span> at the Opponent's location."
+            },
+            {
+                "id": "arc_sp1_shocks",
+                "iconFilename": "https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/O-79.svg",
+                "text": "Electricity hits inflict <span class=\"tooltip\">Shock<span class=\"tooltiptext\"><img src=\"https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/O-79.svg\" class=\"tooltip-icon\"><span class=\"tooltip-title\">Shock</span><br>Deals Energy Damage while active.</span></span> Debuffs each dealing <span style=\"color: #16982bff\">2127.2</span> Energy Damage over 10 seconds."
+            }
+        ],
+        "Special Attack 2": [
+            {
+                "id": "arc_sp2_incins",
+                "iconFilename": "https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/Oacute-211.svg",
+                "text": "Flamethrower hits inflict <span class=\"tooltip\">Incinerate<span class=\"tooltiptext\"><img src=\"https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/Oacute-211.svg\" class=\"tooltip-icon\"><span class=\"tooltip-title\">Incinerate</span><br>While active, deals Energy Damage, reduces Block Proficiency by 50%, and removes Perfect Block chance.</span></span> Debuffs each dealing <span style=\"color: #16982bff\">4786.2</span> Energy Damage over 20 seconds."
+            },
+            {
+                "id": "arc_sp2_bleeds",
+                "iconFilename": "https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/b-98.svg",
+                "text": "Buzz Saw hits inflict <span class=\"tooltip\">Bleed<span class=\"tooltiptext\"><img src=\"https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/b-98.svg\" class=\"tooltip-icon\"><span class=\"tooltip-title\">Bleed</span><br>Deals Direct Damage while active.</span></span> Debuffs each dealing <span style=\"color: #16982bff\">4786.2</span> Direct Damage over 20 seconds."
+            }
+        ],
+        "Special Attack 3": [
+            {
+                "id": "arc_sp3_dmy_bld",
+                "iconFilename": "https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/bullet-8226.svg",
+                "text": "Randomly inflict an indefinite <span class=\"tooltip\">Bleed<span class=\"tooltiptext\"><img src=\"https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/b-98.svg\" class=\"tooltip-icon\"><span class=\"tooltip-title\">Bleed</span><br>Deals Direct Damage while active.</span></span>, <span class=\"tooltip\">Rupture<span class=\"tooltiptext\"><img src=\"https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/uniE566-58726.svg\" class=\"tooltip-icon\"><span class=\"tooltip-title\">Rupture</span><br>Deals Physical Damage while active.</span></span>, or <span class=\"tooltip\">Shock<span class=\"tooltiptext\"><img src=\"https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/O-79.svg\" class=\"tooltip-icon\"><span class=\"tooltip-title\">Shock</span><br>Deals Energy Damage while active.</span></span> Debuff that deals <span style=\"color: #16982bff\">425.44</span> damage per second."
+            }
+        ]
+    },
+    "rotationData": {
+        "champion_id": "arcade",
+        "video_url": "https://www.youtube.com/watch?v=0q8_XMYk4xI",
+        "source_channel": "Marvel Contest of Champions",
+        "summary_parts": [
+            "Push the opponent towards their corner. Throw a heavy to place a <span style=\"color: #00cc6d\">Poisonous Cloud</span> and begin building <span style=\"color: #d4d121\">Arcade Tokens</span>. Bait a special while they are near the <span style=\"color: #fcba03\">Booby Trap</span> and <span class=\"tooltip\">Punish<span class=\"tooltiptext\"><span class=\"tooltip-title\">Punish</span><br>Striking the Opponent before they have fully finished the specified action.</span></span> with a combo, chaining a heavy at the end to trigger the trap stun and gain more tokens. Build to 3 bars of power, throw a light-ending combo to disable your SP3, then throw SP2 in the corner. Throw SP1 to add the rest of your debuffs. You can play more aggressively once you have tokens because they give you autoblock as a safety net. Choose the prefight immunity/benefit that fits the matchup before the fight."
+        ]
+    },
+    "synergies": [
+        {
+            "title": "CLAWS",
+            "icon_filename": "https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/uniE513-58643.svg",
+            "description_parts": [
+                "<span style=\"color: #64acff\">Arcade:</span> Successful Auto-Blocks grant a +80% <span class=\"tooltip\">Fury<span class=\"tooltiptext\"><img src=\"https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/k-107.svg\" class=\"tooltip-icon\"><span class=\"tooltip-title\">Fury</span><br>Increases Attack Rating by the given potency.</span></span> Buff for 3 seconds, paused during Arcade's Special Attacks.",
+                "<span style=\"color: #64acff\">Black Cat:</span> Start each fight with a 3 second Combo Shield Passive. This starts paused and is unpaused when Black Cat Evades or is struck while no other Combo Shields are active.",
+                "<span style=\"color: #64acff\">Kraven:</span> Gain Bleed Immunity. Personal Bleeds last 50% longer, but lose 33% potency. ",
+                "<span style=\"color: #64acff\">Wolverine:</span> For each personal Bleed on the Opponent, they suffer -20% Evade Ability Accuracy.",
+                "<span style=\"color: #f79f0e\">Unique Synergy:</span> Does not stack with duplicate synergies."
+            ],
+            "partners": [
+                {
+                    "champName": "wolverine",
+                    "champPortraitName": "wolverine",
+                    "champDisplayName": "WOLVERINE",
+                    "rarities": ""
+                },
+                {
+                    "champName": "blackcat",
+                    "champPortraitName": "blackcat",
+                    "champDisplayName": "BLACK CAT",
+                    "rarities": ""
+                },
+                {
+                    "champName": "kraven",
+                    "champPortraitName": "kraven",
+                    "champDisplayName": "KRAVEN",
+                    "rarities": ""
+                }
+            ]
+        },
+        {
+            "title": "THE BATTLEREALM'S FUNNIEST HOME VIDEOS",
+            "icon_filename": "https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/N-78.svg",
+            "description_parts": [
+                "<span style=\"color: #64acff\">Synergy Champions:</span> Gain 5% of Max Power each time any Champion is knocked down. Cooldown: 10 seconds.",
+                "<span style=\"color: #f79f0e\">Unique Synergy:</span> Does not stack with duplicate synergies."
+            ],
+            "partners": [
+                {
+                    "champName": "mojo",
+                    "champPortraitName": "mojo",
+                    "champDisplayName": "MOJO",
+                    "rarities": ""
+                },
+                {
+                    "champName": "spiderham",
+                    "champPortraitName": "spiderham",
+                    "champDisplayName": "SPIDER-HAM",
+                    "rarities": ""
+                }
+            ]
+        },
+        {
+            "title": "THE MOST DANGEROUS GAME",
+            "icon_filename": "https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/S-83.svg",
+            "description_parts": [
+                "<span style=\"color: #64acff\">Synergy Champions:</span> During Special Attacks 1 and 2, gain 4% Attack Rating for each living Synergy Champion.",
+                "<span style=\"color: #f79f0e\">Unique Synergy:</span> Does not stack with duplicate synergies."
+            ],
+            "partners": [
+                {
+                    "champName": "colossus",
+                    "champPortraitName": "colossus",
+                    "champDisplayName": "COLOSSUS",
+                    "rarities": ""
+                },
+                {
+                    "champName": "nightcrawler",
+                    "champPortraitName": "nightcrawler",
+                    "champDisplayName": "NIGHTCRAWLER",
+                    "rarities": ""
+                },
+                {
+                    "champName": "spiral",
+                    "champPortraitName": "spiral",
+                    "champDisplayName": "SPIRAL",
+                    "rarities": ""
+                },
+                {
+                    "champName": "longshot",
+                    "champPortraitName": "longshot",
+                    "champDisplayName": "LONGSHOT",
+                    "rarities": ""
+                },
+                {
+                    "champName": "dazzler",
+                    "champPortraitName": "dazzler",
+                    "champDisplayName": "DAZZLER",
+                    "rarities": ""
+                }
+            ]
+        },
+        {
+            "title": "AVENGERS ARENA",
+            "icon_filename": "https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/D-68.svg",
+            "description_parts": [
+                "All Champions gain +115 Critical Damage Rating."
+            ],
+            "partners": [
+                {
+                    "champName": "x23",
+                    "champPortraitName": "x23",
+                    "champDisplayName": "WOLVERINE (X-23)",
+                    "rarities": ""
+                },
+                {
+                    "champName": "captainbritain",
+                    "champPortraitName": "captainbritain",
+                    "champDisplayName": "CAPTAIN BRITAIN",
+                    "rarities": ""
+                },
+                {
+                    "champName": "darkhawk",
+                    "champPortraitName": "darkhawk",
+                    "champDisplayName": "DARKHAWK",
+                    "rarities": ""
+                },
+                {
+                    "champName": "elsabloodstone",
+                    "champPortraitName": "elsabloodstone",
+                    "champDisplayName": "ELSA BLOODSTONE",
+                    "rarities": ""
+                }
+            ]
+        },
+        {
+            "title": "MY REVENGE",
+            "icon_filename": "https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/P-80.svg",
+            "description_parts": [
+                "All Champions gain +155 Critical Rating."
+            ],
+            "partners": [
+                {
+                    "champName": "gambit",
+                    "champPortraitName": "gambit",
+                    "champDisplayName": "GAMBIT",
+                    "rarities": ""
+                },
+                {
+                    "champName": "wolverine",
+                    "champPortraitName": "wolverine",
+                    "champDisplayName": "WOLVERINE",
+                    "rarities": ""
+                },
+                {
+                    "champName": "spiderman",
+                    "champPortraitName": "spider_man",
+                    "champDisplayName": "SPIDER-MAN (CLASSIC)",
+                    "rarities": ""
+                },
+                {
+                    "champName": "cyclops_90s",
+                    "champPortraitName": "cyclops_90s",
+                    "champDisplayName": "CYCLOPS (BLUE TEAM)",
+                    "rarities": ""
+                },
+                {
+                    "champName": "storm",
+                    "champPortraitName": "storm",
+                    "champDisplayName": "STORM",
+                    "rarities": ""
+                }
+            ]
+        },
+        {
+            "title": "TORMENTING PRESENCE",
+            "icon_filename": "https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/uniE742-59202.svg",
+            "description_parts": [
+                "<span style=\"color: #64acff\">Green Goblin (Stellar-Forged):</span> Personal Debuffs gain 15% potency while fighting #Hero Champions.",
+                "<span style=\"color: #64acff\">Synergy Champions:</span> Inflicting a Damaging Debuff pauses Torment Debuffs for 1.5 seconds.",
+                "<span style=\"color: #f79f0e\">Unique Synergy:</span> Does not stack with duplicate synergies."
+            ],
+            "partners": [
+                {
+                    "champName": "green_goblin_stellar",
+                    "champPortraitName": "green_goblin_stellar",
+                    "champDisplayName": "GREEN GOBLIN (STELLAR-FORGED)",
+                    "rarities": "5\u2b50\u2b06\ufe0f"
+                }
+            ]
+        },
+        {
+            "title": "SHARP DRESSED MEN",
+            "icon_filename": "https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/P-80.svg",
+            "description_parts": [
+                "All Champions gain +85 Critical Rating."
+            ],
+            "partners": [
+                {
+                    "champName": "misterknight",
+                    "champPortraitName": "misterknight",
+                    "champDisplayName": "MR. KNIGHT",
+                    "rarities": "2\u2b50"
+                }
+            ]
+        },
+        {
+            "title": "SHARP DRESSED MEN",
+            "icon_filename": "https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/P-80.svg",
+            "description_parts": [
+                "All Champions gain +115 Critical Rating."
+            ],
+            "partners": [
+                {
+                    "champName": "misterknight",
+                    "champPortraitName": "misterknight",
+                    "champDisplayName": "MR. KNIGHT",
+                    "rarities": "3\u2b50"
+                }
+            ]
+        },
+        {
+            "title": "SHARP DRESSED MEN",
+            "icon_filename": "https://cocpit-cdn.nyc3.cdn.digitaloceanspaces.com/2026.09.09/glyphs/P-80.svg",
+            "description_parts": [
+                "All Champions gain +155 Critical Rating."
+            ],
+            "partners": [
+                {
+                    "champName": "misterknight",
+                    "champPortraitName": "misterknight",
+                    "champDisplayName": "MR. KNIGHT",
+                    "rarities": "4\u2b50\u2b06\ufe0f"
+                }
+            ]
+        }
+    ],
+    "duelTargets": [
+        {
+            "summonerName": "\u3044\u3053\u305f\u3093",
+            "rarity": 7
+        },
+        {
+            "summonerName": "Revoltrevenge99",
+            "rarity": 7
+        },
+        {
+            "summonerName": "xzist",
+            "rarity": 7
+        }
+    ],
+    "attackMoves": {
+        "id": "arcade",
+        "baseDamage": [],
+        "attacks": {
+            "l1": [
+                {
+                    "damageTypes": [
+                        "contact",
+                        "physical"
+                    ],
+                    "damage": 1356.09
+                }
+            ],
+            "l2": [
+                {
+                    "damageTypes": [
+                        "contact",
+                        "energy"
+                    ],
+                    "damage": 1356.09
+                }
+            ],
+            "l3": [
+                {
+                    "damageTypes": [
+                        "contact",
+                        "physical"
+                    ],
+                    "damage": 1356.09
+                }
+            ],
+            "l4": [
+                {
+                    "damageTypes": [
+                        "contact",
+                        "energy"
+                    ],
+                    "damage": 1356.09
+                }
+            ],
+            "m1": [
+                {
+                    "damageTypes": [
+                        "contact",
+                        "physical"
+                    ],
+                    "damage": 2115.5004
+                }
+            ],
+            "m2": [
+                {
+                    "damageTypes": [
+                        "contact",
+                        "physical"
+                    ],
+                    "damage": 2115.5004
+                }
+            ],
+            "h": [
+                {
+                    "damageTypes": [
+                        "contact",
+                        "physical"
+                    ],
+                    "damage": 2260.15
+                },
+                {
+                    "damageTypes": [
+                        "contact",
+                        "physical"
+                    ],
+                    "damage": 2260.15
+                }
+            ],
+            "s1": [
+                {
+                    "damageTypes": [
+                        "contact",
+                        "physical"
+                    ],
+                    "damage": 1063.6000159540001
+                },
+                {
+                    "damageTypes": [
+                        "physical"
+                    ],
+                    "damage": 1063.6000159540001
+                },
+                {
+                    "damageTypes": [
+                        "projectile",
+                        "energy"
+                    ],
+                    "damage": 797.7000319079999
+                },
+                {
+                    "damageTypes": [
+                        "projectile",
+                        "energy"
+                    ],
+                    "damage": 797.7000319079999
+                },
+                {
+                    "damageTypes": [
+                        "projectile",
+                        "energy"
+                    ],
+                    "damage": 1595.4000638159998
+                }
+            ],
+            "s2": [
+                {
+                    "damageTypes": [
+                        "projectile",
+                        "energy"
+                    ],
+                    "damage": 638.1600342924404
+                },
+                {
+                    "damageTypes": [
+                        "projectile",
+                        "energy"
+                    ],
+                    "damage": 638.1600342924404
+                },
+                {
+                    "damageTypes": [
+                        "projectile",
+                        "energy"
+                    ],
+                    "damage": 638.1600342924404
+                },
+                {
+                    "damageTypes": [
+                        "projectile",
+                        "energy"
+                    ],
+                    "damage": 638.1600342924404
+                },
+                {
+                    "damageTypes": [],
+                    "damage": 0.0
+                },
+                {
+                    "damageTypes": [
+                        "projectile",
+                        "physical"
+                    ],
+                    "damage": 2552.6401397224017
+                },
+                {
+                    "damageTypes": [
+                        "projectile",
+                        "physical"
+                    ],
+                    "damage": 2552.6401397224017
+                },
+                {
+                    "damageTypes": [
+                        "projectile",
+                        "physical"
+                    ],
+                    "damage": 5105.280279444803
+                }
+            ],
+            "s3": [
+                {
+                    "damageTypes": [],
+                    "damage": 17230.3200507164
+                }
+            ]
+        }
+    }
+}

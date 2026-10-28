@@ -1,0 +1,1270 @@
+# Path: mcoc/common/helpers/account.py
+# File-Version: 1.0
+# File-Id: 42a6311c-1671-4c6c-b699-bbc0e9f4243d      # unique file id (generate with `python -c "import uuid; print(uuid.uuid4())"`)
+# Purpose: Provide a manager for per-user JSON storage, handling rosters, profiles, and privacy settings.
+# Public-API: UserDataManager
+# Internal: 
+#   - relies on mcoc.common.userdata for persistent storage
+# Last-Modified: 2026-09-01
+# Used-By: mcoc/common/components/componentsV2.py, mcoc/common/helpers/__init__.py, mcoc/common/helpers/types.py
+# Changelog:
+#   1.0 2026-09-01  Initial stabilized API header
+"""
+Sanitized account helpers.
+
+Provides:
+  - profile field metadata
+  - safe wrappers around the UserDataManager
+  - top5/prestige computation (uses cache when available)
+  - profile display builder (embed + text fallback)
+  - enrollment/consent flow (CDTConfirm when available)
+  - thin command helpers used by prefix handlers:
+      user_has_consented(parent, user_id)
+      enroll_command_handler(parent, ctx, user_id)
+      handle_consent_response(parent, ctx, user_id, agree)
+"""
+
+from typing import Any, Dict, Optional, Tuple, List, Union
+import logging
+import datetime
+import re
+import asyncio
+
+from mcoc.common.components.componentsV2 import CDTEmbed, CDTConfirm
+
+# prefer the module-level userdata manager; fallback to parent-provided manager
+from mcoc.common.helpers import userdata as userdata_module
+
+# formatter helpers (used to render top5 lines)
+from mcoc.common.utilities import formatters as formatters_module
+
+# champion helpers (best-effort import)
+try:
+    from mcoc.common.helpers.types import Champion, champion_from_dict
+except Exception:
+    Champion = Any  # type: ignore
+    def champion_from_dict(d: Any) -> Any:  # type: ignore
+        return d
+
+log = logging.getLogger("red.mcoc.account_helpers")
+
+COLLECTORVERSE_PREMIUM_ROLE_IDS = {
+    585537521023189003,
+    736631216035594302,
+}
+
+
+def user_has_collectorverse_premium(user: Any) -> bool:
+    """Return True when the Discord user owns one of the CollectorVerse premium roles."""
+    if user is None:
+        return False
+    roles = getattr(user, "roles", None) or []
+    return any(getattr(role, "id", None) in COLLECTORVERSE_PREMIUM_ROLE_IDS for role in roles)
+
+
+# -----------------------------
+# Public metadata for profile fields
+# -----------------------------
+ALLOWED_PROFILE_FIELDS: Dict[str, Dict[str, str]] = {
+    "display_name": {"type": "str", "desc": "Preferred display name"},
+    "mcoc_name": {"type": "str", "desc": "In-game username"},
+    "mcoc_id": {"type": "str", "desc": "In-game id/slug"},
+    "website": {"type": "str", "desc": "Personal website"},
+    "invite": {"type": "str", "desc": "Recruiter/invite link"},
+    "timezone": {"type": "str", "desc": "Timezone"},
+    "alliance": {"type": "str", "desc": "Alliance name"},
+    "job": {"type": "str", "desc": "Job/role"},
+    "age": {"type": "str", "desc": "Age or birth year"},
+    "gender": {"type": "str", "desc": "Gender"},
+    "about": {"type": "str", "desc": "Short bio or notes"},
+    "mastery": {"type": "str", "desc": "Mastery build or link"},
+    "started": {"type": "str", "desc": "Playing since (ISO date)"},
+    "roster_public": {"type": "bool", "desc": "Make roster visible to guild"},
+    "linked": {"type": "bool", "desc": "Account linked flag"},
+    "prestige_map": {"type": "dict", "desc": "Persisted prestige per champ"},
+    "top5": {"type": "list", "desc": "Cached top 5 champion names"},
+    "active_roster": {"type": "str", "desc": "Active roster id/name for profile display"},
+    "consent": {"type": "bool", "desc": "User consented to privacy policy"},
+    "consent_ts": {"type": "str", "desc": "Consent timestamp (ISO date)"},
+    "consent_version": {"type": "str", "desc": "Policy version at consent"},
+    "consent_source": {"type": "str", "desc": "Policy source URL"},
+}
+
+FIELD_CANONICAL: Dict[str, str] = {
+    "display_name": "mcoc_name",
+    "mcoc_name": "mcoc_name",
+    "mcoc_id": "mcoc_id",
+    "website": "website",
+    "invite": "invite",
+    "timezone": "timezone",
+    "alliance": "alliance",
+    "job": "job",
+    "age": "age",
+    "gender": "gender",
+    "about": "about",
+    "notes": "about",
+    "mastery": "mastery",
+    "started": "started",
+    "roster_public": "roster_public",
+    "privacy_mode": "privacy_mode",
+    "linked": "linked",
+    "prestige_map": "prestige_map",
+    "top5": "top5",
+    "active_roster": "active_roster",
+    "consent": "consent",
+    "consent_ts": "consent_ts",
+    "consent_version": "consent_version",
+    "consent_source": "consent_source",
+}
+
+# Policy metadata
+POLICY_METADATA = {
+    "privacy_policy": {
+        "url": "https://raw.githubusercontent.com/CollectorDevTeam/mcoc-v3/main/mcoc/privacy_policy.md",
+        "version": "v1.0",
+    },
+    "terms_of_service": {
+        "url": "https://raw.githubusercontent.com/CollectorDevTeam/mcoc-v3/main/mcoc/terms_of_service.md",
+        "version": "v1.0",
+    },
+}
+
+# -----------------------------
+# Basic helpers
+# -----------------------------
+def validate_profile_field(field: str) -> bool:
+    if not field:
+        return False
+    key = field.strip()
+    return key in FIELD_CANONICAL.keys() or key in set(FIELD_CANONICAL.values())
+
+
+def get_profile_settings(profile: Dict[str, Any]) -> Dict[str, Any]:
+    return {user_field: profile.get(stored_key) for user_field, stored_key in FIELD_CANONICAL.items()}
+
+
+def stringify_setting_value(value: Any) -> str:
+    if value is None:
+        return "not set"
+    if isinstance(value, str):
+        s = value.strip()
+        return s if s else "not set"
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, (int, float)):
+        return str(value)
+    if isinstance(value, list):
+        if not value:
+            return "not set"
+        return ", ".join(str(v) for v in value)
+    if isinstance(value, dict):
+        if not value:
+            return "not set"
+        parts = []
+        for k, v in value.items():
+            parts.append(f"{k}: {v}")
+        return "; ".join(parts)
+    return str(value)
+
+
+def build_settings_pages(parent: Any, ctx_or_author: Any, target_id: int, *, title_prefix: Optional[str] = None, per_page: int = 12) -> List[Any]:
+    profile = get_profile(parent, target_id) or {}
+    field_meta: Dict[str, Dict[str, str]] = ALLOWED_PROFILE_FIELDS or {}
+    key_map: Dict[str, str] = FIELD_CANONICAL or {}
+
+    ordered_fields = list(field_meta.keys())
+    if not ordered_fields:
+        ordered_fields = sorted(set(key_map.keys()) | set(key_map.values()))
+
+    page_entries: List[Tuple[str, str]] = []
+    for field in ordered_fields:
+        stored_key = key_map.get(field, field)
+        raw = profile.get(stored_key)
+        shown = stringify_setting_value(raw)
+        page_entries.append((field, shown))
+
+    pages: List[Any] = []
+    label = title_prefix or "Account"
+    for i in range(0, len(page_entries), per_page):
+        chunk = page_entries[i:i + per_page]
+        emb = CDTEmbed.embed(
+            ctx_or_author,
+            title=f"{label} Settings",
+            description="Profile fields and current values.",
+        )
+        for field_name, field_value in chunk:
+            val = field_value
+            if len(val) > 900:
+                val = val[:897] + "..."
+            CDTEmbed.add_field(ctx_or_author, emb, name=field_name, value=val, inline=True)
+        pages.append(emb)
+
+    if not pages:
+        emb = CDTEmbed.embed(
+            ctx_or_author,
+            title=f"{label} Settings",
+            description="No account settings found.",
+        )
+        pages.append(emb)
+
+    return pages
+
+
+def _format_playing_since(iso_date_str: Optional[str]) -> str:
+    if not iso_date_str:
+        return "Not set"
+    s = str(iso_date_str).strip()
+    now = datetime.datetime.now().date()
+    log.debug("Parsing playing since date: %s", s)
+    dt = None
+    for fmt in ("%Y-%m-%d", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%dT%H:%M:%S.%f"):
+        try:
+            dt = datetime.datetime.strptime(s, fmt)
+            break
+        except Exception:
+            continue
+    if dt is None:
+        m = re.match(r"^\s*(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,6})\s*$", s)
+        if m:
+            mm, dd, yy = m.group(1), m.group(2), m.group(3)
+            try:
+                if len(yy) == 2:
+                    yint = int(yy)
+                    yyyy = 2000 + yint if yint <= 29 else 1900 + yint
+                else:
+                    yyyy = int(yy)
+                dt = datetime.datetime(yyyy, int(mm), int(dd))
+            except Exception:
+                dt = None
+    if dt is None:
+        try:
+            if len(s) == 10 and s.count("-") == 2:
+                d = datetime.date.fromisoformat(s)
+                dt = datetime.datetime.combine(d, datetime.time.min)
+            else:
+                dt = datetime.datetime.fromisoformat(s)
+        except Exception:
+            dt = None
+    if dt is None:
+        log.warning("Failed to parse playing since date: %s", s)
+        return s
+    dt_date = dt.date()
+    days = (now - dt_date).days
+    pretty = dt_date.strftime("%b %d, %Y")
+    return f"{pretty} - {days:,} days"
+
+
+def _resolve_account_identity(profile: Dict[str, Any]) -> Tuple[Optional[str], Optional[str]]:
+    """Return (mcoc_name, mcoc_id), keeping the in-game name and immutable id distinct."""
+    mcoc_name = (
+        profile.get("mcoc_name")
+        or profile.get("display_name")
+        or profile.get("username")
+        or profile.get("mcoctag")
+        or profile.get("player_name")
+    )
+    mcoc_id = (
+        profile.get("mcoc_id")
+        or profile.get("account_id")
+        or profile.get("player_id")
+        or profile.get("id")
+    )
+    return (None if mcoc_name in (None, "") else str(mcoc_name).strip()) or None, (None if mcoc_id in (None, "") else str(mcoc_id).strip()) or None
+
+
+def _coerce_roster_entries(candidate: Any) -> List[Dict[str, Any]]:
+    if not isinstance(candidate, list):
+        return []
+    out: List[Dict[str, Any]] = []
+    for item in candidate:
+        if isinstance(item, dict) and item.get("champion"):
+            out.append(item)
+    return out
+
+
+def _resolve_active_roster_entries(users: Any, target_id: int, profile: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """
+    Resolve the active roster entries for profile display.
+
+    Current data model persists one roster under user data (`list_roster`).
+    This helper is forward-compatible with a profile-level multi-roster shape:
+      - profile["active_roster"] picks from profile["rosters"]
+      - profile["rosters"] can be a dict of roster_id -> entries/object
+      - profile["rosters"] can be a list of roster objects with id/name/entries
+    """
+    active_id = profile.get("active_roster")
+    rosters = profile.get("rosters")
+
+    if isinstance(rosters, dict) and active_id:
+        selected = rosters.get(str(active_id)) or rosters.get(active_id)
+        if isinstance(selected, dict):
+            entries = _coerce_roster_entries(selected.get("entries") or selected.get("roster") or [])
+            if entries:
+                return entries
+        entries = _coerce_roster_entries(selected)
+        if entries:
+            return entries
+
+    if isinstance(rosters, list) and active_id:
+        for roster_obj in rosters:
+            if not isinstance(roster_obj, dict):
+                continue
+            rid = roster_obj.get("id") or roster_obj.get("name")
+            if rid is not None and str(rid) == str(active_id):
+                entries = _coerce_roster_entries(roster_obj.get("entries") or roster_obj.get("roster") or [])
+                if entries:
+                    return entries
+
+    if isinstance(rosters, list) and len(rosters) == 1 and isinstance(rosters[0], dict):
+        entries = _coerce_roster_entries(rosters[0].get("entries") or rosters[0].get("roster") or [])
+        if entries:
+            return entries
+
+    try:
+        lr = getattr(users, "list_roster", None)
+        if lr:
+            raw = lr(target_id)
+            return _coerce_roster_entries(raw)
+    except Exception:
+        pass
+    return []
+
+
+def _extract_roster_ids(profile: Dict[str, Any]) -> List[str]:
+    ids: List[str] = []
+    rosters = profile.get("rosters") if isinstance(profile, dict) else None
+
+    if isinstance(rosters, dict):
+        for key in rosters.keys():
+            text = str(key).strip()
+            if text:
+                ids.append(text)
+
+    elif isinstance(rosters, list):
+        for item in rosters:
+            if not isinstance(item, dict):
+                continue
+            rid = item.get("id") or item.get("name")
+            if rid is None:
+                continue
+            text = str(rid).strip()
+            if text:
+                ids.append(text)
+
+    seen: set = set()
+    deduped: List[str] = []
+    for rid in ids:
+        low = rid.lower()
+        if low in seen:
+            continue
+        seen.add(low)
+        deduped.append(rid)
+    return deduped
+
+
+def get_selectable_rosters(parent: Any, user_id: int) -> Tuple[List[str], Optional[str]]:
+    """Return (roster_ids, active_roster_id) for account selection UX."""
+    profile = get_profile(parent, user_id) or {}
+    roster_ids = _extract_roster_ids(profile)
+    active = profile.get("active_roster")
+    active_id = str(active).strip() if active not in (None, "") else None
+
+    users = _ensure_user_manager_from_parent(parent)
+    if users and not roster_ids:
+        try:
+            roster_entries = users.list_roster(user_id) if hasattr(users, "list_roster") else []
+            if isinstance(roster_entries, list) and roster_entries:
+                roster_ids = ["default"]
+        except Exception:
+            pass
+
+    if not active_id and len(roster_ids) == 1:
+        active_id = roster_ids[0]
+
+    return roster_ids, active_id
+
+
+def select_active_roster(parent: Any, user_id: int, roster_id: str) -> Tuple[bool, str]:
+    """Select the active roster id/name for profile and account operations."""
+    requested = str(roster_id or "").strip()
+    if not requested:
+        return False, "Provide a roster id/name to select."
+
+    roster_ids, _active = get_selectable_rosters(parent, user_id)
+    if not roster_ids:
+        return False, "No rosters are available yet. Import or add champions first."
+
+    matched: Optional[str] = None
+    for rid in roster_ids:
+        if str(rid).lower() == requested.lower():
+            matched = rid
+            break
+
+    if matched is None:
+        return False, f"Unknown roster `{requested}`. Available: {', '.join(roster_ids)}"
+
+    ok = set_profile_field(parent, user_id, "active_roster", matched)
+    if not ok:
+        return False, "Failed to update active roster."
+    return True, f"Active roster set to `{matched}`."
+
+
+# -----------------------------
+# UserDataManager wrappers
+# -----------------------------
+def _ensure_user_manager_from_parent(parent: Any):
+    """
+    Resolve a UserDataManager instance from parent/core or fallback to module-level manager.
+    Accept a direct manager instance as well as a bot/core wrapper.
+    """
+    try:
+        if parent is not None:
+            # Direct manager instance: it has the required APIs or file-backed path contract.
+            if any(hasattr(parent, name) for name in ("get_profile", "set_profile_field", "delete_user", "user_dir", "_path")):
+                return parent
+            mgr = getattr(parent, "users", None) or getattr(parent, "user_manager", None)
+            if mgr:
+                return mgr
+    except Exception:
+        log.debug("_ensure_user_manager_from_parent: parent lookup failed", exc_info=True)
+    try:
+        return userdata_module.get_user_manager()
+    except Exception:
+        log.exception("_ensure_user_manager_from_parent: userdata.get_user_manager failed")
+        return None
+
+
+def get_profile(parent: Any, user_id: int) -> Dict[str, Any]:
+    raw = {}
+    try:
+        users = _ensure_user_manager_from_parent(parent)
+        if not users:
+            return {}
+        raw = users.get_profile(user_id) or {}
+    except Exception:
+        log.exception("get_profile failed for %s", user_id)
+        return {}
+    # If userdata manager returned full userdata, extract profile
+    if isinstance(raw, dict) and "profile" in raw and isinstance(raw.get("profile"), dict):
+        return raw.get("profile", {})
+    return raw
+
+
+
+def set_profile_field(parent: Any, user_id: int, field: str, value: Any) -> bool:
+    try:
+        users = _ensure_user_manager_from_parent(parent)
+        if not users:
+            log.debug("set_profile_field: no user manager available")
+            return False
+        # Normalize 'started' conservatively
+        if field == "started" and value is not None:
+            try:
+                if isinstance(value, str) and len(value) == 10 and value.count("-") == 2:
+                    # keep as-is if already ISO-like
+                    pass
+            except Exception:
+                pass
+        if hasattr(users, "set_profile_field"):
+            users.set_profile_field(user_id, field, value)
+            log.info("set_profile_field: user=%s field=%s value=%r", user_id, field, value)
+            return True
+        if hasattr(users, "set_profile_field_async") and callable(users.set_profile_field_async):
+            try:
+                users.set_profile_field_async(user_id, field, value)
+                log.info("set_profile_field_async scheduled: user=%s field=%s", user_id, field)
+                return True
+            except Exception:
+                log.exception("set_profile_field_async failed for %s field=%s", user_id, field)
+                return False
+        log.debug("set_profile_field: user manager lacks set_profile_field API")
+        return False
+    except Exception:
+        log.exception("set_profile_field failed for %s field=%s", user_id, field)
+        return False
+
+
+def persist_profile(parent: Any, user_id: int, profile: Dict[str, Any]) -> bool:
+    try:
+        users = _ensure_user_manager_from_parent(parent)
+        if not users:
+            return False
+        if hasattr(users, "set_profile"):
+            try:
+                users.set_profile(user_id, profile)
+                log.info("persist_profile: bulk set_profile for user=%s", user_id)
+                return True
+            except Exception:
+                log.debug("persist_profile: users.set_profile failed", exc_info=True)
+        for k, v in (profile or {}).items():
+            try:
+                users.set_profile_field(user_id, k, v)
+            except Exception:
+                log.debug("persist_profile: failed to set field %s for user %s", k, user_id, exc_info=True)
+        log.info("persist_profile: per-field write completed for user=%s", user_id)
+        return True
+    except Exception:
+        log.exception("persist_profile failed for %s", user_id)
+        return False
+
+
+def delete_user_profile(parent: Any, user_id: int) -> Tuple[bool, str]:
+    try:
+        users = _ensure_user_manager_from_parent(parent)
+        if not users:
+            return False, "User manager not available; cannot delete now."
+
+        # Try the direct manager API first.
+        if hasattr(users, "delete_user"):
+            deleted = users.delete_user(user_id)
+            if deleted:
+                log.info("delete_user_profile: deleted user=%s via manager API", user_id)
+                return True, "Your profile and roster have been deleted."
+            log.info("delete_user_profile: no file to delete for user=%s via manager API", user_id)
+            return False, "No profile file found to delete."
+
+        # Fallback: use the concrete file path used by the backing JSON manager so we always remove the persisted settings file.
+        file_path = None
+        if hasattr(users, "_path"):
+            file_path = users._path(user_id)
+        elif hasattr(users, "user_dir"):
+            file_path = getattr(users, "user_dir") / f"{user_id}.json"
+
+        if file_path is not None:
+            try:
+                if file_path.exists():
+                    file_path.unlink()
+                    log.info("delete_user_profile: removed user file=%s user=%s", file_path, user_id)
+                    return True, "Your profile and roster have been deleted."
+                log.info("delete_user_profile: no file to delete for user=%s (path=%s)", user_id, file_path)
+                return False, "No profile file found to delete."
+            except Exception:
+                log.exception("delete_user_profile: failed to unlink file for user=%s path=%s", user_id, file_path)
+                return False, "Failed to delete profile."
+
+        return False, "User manager does not support deletion."
+    except Exception:
+        log.exception("delete_user_profile failed for %s", user_id)
+        return False, "Failed to delete profile."
+
+
+# -----------------------------
+# Link / unlink helpers
+# -----------------------------
+def link_account(parent: Any, user_id: int, mcoc_id: str) -> Tuple[bool, str]:
+    try:
+        ok = set_profile_field(parent, user_id, "mcoc_id", str(mcoc_id).strip())
+        if ok:
+            set_profile_field(parent, user_id, "linked", True)
+            log.info("link_account: user=%s mcoc_id=%s", user_id, mcoc_id)
+            return True, f"Linked your account to MCOC id `{mcoc_id}`."
+        return False, "Failed to link account."
+    except Exception:
+        log.exception("link_account failed for %s", user_id)
+        return False, "Failed to link account."
+
+
+def unlink_account(parent: Any, user_id: int) -> Tuple[bool, str]:
+    try:
+        set_profile_field(parent, user_id, "mcoc_id", None)
+        set_profile_field(parent, user_id, "linked", False)
+        log.info("unlink_account: user=%s", user_id)
+        return True, "Your MCOC account has been unlinked."
+    except Exception:
+        log.exception("unlink_account failed for %s", user_id)
+        return False, "Failed to unlink account."
+
+
+# -----------------------------
+# Prestige / Top5 computation
+# -----------------------------
+def _normalize_prestige_value(raw: Any) -> int:
+    try:
+        if raw is None:
+            return 0
+        if isinstance(raw, (int, float)):
+            return int(raw)
+        s = str(raw).strip()
+        m = re.search(r"(\d[\d,]*)", s)
+        if not m:
+            return 0
+        digits = m.group(1).replace(",", "")
+        return int(digits)
+    except Exception:
+        return 0
+
+
+def _parse_prestige_map(profile: Union[Dict[str, Any], Any]) -> Dict[str, int]:
+    out: Dict[str, int] = {}
+    try:
+        pm = {}
+        if isinstance(profile, dict):
+            pm = profile.get("prestige_map") or {}
+        else:
+            pm = getattr(profile, "prestige_map", {}) or {}
+        if isinstance(pm, dict):
+            for k, v in pm.items():
+                try:
+                    out[k] = _normalize_prestige_value(v)
+                except Exception:
+                    out[k] = 0
+    except Exception:
+        log.exception("_parse_prestige_map failed")
+    return out
+
+
+def compute_top5_from_profile(profile: Union[Dict[str, Any], Any]) -> Tuple[List[str], Optional[int], Optional[float]]:
+    """Legacy compatibility helper for older stored prestige_map values. Canonical source remains live roster + cache."""
+    try:
+        pm = _parse_prestige_map(profile)
+        items = [(k, v) for k, v in pm.items() if isinstance(v, int) and v > 0]
+        if not items:
+            return [], None, None
+        items.sort(key=lambda x: -x[1])
+        total = sum(v for _, v in items) if items else None
+        average = (total / len(items)) if items else None
+        avg_rounded = round(average, 2) if average is not None else None
+        top5 = items[:5]
+        lines: List[str] = []
+        for i, (k, v) in enumerate(top5):
+            try:
+                slug, _stars = str(k).split("|", 1)
+            except Exception:
+                slug = str(k)
+            prestige_val = int(v) if isinstance(v, (int, float)) else 0
+            lines.append(f"{i+1}. {slug} [{prestige_val}]")
+        return lines, total, avg_rounded
+    except Exception:
+        log.exception("compute_top5_from_profile failed")
+        return [], None, None
+
+
+def compute_top5_from_roster(parent: Any, roster: List[Dict[str, Any]], profile: Union[Dict[str, Any], Any]) -> Tuple[List[str], Optional[int]]:
+    try:
+        cache = getattr(parent, "cache", None)
+        entries: List[Dict[str, Any]] = []
+        for e in roster:
+            try:
+                slug = str(e.get("champion") or "").strip()
+                if not slug:
+                    continue
+                stars = int(e.get("rarity") or e.get("stars") or 0)
+                rank = int(e.get("rank") or 1)
+                sig = int(e.get("sig") or 0)
+                ascended = int(e.get("ascended") or 0)
+
+                p = None
+                if cache and hasattr(cache, "get_prestige_value"):
+                    try:
+                        p = cache.get_prestige_value(slug, stars, rank, ascended, sig)
+                    except Exception:
+                        p = None
+
+                if p is None and cache and hasattr(cache, "get_cocpit_abilities") and slug:
+                    try:
+                        ability_row = cache.get_cocpit_abilities(slug)
+                        if isinstance(ability_row, dict):
+                            raw = ability_row.get("raw") if isinstance(ability_row, dict) else None
+                            base = raw.get("baseStats") if isinstance(raw, dict) else None
+                            if isinstance(base, dict):
+                                value = base.get("Prestige") or base.get("prestige")
+                                if isinstance(value, (int, float)):
+                                    p = int(value)
+                    except Exception:
+                        p = None
+
+                name = slug
+                if cache:
+                    try:
+                        if hasattr(cache, "get_champion_obj"):
+                            cobj = cache.get_champion_obj(slug)
+                            if cobj:
+                                name = getattr(cobj, "name", None) or getattr(cobj, "slug", slug)
+                        else:
+                            raw = cache.get_champion(slug)
+                            if raw and isinstance(raw, dict):
+                                name = raw.get("name") or raw.get("slug") or slug
+                    except Exception:
+                        pass
+                entries.append({"name": name, "prestige": int(p) if isinstance(p, (int, float)) else 0})
+            except Exception:
+                continue
+        entries.sort(key=lambda x: (-int(x.get("prestige") or 0), x.get("name")))
+        top5 = entries[:5]
+        top5_lines = [f"{i+1}. {it['name']} [{it['prestige']}]" for i, it in enumerate(top5)]
+        total = sum(int(it.get("prestige") or 0) for it in entries) if entries else None
+        return top5_lines, total
+    except Exception:
+        log.exception("compute_top5_from_roster failed")
+        return [], None
+
+
+def _compute_top5_roster_entries(parent: Any, roster: List[Dict[str, Any]], profile: Union[Dict[str, Any], Any]) -> Tuple[List[Dict[str, Any]], Optional[int]]:
+    """Return top roster entries with prestige resolved from live roster data and cache lookup."""
+    try:
+        cache = getattr(parent, "cache", None)
+        entries: List[Dict[str, Any]] = []
+        for e in roster:
+            try:
+                slug = str(e.get("champion") or "").strip()
+                if not slug:
+                    continue
+                rarity = int(e.get("rarity") or e.get("stars") or 0)
+                rank = int(e.get("rank") or 1)
+                sig = int(e.get("sig") or 0)
+                ascended = int(e.get("ascended") or 0)
+
+                p = None
+                if cache and hasattr(cache, "get_prestige_value"):
+                    try:
+                        p = cache.get_prestige_value(slug, rarity, rank, ascended, sig)
+                    except Exception:
+                        p = None
+
+                if p is None and cache and hasattr(cache, "get_cocpit_abilities") and slug:
+                    try:
+                        ability_row = cache.get_cocpit_abilities(slug)
+                        if isinstance(ability_row, dict):
+                            raw = ability_row.get("raw") if isinstance(ability_row, dict) else None
+                            base = raw.get("baseStats") if isinstance(raw, dict) else None
+                            if isinstance(base, dict):
+                                value = base.get("Prestige") or base.get("prestige")
+                                if isinstance(value, (int, float)):
+                                    p = int(value)
+                    except Exception:
+                        p = None
+
+                name = slug
+                if cache:
+                    try:
+                        if hasattr(cache, "get_champion_obj"):
+                            cobj = cache.get_champion_obj(slug)
+                            if cobj:
+                                name = getattr(cobj, "name", None) or getattr(cobj, "slug", slug)
+                        else:
+                            raw = cache.get_champion(slug)
+                            if raw and isinstance(raw, dict):
+                                name = raw.get("name") or raw.get("slug") or slug
+                    except Exception:
+                        pass
+
+                entries.append(
+                    {
+                        "champion": slug,
+                        "name": name,
+                        "rarity": rarity,
+                        "rank": rank,
+                        "sig": sig,
+                        "ascended": ascended,
+                        "prestige": int(p) if isinstance(p, (int, float)) else 0,
+                    }
+                )
+            except Exception:
+                continue
+
+        entries.sort(key=lambda x: (-int(x.get("prestige") or 0), str(x.get("name") or "")))
+        total = sum(int(it.get("prestige") or 0) for it in entries) if entries else None
+        return entries[:5], total
+    except Exception:
+        log.exception("_compute_top5_roster_entries failed")
+        return [], None
+
+
+# -----------------------------
+# Profile display builder
+# -----------------------------
+def _format_date_iso(iso_str: Optional[str]) -> str:
+    if not iso_str:
+        return "Unknown"
+    try:
+        dt = datetime.datetime.fromisoformat(iso_str)
+        return dt.date().isoformat()
+    except Exception:
+        return str(iso_str)
+
+
+def build_profile_display(parent: Any, ctx_or_author: Any, target_id: int, viewer_id: Optional[int] = None, *, prefer_embed: bool = True) -> Tuple[Optional[Any], Optional[str]]:
+    top5_lines: List[str] = []
+    total_prestige: Optional[int] = None
+    try:
+        users = _ensure_user_manager_from_parent(parent)
+        if not users:
+            return None, "User manager not available."
+
+        # privacy check if available
+        try:
+            if viewer_id is not None and hasattr(users, "can_view_profile"):
+                allowed = users.can_view_profile(viewer_id, target_id, guild_id=getattr(getattr(ctx_or_author, "guild", None), "id", None))
+                if not allowed:
+                    return None, "You do not have permission to view that profile."
+        except Exception:
+            if viewer_id is not None and viewer_id != target_id:
+                return None, "You do not have permission to view that profile."
+
+        profile = {}
+        try:
+            profile = users.get_profile(target_id) or {}
+        except Exception:
+            profile = {}
+
+        if not profile:
+            return None, "No profile found for that user."
+
+        # Build embed
+        try:
+            emb = CDTEmbed.embed(ctx_or_author, title="CollectorVerse Profile")
+            linked = profile.get("linked", False)
+            mcoc_name, mcoc_id = _resolve_account_identity(profile)
+            CDTEmbed.add_field(ctx_or_author, emb, name="Linked", value=str(bool(linked)), inline=True)
+            CDTEmbed.add_field(ctx_or_author, emb, name="MCOC Username", value=str(mcoc_name) if mcoc_name else "Not set", inline=True)
+            CDTEmbed.add_field(ctx_or_author, emb, name="MCOC ID", value=str(mcoc_id) if mcoc_id else "Not set", inline=True)
+
+            # Top5/Prestige: prefer active roster calculation, but keep a legacy profile fallback for older data.
+            roster = _resolve_active_roster_entries(users, target_id, profile)
+            top5_roster_entries: List[Dict[str, Any]] = []
+            if roster:
+                top5_lines, total_prestige = compute_top5_from_roster(parent, roster, profile)
+                top5_roster_entries, _calc_total = _compute_top5_roster_entries(parent, roster, profile)
+                if not top5_lines or not isinstance(total_prestige, int) or total_prestige <= 0:
+                    legacy_lines, legacy_total, _avg = compute_top5_from_profile(profile)
+                    if legacy_lines:
+                        top5_lines, total_prestige = legacy_lines, legacy_total
+            else:
+                top5_lines, total_prestige, _avg = compute_top5_from_profile(profile)
+
+            if total_prestige is not None:
+                CDTEmbed.add_field(ctx_or_author, emb, name="Prestige (sum)", value=str(total_prestige), inline=False)
+
+            # Format Top 5 using formatter and cache
+            formatted_top5: List[str] = []
+            if top5_lines:
+                try:
+                    fmt = formatters_module.format_top5_prestige_line
+                    cache = getattr(parent, "cache", None)
+                    if top5_roster_entries:
+                        for roster_entry in top5_roster_entries:
+                            champ_obj = None
+                            slug = str(roster_entry.get("champion") or "")
+                            if cache and slug:
+                                try:
+                                    if hasattr(cache, "get_champion_obj"):
+                                        champ_obj = cache.get_champion_obj(slug)
+                                    else:
+                                        raw = cache.get_champion(slug)
+                                        champ_obj = champion_from_dict(raw) if raw else None
+                                except Exception:
+                                    champ_obj = None
+                            entry = {
+                                "champion": slug,
+                                "rarity": int(roster_entry.get("rarity") or 0),
+                                "rank": int(roster_entry.get("rank") or 1),
+                                "sig": int(roster_entry.get("sig") or 0),
+                                "ascended": int(roster_entry.get("ascended") or 0),
+                                "prestige": int(roster_entry.get("prestige") or 0),
+                            }
+                            formatted_top5.append(fmt(champ_obj, entry))
+                        # Already fully formatted from live roster entries.
+                        top5_lines = []
+
+                    for line in top5_lines:
+                        # detect already formatted lines
+                        if "]" in line and any(e in line for e in ("★", "<:", "🧬", "🛡️")):
+                            formatted_top5.append(line.split(". ", 1)[1])
+                            continue
+                        try:
+                            slug = line.split(". ", 1)[1].split(" [", 1)[0]
+                            prestige_val = 0
+                            if "[" in line:
+                                prestige_val = int(line.split("[")[-1].rstrip("]"))
+                        except Exception:
+                            slug = line
+                            prestige_val = 0
+
+                        champ_obj = None
+                        if cache:
+                            try:
+                                if hasattr(cache, "get_champion_obj"):
+                                    champ_obj = cache.get_champion_obj(slug)
+                                else:
+                                    raw = cache.get_champion(slug)
+                                    champ_obj = champion_from_dict(raw) if raw else None
+                            except Exception:
+                                champ_obj = None
+
+                        entry = {
+                            "champion": slug,
+                            "rarity": 6,
+                            "rank": 1,
+                            "sig": 0,
+                            "ascended": 0,
+                            "prestige": int(prestige_val) if isinstance(prestige_val, (int, float)) else 0,
+                        }
+                        formatted_top5.append(fmt(champ_obj, entry))
+                except Exception:
+                    log.exception("build_profile_display: formatting top5 failed; falling back to raw lines")
+                    formatted_top5 = [l.split(". ", 1)[1] if ". " in l else l for l in top5_lines]
+            else:
+                formatted_top5 = ["No roster or prestige data available."]
+
+            CDTEmbed.add_field(ctx_or_author, emb, name="Top 5 Champions", value="\n".join(formatted_top5), inline=False)
+
+            # other fields
+            display_order = ["alliance", "job", "timezone", "website", "invite", "age", "gender", "mastery"]
+            for key in display_order:
+                val = profile.get(key)
+                if val:
+                    CDTEmbed.add_field(ctx_or_author, emb, name=key.replace("_", " ").title(), value=str(val), inline=True)
+
+            about = profile.get("about") or profile.get("notes") or profile.get("description")
+            if about:
+                CDTEmbed.add_field(ctx_or_author, emb, name="About", value=str(about), inline=False)
+
+            started = profile.get("started") or profile.get("created_at")
+            if started:
+                CDTEmbed.add_field(ctx_or_author, emb, name="Playing Since", value=_format_playing_since(started), inline=True)
+
+            # Consent metadata
+            # try:
+            #     consent = profile.get("consent")
+            #     if consent is not None:
+            #         CDTEmbed.add_field(ctx_or_author, emb, name="Consent Given", value=str(bool(consent)), inline=True)
+            #     consent_ts = profile.get("consent_ts")
+            #     if consent_ts:
+            #         CDTEmbed.add_field(ctx_or_author, emb, name="Consent Date", value=_format_date_iso(consent_ts), inline=True)
+            # except Exception:
+            #     pass
+
+            CDTEmbed.set_footer(ctx_or_author, emb, text="CollecVerse Profile")
+            return emb, None
+        except Exception:
+            log.exception("build_profile_display: embed construction failed")
+
+        # Text fallback
+        try:
+            lines: List[str] = []
+            mcoc_name, mcoc_id = _resolve_account_identity(profile)
+            display_name = mcoc_name or profile.get("display_name") or str(target_id)
+            lines.append(f"Profile — {display_name}")
+            # linked = profile.get("linked", False)
+            # lines.append(f"Linked: {linked}")
+            lines.append(f"MCOC Username: {mcoc_name or 'Not set'}")
+            lines.append(f"MCOC ID: {mcoc_id or 'Not set'}")
+            if total_prestige is not None:
+                lines.append(f"Prestige (sum): {total_prestige}")
+            if top5_lines:
+                lines.append("Top 5 Champions:")
+                lines.extend(top5_lines)
+            else:
+                lines.append("Top 5 Champions: none")
+            settings = get_profile_settings(profile)
+            lines.append("")
+            lines.append("Profile fields:")
+            lines.append(str(settings))
+            return None, "\n".join(lines)
+        except Exception:
+            log.exception("build_profile_display: text fallback failed")
+            return None, "Failed to build profile display."
+    except Exception:
+        log.exception("build_profile_display failed")
+        return None, "Failed to build profile display."
+
+
+# ----------------------------
+# Enrollment / Consent flow
+# ----------------------------
+def _is_meaningful_profile_value(value: Any) -> bool:
+    if value is None:
+        return False
+    if isinstance(value, str):
+        return bool(value.strip())
+    if isinstance(value, (list, tuple, set, dict)):
+        return len(value) > 0
+    if isinstance(value, bool):
+        return bool(value)
+    return True
+
+
+def user_has_profile(parent: Any, user_id: int) -> bool:
+    """Return True only when the stored profile has meaningful account data, not just consent/privacy metadata or blank placeholders."""
+    try:
+        profile = get_profile(parent, user_id) or {}
+        if not isinstance(profile, dict):
+            return False
+        if not profile:
+            return False
+
+        system_fields = {
+            "consent",
+            "consent_ts",
+            "consent_version",
+            "consent_source",
+            "created_at",
+            "updated_at",
+            "privacy_mode",
+            "roster_public",
+            "linked",
+            "active_roster",
+            "prestige_map",
+            "top5",
+        }
+
+        has_real_profile_fields = any(
+            key not in system_fields and _is_meaningful_profile_value(value)
+            for key, value in profile.items()
+        )
+        if has_real_profile_fields:
+            return True
+
+        # A user who completed enrollment has a real record even if the profile remains mostly blank.
+        # This is distinct from a consent-only placeholder that was never created.
+        created_at = profile.get("created_at") or profile.get("updated_at")
+        if created_at not in (None, "", False):
+            return True
+
+        return bool(profile.get("consent")) and bool(profile.get("privacy_mode"))
+    except Exception:
+        log.exception("user_has_profile check failed for %s", user_id)
+        return False
+
+
+def user_has_consented(parent: Any, user_id: int) -> bool:
+    try:
+        profile = get_profile(parent, user_id) or {}
+        consent = profile.get("consent")
+        return bool(consent)
+    except Exception:
+        log.exception("user_has_consented check failed for %s", user_id)
+        return False
+
+
+def _record_consent(parent: Any, user_id: int, *, version: str, source: str) -> bool:
+    try:
+        ts = datetime.datetime.utcnow().isoformat()
+        ok1 = set_profile_field(parent, user_id, "consent", True)
+        ok2 = set_profile_field(parent, user_id, "consent_ts", ts)
+        ok3 = set_profile_field(parent, user_id, "consent_version", version)
+        ok4 = set_profile_field(parent, user_id, "consent_source", source)
+        ok5 = set_profile_field(parent, user_id, "created_at", ts)
+        ok6 = set_profile_field(parent, user_id, "privacy_mode", "public")
+        ok = bool(ok1 and ok2 and ok3 and ok4 and ok5 and ok6)
+        log.info("consent:recorded user=%s ok=%s version=%s source=%s", user_id, ok, version, source)
+        return ok
+    except Exception:
+        log.exception("_record_consent failed for %s", user_id)
+        return False
+# --- add near the bottom of mcoc/common/account.py ---
+
+def user_has_consented(parent: Any, user_id: int) -> bool:
+    """
+    Return True if the stored profile indicates consent.
+    Defensive: handles both module-level userdata shape and plain profile dict.
+    """
+    try:
+        profile = get_profile(parent, user_id) or {}
+        # If get_profile returned a full userdata dict, extract 'profile'
+        if isinstance(profile, dict) and "profile" in profile and isinstance(profile.get("profile"), dict):
+            profile = profile.get("profile", {})
+        consent = profile.get("consent")
+        log.info("user_has_consented: user=%s consent=%s", user_id, bool(consent))
+        return bool(consent)
+    except Exception:
+        log.exception("user_has_consented check failed for %s", user_id)
+        return False
+
+
+async def enroll_command_handler(parent: Any, ctx: Any, user_id: int) -> Tuple[bool, str]:
+    """
+    Start an enrollment/consent prompt. Returns (ok, message).
+    Uses CDTConfirm when available; falls back to DM text prompt.
+    """
+    try:
+        version = POLICY_METADATA["privacy_policy"]["version"]
+        source = POLICY_METADATA["privacy_policy"]["url"]
+        prompt_text = (
+            "To enroll, please review our policies:\n"
+            f"Privacy Policy: {source}\n"
+            f"Terms of Service: {POLICY_METADATA['terms_of_service']['url']}\n\n"
+            "If you agree, type: //account agree\n"
+            "If you decline, type: //account decline\n"
+        )
+
+        # Try CDTConfirm if available
+        try:
+            view = CDTConfirm(timeout=60.0, confirm_label="Agree", cancel_label="Decline")
+            dm = None
+            try:
+                dm = await ctx.author.create_dm()
+            except Exception:
+                dm = None
+            send_target = dm or ctx
+            await send_target.send(prompt_text, view=view)
+            log.info("consent:prompt_shown user=%s via=%s (CDTConfirm)", user_id, "DM" if dm else "channel")
+
+            async def _wait_and_record():
+                try:
+                    res = await view.wait_result()
+                    if res is True:
+                        ok = _record_consent(parent, user_id, version=version, source=source)
+                        log.info("consent:accepted user=%s ok=%s", user_id, ok)
+                    elif res is False:
+                        set_profile_field(parent, user_id, "consent", False)
+                        set_profile_field(parent, user_id, "consent_ts", datetime.datetime.utcnow().isoformat())
+                        log.info("consent:declined user=%s", user_id)
+                except Exception:
+                    log.exception("enroll_command_handler: error waiting for CDTConfirm result for user=%s", user_id)
+
+            try:
+                loop = asyncio.get_running_loop()
+                loop.create_task(_wait_and_record())
+            except RuntimeError:
+                asyncio.ensure_future(_wait_and_record())
+
+            return True, "Enrollment prompt sent."
+        except Exception:
+            log.debug("CDTConfirm not available; falling back to text prompt", exc_info=True)
+
+        # Fallback: plain text DM or channel
+        try:
+            dm = None
+            try:
+                dm = await ctx.author.create_dm()
+            except Exception:
+                dm = None
+            send_target = dm or ctx
+            await send_target.send(prompt_text)
+            log.info("consent:prompt_shown user=%s via=%s (text)", user_id, "DM" if dm else "channel")
+            return True, "Enrollment prompt sent."
+        except Exception:
+            log.exception("enroll_command_handler: failed to send prompt to user=%s", user_id)
+            return False, "Failed to send enrollment prompt."
+    except Exception:
+        log.exception("enroll_command_handler unexpected error for user=%s", user_id)
+        return False, "Failed to start enrollment."
+
+
+async def handle_consent_response(parent: Any, ctx: Any, user_id: int, agree: bool) -> Tuple[bool, str]:
+    """
+    Record a typed consent response (//account agree or //account decline).
+    """
+    try:
+        version = POLICY_METADATA["privacy_policy"]["version"]
+        source = POLICY_METADATA["privacy_policy"]["url"]
+        if agree:
+            ok = _record_consent(parent, user_id, version=version, source=source)
+            if ok:
+                return True, "Consent recorded. Thank you."
+            return False, "Failed to record consent."
+        else:
+            # record explicit decline, but do not treat a consent-only placeholder as an actual account.
+            if user_has_profile(parent, user_id):
+                set_profile_field(parent, user_id, "consent", False)
+                set_profile_field(parent, user_id, "consent_ts", datetime.datetime.utcnow().isoformat())
+                log.info("consent:declined user=%s", user_id)
+                return True, "You have declined enrollment. Your profile remains private."
+
+            delete_user_profile(parent, user_id)
+            log.info("consent:declined user=%s -> cleared empty profile", user_id)
+            return True, "You have declined enrollment. Your profile remains private."
+    except Exception:
+        log.exception("handle_consent_response failed for %s", user_id)
+        return False, "Failed to record consent response."
+
+
+async def enroll_command_handler(parent: Any, ctx: Any, user_id: int) -> Tuple[bool, str]:
+    """
+    Start an enrollment/consent prompt.
+
+    Returns (ok, message) where ok indicates whether the prompt was delivered.
+    """
+    try:
+        version = POLICY_METADATA["privacy_policy"]["version"]
+        source = POLICY_METADATA["privacy_policy"]["url"]
+        prompt_text = (
+            "To enroll, please review our policies:\n"
+            f"Privacy Policy: {source}\n"
+            f"Terms of Service: {POLICY_METADATA['terms_of_service']['url']}\n\n"
+            "If you agree, type: //account agree\n"
+            "If you decline, type: //account decline\n"
+            "This prompt will time out after a short period."
+        )
+
+        # Try to use CDTConfirm if available
+        try:
+            view = CDTConfirm(timeout=60.0, confirm_label="Agree", cancel_label="Decline")
+            # prefer DM
+            dm = None
+            try:
+                dm = await ctx.author.create_dm()
+            except Exception:
+                dm = None
+            send_target = dm or ctx
+            try:
+                await send_target.send(prompt_text, view=view)
+                log.info("consent:prompt_shown user=%s via=%s (CDTConfirm)", user_id, "DM" if dm else "channel")
+                async def _wait_and_record():
+                    try:
+                        res = await view.wait_result()
+                        if res is True:
+                            ok = _record_consent(parent, user_id, version=version, source=source)
+                            log.info("consent:accepted user=%s version=%s ok=%s", user_id, version, ok)
+                        elif res is False:
+                            set_profile_field(parent, user_id, "consent", False)
+                            set_profile_field(parent, user_id, "consent_ts", datetime.datetime.utcnow().isoformat())
+                            log.info("consent:declined user=%s", user_id)
+                    except Exception:
+                        log.exception("enroll_command_handler: error waiting for CDTConfirm result for user=%s", user_id)
+                try:
+                    loop = asyncio.get_running_loop()
+                    loop.create_task(_wait_and_record())
+                except RuntimeError:
+                    asyncio.ensure_future(_wait_and_record())
+                return True, "Enrollment prompt sent."
+            except Exception:
+                log.debug("CDTConfirm send failed; falling back to text DM", exc_info=True)
+        except Exception:
+            log.debug("CDTConfirm not available; falling back to text prompt", exc_info=True)
+
+        # Fallback: plain text DM or channel
+        try:
+            dm = None
+            try:
+                dm = await ctx.author.create_dm()
+            except Exception:
+                dm = None
+            send_target = dm or ctx
+            await send_target.send(prompt_text)
+            log.info("consent:prompt_shown user=%s via=%s (text)", user_id, "DM" if dm else "channel")
+            return True, "Enrollment prompt sent."
+        except Exception:
+            log.exception("enroll_command_handler: failed to send prompt to user=%s", user_id)
+            return False, "Failed to send enrollment prompt."
+    except Exception:
+        log.exception("enroll_command_handler unexpected error for user=%s", user_id)
+        return False, "Failed to start enrollment."
+
+
+async def handle_consent_response(parent: Any, ctx: Any, user_id: int, agree: bool) -> Tuple[bool, str]:
+    """
+    Record a typed consent response (//account agree or decline).
+    """
+    try:
+        version = POLICY_METADATA["privacy_policy"]["version"]
+        source = POLICY_METADATA["privacy_policy"]["url"]
+        if agree:
+            ok = _record_consent(parent, user_id, version=version, source=source)
+            if ok:
+                log.info("consent:recorded user=%s method=typed ok=True version=%s source=%s", user_id, version, source)
+                return True, "Thank you — your consent has been recorded."
+            else:
+                log.warning("consent:recorded failed for user=%s", user_id)
+                return False, "Failed to record consent. Try again later."
+        else:
+            set_profile_field(parent, user_id, "consent", False)
+            set_profile_field(parent, user_id, "consent_ts", datetime.datetime.utcnow().isoformat())
+            log.info("consent:declined user=%s", user_id)
+            return True, "You have declined enrollment. Your profile remains private."
+    except Exception:
+        log.exception("handle_consent_response failed for %s", user_id)
+        return False, "Failed to record your response."
+
+__all__ = ["handle_consent_response", "enroll_command_handler"]

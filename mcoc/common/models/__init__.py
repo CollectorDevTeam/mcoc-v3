@@ -1,0 +1,46 @@
+"""Typed models for external and internal Collectorbot data."""
+
+from .cocpit.champion import AttackDamageEntry, AttackMoves, AbilityEntry as CocpitAbilityEntry, ChampionData as CocpitChampionData, Synergy, SynergyPartner
+from .cocpit.champions import ChampionAutocompleteEntry, ChampionAutocompleteList
+from .internal.account import CollectorBotAccount
+from .internal.champion import CollectorBotChampion
+from .mcochub.abilities import Ability, AbilityList, MCOCHubAbility
+from .mcochub.champions import Champion, ChampionList, MCOCHubChampion
+from .mcochub.immunities import Immunity, ImmunityList, MCOCHubImmunity
+from .mcochub.tags import MCOCHubTag, Tag, TagList
+from .mcoc_app.tierlist import (
+    Champion as TierlistChampion,
+    MCOCAppImmunity,
+    MCOCAppTierlistChampion,
+    TierList,
+)
+
+__all__ = [
+    "CollectorBotAccount",
+    "CollectorBotChampion",
+    "ChampionAutocompleteEntry",
+    "ChampionAutocompleteList",
+    "CocpitAbilityEntry",
+    "CocpitChampionData",
+    "Synergy",
+    "SynergyPartner",
+    "AttackDamageEntry",
+    "AttackMoves",
+    "Ability",
+    "AbilityList",
+    "MCOCHubAbility",
+    "Champion",
+    "ChampionList",
+    "MCOCHubChampion",
+    "Immunity",
+    "ImmunityList",
+    "MCOCHubImmunity",
+    "MCOCHubTag",
+    "Tag",
+    "TagList",
+    "TierlistChampion",
+    "MCOCAppImmunity",
+    "MCOCAppTierlistChampion",
+    "TierList",
+]
+# Used-By: mcoc/common/models/internal/account.py, mcoc/common/models/internal/champion.py, mcoc/common/models/mcoc_app/tierlist.py, mcoc/common/models/mcochub/abilities.py, mcoc/common/models/mcochub/champions.py, mcoc/common/models/mcochub/immunities.py, mcoc/common/models/mcochub/tags.py

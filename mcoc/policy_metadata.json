@@ -1,0 +1,14 @@
+{
+  "privacy_policy": {
+    "path": "mcoc/privacy_policy.md",
+    "version": "v1.0",
+    "last_updated": "2026-08-31",
+    "url": "https://raw.githubusercontent.com/CollectorDevTeam/mcoc-v3/main/mcoc/privacy_policy.md"
+  },
+  "terms_of_service": {
+    "path": "mcoc/terms_of_service.md",
+    "version": "v1.0",
+    "last_updated": "2026-08-31",
+    "url": "https://raw.githubusercontent.com/CollectorDevTeam/mcoc-v3/main/mcoc/terms_of_service.md"
+  }
+}

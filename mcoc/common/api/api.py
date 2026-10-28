@@ -1,0 +1,470 @@
+# Path: mcoc/common/api/api.py
+# File-Version: 1.0
+# File-Id: c36f0729-deb1-4b9f-95ec-f4e94fc3b2e4
+# Purpose: Short one-line purpose describing responsibilities and public API
+# Public-API: MCOCHubAPI, UnauthenticatedError, RateLimitedError
+# Last-Modified: 2026-09-01
+# Used-By: None
+# Changelog:
+#   1.0 2026-09-01  Initial stabilized API header
+import aiohttp
+import asyncio
+import logging
+import random
+import re
+import json
+from typing import Optional, Callable, Awaitable, Any
+from yarl import URL
+
+log = logging.getLogger("red.mcoc.api")
+
+class UnauthenticatedError(Exception):
+    """Raised when API returns unauthenticated / invalid key (401 or body message)."""
+
+
+class RateLimitedError(Exception):
+    """Raised when API indicates rate limiting (429 or Too Many Attempts)."""
+
+
+class MCOCHubAPI:
+    BASE_URL = "https://mcochub.insaneskull.com/api/v1"
+    CHAMPIONS_MAP_URL = "https://summoners-hub.shared.mcoc-cdn.net/production/champions_map.json"
+    GLOSSARY_URL = "https://playcontestofchampions.com/wp-json/kabam/v1/glossary/"
+    COCPIT_CHAMPION_URL = "https://cocpit.org/champion-abilities"
+    COCPIT_CHAMPION_AUTOCOMPLETE_URL = "https://cocpit.org/api/champion-autocomplete"
+    COCPIT_CHAMP_STATS_URL = "https://cocpit.org/api/champstats"
+    COCPIT_CHAMPIONS_PAGE_URL = "https://cocpit.org/champions"
+
+    @staticmethod
+    def _extract_cocpit_autocomplete_url_from_html(html: str) -> Optional[str]:
+        if not html:
+            return None
+        match = re.search(r"window\.configAutocompleteUrl\s*=\s*'([^']+)'", html)
+        if not match:
+            match = re.search(r'window\.configAutocompleteUrl\s*=\s*"([^"]+)"', html)
+        if not match:
+            return None
+        return str(match.group(1)).strip() or None
+
+    @staticmethod
+    def extract_cocpit_release_date(html: str) -> Optional[str]:
+        """Return the site asset date from Cocpit's CDN URLs, e.g. 2026.09.09."""
+        if not html:
+            return None
+
+        match = re.search(r"https?://cocpit-cdn\.nyc3\.cdn\.digitaloceanspaces\.com/([0-9]{4}\.[0-9]{2}\.[0-9]{2})/", html)
+        if match:
+            return match.group(1)
+
+        match = re.search(r"https?://[^\s\"']*?/([0-9]{4}\.[0-9]{2}\.[0-9]{2})/(?:images|fonts|css|js)/", html)
+        if match:
+            return match.group(1)
+
+        return None
+
+    def __init__(
+        self,
+        api_key: Optional[str] = None,
+        key_getter: Optional[Callable[[], Awaitable[Optional[str]]]] = None,
+        session: Optional[aiohttp.ClientSession] = None,
+        timeout: int = 30,
+    ):
+        """
+        - api_key: direct API key string (optional).
+        - key_getter: async callable returning the API key (optional).
+        - session: optional aiohttp.ClientSession to reuse (optional).
+        - timeout: request timeout in seconds.
+        """
+        self._static_key = api_key
+        self._key_getter = key_getter
+        self._external_session = session is not None
+        self._session = session
+        self._timeout = timeout
+        self._request_semaphore = asyncio.Semaphore(5)  # Limit concurrent requests to avoid rate limiting
+        self._prefer_bearer = True
+
+        log.info("MCOCHubAPI initialized (external_session=%s)", self._external_session)
+        if self._static_key:
+            log.debug("MCOCHubAPI created with static api_key provided (REDACTED)")
+        else:
+            log.debug("MCOCHubAPI created with key_getter=%s", bool(self._key_getter))
+
+    async def _ensure_session(self) -> aiohttp.ClientSession:
+        if self._session is None:
+            # create session lazily when the loop is running
+            self._session = aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=self._timeout))
+            log.debug("Created internal aiohttp ClientSession")
+        return self._session
+
+    async def _resolve_key(self) -> Optional[str]:
+        # static key wins
+        if self._static_key:
+            return str(self._static_key)
+
+        # call key_getter (support sync or async)
+        if self._key_getter:
+            try:
+                maybe = self._key_getter()
+                if asyncio.iscoroutine(maybe):
+                    tokens = await maybe
+                else:
+                    tokens = maybe
+            except Exception:
+                log.exception("key_getter raised")
+                return None
+
+            # tokens may be a dict or a raw string
+            if isinstance(tokens, str):
+                return tokens
+
+            if isinstance(tokens, dict):
+                # accept multiple common names
+                for k in ("apikey", "api_key", "key"):
+                    if k in tokens and tokens[k]:
+                        return str(tokens[k])
+            log.warning("MCOCHubAPI: key_getter returned no usable key")
+            return None
+
+        log.warning("MCOCHubAPI: no static key or key_getter provided")
+        return None
+
+
+    # -----------------------------
+    # Generic fetch helper
+    # -----------------------------
+    async def _fetch_bearer(self, endpoint: str) -> Optional[Any]:
+        api_key = await self._resolve_key()
+        if not api_key:
+            return None
+        log.debug(f"Bearer mode using key starting with: {api_key[:5]}")
+
+        url = f"{self.BASE_URL}/{endpoint}"
+        headers = {
+            "Accept": "application/json",
+            "Authorization": f"Bearer {api_key}"
+        }
+
+        session = await self._ensure_session()
+        async with self._request_semaphore:
+            async with session.get(url, headers=headers) as resp:
+                text = await resp.text()
+
+                if resp.status == 401 or "Unauthenticated" in text:
+                    raise UnauthenticatedError("Bearer failed")
+
+                if resp.status == 429:
+                    raise RateLimitedError("Rate limited")
+
+                if resp.status != 200:
+                    return None
+
+                return await resp.json()
+
+    async def _fetch_param(self, endpoint: str) -> Optional[Any]:
+        api_key = await self._resolve_key()
+        if not api_key:
+            return None
+        log.debug(f"Param mode using key starting with: {api_key[:5]}")
+
+        # Build raw URL manually
+        raw_url = f"{self.BASE_URL}/{endpoint}?api_key={api_key}"
+
+        # Prevent aiohttp from re-encoding the pipe character
+        url = URL(raw_url, encoded=True)
+
+        headers = {"Accept": "application/json"}
+
+        session = await self._ensure_session()
+        async with self._request_semaphore:
+            async with session.get(url, headers=headers) as resp:
+                text = await resp.text()
+
+                if resp.status == 401 or "Unauthenticated" in text:
+                    raise UnauthenticatedError("Param failed")
+
+                if resp.status == 429:
+                    raise RateLimitedError("Rate limited")
+
+                if resp.status != 200:
+                    log.warning("Param mode error %s for %s: %s", resp.status, url, text[:200])
+                    return None
+
+                return await resp.json()
+
+    async def _fetch(self, endpoint: str) -> Optional[Any]:
+        # Try bearer first if preferred
+        if self._prefer_bearer:
+            try:
+                return await self._fetch_bearer(endpoint)
+            except UnauthenticatedError:
+                log.warning("Bearer auth failed; switching to param mode for this sync.")
+                self._prefer_bearer = False
+            except RateLimitedError:
+                raise
+            except Exception:
+                log.exception("Bearer fetch failed unexpectedly")
+
+        # Fallback to param mode
+        try:
+            return await self._fetch_param(endpoint)
+        except RateLimitedError:
+            raise
+        except Exception:
+            log.exception("Param fetch failed unexpectedly")
+            return None
+
+    # -----------------------------
+    # Public data fetch helpers (no bearer)
+    # -----------------------------
+    DATA_BASE = "https://mcochub.insaneskull.com/data"
+
+    async def _fetch_public_json(self, url: str, params: Optional[dict] = None, timeout: int = 30) -> Optional[Any]:
+        """
+        Simple public GET for data endpoints (versions.json, prestige.json, etc.)
+        Does not use API key or bearer auth.
+        """
+        session = await self._ensure_session()
+        try:
+            async with self._request_semaphore:
+                async with session.get(url, params=params, timeout=timeout) as resp:
+                    text = await resp.text()
+                    if resp.status == 429:
+                        raise RateLimitedError("Rate limited")
+                    if resp.status != 200:
+                        log.warning("Public fetch %s returned %s: %.200s", url, resp.status, text)
+                        return None
+                    try:
+                        return await resp.json(content_type=None)
+                    except Exception:
+                        try:
+                            return json.loads(text)
+                        except Exception:
+                            log.warning("Public fetch %s returned non-JSON payload", url)
+                            return None
+        except RateLimitedError:
+            raise
+        except Exception:
+            log.exception("Public fetch failed for %s", url)
+            return None
+
+    async def fetch_versions_public(self) -> Optional[dict]:
+        """Fetch the canonical versions.json from the public data endpoint."""
+        url = f"{self.DATA_BASE}/versions.json"
+        return await self._fetch_public_json(url)
+
+    async def fetch_prestige_public(self, tier: int, rank: int, asc: int, version: str) -> Optional[dict]:
+        """
+        Fetch prestige payload for a specific combo from the public data endpoint.
+        Example: /data/prestige.json?tier=7&rank=1&ascension=0&v=<version>
+        """
+        url = f"{self.DATA_BASE}/prestige.json"
+        params = {"tier": tier, "rank": rank, "ascension": asc, "v": version}
+        return await self._fetch_public_json(url, params=params)
+
+    # -----------------------------
+    # Champions (full list only)
+    # -----------------------------
+    async def get_champions(self) -> Optional[Any]:
+        log.debug("Fetching champions from MCOCHub")
+        return await self._fetch("champions")
+
+    # -----------------------------
+    # Tags
+    # -----------------------------
+    async def get_tags(self) -> Optional[Any]:
+        log.debug("Fetching tags from MCOCHub")
+        return await self._fetch("tags")
+
+    # -----------------------------
+    # Abilities
+    # -----------------------------
+    async def get_abilities(self) -> Optional[Any]:
+        log.debug("Fetching abilities from MCOCHub")
+        return await self._fetch("abilities")
+
+    # -----------------------------
+    # Immunities
+    # -----------------------------
+    async def get_immunities(self) -> Optional[Any]:
+        log.debug("Fetching immunities from MCOCHub")
+        return await self._fetch("immunities")
+
+    # -----------------------------
+    # AW Season
+    # -----------------------------
+    async def get_aw(self) -> Optional[Any]:
+        log.debug("Fetching aw from MCOCHub")
+        return await self._fetch("aw")
+
+    # -----------------------------
+    # Tierlist (public JSON)
+    # -----------------------------
+    async def get_tierlist(self) -> Optional[Any]:
+        log.debug("Fetching tierlist.json from mcoc.app")
+        url = "https://mcoc.app/data/tierlist.json"
+        return await self._fetch_public_json(url)
+
+    async def get_champions_map(self) -> Optional[Any]:
+        log.debug("Fetching champions_map.json from Summoners Hub")
+        return await self._fetch_public_json(self.CHAMPIONS_MAP_URL)
+
+    async def get_glossary(self) -> Optional[Any]:
+        log.debug("Fetching glossary from playcontestofchampions.com")
+        return await self._fetch_public_json(self.GLOSSARY_URL)
+
+    async def get_cocpit_champion_data(self, champ_name: str, rarity: int, rank: int, sig_level: int, asc: int = 0) -> Optional[Any]:
+        log.debug(
+            "Fetching Cocpit champion data for %s (rarity=%s rank=%s sig=%s asc=%s)",
+            champ_name,
+            rarity,
+            rank,
+            sig_level,
+            asc,
+        )
+        params = {
+            "champ_name": champ_name,
+            "rarity": int(rarity),
+            "rank": int(rank),
+            "sig_level": int(sig_level),
+            "asc": int(asc or 0),
+        }
+        return await self._fetch_public_json(self.COCPIT_CHAMPION_URL, params=params)
+
+    async def get_cocpit_champion_autocomplete(self) -> Optional[Any]:
+        log.debug("Fetching Cocpit champion autocomplete data")
+        payload = await self._fetch_public_json(self.COCPIT_CHAMPION_AUTOCOMPLETE_URL)
+        if isinstance(payload, list):
+            return payload
+        if isinstance(payload, dict) and isinstance(payload.get("champions"), list):
+            return payload.get("champions")
+
+        # Fallback 1: discover the current CDN autocomplete URL from /champions.
+        # Fallback 2: scrape /champions links to build a minimal champion index.
+        try:
+            session = await self._ensure_session()
+            async with self._request_semaphore:
+                async with session.get(self.COCPIT_CHAMPIONS_PAGE_URL, timeout=self._timeout) as resp:
+                    html = await resp.text()
+                    if resp.status != 200:
+                        return None
+
+            discovered_url = self._extract_cocpit_autocomplete_url_from_html(html)
+            if discovered_url:
+                discovered_payload = await self._fetch_public_json(discovered_url)
+                if isinstance(discovered_payload, list):
+                    return discovered_payload
+                if isinstance(discovered_payload, dict) and isinstance(discovered_payload.get("champions"), list):
+                    return discovered_payload.get("champions")
+
+            return self._extract_cocpit_champions_from_html(html)
+        except Exception:
+            log.exception("Failed Cocpit champion autocomplete page scrape")
+            return None
+
+    @staticmethod
+    def _extract_cocpit_champions_from_html(html: str) -> list[dict]:
+        if not html:
+            return []
+
+        # Primary pattern: champion link with image alt text name.
+        pattern_with_alt = re.compile(
+            r'<a[^>]+href="/champions/([^"#?]+)"[^>]*>\s*<img[^>]+alt="([^"]+)"',
+            flags=re.IGNORECASE,
+        )
+        matches = pattern_with_alt.findall(html)
+
+        entries: list[dict] = []
+        seen: set[str] = set()
+        for slug, name in matches:
+            slug_text = str(slug).strip()
+            if not slug_text or slug_text.lower() == "your-roster":
+                continue
+            champ_id = slug_text.lower()
+            if champ_id in seen:
+                continue
+            seen.add(champ_id)
+            entries.append({
+                "id": champ_id,
+                "name": str(name).strip() or slug_text.replace("_", " ").title(),
+                "aliases": [],
+                "availableRarities": [],
+                "ascensionMaxByRarity": {},
+            })
+
+        if entries:
+            return entries
+
+        # Secondary pattern: links only, with slug-derived names.
+        for slug in re.findall(r'href="/champions/([^"#?]+)"', html, flags=re.IGNORECASE):
+            slug_text = str(slug).strip()
+            if not slug_text or slug_text.lower() == "your-roster":
+                continue
+            champ_id = slug_text.lower()
+            if champ_id in seen:
+                continue
+            seen.add(champ_id)
+            entries.append({
+                "id": champ_id,
+                "name": slug_text.replace("_", " ").title(),
+                "aliases": [],
+                "availableRarities": [],
+                "ascensionMaxByRarity": {},
+            })
+
+        return entries
+
+    async def get_cocpit_release_date(self) -> Optional[str]:
+        """Fetch the Cocpit site asset date from the HTML head and use it as the update stamp."""
+        try:
+            async with self._request_semaphore:
+                session = await self._ensure_session()
+                async with session.get("https://cocpit.org", timeout=self._timeout) as resp:
+                    text = await resp.text()
+                    if resp.status != 200:
+                        return None
+                    return self.extract_cocpit_release_date(text)
+        except Exception:
+            log.exception("Failed to read Cocpit site metadata")
+            return None
+
+    async def get_cocpit_champion_stats(
+        self,
+        rarity: int,
+        rank: int,
+        sig_level: int,
+        ascension_level: int = 0,
+        page: int = 1,
+        page_size: int = 50,
+    ) -> Optional[Any]:
+        log.debug(
+            "Fetching Cocpit champion stats for rarity=%s rank=%s sig=%s asc=%s page=%s page_size=%s",
+            rarity,
+            rank,
+            sig_level,
+            ascension_level,
+            page,
+            page_size,
+        )
+        params = {
+            "rarity": int(rarity),
+            "rank": int(rank),
+            "sig_level": int(sig_level),
+            "ascension_level": int(ascension_level or 0),
+            "page": int(page),
+            "page_size": int(page_size),
+        }
+        return await self._fetch_public_json(self.COCPIT_CHAMP_STATS_URL, params=params)
+
+    # -----------------------------
+    # Cleanup
+    # -----------------------------
+    async def close(self) -> None:
+        log.info("Closing MCOCHubAPI session (external=%s)", self._external_session)
+        if not self._external_session and getattr(self, "_session", None) and not getattr(self._session, "closed", False):
+            try:
+                await self._session.close()
+                log.debug("aiohttp ClientSession closed")
+            except Exception:
+                log.exception("Error closing aiohttp ClientSession")
+        self._session = None
+        log.debug("MCOCHubAPI.close() complete")
