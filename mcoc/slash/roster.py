@@ -933,6 +933,36 @@ class _RosterGroup(app_commands.Group):
     def _split_champion_candidates(self, raw: str) -> List[str]:
         return [token.strip() for token in re.split(r"[,;\n]+", raw or "") if token and token.strip()]
 
+    async def _send_interaction_message(self, interaction: Any, content: str, *, ephemeral: bool = True, embed: Any = None, view: Any = None) -> None:
+        """Send a message to an interaction, using followup when already acknowledged."""
+        response = getattr(interaction, "response", None)
+        is_done = False
+        if response and hasattr(response, "is_done"):
+            try:
+                is_done = bool(response.is_done())
+            except Exception:
+                is_done = False
+
+        if is_done and hasattr(interaction, "followup"):
+            kwargs = {"ephemeral": ephemeral}
+            if content is not None:
+                kwargs["content"] = content
+            if embed is not None:
+                kwargs["embed"] = embed
+            if view is not None:
+                kwargs["view"] = view
+            await interaction.followup.send(**kwargs)
+            return
+
+        kwargs = {"ephemeral": ephemeral}
+        if content is not None:
+            kwargs["content"] = content
+        if embed is not None:
+            kwargs["embed"] = embed
+        if view is not None:
+            kwargs["view"] = view
+        await interaction.response.send_message(**kwargs)
+
     def _format_remove_entry_label(self, entry: dict) -> str:
         slug = str(entry.get("champion") or "").strip().lower()
         rarity = int(entry.get("rarity") or entry.get("stars") or 0)
@@ -955,12 +985,12 @@ class _RosterGroup(app_commands.Group):
     async def _remove_from_text(self, interaction: Any, raw: str) -> None:
         users = ensure_user_manager(self.core)
         if not users:
-            await interaction.response.send_message("Roster storage is unavailable.", ephemeral=True)
+            await self._send_interaction_message(interaction, "Roster storage is unavailable.", ephemeral=True)
             return
 
         text = str(raw or "").strip()
         if not text:
-            await interaction.response.send_message("Please provide champion entries to remove.", ephemeral=True)
+            await self._send_interaction_message(interaction, "Please provide champion entries to remove.", ephemeral=True)
             return
 
         removed = 0
@@ -993,28 +1023,28 @@ class _RosterGroup(app_commands.Group):
         lines = [f"REMOVE complete: removed {removed} entries."]
         if unresolved:
             lines.append("Not found: " + ", ".join(unresolved[:10]))
-        await interaction.response.send_message("\n".join(lines), ephemeral=True)
+        await self._send_interaction_message(interaction, "\n".join(lines), ephemeral=True)
 
     async def _add_from_text(self, interaction: Any, raw: str) -> None:
         users = ensure_user_manager(self.core)
         if not users:
-            await interaction.response.send_message("Roster storage is unavailable.", ephemeral=True)
+            await self._send_interaction_message(interaction, "Roster storage is unavailable.", ephemeral=True)
             return
 
         text = str(raw or "").strip()
         if not text:
-            await interaction.response.send_message("Please provide champion entries to add.", ephemeral=True)
+            await self._send_interaction_message(interaction, "Please provide champion entries to add.", ephemeral=True)
             return
 
         try:
             parsed_entries, failed = parse_roster_entries_with_errors(text, getattr(self.core, "cache", None))
         except Exception as exc:
-            await interaction.response.send_message(f"Failed to parse entries: {exc}", ephemeral=True)
+            await self._send_interaction_message(interaction, f"Failed to parse entries: {exc}", ephemeral=True)
             return
 
         if not parsed_entries:
             bad = ", ".join(failed[:10]) if failed else text
-            await interaction.response.send_message(f"No valid entries parsed. Could not resolve: {bad}", ephemeral=True)
+            await self._send_interaction_message(interaction, f"No valid entries parsed. Could not resolve: {bad}", ephemeral=True)
             return
 
         try:
@@ -1022,7 +1052,7 @@ class _RosterGroup(app_commands.Group):
             added = int(result.get("imported") or 0)
             errors = list(result.get("errors") or [])
         except Exception as exc:
-            await interaction.response.send_message(f"Failed to import roster entries: {exc}", ephemeral=True)
+            await self._send_interaction_message(interaction, f"Failed to import roster entries: {exc}", ephemeral=True)
             return
 
         lines = [f"ADD complete: added {added} entries."]
@@ -1030,7 +1060,7 @@ class _RosterGroup(app_commands.Group):
             lines.append("Could not resolve: " + ", ".join(failed[:10]))
         if errors:
             lines.append("Storage issues: " + ", ".join(str(e) for e in errors[:5]))
-        await interaction.response.send_message("\n".join(lines), ephemeral=True)
+        await self._send_interaction_message(interaction, "\n".join(lines), ephemeral=True)
 
     async def _start_operation_picker(self, interaction: Any, operation: str) -> bool:
         class _InteractionSendAdapter:
@@ -1673,6 +1703,13 @@ class _RosterGroup(app_commands.Group):
     @app_commands.autocomplete(champions=champion_autocomplete)
     async def add(self, interaction, champions: Optional[str] = None):
         text = str(champions or "").strip()
+        should_defer = bool(text and (len(text) > 120 or len(self._split_champion_candidates(text)) >= 8))
+        if should_defer:
+            try:
+                await interaction.response.defer(ephemeral=True)
+            except Exception:
+                pass
+
         if text:
             await self._add_from_text(interaction, text)
             return
@@ -1680,7 +1717,8 @@ class _RosterGroup(app_commands.Group):
         started = await self._start_operation_picker(interaction, "add")
 
         if not started:
-            await interaction.response.send_message(
+            await self._send_interaction_message(
+                interaction,
                 "Unable to open the roster picker right now. Provide champion shorthand in /roster add <champions>.",
                 ephemeral=True,
             )
@@ -1692,13 +1730,21 @@ class _RosterGroup(app_commands.Group):
     @app_commands.autocomplete(champions=champion_autocomplete)
     async def remove(self, interaction, champions: Optional[str] = None):
         text = str(champions or "").strip()
+        should_defer = bool(text and (len(text) > 120 or len(self._split_champion_candidates(text)) >= 8))
+        if should_defer:
+            try:
+                await interaction.response.defer(ephemeral=True)
+            except Exception:
+                pass
+
         if text:
             await self._remove_from_text(interaction, text)
             return
 
         started = await self._start_remove_picker(interaction)
         if not started:
-            await interaction.response.send_message(
+            await self._send_interaction_message(
+                interaction,
                 "Unable to open the remove picker right now. Provide champion shorthand in /roster remove <champions>.",
                 ephemeral=True,
             )
@@ -1708,8 +1754,13 @@ class _RosterGroup(app_commands.Group):
     # -------------------------
     @app_commands.command(name="edit", description="Edit roster entries, settings, and data")
     async def edit(self, interaction):
+        try:
+            await interaction.response.defer(ephemeral=True)
+        except Exception:
+            pass
+
         view = _RosterEditRootView(self)
-        await interaction.response.send_message("Roster Edit", view=view, ephemeral=True)
+        await self._send_interaction_message(interaction, "Roster Edit", view=view, ephemeral=True)
         await view.bind_to_interaction_response(interaction)
 
 
