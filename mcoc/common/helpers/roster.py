@@ -207,22 +207,13 @@ def ensure_user_manager(core_or_bot) -> Any:
 
 def _ensure_hook_registered(core):
     """
-    Ensure the UserDataManager.post_mutation_hook is set to schedule prestige persistence.
-    Call this once when core is available (e.g., in build_roster_pages or when cog attaches).
+    Prestige is derived from roster progression + cached prestige tables.
+    We intentionally do not register a mutation hook that writes prestige into profile/user data.
     """
     users = ensure_user_manager(core)
     if not users:
         return
-    if getattr(users, "_prestige_hook_registered", False):
-        return
-
-    def _hook(user_id: int):
-        try:
-            schedule_persist_user_prestige(core, user_id)
-        except Exception:
-            log.exception("Failed to schedule prestige persist for %s", user_id)
-
-    users.post_mutation_hook = _hook
+    users.post_mutation_hook = None
     users._prestige_hook_registered = True
 
 
@@ -231,103 +222,16 @@ def _ensure_hook_registered(core):
 # -----------------------------
 async def persist_user_prestige(core: Any, user_id: int) -> None:
     """
-    Compute prestige for each roster entry using core.cache/index and persist
-    a small prestige_map into the user's profile keyed by progression:
-    { "slug|stars|rank|asc|sig": prestige }.
-    Safe to call after add/update/remove roster operations.
+    Prestige is derived from the user's live roster + cached prestige table.
+    We intentionally do not persist prestige values back into the user profile.
     """
-    try:
-        users = ensure_user_manager(core)
-        if users is None:
-            return
-
-        # load roster (sync or async)
-        if asyncio.iscoroutinefunction(getattr(users, "list_roster", None)):
-            roster = await users.list_roster(user_id)
-        else:
-            roster = users.list_roster(user_id)
-
-        cache = getattr(core, "cache", None)
-        idx = getattr(core, "cacheindex", None) or (getattr(cache, "index", None) if cache else None)
-
-        prestige_map: Dict[str, Optional[int]] = {}
-
-        for e in roster:
-            try:
-                slug = str(e.get("champion") or "").strip()
-                raw_stars = int(e.get("rarity") or e.get("stars") or 6)
-                raw_rank = int(e.get("rank") or 1)
-                raw_sig = int(e.get("sig") or 0)
-                raw_asc = int(e.get("ascended") or 0)
-
-                if cache and hasattr(cache, "normalize_hargs_by_tier"):
-                    try:
-                        stars, rank, sig, asc = cache.normalize_hargs_by_tier(raw_stars, raw_rank, raw_sig, raw_asc)
-                    except Exception:
-                        stars, rank, sig, asc = raw_stars, raw_rank, raw_sig, raw_asc
-                else:
-                    stars, rank, sig, asc = raw_stars, raw_rank, raw_sig, raw_asc
-
-                prestige = None
-                if idx and slug:
-                    try:
-                        row = idx.get_prestige_row(slug, tier=stars, rank=rank, asc=asc)
-                        if row:
-                            sigs = row.get("sigs") or {}
-                            prestige = cache.smooth_sig_value(sigs, sig) if hasattr(cache, "smooth_sig_value") else cache._smooth_sig_value(sigs, sig)
-                    except Exception:
-                        prestige = None
-
-                if prestige is None and cache and hasattr(cache, "get_prestige_value"):
-                    try:
-                        prestige = cache.get_prestige_value(slug, stars, rank, asc, sig)
-                    except Exception:
-                        prestige = None
-
-                key = f"{slug}|{stars}|{rank}|{asc}|{sig}"
-                prestige_map[key] = int(prestige) if isinstance(prestige, (int, float)) else None
-            except Exception:
-                continue
-
-        # persist map into profile['prestige_map']
-        try:
-            if asyncio.iscoroutinefunction(getattr(users, "set_profile_field_async", None)):
-                await users.set_profile_field_async(user_id, "prestige_map", prestige_map)
-            else:
-                users.set_profile_field(user_id, "prestige_map", prestige_map)
-        except Exception:
-            log.exception("Failed to persist prestige_map for user %s", user_id)
-
-    except Exception:
-        log.exception("persist_user_prestige failed for user %s", user_id)
+    log.debug("Skipping prestige persistence for user %s; prestige is derived on lookup.", user_id)
+    return
 
 
 def schedule_persist_user_prestige(core, user_id: int, delay: float = 1.5) -> None:
-    """
-    Debounced schedule for persist_user_prestige(core, user_id).
-    Multiple calls within `delay` seconds coalesce into one run.
-    """
-    try:
-        existing = _persist_pending.get(user_id)
-        if existing and not existing.done():
-            existing.cancel()
-    except Exception:
-        pass
-
-    async def _delayed():
-        try:
-            await asyncio.sleep(delay)
-            await persist_user_prestige(core, user_id)
-        except asyncio.CancelledError:
-            return
-        except Exception:
-            log.exception("Debounced persist_user_prestige failed for %s", user_id)
-        finally:
-            _persist_pending.pop(user_id, None)
-
-    loop = getattr(core.bot, "loop", None) or asyncio.get_event_loop()
-    task = loop.create_task(_delayed())
-    _persist_pending[user_id] = task
+    """No-op placeholder: prestige is not persisted as user profile state."""
+    return
 
 
 # -----------------------------
@@ -747,11 +651,6 @@ def import_roster_entries(core: Any, user_id: int, entries: List[Dict[str, Any]]
             imported += 1
         except Exception as exc:
             errors.append(str(exc))
-
-    try:
-        schedule_persist_user_prestige(core, user_id)
-    except Exception:
-        pass
 
     return {"imported": imported, "errors": errors}
 

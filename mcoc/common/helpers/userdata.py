@@ -161,6 +161,9 @@ class UserDataManager:
         normalized["roster"] = roster_entries
 
         profile = dict(normalized.get("profile") or {})
+        profile.pop("prestige_map", None)
+        profile.pop("prestige", None)
+        profile.pop("top5_prestige", None)
         privacy = dict(normalized.get("privacy") or {})
         mode = self._normalize_privacy_mode(profile.get("privacy_mode") or privacy.get("mode") or "public")
         profile["privacy_mode"] = mode

@@ -1140,7 +1140,7 @@ def test_userdata_export_canonicalizes_roster_and_privacy(tmp_path):
                     "name": "Colossus",
                 }
             ],
-            "profile": {"mcoc_name": "JJW", "privacy_mode": "public"},
+            "profile": {"mcoc_name": "JJW", "privacy_mode": "public", "prestige_map": {"colossus|7": 1800}},
             "privacy": {"mode": "private", "share_with_alliance": False, "share_with_guilds": []},
             "alliances": {},
         },
@@ -1150,6 +1150,7 @@ def test_userdata_export_canonicalizes_roster_and_privacy(tmp_path):
 
     assert exported["profile"]["privacy_mode"] == "public"
     assert exported["privacy"]["mode"] == "public"
+    assert "prestige_map" not in exported["profile"]
     assert "name" not in exported["roster"][0]
     assert "prestige" not in exported["roster"][0]
     assert "stars" not in exported["roster"][0]

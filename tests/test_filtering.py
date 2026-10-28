@@ -449,7 +449,7 @@ ironman,IRON MAN,tech,7,1,40,0,14820
     assert entries[1]["class"] == "tech"
 
 
-def test_import_roster_entries_persists_rows_and_reports_count(monkeypatch):
+def test_import_roster_entries_persists_rows_without_scheduling_prestige_write(monkeypatch):
     class FakeUsers:
         def __init__(self):
             self.calls = []
@@ -474,7 +474,7 @@ def test_import_roster_entries_persists_rows_and_reports_count(monkeypatch):
     assert result["imported"] == 2
     assert result["errors"] == []
     assert len(users.calls) == 2
-    assert recorded == [(core, 42)]
+    assert recorded == []
 
 
 def test_build_cocpit_ability_lines_prefers_grouped_descriptions():

@@ -614,12 +614,11 @@ def _parse_prestige_map(profile: Union[Dict[str, Any], Any]) -> Dict[str, int]:
 
 
 def compute_top5_from_profile(profile: Union[Dict[str, Any], Any]) -> Tuple[List[str], Optional[int], Optional[float]]:
+    """Legacy compatibility helper for older stored prestige_map values. Canonical source remains live roster + cache."""
     try:
         pm = _parse_prestige_map(profile)
-        # Ignore zero/negative prestige values so stale maps don't mask roster recompute.
         items = [(k, v) for k, v in pm.items() if isinstance(v, int) and v > 0]
         if not items:
-            log.debug("compute_top5_from_profile: no prestige items")
             return [], None, None
         items.sort(key=lambda x: -x[1])
         total = sum(v for _, v in items) if items else None
@@ -629,12 +628,11 @@ def compute_top5_from_profile(profile: Union[Dict[str, Any], Any]) -> Tuple[List
         lines: List[str] = []
         for i, (k, v) in enumerate(top5):
             try:
-                slug, stars = str(k).split("|", 1)
+                slug, _stars = str(k).split("|", 1)
             except Exception:
                 slug = str(k)
             prestige_val = int(v) if isinstance(v, (int, float)) else 0
             lines.append(f"{i+1}. {slug} [{prestige_val}]")
-        log.debug("compute_top5_from_profile: top5=%s total=%s avg=%s", lines, total, avg_rounded)
         return lines, total, avg_rounded
     except Exception:
         log.exception("compute_top5_from_profile failed")
@@ -644,28 +642,21 @@ def compute_top5_from_profile(profile: Union[Dict[str, Any], Any]) -> Tuple[List
 def compute_top5_from_roster(parent: Any, roster: List[Dict[str, Any]], profile: Union[Dict[str, Any], Any]) -> Tuple[List[str], Optional[int]]:
     try:
         cache = getattr(parent, "cache", None)
-        prestige_map = {}
-        if isinstance(profile, dict):
-            prestige_map = profile.get("prestige_map", {}) or {}
-        else:
-            prestige_map = getattr(profile, "prestige_map", {}) or {}
         entries: List[Dict[str, Any]] = []
         for e in roster:
             try:
                 slug = str(e.get("champion") or "").strip()
+                if not slug:
+                    continue
                 stars = int(e.get("rarity") or e.get("stars") or 0)
-                key_exact = f"{slug}|{stars}|{int(e.get('rank') or 1)}|{int(e.get('ascended') or 0)}|{int(e.get('sig') or 0)}"
-                key = f"{slug}|{stars}"
+                rank = int(e.get("rank") or 1)
+                sig = int(e.get("sig") or 0)
+                ascended = int(e.get("ascended") or 0)
+
                 p = None
                 if cache and hasattr(cache, "get_prestige_value"):
                     try:
-                        p = cache.get_prestige_value(
-                            slug,
-                            int(e.get("rarity") or e.get("stars") or stars),
-                            int(e.get("rank") or 1),
-                            int(e.get("ascended") or 0),
-                            int(e.get("sig") or 0),
-                        )
+                        p = cache.get_prestige_value(slug, stars, rank, ascended, sig)
                     except Exception:
                         p = None
 
@@ -679,22 +670,6 @@ def compute_top5_from_roster(parent: Any, roster: List[Dict[str, Any]], profile:
                                 value = base.get("Prestige") or base.get("prestige")
                                 if isinstance(value, (int, float)):
                                     p = int(value)
-                    except Exception:
-                        p = None
-
-                if p is None and key_exact in prestige_map and prestige_map.get(key_exact) is not None:
-                    try:
-                        cached_prestige = int(prestige_map.get(key_exact))
-                        if cached_prestige > 0:
-                            p = cached_prestige
-                    except Exception:
-                        p = None
-
-                if p is None and key in prestige_map and prestige_map.get(key) is not None:
-                    try:
-                        cached_prestige = int(prestige_map.get(key))
-                        if cached_prestige > 0:
-                            p = cached_prestige
                     except Exception:
                         p = None
 
@@ -725,15 +700,9 @@ def compute_top5_from_roster(parent: Any, roster: List[Dict[str, Any]], profile:
 
 
 def _compute_top5_roster_entries(parent: Any, roster: List[Dict[str, Any]], profile: Union[Dict[str, Any], Any]) -> Tuple[List[Dict[str, Any]], Optional[int]]:
-    """Return top roster entries with resolved prestige and live progression metadata."""
+    """Return top roster entries with prestige resolved from live roster data and cache lookup."""
     try:
         cache = getattr(parent, "cache", None)
-        prestige_map = {}
-        if isinstance(profile, dict):
-            prestige_map = profile.get("prestige_map", {}) or {}
-        else:
-            prestige_map = getattr(profile, "prestige_map", {}) or {}
-
         entries: List[Dict[str, Any]] = []
         for e in roster:
             try:
@@ -744,8 +713,6 @@ def _compute_top5_roster_entries(parent: Any, roster: List[Dict[str, Any]], prof
                 rank = int(e.get("rank") or 1)
                 sig = int(e.get("sig") or 0)
                 ascended = int(e.get("ascended") or 0)
-                key_exact = f"{slug}|{rarity}|{rank}|{ascended}|{sig}"
-                key = f"{slug}|{rarity}"
 
                 p = None
                 if cache and hasattr(cache, "get_prestige_value"):
@@ -764,22 +731,6 @@ def _compute_top5_roster_entries(parent: Any, roster: List[Dict[str, Any]], prof
                                 value = base.get("Prestige") or base.get("prestige")
                                 if isinstance(value, (int, float)):
                                     p = int(value)
-                    except Exception:
-                        p = None
-
-                if p is None and key_exact in prestige_map and prestige_map.get(key_exact) is not None:
-                    try:
-                        cached_prestige = int(prestige_map.get(key_exact))
-                        if cached_prestige > 0:
-                            p = cached_prestige
-                    except Exception:
-                        p = None
-
-                if p is None and key in prestige_map and prestige_map.get(key) is not None:
-                    try:
-                        cached_prestige = int(prestige_map.get(key))
-                        if cached_prestige > 0:
-                            p = cached_prestige
                     except Exception:
                         p = None
 
@@ -868,16 +819,16 @@ def build_profile_display(parent: Any, ctx_or_author: Any, target_id: int, viewe
             CDTEmbed.add_field(ctx_or_author, emb, name="MCOC Username", value=str(mcoc_name) if mcoc_name else "Not set", inline=True)
             CDTEmbed.add_field(ctx_or_author, emb, name="MCOC ID", value=str(mcoc_id) if mcoc_id else "Not set", inline=True)
 
-            # Top5/Prestige: prefer active roster calculation, fallback to profile cache.
+            # Top5/Prestige: prefer active roster calculation, but keep a legacy profile fallback for older data.
             roster = _resolve_active_roster_entries(users, target_id, profile)
             top5_roster_entries: List[Dict[str, Any]] = []
             if roster:
                 top5_lines, total_prestige = compute_top5_from_roster(parent, roster, profile)
                 top5_roster_entries, _calc_total = _compute_top5_roster_entries(parent, roster, profile)
                 if not top5_lines or not isinstance(total_prestige, int) or total_prestige <= 0:
-                    cached_lines, cached_total, _avg = compute_top5_from_profile(profile)
-                    if cached_lines:
-                        top5_lines, total_prestige = cached_lines, cached_total
+                    legacy_lines, legacy_total, _avg = compute_top5_from_profile(profile)
+                    if legacy_lines:
+                        top5_lines, total_prestige = legacy_lines, legacy_total
             else:
                 top5_lines, total_prestige, _avg = compute_top5_from_profile(profile)
 
