@@ -192,6 +192,24 @@ def test_format_champion_line_respects_explicit_none_prestige_without_fallback()
     assert "12,345" not in line
 
 
+def test_format_champion_line_uses_custom_ascension_emoji_tokens():
+    champ = champion_from_dict({"id": "alpha", "name": "Alpha", "class": "skill"})
+
+    line_a1 = format_champion_line(
+        champ,
+        {"champion": "alpha", "rarity": 7, "rank": 3, "sig": 40, "ascended": 1},
+        include_prestige=None,
+    )
+    line_a2 = format_champion_line(
+        champ,
+        {"champion": "alpha", "rarity": 7, "rank": 3, "sig": 40, "ascended": 2},
+        include_prestige=None,
+    )
+
+    assert "<:ascension1:1565045477848915988>" in line_a1
+    assert "<:ascension2:1565045566998708386>" in line_a2
+
+
 def test_parse_query_and_match_support_class_tag_tokens():
     _, filters = parse_query("#bleed #skill", cache=None)
 

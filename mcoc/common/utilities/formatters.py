@@ -14,6 +14,11 @@ import re
 
 ChampionLike = Union[Champion, Mapping[str, Any], None]
 
+ASCENSION_EMOJI = {
+    1: "<:ascension1:1565045477848915988>",
+    2: "<:ascension2:1565045566998708386>",
+}
+
 
 def _normalize_property_key(value: Any) -> str:
     return str(value or "").strip().lower().replace(" ", "_").replace("-", "_")
@@ -214,6 +219,13 @@ def _normalize_prestige(value: Any) -> int:
         return 0
 
 
+def _format_ascension_marker(value: Any) -> str:
+    asc = _safe_int(value, 0)
+    if asc <= 0:
+        return ""
+    return ASCENSION_EMOJI.get(asc, f"A{asc}")
+
+
 _PRESTIGE_UNSET = object()
 
 
@@ -269,7 +281,7 @@ def format_champion_line(champ_obj: ChampionLike, entry: Dict[str, Any], *, incl
         prestige_value = include_prestige
     prestige = _normalize_prestige(prestige_value)
 
-    asc_emoji = f"A{asc}" if asc > 0 else ""
+    asc_emoji = _format_ascension_marker(asc)
 
     star_glyph = "★"
     star_display = f"{rarity}{star_glyph}"
@@ -317,7 +329,7 @@ def format_top5_prestige_line(champ_obj: Optional[Champion], entry: Dict[str, An
     rank = _safe_int(entry.get("rank") or 1)
     asc = _safe_int(entry.get("ascended") or 0)
 
-    asc_emoji = f"A{asc}" if asc > 0 else ""
+    asc_emoji = _format_ascension_marker(asc)
 
     star_glyph = "★"
     star_display = f"{rarity}{star_glyph}"
