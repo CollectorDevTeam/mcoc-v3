@@ -1,11 +1,11 @@
-# CollectorVerse MCOC Bot Privacy Policy
+# CollectorDevTeam Bot Privacy Policy
 
 **Effective date:** 2026-08-31  
 **Repository path:** `mcoc-v3/mcoc/privacy_policy.md`  
 **Repository:** https://github.com/CollectorDevTeam/mcoc-v3
 
 ## 1. Introduction
-CollectorVerse (“we”, “us”, “our”) provides a Discord bot and related services (the “Service”) that help users manage and display Marvel Contest of Champions (MCOC) roster and profile information. This Privacy Policy explains what information we collect, how we use it, how we share it, and the choices you have about your information.
+CollectorDevTeam (“we”, “us”, “our”) provides a Discord bot and related services (the “Service”) that help users manage and display Marvel Contest of Champions (MCOC) roster and profile information. This Privacy Policy explains what information we collect, how we use it, how we share it, and the choices you have about your information.
 
 ## 2. Scope
 This policy applies to personal data collected or processed when you interact with the CollectorVerse MCOC bot on Discord, including when you create a profile, link an in‑game account, or use roster and prestige features.
@@ -13,9 +13,14 @@ This policy applies to personal data collected or processed when you interact wi
 ## 3. Information We Collect
 We collect only the information necessary to provide the Service:
 
-- **Profile data**: display name, in‑game username (`mcoc_name`), in‑game id/slug (`mcoc_id`), website, timezone, alliance, job/role, age (optional), gender (optional), short bio (`about`), mastery link, and playing‑since date.
+- **Discord platform data (limited)**:
+	- For account and roster features, we store only your Discord user/member ID (`user_id`) to associate your data with your account.
+	- For alliance features, we also store server and role identifiers needed to manage alliance permissions and membership (for example: guild ID, role IDs, and member/officer/manager user IDs), plus configured alliance role names.
+	- We do **not** collect or store Discord API profile attributes such as username/global name, avatar, email, private messages, message content, or friend list as part of persistent user data.
+
+- **Profile data**: display name, in‑game username (`mcoc_name`), in‑game id/slug (`mcoc_id`), website, timezone, alliance, job/role, short bio (`about`), mastery link, and playing‑since date.
 - **Roster data**: champion slug, rarity (stars), rank, signature level, ascension, tags, and any user‑entered raw roster text.
-- **Computed data**: prestige values, top‑5 champions, cached aggregates derived from roster and prestige tables.
+- **Computed data**: derived prestige and top‑5 champion outputs generated from roster progression and cached champion data; these may be cached temporarily for performance.
 - **Consent metadata**: whether you agreed to this policy, timestamp of consent, policy version or commit SHA, and consent source URL.
 - **Operational metadata**: timestamps of profile updates, and minimal audit logs for consent and deletion actions.
 - **Non‑personal telemetry**: optional diagnostic logs (errors, sync status) that do not contain PII.

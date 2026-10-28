@@ -13,6 +13,7 @@ import io
 import logging
 import re
 import json
+import time
 from typing import Optional, Any, List, Tuple
 import discord
 from discord import ui
@@ -893,6 +894,11 @@ class _RosterGroup(app_commands.Group):
         self._init_failed = False
         # do not create heavy objects here
 
+    def _log_timing(self, label: str, start_time: float, *, threshold: float = 1.0) -> None:
+        elapsed = time.perf_counter() - start_time
+        if elapsed >= threshold:
+            log.warning("Roster %s finished in %.3fs", label, elapsed)
+
     async def _build_roster_list_pager(self, target_user: Any, base_hargs: str, parsed_filters: dict, *, author_for_controls: Any) -> Optional[CDTPagesMenu]:
         pager = await make_roster_pager(
             self.core,
@@ -1632,36 +1638,74 @@ class _RosterGroup(app_commands.Group):
         return [app_commands.Choice(name=p, value=p) for p in presets if cur in p.lower()][:25]
 
     async def _run_rankup_suggestions(self, interaction, class_filter: str, stars: int, target_rank: int, per_class_target: int = 0):
+        start_time = time.perf_counter()
+        sender = interaction.response.send_message
+        try:
+            if not bool(getattr(interaction.response, "is_done", lambda: False)()):
+                await interaction.response.defer(ephemeral=False)
+            sender = interaction.followup.send if hasattr(interaction, "followup") else interaction.response.send_message
+        except Exception:
+            sender = interaction.response.send_message
+
         suggestions = self._rankup_suggestions(interaction.user.id, class_filter, stars, target_rank, per_class_target)
         pages = self._build_rankup_pages(interaction, class_filter, stars, target_rank, suggestions, per_class_target)
+        self._log_timing("rankup build", start_time)
         if not pages:
-            await interaction.response.send_message("No rankup suggestions are available.", ephemeral=True)
+            await sender("No rankup suggestions are available.", ephemeral=True)
             return
         try:
             menu = CDTPagesMenu(pages, author=interaction.user)
-            await interaction.response.send_message(embed=pages[0], view=menu)
+            if bool(getattr(interaction.response, "is_done", lambda: False)()) and hasattr(interaction, "followup"):
+                msg = await interaction.followup.send(embed=pages[0], view=menu, wait=True)
+                menu.message = msg
+            else:
+                await interaction.response.send_message(embed=pages[0], view=menu)
+                try:
+                    menu.message = await interaction.original_response()
+                except Exception:
+                    pass
             try:
-                menu.message = await interaction.original_response()
+                if menu.message is None and hasattr(interaction, "original_response"):
+                    menu.message = await interaction.original_response()
             except Exception:
                 pass
         except Exception:
-            await interaction.response.send_message(embed=pages[0])
+            await sender(embed=pages[0], ephemeral=False)
 
     async def _run_awaken_suggestions(self, interaction, class_filter: str, stars: int, min_rank: int, per_class_target: int = 0):
+        start_time = time.perf_counter()
+        sender = interaction.response.send_message
+        try:
+            if not bool(getattr(interaction.response, "is_done", lambda: False)()):
+                await interaction.response.defer(ephemeral=False)
+            sender = interaction.followup.send if hasattr(interaction, "followup") else interaction.response.send_message
+        except Exception:
+            sender = interaction.response.send_message
+
         suggestions = self._awaken_suggestions(interaction.user.id, class_filter, stars, min_rank, per_class_target)
         pages = self._build_awaken_pages(interaction, class_filter, stars, min_rank, suggestions, per_class_target)
+        self._log_timing("awaken build", start_time)
         if not pages:
-            await interaction.response.send_message("No awaken suggestions are available.", ephemeral=True)
+            await sender("No awaken suggestions are available.", ephemeral=True)
             return
         try:
             menu = CDTPagesMenu(pages, author=interaction.user)
-            await interaction.response.send_message(embed=pages[0], view=menu)
+            if bool(getattr(interaction.response, "is_done", lambda: False)()) and hasattr(interaction, "followup"):
+                msg = await interaction.followup.send(embed=pages[0], view=menu, wait=True)
+                menu.message = msg
+            else:
+                await interaction.response.send_message(embed=pages[0], view=menu)
+                try:
+                    menu.message = await interaction.original_response()
+                except Exception:
+                    pass
             try:
-                menu.message = await interaction.original_response()
+                if menu.message is None and hasattr(interaction, "original_response"):
+                    menu.message = await interaction.original_response()
             except Exception:
                 pass
         except Exception:
-            await interaction.response.send_message(embed=pages[0])
+            await sender(embed=pages[0], ephemeral=False)
 
     async def _resolve_target_for_list(self, interaction, raw_hargs: str):
         text = str(raw_hargs or "").strip()
@@ -1768,8 +1812,10 @@ class _RosterGroup(app_commands.Group):
     # /roster list
     # -------------------------
     @app_commands.command(name="list", description="List your roster with optional filters")
+    @app_commands.rename(hargs="filters")
     async def list(self, interaction, hargs: Optional[str] = None):
-        raw_hargs = str(hargs or "").strip()
+        raw_filters = str(hargs or "").strip()
+        start_time = time.perf_counter()
         sender = interaction.response.send_message
         try:
             await interaction.response.defer(ephemeral=False)
@@ -1779,9 +1825,10 @@ class _RosterGroup(app_commands.Group):
             sender = interaction.response.send_message
 
         try:
-            target_user, cleaned_hargs = await self._resolve_target_for_list(interaction, raw_hargs)
-            parsed = parse_hargs(cleaned_hargs or "")
-            pager = await self._build_roster_list_pager(target_user, cleaned_hargs or "", parsed, author_for_controls=interaction.user)
+            target_user, cleaned_filters = await self._resolve_target_for_list(interaction, raw_filters)
+            parsed = parse_hargs(cleaned_filters or "")
+            pager = await self._build_roster_list_pager(target_user, cleaned_filters or "", parsed, author_for_controls=interaction.user)
+            self._log_timing("list build", start_time)
 
             if not pager:
                 await sender("No roster entries match your filters.", ephemeral=True)
