@@ -29,6 +29,8 @@ from ..common.helpers.roster import (
     make_roster_pager,
     parse_roster_entries_from_input,
     parse_roster_entries_with_errors,
+    parse_detected_roster_import,
+    encode_mcoc_app_backup_code,
     import_roster_entries,
     start_roster_operation_flow,
 )
@@ -724,44 +726,29 @@ class _RosterDataImportModal(ui.Modal):
                 await interaction.response.send_message("Roster storage is unavailable.", ephemeral=True)
             return
 
+        async def _update(text_value: str) -> None:
+            if hasattr(interaction, "edit_original_response"):
+                try:
+                    await interaction.edit_original_response(content=text_value)
+                    return
+                except Exception:
+                    pass
+            try:
+                await interaction.followup.send(text_value, ephemeral=True)
+            except Exception:
+                await interaction.response.send_message(text_value, ephemeral=True)
+
         text = str(self.payload.value or "").strip()
         if not text:
-            try:
-                await interaction.followup.send("No import data provided.", ephemeral=True)
-            except Exception:
-                await interaction.response.send_message("No import data provided.", ephemeral=True)
+            await _update("No import data provided.")
             return
 
-        # Prefer full JSON import when possible.
         try:
-            obj = json.loads(text)
-            if isinstance(obj, dict):
-                users.import_data(interaction.user.id, obj)
-                try:
-                    await interaction.followup.send("Data import complete.", ephemeral=True)
-                except Exception:
-                    await interaction.response.send_message("Data import complete.", ephemeral=True)
-                return
-        except Exception:
-            pass
-
-        try:
-            entries = parse_roster_entries_from_input(text, getattr(self.group.core, "cache", None))
-            result = import_roster_entries(self.group.core, interaction.user.id, entries)
-            imported = int(result.get("imported", 0) or 0)
-            errors = result.get("errors", []) or []
-            msg = f"Roster import complete: {imported} entries imported."
-            if errors:
-                msg += f"\nFirst error: {errors[0]}"
-            try:
-                await interaction.followup.send(msg, ephemeral=True)
-            except Exception:
-                await interaction.response.send_message(msg, ephemeral=True)
+            await _update("Roster import: detecting format...")
+            msg = await self.group._run_roster_import(interaction.user.id, text, users=users)
+            await _update(msg)
         except Exception as exc:
-            try:
-                await interaction.followup.send(f"Import failed: {exc}", ephemeral=True)
-            except Exception:
-                await interaction.response.send_message(f"Import failed: {exc}", ephemeral=True)
+            await _update(f"Import failed: {exc}")
 
 
 class _RosterEditBackButton(ui.Button):
@@ -793,34 +780,11 @@ class _RosterEditSettingsView(CDTAutoCleanupView):
 
     @ui.button(label="EXPORT", style=discord.ButtonStyle.primary)
     async def export_data(self, interaction, _button):
-        try:
-            await interaction.response.defer(ephemeral=True)
-        except Exception:
-            pass
+        await self.group._send_collectorverse_json_export_followup(interaction)
 
-        try:
-            users = ensure_user_manager(self.group.core)
-            data = users.export(interaction.user.id) if users else {}
-            payload = json.dumps(data, ensure_ascii=True, default=str)
-            if len(payload) <= 1800:
-                message = f"```json\n{discord.utils.escape_markdown(payload)}\n```"
-                try:
-                    await interaction.followup.send(message, ephemeral=True)
-                except Exception:
-                    await interaction.response.send_message(message, ephemeral=True)
-                return
-
-            file_obj = discord.File(io.BytesIO(payload.encode("utf-8")), filename="roster-export.json")
-            try:
-                await interaction.followup.send("Roster export attached.", file=file_obj, ephemeral=True)
-            except Exception:
-                await interaction.response.send_message("Roster export attached.", file=file_obj, ephemeral=True)
-        except Exception as exc:
-            msg = f"Export failed: {exc}"
-            try:
-                await interaction.followup.send(msg, ephemeral=True)
-            except Exception:
-                await interaction.response.send_message(msg, ephemeral=True)
+    @ui.button(label="EXPORT CODE", style=discord.ButtonStyle.secondary)
+    async def export_backup_code(self, interaction, _button):
+        await self.group._send_mcocapp_backup_export_followup(interaction)
 
     @ui.button(label="DELETE", style=discord.ButtonStyle.danger)
     async def delete_roster(self, interaction, _button):
@@ -839,34 +803,11 @@ class _RosterEditDataView(CDTAutoCleanupView):
 
     @ui.button(label="EXPORT", style=discord.ButtonStyle.primary)
     async def export_data(self, interaction, _button):
-        try:
-            await interaction.response.defer(ephemeral=True)
-        except Exception:
-            pass
+        await self.group._send_collectorverse_json_export_followup(interaction)
 
-        try:
-            users = ensure_user_manager(self.group.core)
-            data = users.export(interaction.user.id) if users else {}
-            payload = json.dumps(data, ensure_ascii=True, default=str)
-            if len(payload) <= 1800:
-                message = f"```json\n{discord.utils.escape_markdown(payload)}\n```"
-                try:
-                    await interaction.followup.send(message, ephemeral=True)
-                except Exception:
-                    await interaction.response.send_message(message, ephemeral=True)
-                return
-
-            file_obj = discord.File(io.BytesIO(payload.encode("utf-8")), filename="roster-export.json")
-            try:
-                await interaction.followup.send("Roster export attached.", file=file_obj, ephemeral=True)
-            except Exception:
-                await interaction.response.send_message("Roster export attached.", file=file_obj, ephemeral=True)
-        except Exception as exc:
-            msg = f"Export failed: {exc}"
-            try:
-                await interaction.followup.send(msg, ephemeral=True)
-            except Exception:
-                await interaction.response.send_message(msg, ephemeral=True)
+    @ui.button(label="EXPORT CODE", style=discord.ButtonStyle.secondary)
+    async def export_backup_code(self, interaction, _button):
+        await self.group._send_mcocapp_backup_export_followup(interaction)
 
 
 class _RosterEditRootView(CDTAutoCleanupView):
@@ -898,6 +839,174 @@ class _RosterGroup(app_commands.Group):
         elapsed = time.perf_counter() - start_time
         if elapsed >= threshold:
             log.warning("Roster %s finished in %.3fs", label, elapsed)
+
+    @staticmethod
+    def _decode_text_bytes(raw: bytes) -> str:
+        for encoding in ("utf-8-sig", "utf-8", "latin-1"):
+            try:
+                return raw.decode(encoding)
+            except Exception:
+                continue
+        return raw.decode("utf-8", errors="replace")
+
+    async def _run_roster_import(self, user_id: int, text: str, *, users: Any = None) -> str:
+        manager = users or ensure_user_manager(self.core)
+        if not manager:
+            raise ValueError("Roster storage is unavailable")
+
+        parsed = parse_detected_roster_import(text, getattr(self.core, "cache", None))
+        detected = str(parsed.get("type") or "unknown")
+
+        if detected == "collectorverse_json" and bool(parsed.get("full_import_supported")):
+            payload = parsed.get("payload")
+            if not isinstance(payload, dict):
+                raise ValueError("Detected CollectorVerse JSON but payload is invalid")
+            manager.import_data(user_id, payload)
+            return "Data import complete."
+
+        entries = list(parsed.get("entries") or [])
+        if not entries:
+            raise ValueError(f"Detected {detected}, but no importable roster entries were found")
+        result = import_roster_entries(self.core, user_id, entries, users=manager)
+        imported = int(result.get("imported", 0) or 0)
+        errors = list(result.get("errors") or [])
+        message = f"Roster import complete. Detected: {detected}. Imported {imported} entries."
+        if errors:
+            message += f"\nFirst storage issue: {errors[0]}"
+        return message
+
+    async def _send_collectorverse_json_export_followup(self, interaction: Any) -> None:
+        try:
+            await interaction.response.defer(ephemeral=True)
+        except Exception:
+            pass
+
+        users = ensure_user_manager(self.core)
+        if not users:
+            try:
+                await interaction.followup.send("Roster storage is unavailable.", ephemeral=True)
+            except Exception:
+                await interaction.response.send_message("Roster storage is unavailable.", ephemeral=True)
+            return
+
+        data = users.export(interaction.user.id)
+        payload = json.dumps(data, ensure_ascii=True, default=str)
+        if len(payload) <= 1800:
+            message = f"```json\n{discord.utils.escape_markdown(payload)}\n```"
+            try:
+                await interaction.followup.send(message, ephemeral=True)
+            except Exception:
+                await interaction.response.send_message(message, ephemeral=True)
+            return
+
+        file_obj = discord.File(io.BytesIO(payload.encode("utf-8")), filename="roster-export.json")
+        try:
+            await interaction.followup.send("Roster export attached.", file=file_obj, ephemeral=True)
+        except Exception:
+            await interaction.response.send_message("Roster export attached.", file=file_obj, ephemeral=True)
+
+    async def _send_mcocapp_backup_export_followup(self, interaction: Any) -> None:
+        try:
+            await interaction.response.defer(ephemeral=True)
+        except Exception:
+            pass
+
+        users = ensure_user_manager(self.core)
+        if not users:
+            try:
+                await interaction.followup.send("Roster storage is unavailable.", ephemeral=True)
+            except Exception:
+                await interaction.response.send_message("Roster storage is unavailable.", ephemeral=True)
+            return
+
+        data = users.export(interaction.user.id)
+        roster_entries = list((data or {}).get("roster") or []) if isinstance(data, dict) else []
+        encoded = encode_mcoc_app_backup_code(roster_entries, getattr(self.core, "cache", None))
+        code = str(encoded.get("code") or "")
+        exported = int(encoded.get("exported") or 0)
+        skipped_non7 = int(encoded.get("skipped_non7") or 0)
+
+        if not code:
+            try:
+                await interaction.followup.send("Backup-code export failed: no data produced.", ephemeral=True)
+            except Exception:
+                await interaction.response.send_message("Backup-code export failed: no data produced.", ephemeral=True)
+            return
+
+        msg = f"MCOC.app backup code export complete ({exported} entries"
+        if skipped_non7:
+            msg += f", skipped {skipped_non7} non-7★"
+        msg += ")."
+
+        if len(code) <= 1800:
+            try:
+                await interaction.followup.send(msg + "\n```\n" + code + "\n```", ephemeral=True)
+            except Exception:
+                await interaction.response.send_message(msg + "\n```\n" + code + "\n```", ephemeral=True)
+            return
+
+        file_obj = discord.File(io.BytesIO(code.encode("utf-8")), filename="mcocapp-backup-code.txt")
+        try:
+            await interaction.followup.send(msg + " Attached as file.", file=file_obj, ephemeral=True)
+        except Exception:
+            await interaction.response.send_message(msg + " Attached as file.", file=file_obj, ephemeral=True)
+
+    async def _send_roster_export(self, interaction: Any, *, format_kind: str = "collectorverse_json") -> None:
+        users = ensure_user_manager(self.core)
+        if not users:
+            await interaction.response.edit_message(content="Roster storage is unavailable.", view=None)
+            return
+
+        user_id = getattr(getattr(interaction, "user", None), "id", None)
+        if user_id is None:
+            await interaction.response.edit_message(content="Unable to resolve user ID for export.", view=None)
+            return
+
+        kind = str(format_kind or "collectorverse_json").strip().lower()
+        if kind == "mcocapp_backup":
+            data = users.export(user_id)
+            roster_entries = list((data or {}).get("roster") or []) if isinstance(data, dict) else []
+            encoded = encode_mcoc_app_backup_code(roster_entries, getattr(self.core, "cache", None))
+            code = str(encoded.get("code") or "")
+            exported = int(encoded.get("exported") or 0)
+            skipped_non7 = int(encoded.get("skipped_non7") or 0)
+            if not code:
+                await interaction.response.edit_message(content="Backup-code export failed: no data produced.", view=None)
+                return
+
+            if len(code) <= 1800:
+                msg = f"MCOC.app backup code export complete ({exported} entries"
+                if skipped_non7:
+                    msg += f", skipped {skipped_non7} non-7★"
+                msg += ").\n```\n" + code + "\n```"
+                await interaction.response.edit_message(content=msg, view=None)
+                return
+
+            file_obj = discord.File(io.BytesIO(code.encode("utf-8")), filename="mcocapp-backup-code.txt")
+            summary = f"MCOC.app backup code export complete ({exported} entries"
+            if skipped_non7:
+                summary += f", skipped {skipped_non7} non-7★"
+            summary += "). Attached as file."
+            await interaction.response.edit_message(content=summary, view=None)
+            try:
+                await interaction.followup.send("Backup code attached.", file=file_obj, ephemeral=True)
+            except Exception:
+                pass
+            return
+
+        data = users.export(user_id)
+        payload = json.dumps(data, ensure_ascii=True, default=str)
+        if len(payload) <= 1800:
+            message = f"```json\n{discord.utils.escape_markdown(payload)}\n```"
+            await interaction.response.edit_message(content=message, view=None)
+            return
+
+        file_obj = discord.File(io.BytesIO(payload.encode("utf-8")), filename="roster-export.json")
+        await interaction.response.edit_message(content="CollectorVerse JSON export attached.", view=None)
+        try:
+            await interaction.followup.send("Roster export attached.", file=file_obj, ephemeral=True)
+        except Exception:
+            pass
 
     async def _build_roster_list_pager(self, target_user: Any, base_hargs: str, parsed_filters: dict, *, author_for_controls: Any) -> Optional[CDTPagesMenu]:
         pager = await make_roster_pager(
@@ -1806,6 +1915,41 @@ class _RosterGroup(app_commands.Group):
         view = _RosterEditRootView(self)
         await self._send_interaction_message(interaction, "Roster Edit", view=view, ephemeral=True)
         await view.bind_to_interaction_response(interaction)
+
+    # -------------------------
+    # /roster import
+    # -------------------------
+    @app_commands.command(name="import", description="Import roster from JSON, CSV/TSV, backup code, or roster text")
+    async def import_(self, interaction, content: Optional[str] = None, file: Optional[discord.Attachment] = None):
+        try:
+            await interaction.response.defer(ephemeral=True)
+        except Exception:
+            pass
+
+        source_text = str(content or "").strip()
+        source_note = "content"
+
+        if file is not None:
+            try:
+                file_bytes = await file.read()
+                file_text = self._decode_text_bytes(file_bytes).strip()
+            except Exception as exc:
+                await interaction.edit_original_response(content=f"Could not read attached file: {exc}")
+                return
+            if not source_text:
+                source_text = file_text
+                source_note = f"file ({getattr(file, 'filename', 'attachment')})"
+
+        if not source_text:
+            await interaction.edit_original_response(content="Provide import content text, an attached file, or both.")
+            return
+
+        try:
+            await interaction.edit_original_response(content=f"Roster import: processing {source_note}...")
+            msg = await self._run_roster_import(interaction.user.id, source_text)
+            await interaction.edit_original_response(content=msg)
+        except Exception as exc:
+            await interaction.edit_original_response(content=f"Import failed: {exc}")
 
 
     # -------------------------

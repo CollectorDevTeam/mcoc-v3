@@ -1,10 +1,13 @@
 from mcoc.common.helpers.champions import _champion_matches_filters, build_tier_pages, build_filter_flow_state, build_filter_picker_sections, _filter_picker_page_values, build_cocpit_ability_lines, build_cocpit_core_ability_fields, build_cocpit_synergy_intersection_lines
 from mcoc.common.helpers.roster import filter_roster_entries, _build_selection_option_label, parse_cocpit_roster_csv, parse_roster_entries_with_errors, import_roster_entries, build_roster_pages
+from mcoc.common.helpers.roster import parse_detected_roster_import
 from mcoc.common.utilities.formatters import format_tierlist_champion_line, format_champion_line
 from mcoc.common.helpers.types import MCOCAPP_TIERS, champion_from_dict
 from mcoc.common.utilities.query_parser import parse_query
 from mcoc.common.utilities.hargs import parse_hargs
 import asyncio
+import base64
+import json
 
 
 def test_parse_hargs_supports_compact_star_rank_shortcuts():
@@ -274,6 +277,62 @@ def test_filters_are_normalized_by_category_for_multi_select_filters():
     assert _champion_matches_filters(champ, {"tags": ["bleed", "incinerate"]}) is True
     assert _champion_matches_filters(champ, {"abilities": ["incinerate"], "immunities": ["bleed-immunity"]}) is True
     assert _champion_matches_filters(champ, {"classes": ["skill"], "tags": ["science"]}) is False
+
+
+def test_parse_cocpit_roster_tsv_returns_canonical_entries():
+    tsv_text = """ID\tFull Name\tClass\tRarity\tRank\tSig Level\tAscension Level\tPrestige
+doctordoom\tDOCTOR DOOM\tmystic\t6\t5\t40\t1\t15780
+"""
+
+    class FakeCache:
+        def get_champion(self, token):
+            key = str(token or "").strip().lower()
+            rows = {
+                "doctordoom": {"id": "doctor-doom", "slug": "doctor-doom", "name": "Doctor Doom"},
+                "doctor-doom": {"id": "doctor-doom", "slug": "doctor-doom", "name": "Doctor Doom"},
+            }
+            return rows.get(key)
+
+        def get_all_champions(self):
+            return [
+                {"id": "doctor-doom", "slug": "doctor-doom", "name": "Doctor Doom"},
+            ]
+
+    entries = parse_cocpit_roster_csv(tsv_text, FakeCache())
+
+    assert len(entries) == 1
+    assert entries[0]["champion"] == "doctor-doom"
+    assert entries[0]["ascended"] == 1
+
+
+def test_parse_detected_roster_import_supports_mcoc_app_backup_code():
+    payload = {
+        "v": 1,
+        "roster": {
+            "Doctor Doom": 3,
+        },
+    }
+    encoded = base64.b64encode(json.dumps(payload).encode("utf-8")).decode("utf-8")
+
+    class FakeCache:
+        def get_champion(self, token):
+            key = str(token or "").strip().lower()
+            rows = {
+                "doctor doom": {"id": "doctor-doom", "slug": "doctor-doom", "name": "Doctor Doom"},
+                "doctor-doom": {"id": "doctor-doom", "slug": "doctor-doom", "name": "Doctor Doom"},
+            }
+            return rows.get(key)
+
+        def get_all_champions(self):
+            return [
+                {"id": "doctor-doom", "slug": "doctor-doom", "name": "Doctor Doom"},
+            ]
+
+    parsed = parse_detected_roster_import(encoded, FakeCache())
+
+    assert parsed["type"] == "mcocapp_backup"
+    assert parsed["entries"]
+    assert parsed["entries"][0]["champion"] == "doctor-doom"
 
 
 def test_build_roster_pages_class_filter_uses_cache_champion_class_when_entry_missing_class():

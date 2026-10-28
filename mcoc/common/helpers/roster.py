@@ -28,6 +28,8 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
 from dataclasses import dataclass
 import csv
 import io
+import json
+import base64
 import re
 import logging
 import asyncio
@@ -411,10 +413,14 @@ def _looks_like_cocpit_roster_csv(text: str) -> bool:
     lines = [line for line in text.splitlines() if line.strip()]
     if not lines:
         return False
-    try:
-        headers = next(csv.reader([lines[0]]))
-    except Exception:
-        return False
+    header_line = lines[0]
+    if "\t" in header_line:
+        headers = [part.strip() for part in header_line.split("\t")]
+    else:
+        try:
+            headers = next(csv.reader([header_line]))
+        except Exception:
+            return False
     normalized_headers = {_normalize_csv_header(header) for header in headers}
     required = {
         "id",
@@ -433,7 +439,10 @@ def parse_cocpit_roster_csv(text: str, cache) -> List[Dict[str, Any]]:
     if not text or not text.strip():
         raise ValueError("No CSV input provided")
 
-    reader = csv.DictReader(io.StringIO(text.strip()))
+    stripped_text = text.strip()
+    header_line = stripped_text.splitlines()[0] if stripped_text.splitlines() else ""
+    delimiter = "\t" if "\t" in header_line else ","
+    reader = csv.DictReader(io.StringIO(stripped_text), delimiter=delimiter)
     if not reader.fieldnames:
         raise ValueError("Roster CSV is missing headers")
 
@@ -487,6 +496,206 @@ def parse_cocpit_roster_csv(text: str, cache) -> List[Dict[str, Any]]:
     if not out:
         raise ValueError("No valid CSV roster entries parsed: " + ("; ".join(errors) if errors else "unknown error"))
     return out
+
+
+def _decode_base64_json_blob(text: str) -> Optional[Dict[str, Any]]:
+    payload = str(text or "").strip()
+    if not payload:
+        return None
+    # MCOC app backup codes are often plain base64 without line breaks.
+    if re.search(r"\s", payload):
+        return None
+    pad = "=" * ((4 - (len(payload) % 4)) % 4)
+    for decoder in (base64.b64decode, base64.urlsafe_b64decode):
+        try:
+            raw = decoder((payload + pad).encode("utf-8"))
+            decoded = raw.decode("utf-8", errors="strict")
+            obj = json.loads(decoded)
+            if isinstance(obj, dict):
+                return obj
+        except Exception:
+            continue
+    return None
+
+
+def _looks_like_mcoc_app_backup_payload(obj: Any) -> bool:
+    return bool(isinstance(obj, dict) and isinstance(obj.get("roster"), dict))
+
+
+def parse_mcoc_app_backup_code(text: str, cache) -> List[Dict[str, Any]]:
+    obj = _decode_base64_json_blob(text)
+    if not _looks_like_mcoc_app_backup_payload(obj):
+        raise ValueError("Backup code is not a recognized MCOC app payload")
+
+    roster_map = dict(obj.get("roster") or {})
+    out: List[Dict[str, Any]] = []
+    errors: List[str] = []
+    for raw_name, raw_rank in roster_map.items():
+        try:
+            name = str(raw_name or "").strip()
+            if not name:
+                continue
+            slug = _resolve_champion_slug(name, cache)
+            rarity, rank, sig, ascended = normalize_champion_progression(7, int(raw_rank or 1), 0, 0)
+            out.append({
+                "champion": slug,
+                "rarity": rarity,
+                "rank": rank,
+                "sig": sig,
+                "ascended": ascended,
+                "tags": [],
+                "raw": name,
+            })
+        except Exception as exc:
+            errors.append(f"{raw_name}: {exc}")
+
+    if not out:
+        raise ValueError("No valid roster entries found in backup code" + (f" ({errors[0]})" if errors else ""))
+    return out
+
+
+def _display_name_for_backup(entry: Dict[str, Any], cache: Any) -> str:
+    slug = str(entry.get("champion") or "").strip().lower()
+    if not slug:
+        return ""
+    try:
+        champ = cache.get_champion(slug) if cache else None
+    except Exception:
+        champ = None
+    if isinstance(champ, dict):
+        name = str(champ.get("name") or champ.get("id") or champ.get("slug") or slug).strip()
+        if name:
+            return name
+    return slug.replace("-", " ").title()
+
+
+def encode_mcoc_app_backup_code(entries: List[Dict[str, Any]], cache: Any = None) -> Dict[str, Any]:
+    """Encode canonical roster entries into an MCOC.app-style backup code payload.
+
+    The current backup structure supports rank targets by champion name. Since this format
+    does not preserve rarity/sig/ascended, we export only 7-star entries and keep the
+    highest rank when duplicate champion names appear.
+    """
+    roster_map: Dict[str, int] = {}
+    exported = 0
+    skipped_non7 = 0
+
+    for entry in entries or []:
+        try:
+            rarity = int(entry.get("rarity") or entry.get("stars") or 0)
+        except Exception:
+            rarity = 0
+        if rarity != 7:
+            skipped_non7 += 1
+            continue
+
+        name = _display_name_for_backup(entry, cache)
+        if not name:
+            continue
+        try:
+            rank = int(entry.get("rank") or 1)
+        except Exception:
+            rank = 1
+        if rank < 1:
+            rank = 1
+        current = roster_map.get(name)
+        roster_map[name] = max(rank, int(current or 0))
+        exported += 1
+
+    payload = {
+        "v": 1,
+        "roster": roster_map,
+        "targets": {
+            "Cosmic": {},
+            "Mutant": {},
+            "Tech": {},
+            "Skill": {},
+            "Science": {},
+            "Mystic": {},
+        },
+        "priorities": [],
+        "excluded": [],
+        "wishlist": [],
+        "seenFte": True,
+    }
+
+    encoded = base64.b64encode(
+        json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+    ).decode("ascii")
+
+    return {
+        "code": encoded,
+        "payload": payload,
+        "exported": exported,
+        "skipped_non7": skipped_non7,
+    }
+
+
+def _looks_like_collectorverse_json_payload(obj: Any) -> bool:
+    return bool(isinstance(obj, dict) and ("roster" in obj or "profile" in obj or "user_id" in obj))
+
+
+def detect_roster_import_type(text: str) -> str:
+    raw = str(text or "").strip()
+    if not raw:
+        return "empty"
+    if _looks_like_cocpit_roster_csv(raw):
+        return "cocpit_csv"
+    try:
+        parsed = json.loads(raw)
+    except Exception:
+        parsed = None
+    if _looks_like_collectorverse_json_payload(parsed):
+        return "collectorverse_json"
+    if _looks_like_mcoc_app_backup_payload(_decode_base64_json_blob(raw)):
+        return "mcocapp_backup"
+    return "roster_text"
+
+
+def parse_detected_roster_import(text: str, cache) -> Dict[str, Any]:
+    """Detect roster import format and return canonical entries and metadata."""
+    detected = detect_roster_import_type(text)
+    raw = str(text or "").strip()
+
+    if detected == "empty":
+        raise ValueError("No import content provided")
+
+    if detected == "collectorverse_json":
+        payload = json.loads(raw)
+        roster_entries = list(payload.get("roster") or []) if isinstance(payload, dict) else []
+        # Keep the full payload so callers can import profile/privacy/alliances too.
+        return {
+            "type": "collectorverse_json",
+            "entries": roster_entries,
+            "payload": payload,
+            "full_import_supported": True,
+        }
+
+    if detected == "cocpit_csv":
+        entries = parse_cocpit_roster_csv(raw, cache)
+        return {
+            "type": "cocpit_csv",
+            "entries": entries,
+            "payload": None,
+            "full_import_supported": False,
+        }
+
+    if detected == "mcocapp_backup":
+        entries = parse_mcoc_app_backup_code(raw, cache)
+        return {
+            "type": "mcocapp_backup",
+            "entries": entries,
+            "payload": None,
+            "full_import_supported": False,
+        }
+
+    entries = parse_roster_entries_from_input(raw, cache)
+    return {
+        "type": "roster_text",
+        "entries": entries,
+        "payload": None,
+        "full_import_supported": False,
+    }
 
 
 def _dedupe_in_order(values: List[str]) -> List[str]:
