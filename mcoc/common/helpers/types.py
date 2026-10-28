@@ -78,14 +78,20 @@ MCOCAPP_PROPERTIES: Dict[str, Any] = {
 }
 
 CLASS_EMOJI: Dict[str, str] = {
-    "all": "<:all2:339511715920084993>",
-    "tech": "<:tech2:339511716197171200>",
-    "skill": "<:skill2:339511716549230592>",
-    "mutant": "<:mutant2:339511716201365514>",
-    "mystic": "<:mystic2:339511716150771712> ",
-    "cosmic": "<:cosmic2:339511716104896512>",
-    "science": "<:science2:339511716029267969>",
-    "ascended": "<:ascend:1137124043506585691>",
+    "all": "<:all:1565088416046120971>",
+    "tech": "<:tech:1565096827416739972>",
+    "skill": "<:skill:1565096442689884220>",
+    "mutant": "<:mutant:1565096789454102683>",
+    "mystic": "<:mystic:1565096724635197461> ",
+    "cosmic": "<:cosmic:1565096862833319976>",
+    "science": "<:science:1565096651184668712>",
+    "ascended": "<:ascension1:1565076907656093899>",
+    "ascended2": "<:ascension2:1565076948206747759>"
+}
+
+ASCENSION_EMOJI: Dict[int, str] = {
+    1: CLASS_EMOJI["ascended"],
+    2: CLASS_EMOJI["ascended2"],
 }
 
 @dataclass(frozen=True)

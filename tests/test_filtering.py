@@ -209,8 +209,8 @@ def test_format_champion_line_uses_custom_ascension_emoji_tokens():
         include_prestige=None,
     )
 
-    assert "<:ascension1:1565045477848915988>" in line_a1
-    assert "<:ascension2:1565045566998708386>" in line_a2
+    assert "<:ascension1:1565076907656093899>" in line_a1
+    assert "<:ascension2:1565076948206747759>" in line_a2
 
 
 def test_parse_query_and_match_support_class_tag_tokens():

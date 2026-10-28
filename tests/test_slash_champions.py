@@ -646,7 +646,7 @@ def test_slash_roster_rankup_pages_group_by_tier_order(monkeypatch):
     assert "S+ TIER" in field_names
     assert "A TIER" in field_names
     assert "B TIER" in field_names
-    assert "<:cosmic2:" in pages[0]["fields"][0]["value"]
+    assert "<:cosmic:1565096862833319976>" in pages[0]["fields"][0]["value"]
 
 
 def test_slash_roster_awaken_pages_group_by_tier_order(monkeypatch):

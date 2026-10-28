@@ -9,15 +9,10 @@
 #   1.0 2026-09-01  Initial stabilized API header
 
 from typing import Dict, Any, Optional, Mapping, Union, List
-from mcoc.common.helpers.types import CLASS_EMOJI, Champion, champion_from_dict, MCOCAPP_PROPERTIES
+from mcoc.common.helpers.types import CLASS_EMOJI, ASCENSION_EMOJI, Champion, champion_from_dict, MCOCAPP_PROPERTIES
 import re
 
 ChampionLike = Union[Champion, Mapping[str, Any], None]
-
-ASCENSION_EMOJI = {
-    1: "<:ascension1:1565045477848915988>",
-    2: "<:ascension2:1565045566998708386>",
-}
 
 
 def _normalize_property_key(value: Any) -> str:
