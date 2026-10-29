@@ -43,6 +43,16 @@ async def _edit_or_send(
     ephemeral: bool = True,
 ) -> None:
     response = getattr(interaction, "response", None)
+    try:
+        is_done = bool(response and hasattr(response, "is_done") and response.is_done())
+    except Exception:
+        is_done = False
+    if is_done and hasattr(interaction, "followup"):
+        try:
+            await interaction.followup.send(content=content, embed=embed, view=view, ephemeral=ephemeral)
+            return
+        except Exception:
+            pass
     if getattr(interaction, "message", None) is not None and response and hasattr(response, "edit_message"):
         try:
             await response.edit_message(content=content, embed=embed, view=view)
@@ -51,6 +61,21 @@ async def _edit_or_send(
             pass
     if response and hasattr(response, "send_message"):
         await response.send_message(content=content, embed=embed, view=view, ephemeral=ephemeral)
+
+
+async def _defer_or_send(
+    interaction: discord.Interaction,
+    *,
+    content: Optional[str] = None,
+    embed: Optional[discord.Embed] = None,
+    view: Optional[discord.ui.View] = None,
+    ephemeral: bool = True,
+) -> None:
+    try:
+        await interaction.response.defer(ephemeral=ephemeral)
+    except Exception:
+        pass
+    await _edit_or_send(interaction, content=content, embed=embed, view=view, ephemeral=ephemeral)
 
 
 def _build_alliance_profile_text(cfg: dict, guild: discord.Guild, member: Optional[discord.Member] = None) -> str:
@@ -345,12 +370,18 @@ class _AllianceCreateConfirmView(CDTAutoCleanupView):
 
     @discord.ui.button(label="YES", style=discord.ButtonStyle.success)
     async def yes(self, interaction: discord.Interaction, _button: discord.ui.Button):
-        await _edit_or_send(interaction, content="Working... creating alliance roles and configuration.", view=None)
+        try:
+            await interaction.response.defer(ephemeral=True)
+        except Exception:
+            pass
         ok, msg = await self.cog._apply_create_settings(interaction, self.state)
         try:
-            await interaction.edit_original_response(content=msg)
+            await interaction.followup.send(msg, ephemeral=True)
         except Exception:
-            await _edit_or_send(interaction, content=msg, view=None)
+            try:
+                await interaction.edit_original_response(content=msg)
+            except Exception:
+                await _edit_or_send(interaction, content=msg, view=None)
         if not ok:
             log.warning("Alliance create workflow failed: %s", msg)
 
@@ -435,12 +466,18 @@ class _AllianceManageConfirmView(CDTAutoCleanupView):
 
     @discord.ui.button(label="YES", style=discord.ButtonStyle.success)
     async def yes(self, interaction: discord.Interaction, _button: discord.ui.Button):
-        await _edit_or_send(interaction, content="Working... updating alliance roles and configuration.", view=None)
+        try:
+            await interaction.response.defer(ephemeral=True)
+        except Exception:
+            pass
         ok, msg = await self.cog._apply_manage_settings(interaction, self.state)
         try:
-            await interaction.edit_original_response(content=msg)
+            await interaction.followup.send(msg, ephemeral=True)
         except Exception:
-            await _edit_or_send(interaction, content=msg, view=None)
+            try:
+                await interaction.edit_original_response(content=msg)
+            except Exception:
+                await _edit_or_send(interaction, content=msg, view=None)
         if not ok:
             log.warning("Alliance manage workflow failed: %s", msg)
 
@@ -480,6 +517,10 @@ class _AllianceSettingsView(CDTAutoCleanupView):
 
     @discord.ui.button(label="CREATE", style=discord.ButtonStyle.primary)
     async def create_btn(self, interaction: discord.Interaction, _button: discord.ui.Button):
+        try:
+            await interaction.response.defer(ephemeral=True)
+        except Exception:
+            pass
         guild = getattr(interaction, "guild", None)
         if guild is None:
             await _edit_or_send(interaction, content="This action can only be used in a server.", view=self)
@@ -496,6 +537,10 @@ class _AllianceSettingsView(CDTAutoCleanupView):
 
     @discord.ui.button(label="REPORTS", style=discord.ButtonStyle.success)
     async def reports_btn(self, interaction: discord.Interaction, _button: discord.ui.Button):
+        try:
+            await interaction.response.defer(ephemeral=True)
+        except Exception:
+            pass
         guild = getattr(interaction, "guild", None)
         if guild is None:
             await _edit_or_send(interaction, content="This action can only be used in a server.", view=self)
@@ -506,6 +551,10 @@ class _AllianceSettingsView(CDTAutoCleanupView):
 
     @discord.ui.button(label="MANAGE", style=discord.ButtonStyle.secondary)
     async def manage_btn(self, interaction: discord.Interaction, _button: discord.ui.Button):
+        try:
+            await interaction.response.defer(ephemeral=True)
+        except Exception:
+            pass
         guild = getattr(interaction, "guild", None)
         if guild is None:
             await _edit_or_send(interaction, content="This action can only be used in a server.", view=self)
@@ -537,6 +586,10 @@ class _AllianceSettingsView(CDTAutoCleanupView):
 
     @discord.ui.button(label="DELETE", style=discord.ButtonStyle.danger)
     async def delete_btn(self, interaction: discord.Interaction, _button: discord.ui.Button):
+        try:
+            await interaction.response.defer(ephemeral=True)
+        except Exception:
+            pass
         view = _AllianceDeleteConfirmView(self.cog)
         await _edit_or_send(interaction, content="Delete this guild alliance configuration?", view=view)
         await view.bind_to_interaction_response(interaction)
