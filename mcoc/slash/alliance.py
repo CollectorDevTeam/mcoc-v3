@@ -43,24 +43,50 @@ async def _edit_or_send(
     ephemeral: bool = True,
 ) -> None:
     response = getattr(interaction, "response", None)
+    user_id = getattr(getattr(interaction, "user", None), "id", None)
+    guild_id = getattr(getattr(interaction, "guild", None), "id", None)
     try:
         is_done = bool(response and hasattr(response, "is_done") and response.is_done())
     except Exception:
+        log.debug("alliance _edit_or_send: failed to inspect response state", exc_info=True)
         is_done = False
-    if is_done and hasattr(interaction, "followup"):
+    if is_done:
         try:
-            await interaction.followup.send(content=content, embed=embed, view=view, ephemeral=ephemeral)
+            await interaction.edit_original_response(content=content, embed=embed, view=view)
+            log.debug("alliance _edit_or_send: edited original response (guild=%s user=%s)", guild_id, user_id)
             return
         except Exception:
-            pass
+            log.debug("alliance _edit_or_send: edit_original_response failed", exc_info=True)
+        if hasattr(interaction, "followup"):
+            try:
+                await interaction.followup.send(content=content, embed=embed, view=view, ephemeral=ephemeral)
+                log.debug("alliance _edit_or_send: sent followup message (guild=%s user=%s)", guild_id, user_id)
+                return
+            except Exception:
+                log.debug("alliance _edit_or_send: followup.send failed", exc_info=True)
+
     if getattr(interaction, "message", None) is not None and response and hasattr(response, "edit_message"):
         try:
             await response.edit_message(content=content, embed=embed, view=view)
+            log.debug("alliance _edit_or_send: edited interaction message (guild=%s user=%s)", guild_id, user_id)
             return
         except Exception:
-            pass
+            log.debug("alliance _edit_or_send: response.edit_message failed", exc_info=True)
+
     if response and hasattr(response, "send_message"):
-        await response.send_message(content=content, embed=embed, view=view, ephemeral=ephemeral)
+        try:
+            await response.send_message(content=content, embed=embed, view=view, ephemeral=ephemeral)
+            log.debug("alliance _edit_or_send: sent initial response message (guild=%s user=%s)", guild_id, user_id)
+            return
+        except Exception:
+            log.debug("alliance _edit_or_send: response.send_message failed", exc_info=True)
+
+    if hasattr(interaction, "followup"):
+        try:
+            await interaction.followup.send(content=content, embed=embed, view=view, ephemeral=ephemeral)
+            log.debug("alliance _edit_or_send: sent terminal followup fallback (guild=%s user=%s)", guild_id, user_id)
+        except Exception:
+            log.exception("alliance _edit_or_send: all response strategies failed (guild=%s user=%s)", guild_id, user_id)
 
 
 async def _defer_or_send(
@@ -674,25 +700,19 @@ class _AllianceBattlegroupReportSelect(discord.ui.Select):
 
 class _AllianceGroup(app_commands.Group):
     def __init__(self, cog: "AllianceSlashCog"):
-        super().__init__(name="alliance", description="Alliance profile and settings")
+        try:
+            super().__init__(
+                name="alliance",
+                description="Alliance profile and settings",
+                fallback="open",
+                fallback_description="Open alliance workflow menu",
+            )
+        except TypeError:
+            # Older discord.py app command groups may not support fallback callbacks.
+            super().__init__(name="alliance", description="Alliance profile and settings")
         self.cog = cog
 
-    @app_commands.command(name="profile", description="Display alliance profile")
-    @app_commands.describe(user="Optional member to evaluate membership against")
-    async def profile(self, interaction: discord.Interaction, user: Optional[discord.Member] = None):
-        guild = getattr(interaction, "guild", None)
-        if guild is None:
-            await interaction.response.send_message("This command can only be used in a server.", ephemeral=True)
-            return
-        cfg = Alliance.get_guild_config(guild.id)
-        if not cfg:
-            await interaction.response.send_message("No alliance is configured for this guild.", ephemeral=True)
-            return
-        target = user or interaction.user
-        await interaction.response.send_message(_build_alliance_profile_text(cfg, guild, target), ephemeral=False)
-
-    @app_commands.command(name="settings", description="Alliance settings workflows")
-    async def settings(self, interaction: discord.Interaction):
+    async def _open_workflow(self, interaction: discord.Interaction):
         guild = getattr(interaction, "guild", None)
         if guild is None:
             await interaction.response.send_message("This command can only be used in a server.", ephemeral=True)
@@ -717,6 +737,27 @@ class _AllianceGroup(app_commands.Group):
 
         await interaction.response.send_message("Alliance settings: choose a workflow.", view=view, ephemeral=True)
         await view.bind_to_interaction_response(interaction)
+
+    async def callback(self, interaction: discord.Interaction):
+        await self._open_workflow(interaction)
+
+    @app_commands.command(name="profile", description="Display alliance profile")
+    @app_commands.describe(user="Optional member to evaluate membership against")
+    async def profile(self, interaction: discord.Interaction, user: Optional[discord.Member] = None):
+        guild = getattr(interaction, "guild", None)
+        if guild is None:
+            await interaction.response.send_message("This command can only be used in a server.", ephemeral=True)
+            return
+        cfg = Alliance.get_guild_config(guild.id)
+        if not cfg:
+            await interaction.response.send_message("No alliance is configured for this guild.", ephemeral=True)
+            return
+        target = user or interaction.user
+        await interaction.response.send_message(_build_alliance_profile_text(cfg, guild, target), ephemeral=False)
+
+    @app_commands.command(name="settings", description="Alias for /alliance (workflow menu)")
+    async def settings(self, interaction: discord.Interaction):
+        await self._open_workflow(interaction)
 
 
 class AllianceSlashCog(commands.Cog):
