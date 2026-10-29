@@ -22,6 +22,27 @@ from redbot.core import app_commands
 
 log = logging.getLogger("red.mcoc.slash.roster")
 
+
+async def _edit_or_send(
+    interaction: discord.Interaction,
+    *,
+    content: Optional[str] = None,
+    embed: Optional[discord.Embed] = None,
+    view: Optional[discord.ui.View] = None,
+    ephemeral: bool = True,
+    file: Optional[discord.File] = None,
+) -> None:
+    response = getattr(interaction, "response", None)
+    if getattr(interaction, "message", None) is not None and response and hasattr(response, "edit_message"):
+        try:
+            await response.edit_message(content=content, embed=embed, view=view)
+            return
+        except Exception:
+            pass
+    if response and hasattr(response, "send_message"):
+        await response.send_message(content=content, embed=embed, view=view, file=file, ephemeral=ephemeral)
+
+
 from ..common.utilities.hargs import parse_hargs
 from ..common.helpers.roster import (
     ensure_user_manager,
@@ -240,7 +261,7 @@ class _RosterQuickFilterSelect(ui.Select):
             try:
                 await interaction.edit_original_response(embed=embed, view=pager)
             except Exception:
-                await interaction.response.edit_message(embed=embed, view=pager)
+                await _edit_or_send(interaction, embed=embed, view=pager)
         except Exception:
             log.exception("roster quick filter apply failed")
             try:
@@ -295,7 +316,7 @@ class _RosterRemoveSelect(ui.Select):
             page_index=view.page_index,
             selected_keys=selected_keys,
         )
-        await interaction.response.edit_message(embed=new_view.build_embed(), view=new_view)
+        await _edit_or_send(interaction, embed=new_view.build_embed(), view=new_view)
 
 
 class _RosterRemovePageButton(ui.Button):
@@ -315,7 +336,7 @@ class _RosterRemovePageButton(ui.Button):
             page_index=new_index,
             selected_keys=view.selected_keys,
         )
-        await interaction.response.edit_message(embed=new_view.build_embed(), view=new_view)
+        await _edit_or_send(interaction, embed=new_view.build_embed(), view=new_view)
 
 
 class _RosterRemoveActionButton(ui.Button):
@@ -355,7 +376,7 @@ class _RosterRemoveActionButton(ui.Button):
         lines = [f"REMOVE complete: removed {removed} entries."]
         if unresolved:
             lines.append("Not found: " + ", ".join(unresolved[:10]))
-        await interaction.response.edit_message(content="\n".join(lines), embed=None, view=None)
+        await _edit_or_send(interaction, content="\n".join(lines), embed=None, view=None)
 
 
 class _RosterRemoveCancelButton(ui.Button):
@@ -363,7 +384,7 @@ class _RosterRemoveCancelButton(ui.Button):
         super().__init__(label="CANCEL", style=discord.ButtonStyle.secondary, row=3)
 
     async def callback(self, interaction):
-        await interaction.response.edit_message(content="Roster remove cancelled.", embed=None, view=None)
+        await _edit_or_send(interaction, content="Roster remove cancelled.", embed=None, view=None)
 
 
 class _RosterRemoveWorkflowView(CDTAutoCleanupView):
@@ -480,7 +501,7 @@ class _RosterFilterCloseButton(ui.Button):
             try:
                 await interaction.edit_original_response(embed=pager.pages[0], view=pager)
             except Exception:
-                await interaction.response.edit_message(embed=pager.pages[0], view=pager)
+                await _edit_or_send(interaction, embed=pager.pages[0], view=pager)
         except Exception:
             log.exception("roster filter close failed")
             try:
@@ -523,7 +544,7 @@ class _RosterListModeButton(ui.Button):
                 await interaction.edit_original_response(embed=embed, view=pager)
             except Exception:
                 try:
-                    await interaction.response.edit_message(embed=embed, view=pager)
+                    await _edit_or_send(interaction, embed=embed, view=pager)
                 except Exception:
                     await interaction.followup.send(embed=embed, view=pager, wait=True)
         except Exception:
@@ -693,11 +714,11 @@ class _RosterDeleteConfirmView(CDTAutoCleanupView):
             await interaction.response.send_message("Roster storage is unavailable.", ephemeral=True)
             return
         ok = bool(users.delete_user(interaction.user.id))
-        await interaction.response.edit_message(content=("Roster deleted." if ok else "No roster file found."), view=None)
+        await _edit_or_send(interaction, content=("Roster deleted." if ok else "No roster file found."), view=None)
 
     @ui.button(label="CANCEL", style=discord.ButtonStyle.secondary)
     async def cancel_delete(self, interaction, _button):
-        await interaction.response.edit_message(content="Delete cancelled.", view=None)
+        await _edit_or_send(interaction, content="Delete cancelled.", view=None)
 
 
 class _RosterDataImportModal(ui.Modal):
@@ -757,7 +778,7 @@ class _RosterEditBackButton(ui.Button):
         self.group = group
 
     async def callback(self, interaction):
-        await interaction.response.edit_message(content="Roster Edit", view=_RosterEditRootView(self.group))
+        await _edit_or_send(interaction, content="Roster Edit", view=_RosterEditRootView(self.group))
 
 
 class _RosterEditSettingsView(CDTAutoCleanupView):
@@ -788,7 +809,7 @@ class _RosterEditSettingsView(CDTAutoCleanupView):
 
     @ui.button(label="DELETE", style=discord.ButtonStyle.danger)
     async def delete_roster(self, interaction, _button):
-        await interaction.response.edit_message(content="Confirm roster deletion:", view=_RosterDeleteConfirmView(self.group))
+        await _edit_or_send(interaction, content="Confirm roster deletion:", view=_RosterDeleteConfirmView(self.group))
 
 
 class _RosterEditDataView(CDTAutoCleanupView):
@@ -825,7 +846,7 @@ class _RosterEditRootView(CDTAutoCleanupView):
 
     @ui.button(label="SETTINGS", style=discord.ButtonStyle.secondary)
     async def settings(self, interaction, _button):
-        await interaction.response.edit_message(content="Roster Edit > SETTINGS", view=_RosterEditSettingsView(self.group))
+        await _edit_or_send(interaction, content="Roster Edit > SETTINGS", view=_RosterEditSettingsView(self.group))
 
 
 class _RosterGroup(app_commands.Group):
@@ -954,12 +975,12 @@ class _RosterGroup(app_commands.Group):
     async def _send_roster_export(self, interaction: Any, *, format_kind: str = "collectorverse_json") -> None:
         users = ensure_user_manager(self.core)
         if not users:
-            await interaction.response.edit_message(content="Roster storage is unavailable.", view=None)
+            await _edit_or_send(interaction, content="Roster storage is unavailable.", view=None)
             return
 
         user_id = getattr(getattr(interaction, "user", None), "id", None)
         if user_id is None:
-            await interaction.response.edit_message(content="Unable to resolve user ID for export.", view=None)
+            await _edit_or_send(interaction, content="Unable to resolve user ID for export.", view=None)
             return
 
         kind = str(format_kind or "collectorverse_json").strip().lower()
@@ -971,7 +992,7 @@ class _RosterGroup(app_commands.Group):
             exported = int(encoded.get("exported") or 0)
             skipped_non7 = int(encoded.get("skipped_non7") or 0)
             if not code:
-                await interaction.response.edit_message(content="Backup-code export failed: no data produced.", view=None)
+                await _edit_or_send(interaction, content="Backup-code export failed: no data produced.", view=None)
                 return
 
             if len(code) <= 1800:
@@ -979,7 +1000,7 @@ class _RosterGroup(app_commands.Group):
                 if skipped_non7:
                     msg += f", skipped {skipped_non7} non-7★"
                 msg += ").\n```\n" + code + "\n```"
-                await interaction.response.edit_message(content=msg, view=None)
+                await _edit_or_send(interaction, content=msg, view=None)
                 return
 
             file_obj = discord.File(io.BytesIO(code.encode("utf-8")), filename="mcocapp-backup-code.txt")
@@ -987,7 +1008,7 @@ class _RosterGroup(app_commands.Group):
             if skipped_non7:
                 summary += f", skipped {skipped_non7} non-7★"
             summary += "). Attached as file."
-            await interaction.response.edit_message(content=summary, view=None)
+            await _edit_or_send(interaction, content=summary, view=None)
             try:
                 await interaction.followup.send("Backup code attached.", file=file_obj, ephemeral=True)
             except Exception:
@@ -998,11 +1019,11 @@ class _RosterGroup(app_commands.Group):
         payload = json.dumps(data, ensure_ascii=True, default=str)
         if len(payload) <= 1800:
             message = f"```json\n{discord.utils.escape_markdown(payload)}\n```"
-            await interaction.response.edit_message(content=message, view=None)
+            await _edit_or_send(interaction, content=message, view=None)
             return
 
         file_obj = discord.File(io.BytesIO(payload.encode("utf-8")), filename="roster-export.json")
-        await interaction.response.edit_message(content="CollectorVerse JSON export attached.", view=None)
+        await _edit_or_send(interaction, content="CollectorVerse JSON export attached.", view=None)
         try:
             await interaction.followup.send("Roster export attached.", file=file_obj, ephemeral=True)
         except Exception:
@@ -1027,7 +1048,7 @@ class _RosterGroup(app_commands.Group):
             pass
         async def _open_filter_categories(_menu: CDTPagesMenu, interaction: Any) -> None:
             view = _RosterFilterCategoryView(self, target_user, base_hargs or "", parsed_filters)
-            await interaction.response.edit_message(view=view)
+            await _edit_or_send(interaction, view=view)
 
         try:
             pager.filter_handler = _open_filter_categories
@@ -1228,7 +1249,7 @@ class _RosterGroup(app_commands.Group):
 
         if not entries:
             if getattr(interaction, "message", None) is not None and hasattr(interaction.response, "edit_message"):
-                await interaction.response.edit_message(content="Your roster is empty.", embed=None, view=None)
+                await _edit_or_send(interaction, content="Your roster is empty.", embed=None, view=None)
             else:
                 await interaction.response.send_message("Your roster is empty.", ephemeral=True)
             return True
@@ -1259,7 +1280,7 @@ class _RosterGroup(app_commands.Group):
 
         view = _RosterRemoveWorkflowView(self, interaction.user, entries)
         if getattr(interaction, "message", None) is not None and hasattr(interaction.response, "edit_message"):
-            await interaction.response.edit_message(content=None, embed=view.build_embed(), view=view)
+            await _edit_or_send(interaction, content=None, embed=view.build_embed(), view=view)
         else:
             await interaction.response.send_message(embed=view.build_embed(), view=view)
         await view.bind_to_interaction_response(interaction)

@@ -107,14 +107,14 @@ class _AllianceManageMemberView(_MCOCAuthorLockedView):
         if action == "remove":
             ok, message = await Alliance.leave_alliance(self.target, guild)
             Alliance.remove_officer_by_id(guild.id, self.target.id)
-            await interaction.response.edit_message(content=message if ok else message, view=self)
+            await _edit_or_send(interaction, content=message if ok else message, view=self)
             return
 
         if action == "members":
             ok, message = await Alliance.join_alliance(self.target, guild, role_key="members")
             if ok:
                 Alliance.remove_officer_by_id(guild.id, self.target.id)
-            await interaction.response.edit_message(content=message, view=self)
+            await _edit_or_send(interaction, content=message, view=self)
             return
 
         cfg = Alliance.get_guild_config(guild.id)
@@ -144,7 +144,7 @@ class _AllianceManageMemberView(_MCOCAuthorLockedView):
         if action != "managers":
             ok, message = await Alliance.join_alliance(self.target, guild, role_key="members")
             if not ok:
-                await interaction.response.edit_message(content=message, view=self)
+                await _edit_or_send(interaction, content=message, view=self)
                 return
 
         cleanup_keys = {"leader", "officers", "bg1", "bg2", "bg3", "aqbg1", "aqbg2", "aqbg3", "awbg1", "awbg2", "awbg3", "managers"}
@@ -164,22 +164,22 @@ class _AllianceManageMemberView(_MCOCAuthorLockedView):
         if action in cleanup_keys:
             role_cfg = (cfg.get("roles") or {}).get(action)
             if not isinstance(role_cfg, dict):
-                await interaction.response.edit_message(content=f"Alliance role key `{action}` is not configured.", view=self)
+                await _edit_or_send(interaction, content=f"Alliance role key `{action}` is not configured.", view=self)
                 return
             role_obj = guild.get_role(role_cfg.get("id"))
             if role_obj is None:
-                await interaction.response.edit_message(content=f"Role for `{action}` is missing on this server.", view=self)
+                await _edit_or_send(interaction, content=f"Role for `{action}` is missing on this server.", view=self)
                 return
             if action in {"bg1", "bg2", "bg3", "aqbg1", "aqbg2", "aqbg3", "awbg1", "awbg2", "awbg3"}:
                 if self.target not in role_obj.members and len(role_obj.members) >= 10:
-                    await interaction.response.edit_message(content=f"Role `{action}` is full (10/10).", view=self)
+                    await _edit_or_send(interaction, content=f"Role `{action}` is full (10/10).", view=self)
                     return
             if role_obj not in self.target.roles:
                 try:
                     await self.target.add_roles(role_obj, reason=f"Alliance context manage: {action}")
                 except Exception:
                     log.exception("Failed to add alliance managed role %s to user %s", action, self.target.id)
-                    await interaction.response.edit_message(content=f"Failed to assign `{action}` to {self.target.mention}.", view=self)
+                    await _edit_or_send(interaction, content=f"Failed to assign `{action}` to {self.target.mention}.", view=self)
                     return
 
         if action in {"officers", "leader"}:
@@ -187,7 +187,7 @@ class _AllianceManageMemberView(_MCOCAuthorLockedView):
         else:
             Alliance.remove_officer_by_id(guild.id, self.target.id)
 
-        await interaction.response.edit_message(content=f"Updated {self.target.mention} role to `{action}`.", view=self)
+        await _edit_or_send(interaction, content=f"Updated {self.target.mention} role to `{action}`.", view=self)
 
 
 class _AllianceMemberRoleButton(discord.ui.Button):

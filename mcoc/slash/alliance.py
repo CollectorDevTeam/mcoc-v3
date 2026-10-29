@@ -185,19 +185,15 @@ class _AllianceCreateModal(discord.ui.Modal, title="Alliance Setup: Page 1"):
         try:
             self.state.invite_url = _normalize_discord_invite(str(self.invite_url.value or "").strip())
         except ValueError as exc:
-            await interaction.response.send_message(str(exc), ephemeral=True)
+            await _edit_or_send(interaction, content=str(exc), ephemeral=True)
             return
         self.state.type_name = Alliance.normalize_alliance_type(str(self.type_name.value or "").strip())
         if not self.state.name:
-            await interaction.response.send_message("Alliance name is required.", ephemeral=True)
+            await _edit_or_send(interaction, content="Alliance name is required.", ephemeral=True)
             return
 
         view = _AllianceCreateRoleMapView(self.cog, self.state)
-        await interaction.response.send_message(
-            content=view.build_summary_text(),
-            view=view,
-            ephemeral=True,
-        )
+        await _edit_or_send(interaction, content=view.build_summary_text(), view=view, ephemeral=True)
         await view.bind_to_interaction_response(interaction)
 
 
@@ -212,7 +208,7 @@ class _RoleSlotSelect(discord.ui.Select):
 
     async def callback(self, interaction: discord.Interaction):
         self.role_view.selected_slot = self.values[0]
-        await interaction.response.edit_message(content=self.role_view.build_summary_text(), view=self.role_view)
+        await _edit_or_send(interaction, content=self.role_view.build_summary_text(), view=self.role_view)
 
 
 class _RolePicker(discord.ui.RoleSelect):
@@ -223,11 +219,11 @@ class _RolePicker(discord.ui.RoleSelect):
     async def callback(self, interaction: discord.Interaction):
         slot = self.role_view.selected_slot
         if not slot:
-            await interaction.response.send_message("Pick a slot first.", ephemeral=True)
+            await _edit_or_send(interaction, content="Pick a slot first.", ephemeral=True)
             return
         role = self.values[0]
         self.role_view.state.role_map[slot] = role.id
-        await interaction.response.edit_message(content=self.role_view.build_summary_text(), view=self.role_view)
+        await _edit_or_send(interaction, content=self.role_view.build_summary_text(), view=self.role_view)
 
 
 class _InterviewChannelSelect(discord.ui.ChannelSelect):
@@ -244,11 +240,11 @@ class _InterviewChannelSelect(discord.ui.ChannelSelect):
     async def callback(self, interaction: discord.Interaction):
         if not self.values:
             self.role_view.state.interview_channel_id = None
-            await interaction.response.edit_message(content=self.role_view.build_summary_text(), view=self.role_view)
+            await _edit_or_send(interaction, content=self.role_view.build_summary_text(), view=self.role_view)
             return
         channel = self.values[0]
         self.role_view.state.interview_channel_id = int(getattr(channel, "id", 0) or 0) or None
-        await interaction.response.edit_message(content=self.role_view.build_summary_text(), view=self.role_view)
+        await _edit_or_send(interaction, content=self.role_view.build_summary_text(), view=self.role_view)
 
 
 class _AllianceCreateRoleMapView(CDTAutoCleanupView):
@@ -388,15 +384,15 @@ class _AllianceManageInfoModal(discord.ui.Modal, title="Alliance Manage: Page 1"
         try:
             self.state.invite_url = _normalize_discord_invite(str(self.invite_url.value or "").strip())
         except ValueError as exc:
-            await interaction.response.send_message(str(exc), ephemeral=True)
+            await _edit_or_send(interaction, content=str(exc), ephemeral=True)
             return
         self.state.type_name = Alliance.normalize_alliance_type(str(self.type_name.value or "").strip())
         if not self.state.name:
-            await interaction.response.send_message("Alliance name is required.", ephemeral=True)
+            await _edit_or_send(interaction, content="Alliance name is required.", ephemeral=True)
             return
 
         view = _AllianceManageRoleMapView(self.cog, self.state)
-        await interaction.response.send_message(content=view.build_summary_text(), view=view, ephemeral=True)
+        await _edit_or_send(interaction, content=view.build_summary_text(), view=view, ephemeral=True)
         await view.bind_to_interaction_response(interaction)
 
 
@@ -404,10 +400,10 @@ class _AllianceManageRoleMapView(_AllianceCreateRoleMapView):
     @discord.ui.button(label="NEXT (CONFIRM)", style=discord.ButtonStyle.success, row=2)
     async def next_confirm(self, interaction: discord.Interaction, _button: discord.ui.Button):
         if not str(self.state.name or "").strip():
-            await interaction.response.edit_message(content="Alliance name is required. Use EDIT INFO first.", view=self)
+            await _edit_or_send(interaction, content="Alliance name is required. Use EDIT INFO first.", view=self)
             return
         view = _AllianceManageConfirmView(self.cog, self.state)
-        await interaction.response.edit_message(content=view.build_text(), view=view)
+        await _edit_or_send(interaction, content=view.build_text(), view=view)
         await view.bind_to_interaction_response(interaction)
 
 
@@ -554,13 +550,13 @@ class _AllianceDeleteConfirmView(CDTAutoCleanupView):
     @discord.ui.button(label="YES", style=discord.ButtonStyle.danger)
     async def yes(self, interaction: discord.Interaction, _button: discord.ui.Button):
         ok, msg = await self.cog._delete_alliance(interaction)
-        await interaction.response.edit_message(content=msg, view=None)
+        await _edit_or_send(interaction, content=msg, view=None)
         if not ok:
             log.warning("Alliance delete denied/failed: %s", msg)
 
     @discord.ui.button(label="NO", style=discord.ButtonStyle.secondary)
     async def no(self, interaction: discord.Interaction, _button: discord.ui.Button):
-        await interaction.response.edit_message(content="Delete cancelled.", view=None)
+        await _edit_or_send(interaction, content="Delete cancelled.", view=None)
 
 
 class _AllianceReportsView(CDTAutoCleanupView):
@@ -588,12 +584,12 @@ class _AllianceReportsView(CDTAutoCleanupView):
     @discord.ui.button(label="DIAGNOSTICS", style=discord.ButtonStyle.success, row=1)
     async def diagnostics(self, interaction: discord.Interaction, _button: discord.ui.Button):
         _ok, msg = await self.cog._run_diagnostics(interaction)
-        await interaction.response.edit_message(content=msg, view=self)
+        await _edit_or_send(interaction, content=msg, view=self)
 
     @discord.ui.button(label="ALLIANCE SUMMARY", style=discord.ButtonStyle.primary, row=1)
     async def alliance_summary(self, interaction: discord.Interaction, _button: discord.ui.Button):
         _ok, msg = await self.cog._run_alliance_summary_report(interaction)
-        await interaction.response.edit_message(content=msg, view=self)
+        await _edit_or_send(interaction, content=msg, view=self)
 
     @discord.ui.button(label="BACK", style=discord.ButtonStyle.secondary, row=1)
     async def back(self, interaction: discord.Interaction, _button: discord.ui.Button):
@@ -620,7 +616,7 @@ class _AllianceBattlegroupReportSelect(discord.ui.Select):
     async def callback(self, interaction: discord.Interaction):
         key = self.values[0] if self.values else ""
         _ok, msg = await self.cog._run_battlegroup_report(interaction, key)
-        await interaction.response.edit_message(content=msg, view=self.view)
+        await _edit_or_send(interaction, content=msg, view=self.view)
 
 
 class _AllianceGroup(app_commands.Group):
