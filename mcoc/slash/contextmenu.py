@@ -412,7 +412,7 @@ class _MCOCAllianceSectionView(_MCOCSectionViewBase):
             await self.cog._ctx_alliance_manage(interaction, self.target, edit_existing=True)
             return
         if action == "profile":
-            await self.cog._send_profile(interaction, self.target)
+            await self.cog._send_alliance_profile(interaction, self.actor, self.target)
             return
 
 
@@ -525,6 +525,46 @@ class ContextMenuSlashCog(commands.Cog):
             pager.message = getattr(interaction, "message", None) or await interaction.original_response()
         except Exception:
             pass
+
+    async def _send_alliance_profile(self, interaction: discord.Interaction, actor: discord.Member, target: discord.Member):
+        guild = getattr(interaction, "guild", None)
+        if guild is None:
+            await _edit_or_send(interaction, content="This action can only be used in a server.", ephemeral=True)
+            return
+
+        cfg = Alliance.get_guild_config(guild.id)
+        if not cfg:
+            await _edit_or_send(interaction, content="No alliance is configured for this guild.", ephemeral=True)
+            return
+
+        info = cfg.get("info", {}) or {}
+        alliance_name = str(info.get("name") or guild.name)
+        tag = str(info.get("tag") or "").strip()
+        description = str(info.get("description") or "").strip() or "No alliance description configured."
+        invite_url = str(info.get("invite") or "").strip()
+        founded = str(info.get("founded") or "").strip() or "Unknown"
+
+        title = alliance_name
+        if tag:
+            title = f"{alliance_name} [{tag}]"
+
+        embed = discord.Embed(
+            title=title,
+            description=description,
+            color=discord.Color.blurple(),
+            url=invite_url or None,
+        )
+        embed.add_field(name="Alliance Founded", value=founded, inline=True)
+        embed.add_field(name="Server", value=guild.name, inline=True)
+        if invite_url:
+            embed.add_field(name="Discord Invite", value=invite_url, inline=False)
+
+        view = _MCOCAllianceSectionView(self, actor, target)
+        if invite_url:
+            view.add_item(discord.ui.Button(label="JOIN NOW", style=discord.ButtonStyle.link, url=invite_url, row=3))
+
+        await _edit_or_send(interaction, content="MCOC > ALLIANCE > PROFILE", embed=embed, view=view, ephemeral=True)
+        await view.bind_to_interaction_response(interaction)
 
     async def _ctx_profile(self, interaction: discord.Interaction, user: discord.Member):
         await self._send_profile(interaction, user)
@@ -679,6 +719,7 @@ class ContextMenuSlashCog(commands.Cog):
             tag=str(info.get("tag") or ""),
             description=str(info.get("description") or ""),
             invite_url=str(info.get("invite") or ""),
+            interview_channel_id=int(info.get("interview_channel_id")) if str(info.get("interview_channel_id") or "").isdigit() else None,
             type_name=Alliance.normalize_alliance_type(cfg.get("type", Alliance.ALLIANCE_TYPE_SIMPLE)),
             role_map={
                 key: int(role_cfg.get("id"))
@@ -686,7 +727,9 @@ class ContextMenuSlashCog(commands.Cog):
                 if isinstance(role_cfg, dict) and role_cfg.get("id")
             },
         )
-        await interaction.response.send_modal(AllianceSlash._AllianceManageInfoModal(alliance_cog, state))
+        view = AllianceSlash._AllianceManageRoleMapView(alliance_cog, state)
+        await _edit_or_send(interaction, content=view.build_summary_text(), view=view, ephemeral=True)
+        await view.bind_to_interaction_response(interaction)
 
     async def _ctx_roster_edit_settings(self, interaction: discord.Interaction, user: discord.Member):
         if user.id != getattr(interaction.user, "id", None):

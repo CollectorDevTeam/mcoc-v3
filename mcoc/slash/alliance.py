@@ -2,6 +2,8 @@
 """Slash alliance profile/settings workflows."""
 
 import logging
+import re
+import datetime
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Set
 
@@ -14,6 +16,12 @@ from ..common.helpers.account import user_has_collectorverse_premium
 from ..common.helpers.roster import ensure_user_manager
 
 log = logging.getLogger("red.mcoc.slash.alliance")
+
+_DISCORD_INVITE_RE = re.compile(
+    r"^(?:https?://)?(?:www\.)?(?:discord\.gg|discord(?:app)?\.com/invite)/([A-Za-z0-9-]{2,64})/?$",
+    re.IGNORECASE,
+)
+_DISCORD_INVITE_CODE_RE = re.compile(r"^[A-Za-z0-9-]{2,64}$")
 
 
 def _core_for(bot: Any) -> Any:
@@ -40,7 +48,9 @@ def _build_alliance_profile_text(cfg: dict, guild: discord.Guild, member: Option
     if info.get("description"):
         lines.append(f"Description: {info.get('description')}")
     if info.get("invite"):
-        lines.append(f"Invite: {info.get('invite')}")
+        lines.append(f"Discord Invite: {info.get('invite')}")
+    if info.get("founded"):
+        lines.append(f"Alliance Founded: {info.get('founded')}")
 
     keys = ["alliance", "officers", "members", "leader", "managers"] + Alliance.expected_battlegroup_keys(type_name)
     for key in keys:
@@ -99,6 +109,18 @@ def _required_role_keys(type_name: str) -> List[str]:
     return ["alliance", "officers", "bg1", "bg2", "bg3"]
 
 
+def _normalize_discord_invite(value: str) -> str:
+    raw = str(value or "").strip()
+    if not raw:
+        return ""
+    match = _DISCORD_INVITE_RE.match(raw)
+    if match:
+        return f"https://discord.gg/{match.group(1)}"
+    if _DISCORD_INVITE_CODE_RE.match(raw):
+        return f"https://discord.gg/{raw}"
+    raise ValueError("Invalid Discord invite. Use a discord.gg link or invite code.")
+
+
 def _bg_keys_for_type(type_name: str) -> List[str]:
     type_norm = Alliance.normalize_alliance_type(type_name)
     if type_norm == Alliance.ALLIANCE_TYPE_ADVANCED:
@@ -114,6 +136,7 @@ class _AllianceCreateState:
     tag: str = ""
     description: str = ""
     invite_url: str = ""
+    interview_channel_id: Optional[int] = None
     type_name: str = Alliance.ALLIANCE_TYPE_SIMPLE
     role_map: Dict[str, int] = field(default_factory=dict)
 
@@ -127,7 +150,7 @@ class _AllianceCreateModal(discord.ui.Modal, title="Alliance Setup: Page 1"):
         self.name = discord.ui.TextInput(label="Name", required=True, max_length=60, default=state.name or "")
         self.tag = discord.ui.TextInput(label="Tag", required=False, max_length=15, default=state.tag or "")
         self.description = discord.ui.TextInput(label="Description", required=False, max_length=250, default=state.description or "", style=discord.TextStyle.paragraph)
-        self.invite_url = discord.ui.TextInput(label="Invite URL", required=False, max_length=200, default=state.invite_url or "")
+        self.invite_url = discord.ui.TextInput(label="Discord Invite", required=False, max_length=200, default=state.invite_url or "")
         self.type_name = discord.ui.TextInput(label="Type (simple|advanced)", required=True, max_length=20, default=state.type_name)
 
         self.add_item(self.name)
@@ -140,7 +163,11 @@ class _AllianceCreateModal(discord.ui.Modal, title="Alliance Setup: Page 1"):
         self.state.name = str(self.name.value or "").strip()
         self.state.tag = str(self.tag.value or "").strip()
         self.state.description = str(self.description.value or "").strip()
-        self.state.invite_url = str(self.invite_url.value or "").strip()
+        try:
+            self.state.invite_url = _normalize_discord_invite(str(self.invite_url.value or "").strip())
+        except ValueError as exc:
+            await interaction.response.send_message(str(exc), ephemeral=True)
+            return
         self.state.type_name = Alliance.normalize_alliance_type(str(self.type_name.value or "").strip())
         if not self.state.name:
             await interaction.response.send_message("Alliance name is required.", ephemeral=True)
@@ -184,6 +211,27 @@ class _RolePicker(discord.ui.RoleSelect):
         await interaction.response.edit_message(content=self.role_view.build_summary_text(), view=self.role_view)
 
 
+class _InterviewChannelSelect(discord.ui.ChannelSelect):
+    def __init__(self, view: "_AllianceCreateRoleMapView"):
+        self.role_view = view
+        super().__init__(
+            placeholder="Optional: Select interview channel for auto-invite",
+            min_values=0,
+            max_values=1,
+            channel_types=[discord.ChannelType.text, discord.ChannelType.news],
+            row=1,
+        )
+
+    async def callback(self, interaction: discord.Interaction):
+        if not self.values:
+            self.role_view.state.interview_channel_id = None
+            await interaction.response.edit_message(content=self.role_view.build_summary_text(), view=self.role_view)
+            return
+        channel = self.values[0]
+        self.role_view.state.interview_channel_id = int(getattr(channel, "id", 0) or 0) or None
+        await interaction.response.edit_message(content=self.role_view.build_summary_text(), view=self.role_view)
+
+
 class _AllianceCreateRoleMapView(CDTAutoCleanupView):
     def __init__(self, cog: "AllianceSlashCog", state: _AllianceCreateState):
         super().__init__(timeout=240)
@@ -193,20 +241,35 @@ class _AllianceCreateRoleMapView(CDTAutoCleanupView):
 
         self.add_item(_RoleSlotSelect(self))
         self.add_item(_RolePicker(self))
+        self.add_item(_InterviewChannelSelect(self))
 
     def build_summary_text(self) -> str:
         lines = [
             "Alliance Setup: Page 2",
-            f"Name: {self.state.name}",
+            f"Name: {self.state.name or '-'}",
+            f"Tag: {self.state.tag or '-'}",
             f"Type: {self.state.type_name}",
+            f"Description: {self.state.description or '-'}",
+            f"Discord Invite: {self.state.invite_url or '-'}",
             "",
             "Required role mappings:",
         ]
         for key in _required_role_keys(self.state.type_name):
             rid = self.state.role_map.get(key)
             lines.append(f"- {key}: <@&{rid}>" if rid else f"- {key}: [auto-create/default]")
-        lines.append("\nChoose a slot then select a role, or use AUTO CREATE MISSING.")
+        if self.state.interview_channel_id:
+            lines.append(f"\nInterview Channel: <#{self.state.interview_channel_id}> (invite auto-generated)")
+        else:
+            lines.append("\nInterview Channel: [none] (uses Discord Invite field)")
+        lines.append("Choose a slot then select a role, or use AUTO CREATE MISSING.")
         return "\n".join(lines)
+
+    @discord.ui.button(label="EDIT INFO", style=discord.ButtonStyle.primary, row=2)
+    async def edit_info(self, interaction: discord.Interaction, _button: discord.ui.Button):
+        if isinstance(self, _AllianceManageRoleMapView):
+            await interaction.response.send_modal(_AllianceManageInfoModal(self.cog, self.state))
+            return
+        await interaction.response.send_modal(_AllianceCreateModal(self.cog, self.state))
 
     @discord.ui.button(label="AUTO CREATE MISSING", style=discord.ButtonStyle.secondary, row=2)
     async def auto_create_missing(self, interaction: discord.Interaction, _button: discord.ui.Button):
@@ -227,6 +290,9 @@ class _AllianceCreateRoleMapView(CDTAutoCleanupView):
 
     @discord.ui.button(label="NEXT (CONFIRM)", style=discord.ButtonStyle.success, row=2)
     async def next_confirm(self, interaction: discord.Interaction, _button: discord.ui.Button):
+        if not str(self.state.name or "").strip():
+            await interaction.response.edit_message(content="Alliance name is required. Use EDIT INFO first.", view=self)
+            return
         view = _AllianceCreateConfirmView(self.cog, self.state)
         await interaction.response.edit_message(content=view.build_text(), view=view)
         await view.bind_to_interaction_response(interaction)
@@ -251,6 +317,7 @@ class _AllianceCreateConfirmView(CDTAutoCleanupView):
             f"Type: {self.state.type_name}",
             f"Description: {self.state.description or '-'}",
             f"Invite: {self.state.invite_url or '-'}",
+            f"Interview Channel: {f'<#{self.state.interview_channel_id}>' if self.state.interview_channel_id else '-'}",
             "",
             "Assigned role slots:",
         ]
@@ -283,7 +350,7 @@ class _AllianceManageInfoModal(discord.ui.Modal, title="Alliance Manage: Page 1"
         self.name = discord.ui.TextInput(label="Name", required=True, max_length=60, default=state.name or "")
         self.tag = discord.ui.TextInput(label="Tag", required=False, max_length=15, default=state.tag or "")
         self.description = discord.ui.TextInput(label="Description", required=False, max_length=250, default=state.description or "", style=discord.TextStyle.paragraph)
-        self.invite_url = discord.ui.TextInput(label="Invite URL", required=False, max_length=200, default=state.invite_url or "")
+        self.invite_url = discord.ui.TextInput(label="Discord Invite", required=False, max_length=200, default=state.invite_url or "")
         self.type_name = discord.ui.TextInput(label="Type (simple|advanced)", required=True, max_length=20, default=state.type_name)
 
         self.add_item(self.name)
@@ -296,7 +363,11 @@ class _AllianceManageInfoModal(discord.ui.Modal, title="Alliance Manage: Page 1"
         self.state.name = str(self.name.value or "").strip()
         self.state.tag = str(self.tag.value or "").strip()
         self.state.description = str(self.description.value or "").strip()
-        self.state.invite_url = str(self.invite_url.value or "").strip()
+        try:
+            self.state.invite_url = _normalize_discord_invite(str(self.invite_url.value or "").strip())
+        except ValueError as exc:
+            await interaction.response.send_message(str(exc), ephemeral=True)
+            return
         self.state.type_name = Alliance.normalize_alliance_type(str(self.type_name.value or "").strip())
         if not self.state.name:
             await interaction.response.send_message("Alliance name is required.", ephemeral=True)
@@ -310,6 +381,9 @@ class _AllianceManageInfoModal(discord.ui.Modal, title="Alliance Manage: Page 1"
 class _AllianceManageRoleMapView(_AllianceCreateRoleMapView):
     @discord.ui.button(label="NEXT (CONFIRM)", style=discord.ButtonStyle.success, row=2)
     async def next_confirm(self, interaction: discord.Interaction, _button: discord.ui.Button):
+        if not str(self.state.name or "").strip():
+            await interaction.response.edit_message(content="Alliance name is required. Use EDIT INFO first.", view=self)
+            return
         view = _AllianceManageConfirmView(self.cog, self.state)
         await interaction.response.edit_message(content=view.build_text(), view=view)
         await view.bind_to_interaction_response(interaction)
@@ -330,6 +404,7 @@ class _AllianceManageConfirmView(CDTAutoCleanupView):
             f"Type: {self.state.type_name}",
             f"Description: {self.state.description or '-'}",
             f"Invite: {self.state.invite_url or '-'}",
+            f"Interview Channel: {f'<#{self.state.interview_channel_id}>' if self.state.interview_channel_id else '-'}",
             "",
             "Assigned role slots:",
         ]
@@ -388,8 +463,15 @@ class _AllianceSettingsView(CDTAutoCleanupView):
         if guild is None:
             await interaction.response.edit_message(content="This action can only be used in a server.", view=self)
             return
-        state = _AllianceCreateState(guild_id=guild.id, author_id=getattr(interaction.user, "id", 0), type_name=Alliance.ALLIANCE_TYPE_SIMPLE)
-        await interaction.response.send_modal(_AllianceCreateModal(self.cog, state))
+        state = _AllianceCreateState(
+            guild_id=guild.id,
+            author_id=getattr(interaction.user, "id", 0),
+            name=str(guild.name),
+            type_name=Alliance.ALLIANCE_TYPE_SIMPLE,
+        )
+        view = _AllianceCreateRoleMapView(self.cog, state)
+        await interaction.response.edit_message(content=view.build_summary_text(), view=view)
+        await view.bind_to_interaction_response(interaction)
 
     @discord.ui.button(label="REPORTS", style=discord.ButtonStyle.success)
     async def reports_btn(self, interaction: discord.Interaction, _button: discord.ui.Button):
@@ -407,6 +489,7 @@ class _AllianceSettingsView(CDTAutoCleanupView):
         if guild is None:
             await interaction.response.edit_message(content="This action can only be used in a server.", view=self)
             return
+        # Role-map-first flow: _AllianceManageInfoModal remains available via EDIT INFO.
         cfg = Alliance.get_guild_config(guild.id)
         if not cfg:
             await interaction.response.edit_message(content="No alliance is configured for this guild.", view=self)
@@ -419,6 +502,7 @@ class _AllianceSettingsView(CDTAutoCleanupView):
             tag=str(info.get("tag") or ""),
             description=str(info.get("description") or ""),
             invite_url=str(info.get("invite") or ""),
+            interview_channel_id=int(info.get("interview_channel_id")) if str(info.get("interview_channel_id") or "").isdigit() else None,
             type_name=Alliance.normalize_alliance_type(cfg.get("type", Alliance.ALLIANCE_TYPE_SIMPLE)),
             role_map={
                 key: int(role_cfg.get("id"))
@@ -426,7 +510,9 @@ class _AllianceSettingsView(CDTAutoCleanupView):
                 if isinstance(role_cfg, dict) and role_cfg.get("id")
             },
         )
-        await interaction.response.send_modal(_AllianceManageInfoModal(self.cog, state))
+        view = _AllianceManageRoleMapView(self.cog, state)
+        await interaction.response.edit_message(content=view.build_summary_text(), view=view)
+        await view.bind_to_interaction_response(interaction)
 
     @discord.ui.button(label="DELETE", style=discord.ButtonStyle.danger)
     async def delete_btn(self, interaction: discord.Interaction, _button: discord.ui.Button):
@@ -569,6 +655,21 @@ class AllianceSlashCog(commands.Cog):
     def group(self):
         return self._group
 
+    async def _generate_invite_from_channel(self, guild: discord.Guild, channel_id: int) -> str:
+        channel = guild.get_channel(int(channel_id)) if channel_id else None
+        if channel is None:
+            raise ValueError("Selected interview channel no longer exists.")
+
+        perms = channel.permissions_for(guild.me) if getattr(guild, "me", None) is not None else None
+        if perms is not None and not getattr(perms, "create_instant_invite", False):
+            raise ValueError("Collector does not have permission to create invites for the selected channel.")
+
+        try:
+            invite = await channel.create_invite(max_age=0, max_uses=0, temporary=False, unique=True, reason="Alliance interview invite")
+        except Exception as exc:
+            raise ValueError(f"Could not create invite for selected channel: {exc}") from exc
+        return str(getattr(invite, "url", "") or "")
+
     async def _apply_create_settings(self, interaction: discord.Interaction, state: _AllianceCreateState) -> tuple[bool, str]:
         guild = getattr(interaction, "guild", None)
         if guild is None:
@@ -589,8 +690,17 @@ class AllianceSlashCog(commands.Cog):
         if not ok:
             return False, "Failed to register alliance configuration."
 
+        invite_url = state.invite_url or ""
+        if state.interview_channel_id:
+            try:
+                invite_url = await self._generate_invite_from_channel(guild, state.interview_channel_id)
+            except ValueError as exc:
+                return False, str(exc)
+
         Alliance.set_alliance_info_field(guild.id, "description", state.description or None)
-        Alliance.set_alliance_info_field(guild.id, "invite", state.invite_url or None)
+        Alliance.set_alliance_info_field(guild.id, "invite", invite_url or None)
+        Alliance.set_alliance_info_field(guild.id, "interview_channel_id", str(state.interview_channel_id) if state.interview_channel_id else None)
+        Alliance.set_alliance_info_field(guild.id, "founded", datetime.date.today().isoformat())
 
         for key, rid in (state.role_map or {}).items():
             role_obj = guild.get_role(int(rid))
@@ -618,10 +728,18 @@ class AllianceSlashCog(commands.Cog):
             return False, "No alliance is configured for this guild."
 
         type_norm = Alliance.normalize_alliance_type(state.type_name)
+        invite_url = state.invite_url or ""
+        if state.interview_channel_id:
+            try:
+                invite_url = await self._generate_invite_from_channel(guild, state.interview_channel_id)
+            except ValueError as exc:
+                return False, str(exc)
+
         Alliance.set_alliance_info_field(guild.id, "name", state.name)
         Alliance.set_alliance_info_field(guild.id, "tag", state.tag or None)
         Alliance.set_alliance_info_field(guild.id, "description", state.description or None)
-        Alliance.set_alliance_info_field(guild.id, "invite", state.invite_url or None)
+        Alliance.set_alliance_info_field(guild.id, "invite", invite_url or None)
+        Alliance.set_alliance_info_field(guild.id, "interview_channel_id", str(state.interview_channel_id) if state.interview_channel_id else None)
         Alliance.set_alliance_type(guild.id, type_norm, guild_obj=guild)
 
         for key in _required_role_keys(type_norm):
