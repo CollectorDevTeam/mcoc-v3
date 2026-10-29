@@ -85,6 +85,18 @@ def test_alliance_manage_workflow_uses_three_pages():
     assert "NO" in confirm
 
 
+def test_alliance_create_and_manage_buttons_use_resilient_response_helper():
+    import inspect
+    import mcoc.slash.alliance as alliance_module
+
+    create_text = inspect.getsource(alliance_module._AllianceSettingsView.create_btn)
+    manage_text = inspect.getsource(alliance_module._AllianceSettingsView.manage_btn)
+    assert "_edit_or_send(interaction" in create_text
+    assert "_edit_or_send(interaction" in manage_text
+    assert "interaction.response.edit_message" not in create_text
+    assert "interaction.response.edit_message" not in manage_text
+
+
 def test_alliance_cog_registers_group_command():
     import inspect
     import mcoc.slash.alliance as alliance_module

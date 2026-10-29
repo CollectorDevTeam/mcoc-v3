@@ -34,6 +34,25 @@ def _core_for(bot: Any) -> Any:
     return bot
 
 
+async def _edit_or_send(
+    interaction: discord.Interaction,
+    *,
+    content: Optional[str] = None,
+    embed: Optional[discord.Embed] = None,
+    view: Optional[discord.ui.View] = None,
+    ephemeral: bool = True,
+) -> None:
+    response = getattr(interaction, "response", None)
+    if getattr(interaction, "message", None) is not None and response and hasattr(response, "edit_message"):
+        try:
+            await response.edit_message(content=content, embed=embed, view=view)
+            return
+        except Exception:
+            pass
+    if response and hasattr(response, "send_message"):
+        await response.send_message(content=content, embed=embed, view=view, ephemeral=ephemeral)
+
+
 def _build_alliance_profile_text(cfg: dict, guild: discord.Guild, member: Optional[discord.Member] = None) -> str:
     info = cfg.get("info", {})
     name = info.get("name") or guild.name
@@ -275,7 +294,7 @@ class _AllianceCreateRoleMapView(CDTAutoCleanupView):
     async def auto_create_missing(self, interaction: discord.Interaction, _button: discord.ui.Button):
         guild = getattr(interaction, "guild", None)
         if guild is None:
-            await interaction.response.edit_message(content="This action can only be used in a server.", view=self)
+            await _edit_or_send(interaction, content="This action can only be used in a server.", view=self)
             return
         for key in _required_role_keys(self.state.type_name):
             if key in self.state.role_map:
@@ -286,20 +305,20 @@ class _AllianceCreateRoleMapView(CDTAutoCleanupView):
                 rid = mapped.get("id")
                 if rid:
                     self.state.role_map[key] = int(rid)
-        await interaction.response.edit_message(content=self.build_summary_text(), view=self)
+        await _edit_or_send(interaction, content=self.build_summary_text(), view=self)
 
     @discord.ui.button(label="NEXT (CONFIRM)", style=discord.ButtonStyle.success, row=2)
     async def next_confirm(self, interaction: discord.Interaction, _button: discord.ui.Button):
         if not str(self.state.name or "").strip():
-            await interaction.response.edit_message(content="Alliance name is required. Use EDIT INFO first.", view=self)
+            await _edit_or_send(interaction, content="Alliance name is required. Use EDIT INFO first.", view=self)
             return
         view = _AllianceCreateConfirmView(self.cog, self.state)
-        await interaction.response.edit_message(content=view.build_text(), view=view)
+        await _edit_or_send(interaction, content=view.build_text(), view=view)
         await view.bind_to_interaction_response(interaction)
 
     @discord.ui.button(label="CANCEL", style=discord.ButtonStyle.danger, row=2)
     async def cancel(self, interaction: discord.Interaction, _button: discord.ui.Button):
-        await interaction.response.edit_message(content="Alliance setup cancelled.", view=None)
+        await _edit_or_send(interaction, content="Alliance setup cancelled.", view=None)
 
 
 class _AllianceCreateConfirmView(CDTAutoCleanupView):
@@ -330,15 +349,18 @@ class _AllianceCreateConfirmView(CDTAutoCleanupView):
 
     @discord.ui.button(label="YES", style=discord.ButtonStyle.success)
     async def yes(self, interaction: discord.Interaction, _button: discord.ui.Button):
-        await interaction.response.edit_message(content="Working... creating alliance roles and configuration.", view=None)
+        await _edit_or_send(interaction, content="Working... creating alliance roles and configuration.", view=None)
         ok, msg = await self.cog._apply_create_settings(interaction, self.state)
-        await interaction.edit_original_response(content=msg)
+        try:
+            await interaction.edit_original_response(content=msg)
+        except Exception:
+            await _edit_or_send(interaction, content=msg, view=None)
         if not ok:
             log.warning("Alliance create workflow failed: %s", msg)
 
     @discord.ui.button(label="NO", style=discord.ButtonStyle.danger)
     async def no(self, interaction: discord.Interaction, _button: discord.ui.Button):
-        await interaction.response.edit_message(content="Alliance setup cancelled.", view=None)
+        await _edit_or_send(interaction, content="Alliance setup cancelled.", view=None)
 
 
 class _AllianceManageInfoModal(discord.ui.Modal, title="Alliance Manage: Page 1"):
@@ -417,15 +439,18 @@ class _AllianceManageConfirmView(CDTAutoCleanupView):
 
     @discord.ui.button(label="YES", style=discord.ButtonStyle.success)
     async def yes(self, interaction: discord.Interaction, _button: discord.ui.Button):
-        await interaction.response.edit_message(content="Working... updating alliance roles and configuration.", view=None)
+        await _edit_or_send(interaction, content="Working... updating alliance roles and configuration.", view=None)
         ok, msg = await self.cog._apply_manage_settings(interaction, self.state)
-        await interaction.edit_original_response(content=msg)
+        try:
+            await interaction.edit_original_response(content=msg)
+        except Exception:
+            await _edit_or_send(interaction, content=msg, view=None)
         if not ok:
             log.warning("Alliance manage workflow failed: %s", msg)
 
     @discord.ui.button(label="NO", style=discord.ButtonStyle.danger)
     async def no(self, interaction: discord.Interaction, _button: discord.ui.Button):
-        await interaction.response.edit_message(content="Alliance manage cancelled.", view=None)
+        await _edit_or_send(interaction, content="Alliance manage cancelled.", view=None)
 
 
 class _AllianceSettingsView(CDTAutoCleanupView):
@@ -461,7 +486,7 @@ class _AllianceSettingsView(CDTAutoCleanupView):
     async def create_btn(self, interaction: discord.Interaction, _button: discord.ui.Button):
         guild = getattr(interaction, "guild", None)
         if guild is None:
-            await interaction.response.edit_message(content="This action can only be used in a server.", view=self)
+            await _edit_or_send(interaction, content="This action can only be used in a server.", view=self)
             return
         state = _AllianceCreateState(
             guild_id=guild.id,
@@ -470,29 +495,29 @@ class _AllianceSettingsView(CDTAutoCleanupView):
             type_name=Alliance.ALLIANCE_TYPE_SIMPLE,
         )
         view = _AllianceCreateRoleMapView(self.cog, state)
-        await interaction.response.edit_message(content=view.build_summary_text(), view=view)
+        await _edit_or_send(interaction, content=view.build_summary_text(), view=view)
         await view.bind_to_interaction_response(interaction)
 
     @discord.ui.button(label="REPORTS", style=discord.ButtonStyle.success)
     async def reports_btn(self, interaction: discord.Interaction, _button: discord.ui.Button):
         guild = getattr(interaction, "guild", None)
         if guild is None:
-            await interaction.response.edit_message(content="This action can only be used in a server.", view=self)
+            await _edit_or_send(interaction, content="This action can only be used in a server.", view=self)
             return
         view = _AllianceReportsView(self.cog)
-        await interaction.response.edit_message(content=view.build_menu_text(guild), view=view)
+        await _edit_or_send(interaction, content=view.build_menu_text(guild), view=view)
         await view.bind_to_interaction_response(interaction)
 
     @discord.ui.button(label="MANAGE", style=discord.ButtonStyle.secondary)
     async def manage_btn(self, interaction: discord.Interaction, _button: discord.ui.Button):
         guild = getattr(interaction, "guild", None)
         if guild is None:
-            await interaction.response.edit_message(content="This action can only be used in a server.", view=self)
+            await _edit_or_send(interaction, content="This action can only be used in a server.", view=self)
             return
         # Role-map-first flow: _AllianceManageInfoModal remains available via EDIT INFO.
         cfg = Alliance.get_guild_config(guild.id)
         if not cfg:
-            await interaction.response.edit_message(content="No alliance is configured for this guild.", view=self)
+            await _edit_or_send(interaction, content="No alliance is configured for this guild.", view=self)
             return
         info = cfg.get("info", {}) or {}
         state = _AllianceCreateState(
@@ -511,13 +536,13 @@ class _AllianceSettingsView(CDTAutoCleanupView):
             },
         )
         view = _AllianceManageRoleMapView(self.cog, state)
-        await interaction.response.edit_message(content=view.build_summary_text(), view=view)
+        await _edit_or_send(interaction, content=view.build_summary_text(), view=view)
         await view.bind_to_interaction_response(interaction)
 
     @discord.ui.button(label="DELETE", style=discord.ButtonStyle.danger)
     async def delete_btn(self, interaction: discord.Interaction, _button: discord.ui.Button):
         view = _AllianceDeleteConfirmView(self.cog)
-        await interaction.response.edit_message(content="Delete this guild alliance configuration?", view=view)
+        await _edit_or_send(interaction, content="Delete this guild alliance configuration?", view=view)
         await view.bind_to_interaction_response(interaction)
 
 
@@ -574,12 +599,12 @@ class _AllianceReportsView(CDTAutoCleanupView):
     async def back(self, interaction: discord.Interaction, _button: discord.ui.Button):
         guild = getattr(interaction, "guild", None)
         if guild is None:
-            await interaction.response.edit_message(content="This action can only be used in a server.", view=self)
+            await _edit_or_send(interaction, content="This action can only be used in a server.", view=self)
             return
         cfg = Alliance.get_guild_config(guild.id)
         caps = _caps_for(interaction.user, guild, cfg)
         view = _AllianceSettingsView(self.cog, caps, guild, interaction.user, cfg)
-        await interaction.response.edit_message(content="Alliance settings: choose a workflow.", view=view)
+        await _edit_or_send(interaction, content="Alliance settings: choose a workflow.", view=view)
         await view.bind_to_interaction_response(interaction)
 
 

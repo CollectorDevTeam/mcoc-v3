@@ -323,7 +323,7 @@ class _MCOCMainView(_MCOCAuthorLockedView):
             return
         if action == "alliance":
             view = _MCOCAllianceSectionView(self.cog, self.actor, self.target)
-            await _edit_or_send(interaction, content=f"MCOC > ALLIANCE for {self.target.mention}", view=view, ephemeral=True)
+            await _edit_or_send(interaction, content=view.build_intro_text(), view=view, ephemeral=True)
             await view.bind_to_interaction_response(interaction)
             return
 
@@ -370,11 +370,39 @@ class _MCOCRosterSectionView(_MCOCSectionViewBase):
 class _MCOCAllianceSectionView(_MCOCSectionViewBase):
     def __init__(self, cog: "ContextMenuSlashCog", actor: discord.Member, target: discord.Member):
         super().__init__(cog, actor, target, timeout=180)
-        self.add_item(_MCOCActionButton("REPORTS", "reports", style=discord.ButtonStyle.primary))
-        self.add_item(_MCOCActionButton("SETTINGS", "settings", style=discord.ButtonStyle.secondary))
-        self.add_item(_MCOCActionButton("ASSIGN ROLE", "assign", style=discord.ButtonStyle.secondary))
-        self.add_item(_MCOCActionButton("PROFILE", "profile", style=discord.ButtonStyle.primary))
+
+        self.guild = getattr(actor, "guild", None)
+        self.cfg = Alliance.get_guild_config(self.guild.id) if self.guild is not None else None
+        self.user_has_alliance = bool(
+            self.guild is not None
+            and self.cfg
+            and AllianceSlash._is_alliance_member(actor, self.guild, self.cfg)
+        )
+        self.is_manager = bool(self.guild is not None and Alliance.is_alliance_manager(actor, self.guild))
+
+        self.clear_items()
+        if self.user_has_alliance:
+            self.add_item(_MCOCActionButton("PROFILE", "profile", style=discord.ButtonStyle.primary))
+        if self.user_has_alliance and self.is_manager:
+            self.add_item(_MCOCActionButton("REPORTS", "reports", style=discord.ButtonStyle.primary))
+            self.add_item(_MCOCActionButton("SETTINGS", "settings", style=discord.ButtonStyle.secondary))
+            self.add_item(_MCOCActionButton("ASSIGN ROLE", "assign", style=discord.ButtonStyle.secondary))
         self.add_item(_MCOCBackButton())
+
+    def build_intro_text(self) -> str:
+        if self.guild is None:
+            return f"MCOC > ALLIANCE for {self.target.mention}"
+        if not self.cfg:
+            return (
+                f"MCOC > ALLIANCE for {self.target.mention}\n"
+                "No alliance is configured for this server."
+            )
+        if not self.user_has_alliance:
+            return (
+                f"MCOC > ALLIANCE for {self.target.mention}\n"
+                "You are not a member of this server's alliance."
+            )
+        return f"MCOC > ALLIANCE for {self.target.mention}"
 
     async def handle(self, interaction: discord.Interaction, action: str):
         if action == "reports":
@@ -386,7 +414,7 @@ class _MCOCAllianceSectionView(_MCOCSectionViewBase):
             if not cfg:
                 await _edit_or_send(interaction, content="No alliance is configured for this guild.")
                 return
-            if not Alliance.is_alliance_manager(interaction.user, guild):
+            if not AllianceSlash._is_alliance_member(interaction.user, guild, cfg) or not Alliance.is_alliance_manager(interaction.user, guild):
                 await _edit_or_send(interaction, content="You do not have alliance management permissions.")
                 return
             await self.cog._ctx_alliance_reports_workflow(interaction)
@@ -396,7 +424,11 @@ class _MCOCAllianceSectionView(_MCOCSectionViewBase):
             if guild is None:
                 await _edit_or_send(interaction, content="This action can only be used in a server.")
                 return
-            if not Alliance.is_alliance_manager(interaction.user, guild):
+            cfg = Alliance.get_guild_config(guild.id)
+            if not cfg:
+                await _edit_or_send(interaction, content="No alliance is configured for this guild.")
+                return
+            if not AllianceSlash._is_alliance_member(interaction.user, guild, cfg) or not Alliance.is_alliance_manager(interaction.user, guild):
                 await _edit_or_send(interaction, content="You do not have alliance management permissions.")
                 return
             await self.cog._ctx_alliance_settings_manage_workflow(interaction)
@@ -406,12 +438,27 @@ class _MCOCAllianceSectionView(_MCOCSectionViewBase):
             if guild is None:
                 await _edit_or_send(interaction, content="This action can only be used in a server.")
                 return
-            if not Alliance.is_alliance_manager(interaction.user, guild):
+            cfg = Alliance.get_guild_config(guild.id)
+            if not cfg:
+                await _edit_or_send(interaction, content="No alliance is configured for this guild.")
+                return
+            if not AllianceSlash._is_alliance_member(interaction.user, guild, cfg) or not Alliance.is_alliance_manager(interaction.user, guild):
                 await _edit_or_send(interaction, content="You do not have alliance management permissions.")
                 return
             await self.cog._ctx_alliance_manage(interaction, self.target, edit_existing=True)
             return
         if action == "profile":
+            guild = getattr(interaction, "guild", None)
+            if guild is None:
+                await _edit_or_send(interaction, content="This action can only be used in a server.")
+                return
+            cfg = Alliance.get_guild_config(guild.id)
+            if not cfg:
+                await _edit_or_send(interaction, content="No alliance is configured for this guild.")
+                return
+            if not AllianceSlash._is_alliance_member(interaction.user, guild, cfg):
+                await _edit_or_send(interaction, content="You are not a member of this server's alliance.")
+                return
             await self.cog._send_alliance_profile(interaction, self.actor, self.target)
             return
 
