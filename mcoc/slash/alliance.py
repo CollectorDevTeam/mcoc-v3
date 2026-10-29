@@ -249,6 +249,24 @@ def _managed_role_keys_for_type(type_name: str) -> List[str]:
     return keys
 
 
+def _role_id_for_key(state: _AllianceCreateState, key: str) -> Optional[int]:
+    rid = (state.role_map or {}).get(key)
+    if rid:
+        return int(rid)
+    if key == "members":
+        alliance_id = (state.role_map or {}).get("alliance")
+        if alliance_id:
+            return int(alliance_id)
+    return None
+
+
+def _auto_create_role_keys_for_type(type_name: str) -> List[str]:
+    keys = list(_required_role_keys(type_name))
+    if "members" not in keys:
+        keys.append("members")
+    return keys
+
+
 def _detect_existing_role_map(guild: discord.Guild, alliance_name: str, type_name: str) -> Dict[str, int]:
     role_index: Dict[str, discord.Role] = {}
     for role in getattr(guild, "roles", []) or []:
@@ -420,7 +438,7 @@ class _AllianceCreateRoleMapView(CDTAutoCleanupView):
             lines.append(f"\nInterview Channel: <#{self.state.interview_channel_id}> (invite auto-generated)")
         else:
             lines.append("\nInterview Channel: [none] (uses Discord Invite field)")
-        lines.append("Additional managed roles on apply: members, leader, managers.")
+        lines.append("Additional role on apply: members.")
         lines.append("Choose a slot then select a role, or use AUTO CREATE MISSING.")
         return "\n".join(lines)
 
@@ -980,8 +998,8 @@ class AllianceSlashCog(commands.Cog):
 
     def _missing_role_keys(self, guild: discord.Guild, state: _AllianceCreateState) -> List[str]:
         missing: List[str] = []
-        for key in _managed_role_keys_for_type(state.type_name):
-            rid = (state.role_map or {}).get(key)
+        for key in _auto_create_role_keys_for_type(state.type_name):
+            rid = _role_id_for_key(state, key)
             role_obj = guild.get_role(int(rid)) if rid else None
             if role_obj is None:
                 missing.append(key)
@@ -1035,10 +1053,12 @@ class AllianceSlashCog(commands.Cog):
             cfg["info"]["tag"] = state.tag
         Alliance.set_guild_config(guild.id, cfg)
 
-        for key in _managed_role_keys_for_type(type_norm):
-            rid = (state.role_map or {}).get(key)
+        for key in _auto_create_role_keys_for_type(type_norm):
+            rid = _role_id_for_key(state, key)
             role_obj = guild.get_role(int(rid)) if rid else None
             if role_obj is not None:
+                if key == "members" and state.role_map.get("alliance") and state.role_map.get("members") is None:
+                    state.role_map["members"] = int(state.role_map["alliance"])
                 await Alliance.create_or_link_role(guild, role_obj.name, key, role_obj=role_obj)
                 continue
             role_name = f"{state.name} {key.upper()}"
@@ -1096,13 +1116,15 @@ class AllianceSlashCog(commands.Cog):
         Alliance.set_alliance_info_field(guild.id, "description", state.description or None)
         Alliance.set_alliance_info_field(guild.id, "invite", invite_url or None)
         Alliance.set_alliance_info_field(guild.id, "interview_channel_id", str(state.interview_channel_id) if state.interview_channel_id else None)
-        Alliance.set_alliance_type(guild.id, type_norm, guild_obj=guild)
+        Alliance.set_alliance_type(guild.id, type_norm, guild_obj=None)
 
-        for key in _required_role_keys(type_norm):
-            role_id = (state.role_map or {}).get(key)
+        for key in _auto_create_role_keys_for_type(type_norm):
+            role_id = _role_id_for_key(state, key)
             if role_id:
                 role_obj = guild.get_role(int(role_id))
                 if role_obj is not None:
+                    if key == "members" and state.role_map.get("alliance") and state.role_map.get("members") is None:
+                        state.role_map["members"] = int(state.role_map["alliance"])
                     await Alliance.create_or_link_role(guild, role_obj.name, key, role_obj=role_obj)
                     continue
             role_name = f"{state.name} {key.upper()}"

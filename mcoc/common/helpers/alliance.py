@@ -220,7 +220,7 @@ async def join_alliance(member, guild, role_key: str = "members") -> Tuple[bool,
         if not cfg:
             return False, "Alliance not configured on this guild."
         roles = cfg.get("roles", {})
-        target = roles.get(role_key) or roles.get("members")
+        target = roles.get(role_key) or roles.get("members") or roles.get("alliance")
         if not target:
             return False, "Members role not configured."
 
@@ -347,6 +347,11 @@ def get_alliance_role_for_user(user_id: int, guild_id: int) -> Optional[int]:
 def _role_obj_for_key(cfg: Dict[str, Any], guild, key: str):
     try:
         r = cfg.get("roles", {}).get(key)
+        if not isinstance(r, dict):
+            if key == "members":
+                r = cfg.get("roles", {}).get("alliance")
+            else:
+                return None
         if not isinstance(r, dict):
             return None
         return guild.get_role(r.get("id"))
