@@ -809,6 +809,11 @@ class ContextMenuSlashCog(commands.Cog):
             name=str(guild.name),
             type_name=Alliance.ALLIANCE_TYPE_SIMPLE,
         )
+        detected = AllianceSlash._detect_existing_role_map(guild, state.name, state.type_name)
+        for key in AllianceSlash._required_role_keys(state.type_name):
+            rid = detected.get(key)
+            if rid:
+                state.role_map[key] = rid
         view = AllianceSlash._AllianceCreateRoleMapView(alliance_cog, state)
         await _edit_or_send(interaction, content=f"MCOC > ALLIANCE > CREATE\n{view.build_summary_text()}", view=view, ephemeral=True)
         await view.bind_to_interaction_response(interaction)

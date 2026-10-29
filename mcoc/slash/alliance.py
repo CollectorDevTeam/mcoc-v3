@@ -192,7 +192,7 @@ def _caps_for(author: discord.Member, guild: discord.Guild, cfg: Optional[dict])
 
     if is_manager:
         caps.update({"reports", "settings", "assign"})
-    if has_alliance and is_admin_or_owner:
+    if is_admin_or_owner:
         caps.add("delete")
     return caps
 
@@ -234,6 +234,62 @@ class _AllianceCreateState:
     interview_channel_id: Optional[int] = None
     type_name: str = Alliance.ALLIANCE_TYPE_SIMPLE
     role_map: Dict[str, int] = field(default_factory=dict)
+    allow_missing_role_creation: bool = False
+
+
+def _normalize_role_name_for_match(value: str) -> str:
+    return "".join(ch for ch in str(value or "").strip().lower() if ch.isalnum())
+
+
+def _managed_role_keys_for_type(type_name: str) -> List[str]:
+    keys = ["alliance", "officers", "members", "leader", "managers"]
+    for key in _bg_keys_for_type(type_name):
+        if key not in keys:
+            keys.append(key)
+    return keys
+
+
+def _detect_existing_role_map(guild: discord.Guild, alliance_name: str, type_name: str) -> Dict[str, int]:
+    role_index: Dict[str, discord.Role] = {}
+    for role in getattr(guild, "roles", []) or []:
+        role_index[_normalize_role_name_for_match(getattr(role, "name", ""))] = role
+
+    mappings: Dict[str, int] = {}
+    base = str(alliance_name or guild.name or "Alliance").strip()
+    base_norm = _normalize_role_name_for_match(base)
+
+    for key in _managed_role_keys_for_type(type_name):
+        variants = {
+            _normalize_role_name_for_match(key),
+            _normalize_role_name_for_match(key.replace("bg", "bg ")),
+            _normalize_role_name_for_match(f"{base} {key}"),
+        }
+        display_suffix = {
+            "alliance": "alliance",
+            "officers": "officers",
+            "members": "members",
+            "leader": "leader",
+            "managers": "managers",
+            "bg1": "bg1",
+            "bg2": "bg2",
+            "bg3": "bg3",
+            "aqbg1": "aqbg1",
+            "aqbg2": "aqbg2",
+            "aqbg3": "aqbg3",
+            "awbg1": "awbg1",
+            "awbg2": "awbg2",
+            "awbg3": "awbg3",
+        }.get(key, key)
+        variants.add(_normalize_role_name_for_match(f"{base} {display_suffix}"))
+        if base_norm:
+            variants.add(base_norm + _normalize_role_name_for_match(display_suffix))
+
+        for candidate in variants:
+            role = role_index.get(candidate)
+            if role is not None:
+                mappings[key] = int(role.id)
+                break
+    return mappings
 
 
 class _AllianceCreateModal(discord.ui.Modal, title="Alliance Setup: Page 1"):
@@ -364,8 +420,31 @@ class _AllianceCreateRoleMapView(CDTAutoCleanupView):
             lines.append(f"\nInterview Channel: <#{self.state.interview_channel_id}> (invite auto-generated)")
         else:
             lines.append("\nInterview Channel: [none] (uses Discord Invite field)")
+        lines.append("Additional managed roles on apply: members, leader, managers.")
         lines.append("Choose a slot then select a role, or use AUTO CREATE MISSING.")
         return "\n".join(lines)
+
+    @discord.ui.button(label="USE DETECTED ROLES", style=discord.ButtonStyle.secondary, row=4)
+    async def use_detected_roles(self, interaction: discord.Interaction, _button: discord.ui.Button):
+        guild = getattr(interaction, "guild", None)
+        if guild is None:
+            await _edit_or_send(interaction, content="This action can only be used in a server.", view=self)
+            return
+        detected = _detect_existing_role_map(guild, self.state.name or guild.name, self.state.type_name)
+        added = 0
+        for key in _required_role_keys(self.state.type_name):
+            if key in self.state.role_map:
+                continue
+            rid = detected.get(key)
+            if rid:
+                self.state.role_map[key] = rid
+                added += 1
+        msg = self.build_summary_text()
+        if added:
+            msg = f"Detected and applied {added} existing role mapping(s).\n\n{msg}"
+        else:
+            msg = f"No unmapped detected roles were found for this layout.\n\n{msg}"
+        await _edit_or_send(interaction, content=msg, view=self)
 
     @discord.ui.button(label="EDIT INFO", style=discord.ButtonStyle.primary, row=3)
     async def edit_info(self, interaction: discord.Interaction, _button: discord.ui.Button):
@@ -380,16 +459,17 @@ class _AllianceCreateRoleMapView(CDTAutoCleanupView):
         if guild is None:
             await _edit_or_send(interaction, content="This action can only be used in a server.", view=self)
             return
-        for key in _required_role_keys(self.state.type_name):
-            if key in self.state.role_map:
-                continue
-            role_name = f"{self.state.name} {key.upper()}"
-            mapped = await Alliance.create_or_link_role(guild, role_name, key)
-            if isinstance(mapped, dict):
-                rid = mapped.get("id")
-                if rid:
-                    self.state.role_map[key] = int(rid)
-        await _edit_or_send(interaction, content=self.build_summary_text(), view=self)
+        missing = [key for key in _required_role_keys(self.state.type_name) if not self.state.role_map.get(key)]
+        if not missing:
+            await _edit_or_send(interaction, content="No required role slots are missing.", view=self)
+            return
+        view = _AllianceAutoCreateConfirmView(self.cog, self, missing)
+        await _edit_or_send(
+            interaction,
+            content="The following missing roles will be created: " + ", ".join(key.upper() for key in missing),
+            view=view,
+        )
+        await view.bind_to_interaction_response(interaction)
 
     @discord.ui.button(label="NEXT (CONFIRM)", style=discord.ButtonStyle.success, row=3)
     async def next_confirm(self, interaction: discord.Interaction, _button: discord.ui.Button):
@@ -402,6 +482,69 @@ class _AllianceCreateRoleMapView(CDTAutoCleanupView):
 
     @discord.ui.button(label="CANCEL", style=discord.ButtonStyle.danger, row=3)
     async def cancel(self, interaction: discord.Interaction, _button: discord.ui.Button):
+        await _edit_or_send(interaction, content="Alliance setup cancelled.", view=None)
+
+
+class _AllianceAutoCreateConfirmView(CDTAutoCleanupView):
+    def __init__(self, cog: "AllianceSlashCog", parent: _AllianceCreateRoleMapView, missing_keys: List[str]):
+        super().__init__(timeout=120)
+        self.cog = cog
+        self.parent = parent
+        self.missing_keys = list(missing_keys)
+
+    @discord.ui.button(label="YES, CREATE MISSING", style=discord.ButtonStyle.danger)
+    async def yes(self, interaction: discord.Interaction, _button: discord.ui.Button):
+        guild = getattr(interaction, "guild", None)
+        if guild is None:
+            await _edit_or_send(interaction, content="This action can only be used in a server.", view=None)
+            return
+        created = 0
+        for key in self.missing_keys:
+            if self.parent.state.role_map.get(key):
+                continue
+            role_name = f"{self.parent.state.name} {key.upper()}"
+            mapped = await Alliance.create_or_link_role(guild, role_name, key)
+            if isinstance(mapped, dict) and mapped.get("id"):
+                self.parent.state.role_map[key] = int(mapped["id"])
+                created += 1
+        await _edit_or_send(
+            interaction,
+            content=f"Created {created} missing role(s).\n\n{self.parent.build_summary_text()}",
+            view=self.parent,
+        )
+        await self.parent.bind_to_interaction_response(interaction)
+
+    @discord.ui.button(label="NO", style=discord.ButtonStyle.secondary)
+    async def no(self, interaction: discord.Interaction, _button: discord.ui.Button):
+        await _edit_or_send(interaction, content=self.parent.build_summary_text(), view=self.parent)
+        await self.parent.bind_to_interaction_response(interaction)
+
+
+class _AllianceMissingRolesApplyConfirmView(CDTAutoCleanupView):
+    def __init__(self, cog: "AllianceSlashCog", state: _AllianceCreateState, missing_keys: List[str]):
+        super().__init__(timeout=120)
+        self.cog = cog
+        self.state = state
+        self.missing_keys = list(missing_keys)
+
+    @discord.ui.button(label="YES, CREATE + APPLY", style=discord.ButtonStyle.danger)
+    async def yes(self, interaction: discord.Interaction, _button: discord.ui.Button):
+        self.state.allow_missing_role_creation = True
+        try:
+            await interaction.response.defer(ephemeral=True)
+        except Exception:
+            pass
+        ok, msg = await self.cog._apply_create_settings(interaction, self.state)
+        try:
+            await interaction.followup.send(msg, ephemeral=True)
+        except Exception:
+            await _edit_or_send(interaction, content=msg, view=None)
+        if not ok:
+            log.warning("Alliance create apply-after-confirm failed: %s", msg)
+
+    @discord.ui.button(label="NO", style=discord.ButtonStyle.secondary)
+    async def no(self, interaction: discord.Interaction, _button: discord.ui.Button):
+        self.state.allow_missing_role_creation = False
         await _edit_or_send(interaction, content="Alliance setup cancelled.", view=None)
 
 
@@ -433,6 +576,23 @@ class _AllianceCreateConfirmView(CDTAutoCleanupView):
 
     @discord.ui.button(label="YES", style=discord.ButtonStyle.success)
     async def yes(self, interaction: discord.Interaction, _button: discord.ui.Button):
+        guild = getattr(interaction, "guild", None)
+        if guild is None:
+            await _edit_or_send(interaction, content="This action can only be used in a server.", view=None)
+            return
+        missing = self.cog._missing_role_keys(guild, self.state)
+        if missing and not self.state.allow_missing_role_creation:
+            confirm = _AllianceMissingRolesApplyConfirmView(self.cog, self.state, missing)
+            await _edit_or_send(
+                interaction,
+                content=(
+                    "Before continuing, confirm creation of missing roles:\n"
+                    + "\n".join(f"- {key.upper()}" for key in missing)
+                ),
+                view=confirm,
+            )
+            await confirm.bind_to_interaction_response(interaction)
+            return
         try:
             await interaction.response.defer(ephemeral=True)
         except Exception:
@@ -594,6 +754,11 @@ class _AllianceSettingsView(CDTAutoCleanupView):
                 name=str(guild.name),
                 type_name=Alliance.ALLIANCE_TYPE_SIMPLE,
             )
+            detected = _detect_existing_role_map(guild, state.name, state.type_name)
+            for key in _required_role_keys(state.type_name):
+                rid = detected.get(key)
+                if rid:
+                    state.role_map[key] = rid
             view = _AllianceCreateRoleMapView(self.cog, state)
             await _edit_or_send(interaction, content=view.build_summary_text(), view=view)
             await view.bind_to_interaction_response(interaction)
@@ -774,7 +939,7 @@ class _AllianceGroup(app_commands.Group):
                 "Allowed roles:\n"
                 "- Guild Owner: create (when no alliance exists)\n"
                 "- Alliance Manager: reports/settings/assign role\n"
-                "- Guild Owner/Admin + Alliance Member: delete",
+                "- Guild Owner/Admin: delete",
                 view=view,
                 ephemeral=True,
             )
@@ -813,6 +978,15 @@ class AllianceSlashCog(commands.Cog):
     def group(self):
         return self._group
 
+    def _missing_role_keys(self, guild: discord.Guild, state: _AllianceCreateState) -> List[str]:
+        missing: List[str] = []
+        for key in _managed_role_keys_for_type(state.type_name):
+            rid = (state.role_map or {}).get(key)
+            role_obj = guild.get_role(int(rid)) if rid else None
+            if role_obj is None:
+                missing.append(key)
+        return missing
+
     async def _generate_invite_from_channel(self, guild: discord.Guild, channel_id: int) -> str:
         channel = guild.get_channel(int(channel_id)) if channel_id else None
         if channel is None:
@@ -836,17 +1010,41 @@ class AllianceSlashCog(commands.Cog):
             return False, "Guild context changed; restart setup."
         if state.author_id != getattr(interaction.user, "id", None):
             return False, "Only the workflow initiator can confirm setup."
-        if not _is_guild_admin(interaction.user, guild):
-            return False, "You need Guild Owner/Admin permissions to create alliance settings."
+        if getattr(guild, "owner_id", None) != getattr(interaction.user, "id", None):
+            return False, "Only the Guild Owner can create alliance settings when none exist."
 
         existing = Alliance.get_guild_config(guild.id)
         if existing:
-            return False, "An alliance is already configured. Use MANAGE/DELETE as needed."
+            return False, "An alliance is already configured. Use SETTINGS/DELETE as needed."
 
         type_norm = Alliance.normalize_alliance_type(state.type_name)
-        ok = await Alliance.register_alliance(guild, state.name, alliance_tag=state.tag or None, type_=type_norm)
-        if not ok:
-            return False, "Failed to register alliance configuration."
+        missing = self._missing_role_keys(guild, state)
+        if missing and not state.allow_missing_role_creation:
+            return False, "Missing roles require confirmation before creation."
+
+        cfg: Dict[str, Any] = {
+            "type": type_norm,
+            "roles": {},
+            "info": {"name": state.name},
+            "settings": {"max_members": 30},
+            "member_ids": [],
+            "officer_ids": [],
+            "manager_ids": [],
+        }
+        if state.tag:
+            cfg["info"]["tag"] = state.tag
+        Alliance.set_guild_config(guild.id, cfg)
+
+        for key in _managed_role_keys_for_type(type_norm):
+            rid = (state.role_map or {}).get(key)
+            role_obj = guild.get_role(int(rid)) if rid else None
+            if role_obj is not None:
+                await Alliance.create_or_link_role(guild, role_obj.name, key, role_obj=role_obj)
+                continue
+            role_name = f"{state.name} {key.upper()}"
+            mapped = await Alliance.create_or_link_role(guild, role_name, key)
+            if not isinstance(mapped, dict) or not mapped.get("id"):
+                return False, f"Failed to create required role: {key}."
 
         invite_url = state.invite_url or ""
         if state.interview_channel_id:
@@ -866,7 +1064,7 @@ class AllianceSlashCog(commands.Cog):
                 continue
             await Alliance.create_or_link_role(guild, role_obj.name, key, role_obj=role_obj)
 
-        Alliance.set_alliance_type(guild.id, type_norm, guild_obj=guild)
+        Alliance.set_alliance_type(guild.id, type_norm, guild_obj=None)
         return True, "Alliance settings created successfully."
 
     async def _apply_manage_settings(self, interaction: discord.Interaction, state: _AllianceCreateState) -> tuple[bool, str]:
