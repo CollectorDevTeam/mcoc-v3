@@ -280,7 +280,7 @@ class _RoleSlotSelect(discord.ui.Select):
             discord.SelectOption(label=key.upper(), value=key, description="Role slot to map")
             for key in _required_role_keys(view.state.type_name)
         ]
-        super().__init__(placeholder="Choose role slot", min_values=1, max_values=1, options=options)
+        super().__init__(placeholder="Choose role slot", min_values=1, max_values=1, options=options, row=0)
 
     async def callback(self, interaction: discord.Interaction):
         try:
@@ -294,7 +294,7 @@ class _RoleSlotSelect(discord.ui.Select):
 class _RolePicker(discord.ui.RoleSelect):
     def __init__(self, view: "_AllianceCreateRoleMapView"):
         self.role_view = view
-        super().__init__(placeholder="Select role for chosen slot", min_values=1, max_values=1)
+        super().__init__(placeholder="Select role for chosen slot", min_values=1, max_values=1, row=1)
 
     async def callback(self, interaction: discord.Interaction):
         try:
@@ -318,7 +318,7 @@ class _InterviewChannelSelect(discord.ui.ChannelSelect):
             min_values=0,
             max_values=1,
             channel_types=[discord.ChannelType.text, discord.ChannelType.news],
-            row=1,
+            row=2,
         )
 
     async def callback(self, interaction: discord.Interaction):
@@ -367,14 +367,14 @@ class _AllianceCreateRoleMapView(CDTAutoCleanupView):
         lines.append("Choose a slot then select a role, or use AUTO CREATE MISSING.")
         return "\n".join(lines)
 
-    @discord.ui.button(label="EDIT INFO", style=discord.ButtonStyle.primary, row=2)
+    @discord.ui.button(label="EDIT INFO", style=discord.ButtonStyle.primary, row=3)
     async def edit_info(self, interaction: discord.Interaction, _button: discord.ui.Button):
         if isinstance(self, _AllianceManageRoleMapView):
             await interaction.response.send_modal(_AllianceManageInfoModal(self.cog, self.state))
             return
         await interaction.response.send_modal(_AllianceCreateModal(self.cog, self.state))
 
-    @discord.ui.button(label="AUTO CREATE MISSING", style=discord.ButtonStyle.secondary, row=2)
+    @discord.ui.button(label="AUTO CREATE MISSING", style=discord.ButtonStyle.secondary, row=3)
     async def auto_create_missing(self, interaction: discord.Interaction, _button: discord.ui.Button):
         guild = getattr(interaction, "guild", None)
         if guild is None:
@@ -391,7 +391,7 @@ class _AllianceCreateRoleMapView(CDTAutoCleanupView):
                     self.state.role_map[key] = int(rid)
         await _edit_or_send(interaction, content=self.build_summary_text(), view=self)
 
-    @discord.ui.button(label="NEXT (CONFIRM)", style=discord.ButtonStyle.success, row=2)
+    @discord.ui.button(label="NEXT (CONFIRM)", style=discord.ButtonStyle.success, row=3)
     async def next_confirm(self, interaction: discord.Interaction, _button: discord.ui.Button):
         if not str(self.state.name or "").strip():
             await _edit_or_send(interaction, content="Alliance name is required. Use EDIT INFO first.", view=self)
@@ -400,7 +400,7 @@ class _AllianceCreateRoleMapView(CDTAutoCleanupView):
         await _edit_or_send(interaction, content=view.build_text(), view=view)
         await view.bind_to_interaction_response(interaction)
 
-    @discord.ui.button(label="CANCEL", style=discord.ButtonStyle.danger, row=2)
+    @discord.ui.button(label="CANCEL", style=discord.ButtonStyle.danger, row=3)
     async def cancel(self, interaction: discord.Interaction, _button: discord.ui.Button):
         await _edit_or_send(interaction, content="Alliance setup cancelled.", view=None)
 
@@ -491,7 +491,7 @@ class _AllianceManageInfoModal(discord.ui.Modal, title="Alliance Manage: Page 1"
 
 
 class _AllianceManageRoleMapView(_AllianceCreateRoleMapView):
-    @discord.ui.button(label="NEXT (CONFIRM)", style=discord.ButtonStyle.success, row=2)
+    @discord.ui.button(label="NEXT (CONFIRM)", style=discord.ButtonStyle.success, row=3)
     async def next_confirm(self, interaction: discord.Interaction, _button: discord.ui.Button):
         if not str(self.state.name or "").strip():
             await _edit_or_send(interaction, content="Alliance name is required. Use EDIT INFO first.", view=self)
