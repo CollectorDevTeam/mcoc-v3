@@ -161,15 +161,23 @@ def _is_premium_user(author: discord.Member) -> bool:
 
 
 def _caps_for(author: discord.Member, guild: discord.Guild, cfg: Optional[dict]) -> Set[str]:
-    if _is_guild_admin(author, guild):
-        return {"create", "manage", "delete", "reports"}
+    caps: Set[str] = set()
+    is_owner = bool(getattr(guild, "owner_id", None) == getattr(author, "id", None))
+    is_admin_or_owner = _is_guild_admin(author, guild)
+
     if not cfg:
-        return set()
-    if Alliance.is_alliance_manager(author, guild):
-        return {"manage", "reports"}
-    if _is_alliance_member(author, guild, cfg):
-        return {"reports"}
-    return set()
+        if is_owner:
+            caps.add("create")
+        return caps
+
+    has_alliance = _is_alliance_member(author, guild, cfg)
+    is_manager = bool(has_alliance and Alliance.is_alliance_manager(author, guild))
+
+    if is_manager:
+        caps.update({"reports", "settings", "assign"})
+    if has_alliance and is_admin_or_owner:
+        caps.add("delete")
+    return caps
 
 
 def _required_role_keys(type_name: str) -> List[str]:
@@ -523,10 +531,11 @@ class _AllianceSettingsView(CDTAutoCleanupView):
         self.clear_items()
 
         has_alliance = bool(cfg)
-        can_create = "create" in caps and not has_alliance
+        can_create = "create" in caps
         self.create_btn.disabled = not can_create
         self.reports_btn.disabled = "reports" not in caps or not has_alliance
-        self.manage_btn.disabled = "manage" not in caps or not has_alliance
+        self.settings_btn.disabled = "settings" not in caps or not has_alliance
+        self.assign_btn.disabled = "assign" not in caps or not has_alliance
         self.delete_btn.disabled = "delete" not in caps or not has_alliance
 
         if not has_alliance:
@@ -536,17 +545,15 @@ class _AllianceSettingsView(CDTAutoCleanupView):
 
         if "reports" in caps:
             self.add_item(self.reports_btn)
-        if "manage" in caps:
-            self.add_item(self.manage_btn)
+        if "settings" in caps:
+            self.add_item(self.settings_btn)
+        if "assign" in caps:
+            self.add_item(self.assign_btn)
         if "delete" in caps:
             self.add_item(self.delete_btn)
 
     @discord.ui.button(label="CREATE", style=discord.ButtonStyle.primary)
     async def create_btn(self, interaction: discord.Interaction, _button: discord.ui.Button):
-        try:
-            await interaction.response.defer(ephemeral=True)
-        except Exception:
-            pass
         guild = getattr(interaction, "guild", None)
         if guild is None:
             await _edit_or_send(interaction, content="This action can only be used in a server.", view=self)
@@ -563,10 +570,6 @@ class _AllianceSettingsView(CDTAutoCleanupView):
 
     @discord.ui.button(label="REPORTS", style=discord.ButtonStyle.success)
     async def reports_btn(self, interaction: discord.Interaction, _button: discord.ui.Button):
-        try:
-            await interaction.response.defer(ephemeral=True)
-        except Exception:
-            pass
         guild = getattr(interaction, "guild", None)
         if guild is None:
             await _edit_or_send(interaction, content="This action can only be used in a server.", view=self)
@@ -575,12 +578,8 @@ class _AllianceSettingsView(CDTAutoCleanupView):
         await _edit_or_send(interaction, content=view.build_menu_text(guild), view=view)
         await view.bind_to_interaction_response(interaction)
 
-    @discord.ui.button(label="MANAGE", style=discord.ButtonStyle.secondary)
-    async def manage_btn(self, interaction: discord.Interaction, _button: discord.ui.Button):
-        try:
-            await interaction.response.defer(ephemeral=True)
-        except Exception:
-            pass
+    @discord.ui.button(label="SETTINGS", style=discord.ButtonStyle.secondary)
+    async def settings_btn(self, interaction: discord.Interaction, _button: discord.ui.Button):
         guild = getattr(interaction, "guild", None)
         if guild is None:
             await _edit_or_send(interaction, content="This action can only be used in a server.", view=self)
@@ -610,12 +609,19 @@ class _AllianceSettingsView(CDTAutoCleanupView):
         await _edit_or_send(interaction, content=view.build_summary_text(), view=view)
         await view.bind_to_interaction_response(interaction)
 
+    @discord.ui.button(label="ASSIGN ROLE", style=discord.ButtonStyle.secondary)
+    async def assign_btn(self, interaction: discord.Interaction, _button: discord.ui.Button):
+        await _edit_or_send(
+            interaction,
+            content=(
+                "Alliance role assignment is user-targeted.\n"
+                "Use Context Menu: MCOC > ALLIANCE > ASSIGN ROLE on the target member."
+            ),
+            view=self,
+        )
+
     @discord.ui.button(label="DELETE", style=discord.ButtonStyle.danger)
     async def delete_btn(self, interaction: discord.Interaction, _button: discord.ui.Button):
-        try:
-            await interaction.response.defer(ephemeral=True)
-        except Exception:
-            pass
         view = _AllianceDeleteConfirmView(self.cog)
         await _edit_or_send(interaction, content="Delete this guild alliance configuration?", view=view)
         await view.bind_to_interaction_response(interaction)
@@ -679,7 +685,7 @@ class _AllianceReportsView(CDTAutoCleanupView):
         cfg = Alliance.get_guild_config(guild.id)
         caps = _caps_for(interaction.user, guild, cfg)
         view = _AllianceSettingsView(self.cog, caps, guild, interaction.user, cfg)
-        await _edit_or_send(interaction, content="Alliance settings: choose a workflow.", view=view)
+        await _edit_or_send(interaction, content="Alliance manage: choose a workflow.", view=view)
         await view.bind_to_interaction_response(interaction)
 
 
@@ -700,16 +706,7 @@ class _AllianceBattlegroupReportSelect(discord.ui.Select):
 
 class _AllianceGroup(app_commands.Group):
     def __init__(self, cog: "AllianceSlashCog"):
-        try:
-            super().__init__(
-                name="alliance",
-                description="Alliance profile and settings",
-                fallback="open",
-                fallback_description="Open alliance workflow menu",
-            )
-        except TypeError:
-            # Older discord.py app command groups may not support fallback callbacks.
-            super().__init__(name="alliance", description="Alliance profile and settings")
+        super().__init__(name="alliance", description="Alliance profile and settings")
         self.cog = cog
 
     async def _open_workflow(self, interaction: discord.Interaction):
@@ -724,22 +721,19 @@ class _AllianceGroup(app_commands.Group):
 
         if not caps:
             await interaction.response.send_message(
-                "You do not have alliance settings access here.\n"
+                "You do not have alliance manage access here.\n"
                 "Allowed roles:\n"
-                "- Guild Owner/Admin: create/manage/delete/reports\n"
-                "- Alliance Manager: manage/reports\n"
-                "- Alliance Member: reports",
+                "- Guild Owner: create (when no alliance exists)\n"
+                "- Alliance Manager: reports/settings/assign role\n"
+                "- Guild Owner/Admin + Alliance Member: delete",
                 view=view,
                 ephemeral=True,
             )
             await view.bind_to_interaction_response(interaction)
             return
 
-        await interaction.response.send_message("Alliance settings: choose a workflow.", view=view, ephemeral=True)
+        await interaction.response.send_message("Alliance manage: choose a workflow.", view=view, ephemeral=True)
         await view.bind_to_interaction_response(interaction)
-
-    async def callback(self, interaction: discord.Interaction):
-        await self._open_workflow(interaction)
 
     @app_commands.command(name="profile", description="Display alliance profile")
     @app_commands.describe(user="Optional member to evaluate membership against")
@@ -755,8 +749,8 @@ class _AllianceGroup(app_commands.Group):
         target = user or interaction.user
         await interaction.response.send_message(_build_alliance_profile_text(cfg, guild, target), ephemeral=False)
 
-    @app_commands.command(name="settings", description="Alias for /alliance (workflow menu)")
-    async def settings(self, interaction: discord.Interaction):
+    @app_commands.command(name="manage", description="Alliance management workflows")
+    async def manage(self, interaction: discord.Interaction):
         await self._open_workflow(interaction)
 
 
@@ -837,7 +831,7 @@ class AllianceSlashCog(commands.Cog):
 
         cfg = Alliance.get_guild_config(guild.id)
         caps = _caps_for(interaction.user, guild, cfg)
-        if "manage" not in caps:
+        if "settings" not in caps:
             return False, "You do not have permission to manage alliance settings."
         if not cfg:
             return False, "No alliance is configured for this guild."
@@ -984,7 +978,7 @@ class AllianceSlashCog(commands.Cog):
             return False, "This action can only be used in a server."
         cfg = Alliance.get_guild_config(guild.id)
         caps = _caps_for(interaction.user, guild, cfg)
-        if "manage" not in caps:
+        if "settings" not in caps:
             return False, "You do not have permission to manage alliance settings."
         if not cfg:
             return False, "No alliance is configured for this guild."
