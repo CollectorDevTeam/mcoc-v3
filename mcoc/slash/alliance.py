@@ -104,6 +104,23 @@ async def _defer_or_send(
     await _edit_or_send(interaction, content=content, embed=embed, view=view, ephemeral=ephemeral)
 
 
+async def _safe_ephemeral_error(interaction: discord.Interaction, message: str) -> None:
+    response = getattr(interaction, "response", None)
+    try:
+        done = bool(response and hasattr(response, "is_done") and response.is_done())
+    except Exception:
+        done = False
+    try:
+        if done and hasattr(interaction, "followup"):
+            await interaction.followup.send(message, ephemeral=True)
+            return
+        if response and hasattr(response, "send_message"):
+            await response.send_message(message, ephemeral=True)
+            return
+    except Exception:
+        log.exception("alliance _safe_ephemeral_error failed")
+
+
 def _build_alliance_profile_text(cfg: dict, guild: discord.Guild, member: Optional[discord.Member] = None) -> str:
     info = cfg.get("info", {})
     name = info.get("name") or guild.name
@@ -266,8 +283,12 @@ class _RoleSlotSelect(discord.ui.Select):
         super().__init__(placeholder="Choose role slot", min_values=1, max_values=1, options=options)
 
     async def callback(self, interaction: discord.Interaction):
-        self.role_view.selected_slot = self.values[0]
-        await _edit_or_send(interaction, content=self.role_view.build_summary_text(), view=self.role_view)
+        try:
+            self.role_view.selected_slot = self.values[0]
+            await _edit_or_send(interaction, content=self.role_view.build_summary_text(), view=self.role_view)
+        except Exception:
+            log.exception("Alliance role slot select callback failed")
+            await _safe_ephemeral_error(interaction, "Role slot selection failed. Please try again.")
 
 
 class _RolePicker(discord.ui.RoleSelect):
@@ -276,13 +297,17 @@ class _RolePicker(discord.ui.RoleSelect):
         super().__init__(placeholder="Select role for chosen slot", min_values=1, max_values=1)
 
     async def callback(self, interaction: discord.Interaction):
-        slot = self.role_view.selected_slot
-        if not slot:
-            await _edit_or_send(interaction, content="Pick a slot first.", ephemeral=True)
-            return
-        role = self.values[0]
-        self.role_view.state.role_map[slot] = role.id
-        await _edit_or_send(interaction, content=self.role_view.build_summary_text(), view=self.role_view)
+        try:
+            slot = self.role_view.selected_slot
+            if not slot:
+                await _edit_or_send(interaction, content="Pick a slot first.", ephemeral=True)
+                return
+            role = self.values[0]
+            self.role_view.state.role_map[slot] = role.id
+            await _edit_or_send(interaction, content=self.role_view.build_summary_text(), view=self.role_view)
+        except Exception:
+            log.exception("Alliance role picker callback failed")
+            await _safe_ephemeral_error(interaction, "Role assignment failed. Please try again.")
 
 
 class _InterviewChannelSelect(discord.ui.ChannelSelect):
@@ -297,13 +322,17 @@ class _InterviewChannelSelect(discord.ui.ChannelSelect):
         )
 
     async def callback(self, interaction: discord.Interaction):
-        if not self.values:
-            self.role_view.state.interview_channel_id = None
+        try:
+            if not self.values:
+                self.role_view.state.interview_channel_id = None
+                await _edit_or_send(interaction, content=self.role_view.build_summary_text(), view=self.role_view)
+                return
+            channel = self.values[0]
+            self.role_view.state.interview_channel_id = int(getattr(channel, "id", 0) or 0) or None
             await _edit_or_send(interaction, content=self.role_view.build_summary_text(), view=self.role_view)
-            return
-        channel = self.values[0]
-        self.role_view.state.interview_channel_id = int(getattr(channel, "id", 0) or 0) or None
-        await _edit_or_send(interaction, content=self.role_view.build_summary_text(), view=self.role_view)
+        except Exception:
+            log.exception("Alliance interview channel select callback failed")
+            await _safe_ephemeral_error(interaction, "Interview channel selection failed. Please try again.")
 
 
 class _AllianceCreateRoleMapView(CDTAutoCleanupView):
@@ -554,77 +583,97 @@ class _AllianceSettingsView(CDTAutoCleanupView):
 
     @discord.ui.button(label="CREATE", style=discord.ButtonStyle.primary)
     async def create_btn(self, interaction: discord.Interaction, _button: discord.ui.Button):
-        guild = getattr(interaction, "guild", None)
-        if guild is None:
-            await _edit_or_send(interaction, content="This action can only be used in a server.", view=self)
-            return
-        state = _AllianceCreateState(
-            guild_id=guild.id,
-            author_id=getattr(interaction.user, "id", 0),
-            name=str(guild.name),
-            type_name=Alliance.ALLIANCE_TYPE_SIMPLE,
-        )
-        view = _AllianceCreateRoleMapView(self.cog, state)
-        await _edit_or_send(interaction, content=view.build_summary_text(), view=view)
-        await view.bind_to_interaction_response(interaction)
+        try:
+            guild = getattr(interaction, "guild", None)
+            if guild is None:
+                await _edit_or_send(interaction, content="This action can only be used in a server.", view=self)
+                return
+            state = _AllianceCreateState(
+                guild_id=guild.id,
+                author_id=getattr(interaction.user, "id", 0),
+                name=str(guild.name),
+                type_name=Alliance.ALLIANCE_TYPE_SIMPLE,
+            )
+            view = _AllianceCreateRoleMapView(self.cog, state)
+            await _edit_or_send(interaction, content=view.build_summary_text(), view=view)
+            await view.bind_to_interaction_response(interaction)
+        except Exception:
+            log.exception("Alliance settings CREATE callback failed")
+            await _safe_ephemeral_error(interaction, "Create workflow failed to open. Please try again.")
 
     @discord.ui.button(label="REPORTS", style=discord.ButtonStyle.success)
     async def reports_btn(self, interaction: discord.Interaction, _button: discord.ui.Button):
-        guild = getattr(interaction, "guild", None)
-        if guild is None:
-            await _edit_or_send(interaction, content="This action can only be used in a server.", view=self)
-            return
-        view = _AllianceReportsView(self.cog)
-        await _edit_or_send(interaction, content=view.build_menu_text(guild), view=view)
-        await view.bind_to_interaction_response(interaction)
+        try:
+            guild = getattr(interaction, "guild", None)
+            if guild is None:
+                await _edit_or_send(interaction, content="This action can only be used in a server.", view=self)
+                return
+            view = _AllianceReportsView(self.cog)
+            await _edit_or_send(interaction, content=view.build_menu_text(guild), view=view)
+            await view.bind_to_interaction_response(interaction)
+        except Exception:
+            log.exception("Alliance settings REPORTS callback failed")
+            await _safe_ephemeral_error(interaction, "Reports workflow failed to open. Please try again.")
 
     @discord.ui.button(label="SETTINGS", style=discord.ButtonStyle.secondary)
     async def settings_btn(self, interaction: discord.Interaction, _button: discord.ui.Button):
-        guild = getattr(interaction, "guild", None)
-        if guild is None:
-            await _edit_or_send(interaction, content="This action can only be used in a server.", view=self)
-            return
-        # Role-map-first flow: _AllianceManageInfoModal remains available via EDIT INFO.
-        cfg = Alliance.get_guild_config(guild.id)
-        if not cfg:
-            await _edit_or_send(interaction, content="No alliance is configured for this guild.", view=self)
-            return
-        info = cfg.get("info", {}) or {}
-        state = _AllianceCreateState(
-            guild_id=guild.id,
-            author_id=getattr(interaction.user, "id", 0),
-            name=str(info.get("name") or guild.name),
-            tag=str(info.get("tag") or ""),
-            description=str(info.get("description") or ""),
-            invite_url=str(info.get("invite") or ""),
-            interview_channel_id=int(info.get("interview_channel_id")) if str(info.get("interview_channel_id") or "").isdigit() else None,
-            type_name=Alliance.normalize_alliance_type(cfg.get("type", Alliance.ALLIANCE_TYPE_SIMPLE)),
-            role_map={
-                key: int(role_cfg.get("id"))
-                for key, role_cfg in (cfg.get("roles") or {}).items()
-                if isinstance(role_cfg, dict) and role_cfg.get("id")
-            },
-        )
-        view = _AllianceManageRoleMapView(self.cog, state)
-        await _edit_or_send(interaction, content=view.build_summary_text(), view=view)
-        await view.bind_to_interaction_response(interaction)
+        try:
+            guild = getattr(interaction, "guild", None)
+            if guild is None:
+                await _edit_or_send(interaction, content="This action can only be used in a server.", view=self)
+                return
+            # Role-map-first flow: _AllianceManageInfoModal remains available via EDIT INFO.
+            cfg = Alliance.get_guild_config(guild.id)
+            if not cfg:
+                await _edit_or_send(interaction, content="No alliance is configured for this guild.", view=self)
+                return
+            info = cfg.get("info", {}) or {}
+            state = _AllianceCreateState(
+                guild_id=guild.id,
+                author_id=getattr(interaction.user, "id", 0),
+                name=str(info.get("name") or guild.name),
+                tag=str(info.get("tag") or ""),
+                description=str(info.get("description") or ""),
+                invite_url=str(info.get("invite") or ""),
+                interview_channel_id=int(info.get("interview_channel_id")) if str(info.get("interview_channel_id") or "").isdigit() else None,
+                type_name=Alliance.normalize_alliance_type(cfg.get("type", Alliance.ALLIANCE_TYPE_SIMPLE)),
+                role_map={
+                    key: int(role_cfg.get("id"))
+                    for key, role_cfg in (cfg.get("roles") or {}).items()
+                    if isinstance(role_cfg, dict) and role_cfg.get("id")
+                },
+            )
+            view = _AllianceManageRoleMapView(self.cog, state)
+            await _edit_or_send(interaction, content=view.build_summary_text(), view=view)
+            await view.bind_to_interaction_response(interaction)
+        except Exception:
+            log.exception("Alliance settings SETTINGS callback failed")
+            await _safe_ephemeral_error(interaction, "Settings workflow failed to open. Please try again.")
 
     @discord.ui.button(label="ASSIGN ROLE", style=discord.ButtonStyle.secondary)
     async def assign_btn(self, interaction: discord.Interaction, _button: discord.ui.Button):
-        await _edit_or_send(
-            interaction,
-            content=(
-                "Alliance role assignment is user-targeted.\n"
-                "Use Context Menu: MCOC > ALLIANCE > ASSIGN ROLE on the target member."
-            ),
-            view=self,
-        )
+        try:
+            await _edit_or_send(
+                interaction,
+                content=(
+                    "Alliance role assignment is user-targeted.\n"
+                    "Use Context Menu: MCOC > ALLIANCE > ASSIGN ROLE on the target member."
+                ),
+                view=self,
+            )
+        except Exception:
+            log.exception("Alliance settings ASSIGN ROLE callback failed")
+            await _safe_ephemeral_error(interaction, "Assign-role workflow failed to open. Please try again.")
 
     @discord.ui.button(label="DELETE", style=discord.ButtonStyle.danger)
     async def delete_btn(self, interaction: discord.Interaction, _button: discord.ui.Button):
-        view = _AllianceDeleteConfirmView(self.cog)
-        await _edit_or_send(interaction, content="Delete this guild alliance configuration?", view=view)
-        await view.bind_to_interaction_response(interaction)
+        try:
+            view = _AllianceDeleteConfirmView(self.cog)
+            await _edit_or_send(interaction, content="Delete this guild alliance configuration?", view=view)
+            await view.bind_to_interaction_response(interaction)
+        except Exception:
+            log.exception("Alliance settings DELETE callback failed")
+            await _safe_ephemeral_error(interaction, "Delete workflow failed to open. Please try again.")
 
 
 class _AllianceDeleteConfirmView(CDTAutoCleanupView):
