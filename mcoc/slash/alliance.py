@@ -242,7 +242,7 @@ def _normalize_role_name_for_match(value: str) -> str:
 
 
 def _managed_role_keys_for_type(type_name: str) -> List[str]:
-    keys = ["alliance", "officers", "members", "leader", "managers"]
+    keys = ["alliance", "officers", "members"]
     for key in _bg_keys_for_type(type_name):
         if key not in keys:
             keys.append(key)
@@ -727,6 +727,47 @@ class _AllianceManageConfirmView(CDTAutoCleanupView):
         await _edit_or_send(interaction, content="Alliance manage cancelled.", view=None)
 
 
+class _AllianceTransferLeaderModal(discord.ui.Modal, title="Transfer Alliance Leader"):
+    def __init__(self, cog: "AllianceSlashCog", guild: discord.Guild, current_leader_id: Optional[int]):
+        super().__init__()
+        self.cog = cog
+        self.guild = guild
+        self.current_leader_id = current_leader_id
+        self.member = discord.ui.TextInput(label="New leader @member or user ID", required=True)
+        self.add_item(self.member)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        raw = (self.member.value or "").strip()
+        target = None
+        if not raw:
+            await _edit_or_send(interaction, content="A target member is required.", ephemeral=True)
+            return
+        try:
+            target = int(raw)
+        except ValueError:
+            value = raw.strip("<@!>")
+            try:
+                target = int(value)
+            except ValueError:
+                match = re.search(r"\d+", raw)
+                if match:
+                    target = int(match.group(0))
+                else:
+                    target = None
+        if not target:
+            await _edit_or_send(interaction, content="Could not resolve a valid member from that input.", ephemeral=True)
+            return
+        member = self.guild.get_member(target)
+        if member is None:
+            await _edit_or_send(interaction, content="That user is not a member of this guild.", ephemeral=True)
+            return
+        ok = Alliance.set_alliance_leader_id(self.guild.id, member.id)
+        if ok:
+            await _edit_or_send(interaction, content=f"Alliance leader transferred to {member.mention}.", ephemeral=True)
+        else:
+            await _edit_or_send(interaction, content="Failed to transfer alliance leader.", ephemeral=True)
+
+
 class _AllianceSettingsView(CDTAutoCleanupView):
     def __init__(self, cog: "AllianceSlashCog", caps: Set[str], guild: discord.Guild, author: discord.Member, cfg: Optional[dict]):
         super().__init__(timeout=180)
@@ -758,6 +799,8 @@ class _AllianceSettingsView(CDTAutoCleanupView):
             self.add_item(self.assign_btn)
         if "delete" in caps:
             self.add_item(self.delete_btn)
+        if "settings" in caps and self.cog._is_leader_or_owner_for_settings(author, guild):
+            self.add_item(self.transfer_leader_btn)
 
     @discord.ui.button(label="CREATE", style=discord.ButtonStyle.primary)
     async def create_btn(self, interaction: discord.Interaction, _button: discord.ui.Button):
@@ -847,6 +890,19 @@ class _AllianceSettingsView(CDTAutoCleanupView):
         except Exception:
             log.exception("Alliance settings ASSIGN ROLE callback failed")
             await _safe_ephemeral_error(interaction, "Assign-role workflow failed to open. Please try again.")
+
+    @discord.ui.button(label="TRANSFER LEADER", style=discord.ButtonStyle.primary)
+    async def transfer_leader_btn(self, interaction: discord.Interaction, _button: discord.ui.Button):
+        try:
+            guild = getattr(interaction, "guild", None)
+            if guild is None:
+                await _edit_or_send(interaction, content="This action can only be used in a server.", view=self)
+                return
+            leader_id = Alliance.get_alliance_leader_id(guild.id)
+            await interaction.response.send_modal(_AllianceTransferLeaderModal(self.cog, guild, leader_id))
+        except Exception:
+            log.exception("Alliance settings transfer leader failed")
+            await _safe_ephemeral_error(interaction, "Transfer leader workflow failed to open. Please try again.")
 
     @discord.ui.button(label="DELETE", style=discord.ButtonStyle.danger)
     async def delete_btn(self, interaction: discord.Interaction, _button: discord.ui.Button):
@@ -992,6 +1048,18 @@ class AllianceSlashCog(commands.Cog):
         self.core = _core_for(bot)
         self._group = _AllianceGroup(self)
 
+    @staticmethod
+    def _is_leader_or_owner_for_settings(member: discord.Member, guild: discord.Guild) -> bool:
+        if guild is None or member is None:
+            return False
+        if getattr(guild, "owner_id", None) == getattr(member, "id", None):
+            return True
+        cfg = Alliance.get_guild_config(guild.id) or {}
+        leader_id = cfg.get("leader_id")
+        if leader_id is not None and getattr(member, "id", None) == int(leader_id):
+            return True
+        return False
+
     @property
     def group(self):
         return self._group
@@ -1048,6 +1116,7 @@ class AllianceSlashCog(commands.Cog):
             "member_ids": [],
             "officer_ids": [],
             "manager_ids": [],
+            "leader_id": int(getattr(interaction.user, "id", 0) or 0),
         }
         if state.tag:
             cfg["info"]["tag"] = state.tag
@@ -1116,6 +1185,7 @@ class AllianceSlashCog(commands.Cog):
         Alliance.set_alliance_info_field(guild.id, "description", state.description or None)
         Alliance.set_alliance_info_field(guild.id, "invite", invite_url or None)
         Alliance.set_alliance_info_field(guild.id, "interview_channel_id", str(state.interview_channel_id) if state.interview_channel_id else None)
+        Alliance.set_alliance_leader_id(guild.id, getattr(interaction.user, "id", None))
         Alliance.set_alliance_type(guild.id, type_norm, guild_obj=None)
 
         for key in _auto_create_role_keys_for_type(type_norm):

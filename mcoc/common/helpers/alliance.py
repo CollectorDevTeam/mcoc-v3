@@ -39,7 +39,7 @@ _ALLIANCE_TYPE_ALIASES = {
     "complex": ALLIANCE_TYPE_ADVANCED,
 }
 
-_CORE_ROLE_KEYS = ["alliance", "officers", "members", "leader", "managers"]
+_CORE_ROLE_KEYS = ["alliance", "officers", "members"]
 _SIMPLE_BG_KEYS = ["bg1", "bg2", "bg3"]
 _ADVANCED_AQ_KEYS = ["aqbg1", "aqbg2", "aqbg3"]
 _ADVANCED_AW_KEYS = ["awbg1", "awbg2", "awbg3"]
@@ -174,6 +174,7 @@ async def register_alliance(guild, alliance_name: str, alliance_tag: Optional[st
         cfg.setdefault("settings", {})["max_members"] = 30
         cfg.setdefault("member_ids", [])
         cfg.setdefault("officer_ids", [])
+        cfg["leader_id"] = cfg.get("leader_id") or getattr(guild, "owner_id", None)
         set_guild_config(guild.id, cfg)
         return True
     except Exception:
@@ -365,6 +366,8 @@ def is_leader_or_officer(member, guild) -> bool:
         cfg = get_guild_config(guild.id)
         if not cfg:
             return False
+        if is_leader(member, guild):
+            return True
         alliance_role = _role_obj_for_key(cfg, guild, "alliance")
         officers_role = _role_obj_for_key(cfg, guild, "officers")
         if alliance_role and alliance_role in member.roles:
@@ -397,6 +400,11 @@ def is_leader(member, guild) -> bool:
         cfg = get_guild_config(guild.id)
         if not cfg:
             return False
+        leader_id = get_alliance_leader_id(guild.id)
+        if leader_id is not None and member.id == leader_id:
+            return True
+        if getattr(guild, "owner_id", None) == member.id:
+            return True
         alliance_role = _role_obj_for_key(cfg, guild, "alliance")
         return alliance_role in member.roles if alliance_role else False
     except Exception:
@@ -492,6 +500,31 @@ def get_officer_ids(guild_id: int) -> List[int]:
     except Exception:
         log.exception("Failed to get officer IDs for guild %s", guild_id)
         return []
+
+
+def get_alliance_leader_id(guild_id: int) -> Optional[int]:
+    cfg = get_guild_config(guild_id) or {}
+    leader_id = cfg.get("leader_id")
+    if leader_id is not None:
+        return int(leader_id)
+    owner_id = cfg.get("owner_id")
+    if owner_id is not None:
+        return int(owner_id)
+    return None
+
+
+def set_alliance_leader_id(guild_id: int, user_id: Optional[int]) -> bool:
+    try:
+        cfg = get_guild_config(guild_id) or {}
+        if user_id is None:
+            cfg.pop("leader_id", None)
+        else:
+            cfg["leader_id"] = int(user_id)
+        set_guild_config(guild_id, cfg)
+        return True
+    except Exception:
+        log.exception("Failed to set alliance leader for guild %s", guild_id)
+        return False
 
 
 def get_alliance_diagnostics(guild) -> Dict[str, Any]:

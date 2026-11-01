@@ -114,6 +114,61 @@ class _ChampionGroup(app_commands.Group):
                 values.append(text)
         return sorted(values)
 
+    @staticmethod
+    def _coerce_rarity_values(champion: Any) -> List[int]:
+        if not isinstance(champion, dict):
+            return []
+
+        raw_values = []
+        for field in ("available_rarities", "availableRarities", "rarities", "rarity", "stars"):
+            value = champion.get(field)
+            if value is None:
+                continue
+            if isinstance(value, (list, tuple, set)):
+                raw_values.extend(value)
+            else:
+                raw_values.append(value)
+
+        rarities: List[int] = []
+        for value in raw_values:
+            if isinstance(value, bool):
+                continue
+            if isinstance(value, str):
+                digits = [segment for segment in value.replace(',', ' ').split() if segment.strip().isdigit()]
+                if not digits:
+                    try:
+                        rarity = int(float(value.strip()))
+                    except ValueError:
+                        continue
+                    digits = [str(rarity)]
+                for token in digits:
+                    rarity = int(token)
+                    if 1 <= rarity <= 7 and rarity not in rarities:
+                        rarities.append(rarity)
+                continue
+            if isinstance(value, (int, float)):
+                rarity = int(value)
+                if 1 <= rarity <= 7 and rarity not in rarities:
+                    rarities.append(rarity)
+
+        return sorted(rarities)
+
+    @staticmethod
+    def _format_release_text(champion: Any) -> str:
+        if not isinstance(champion, dict):
+            return ""
+        for field in ("release_year", "releaseYear", "release_date", "releaseDate"):
+            value = champion.get(field)
+            if value in (None, ""):
+                continue
+            if isinstance(value, str):
+                text = value.strip()
+                if text:
+                    return text
+            elif isinstance(value, (int, float)) and not isinstance(value, bool):
+                return str(int(value))
+        return ""
+
     async def tag_autocomplete(self, interaction, current: str):
         idx = self._index()
         cur = (current or "").lower()
@@ -172,6 +227,47 @@ class _ChampionGroup(app_commands.Group):
         except Exception:
             log.exception("Failed to build champion embed")
             await safe_respond_interaction(interaction, content=champ.get("name", "Unknown"), ephemeral=True)
+
+    @app_commands.command(name="available", description="List champions and the rarities they are available at")
+    async def available(self, interaction):
+        cache = self._cache()
+        champions = cache.get_all_champions() if cache and hasattr(cache, "get_all_champions") else []
+        rows = []
+        for champ in champions or []:
+            if not isinstance(champ, dict):
+                continue
+            rarities = self._coerce_rarity_values(champ)
+            if not rarities:
+                continue
+            name = str(champ.get("name") or champ.get("title") or champ.get("slug") or champ.get("id") or "Unknown").strip()
+            if not name:
+                continue
+            rows.append((name, rarities, self._format_release_text(champ)))
+
+        if not rows:
+            await safe_respond_interaction(interaction, content="No champion availability data is available yet.", ephemeral=True)
+            return
+
+        rows.sort(key=lambda item: item[0].lower())
+        lines = [
+            "```text",
+            f"{'Champion':<24} | {' | '.join(f'{star}★' for star in (7, 6, 5, 4, 3, 2, 1))} | Release",
+            f"{'-' * 24}-|{'-|'.join('-' * 3 for _ in range(7))}|--------",
+        ]
+
+        for name, rarities, release_year in rows[:40]:
+            cells = []
+            for star in (7, 6, 5, 4, 3, 2, 1):
+                cells.append(f"{star}★" if star in rarities else "—")
+            release = f" {release_year}" if release_year else ""
+            lines.append(f"{name:<24} | {' | '.join(cells)} |{release}")
+
+        if len(rows) > 40:
+            lines.append(f"... and {len(rows) - 40} more champions")
+        lines.append("```")
+
+        content = "\n".join(lines)
+        await safe_respond_interaction(interaction, content=content)
 
     @app_commands.command(name="abilities", description="Show champion abilities")
     @app_commands.autocomplete(champion=champion_autocomplete)

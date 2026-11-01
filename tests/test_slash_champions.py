@@ -129,6 +129,23 @@ def test_slash_champ_search_has_name_autocomplete(monkeypatch):
     assert hasattr(group, "search")
 
 
+def test_slash_champ_available_lists_rarity_availability_and_release_year():
+    champions = [
+        {"id": "abomination", "slug": "abomination", "name": "Abomination", "available_rarities": [7, 6, 5, 4, 3, 2], "release_year": 2024},
+        {"id": "black-bolt", "slug": "black-bolt", "name": "Black Bolt", "available_rarities": [7, 5]},
+    ]
+    group = _ChampionGroup(core=_CoreStub(champions))
+    interaction = _InteractionStub()
+
+    asyncio.run(_invoke(group.available, group, interaction))
+
+    content = str(interaction.response.calls[0].get("content") or "")
+    assert "Abomination" in content
+    assert "7★" in content
+    assert "2024" in content
+    assert "Black Bolt" in content
+
+
 def test_slash_roster_legacy_commands_removed():
     champion_rows = [
         {"id": "abomination", "slug": "abomination", "name": "Abomination", "tags": ["poison"]},

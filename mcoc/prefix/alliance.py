@@ -66,7 +66,7 @@ class AlliancePrefix(commands.Cog):
             return
         roles_to_create = [f"{name} Alliance", f"{name} Officers", f"{name} Members"]
         if type_norm == "complex":
-            roles_to_create += [f"{name} Leader", f"{name} BG1", f"{name} BG2", f"{name} BG3", f"{name} AQBG1", f"{name} AWBG1"]
+            roles_to_create += [f"{name} BG1", f"{name} BG2", f"{name} BG3", f"{name} AQBG1", f"{name} AWBG1"]
         prompt = "This will create/link the following roles:\n" + "\n".join(f"- {r}" for r in roles_to_create)
         if not await _confirm(ctx, prompt):
             await safe_send_ctx(ctx, "Cancelled. No changes were made.")
@@ -83,7 +83,7 @@ class AlliancePrefix(commands.Cog):
     async def alliance_template(self, ctx):
         guild = ctx.guild
         name = guild.name.split()[0] if guild and guild.name else "Alliance"
-        roles_to_create = [f"{name} Alliance", f"{name} Officers", f"{name} Members", f"{name} Leader", f"{name} BG1", f"{name} BG2", f"{name} BG3"]
+        roles_to_create = [f"{name} Alliance", f"{name} Officers", f"{name} Members", f"{name} BG1", f"{name} BG2", f"{name} BG3"]
         prompt = "This will create the following roles:\n" + "\n".join(f"- {r}" for r in roles_to_create)
         if not await _confirm(ctx, prompt):
             await safe_send_ctx(ctx, "Cancelled. No roles were created.")
