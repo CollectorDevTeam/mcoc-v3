@@ -8,6 +8,7 @@
 # Changelog:
 #   1.0 2026-09-01  Initial stabilized API header
 import logging
+import inspect
 import discord
 from redbot.core import commands
 from redbot.core import app_commands
@@ -105,7 +106,12 @@ class _AdminGroup(app_commands.Group):
             await interaction.response.send_message("Cannot sync: API key not set.", ephemeral=True)
             return
         await interaction.response.defer()
-        ok = await getattr(self.core, "sync_data", lambda: False)()
+        sync_data = getattr(self.core, "sync_data", None)
+        if not callable(sync_data):
+            await interaction.followup.send("Sync unavailable: core.sync_data is not configured.")
+            return
+        result = sync_data()
+        ok = await result if inspect.isawaitable(result) else bool(result)
         if ok:
             await interaction.followup.send("Sync complete.")
         else:

@@ -233,16 +233,24 @@ class _ChampionGroup(app_commands.Group):
         cache = self._cache()
         champions = cache.get_all_champions() if cache and hasattr(cache, "get_all_champions") else []
         rows = []
-        for champ in champions or []:
-            if not isinstance(champ, dict):
-                continue
-            rarities = self._coerce_rarity_values(champ)
-            if not rarities:
-                continue
-            name = str(champ.get("name") or champ.get("title") or champ.get("slug") or champ.get("id") or "Unknown").strip()
-            if not name:
-                continue
-            rows.append((name, rarities, self._format_release_text(champ)))
+
+        def _collect_rows(items: Any) -> None:
+            for champ in items or []:
+                if not isinstance(champ, dict):
+                    continue
+                rarities = self._coerce_rarity_values(champ)
+                if not rarities:
+                    continue
+                name = str(champ.get("name") or champ.get("title") or champ.get("slug") or champ.get("id") or "Unknown").strip()
+                if not name:
+                    continue
+                rows.append((name, rarities, self._format_release_text(champ)))
+
+        _collect_rows(champions)
+
+        # Fallback to raw Cocpit champions when base champion cache has no availability metadata yet.
+        if not rows and cache and hasattr(cache, "get_all_cocpit_champions"):
+            _collect_rows(cache.get_all_cocpit_champions())
 
         if not rows:
             await safe_respond_interaction(interaction, content="No champion availability data is available yet.", ephemeral=True)

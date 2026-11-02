@@ -13,6 +13,7 @@ import hashlib
 import pathlib
 import datetime
 import logging
+import re
 import tempfile
 import os
 import asyncio
@@ -649,6 +650,14 @@ class CacheManager:
                 "class_name": data.get("className") or data.get("class_name"),
                 "available_rarities": [int(v) for v in (data.get("availableRarities") or data.get("available_rarities") or []) if str(v).isdigit()],
                 "ascension_max_by_rarity": data.get("ascensionMaxByRarity") or data.get("ascension_max_by_rarity") or {},
+                "release_date": data.get("releaseDate") or data.get("release_date") or data.get("releasedAt"),
+                "release_year": self._coerce_release_year(
+                    data.get("releaseYear")
+                    or data.get("release_year")
+                    or data.get("releaseDate")
+                    or data.get("release_date")
+                    or data.get("releasedAt")
+                ),
             })
 
         if not champions:
@@ -1419,6 +1428,130 @@ class CacheManager:
             break
         return merged
 
+    @staticmethod
+    def _coerce_release_year(value: Any) -> Optional[int]:
+        if value in (None, ""):
+            return None
+        if isinstance(value, bool):
+            return None
+        if isinstance(value, (int, float)):
+            year = int(value)
+            return year if 1900 <= year <= 9999 else None
+        text = str(value).strip()
+        if not text:
+            return None
+        match = re.search(r"(19|20)\d{2}", text)
+        if not match:
+            return None
+        return int(match.group(0))
+
+    @staticmethod
+    def _coerce_rarity_list(values: Any) -> List[int]:
+        raw: List[Any] = []
+        if values is None:
+            return []
+        if isinstance(values, (list, tuple, set)):
+            raw.extend(values)
+        else:
+            raw.append(values)
+
+        rarities: List[int] = []
+        for value in raw:
+            if isinstance(value, bool):
+                continue
+            if isinstance(value, str):
+                parts = [p for p in re.split(r"[^0-9]+", value) if p]
+                for part in parts:
+                    rarity = int(part)
+                    if 1 <= rarity <= 7 and rarity not in rarities:
+                        rarities.append(rarity)
+                continue
+            if isinstance(value, (int, float)):
+                rarity = int(value)
+                if 1 <= rarity <= 7 and rarity not in rarities:
+                    rarities.append(rarity)
+        return sorted(rarities)
+
+    def _find_cocpit_match(self, champion: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        if not isinstance(champion, dict):
+            return None
+        cocpit_champions = self.get_all_cocpit_champions()
+        if not cocpit_champions:
+            return None
+
+        keys = self._champion_key_candidates(champion)
+        normalized_keys = {self._normalize_lookup_token(k) for k in keys}
+        for cocpit in cocpit_champions:
+            if not isinstance(cocpit, dict):
+                continue
+            candidates = [
+                cocpit.get("id"),
+                cocpit.get("slug"),
+                cocpit.get("name"),
+                *(cocpit.get("aliases") or []),
+            ]
+            for candidate in candidates:
+                if candidate is None:
+                    continue
+                token = str(candidate).strip()
+                if not token:
+                    continue
+                if token.lower() in keys or self._normalize_lookup_token(token) in normalized_keys:
+                    return cocpit
+        return None
+
+    def _merge_cocpit_champion_metadata(self, champion: Dict[str, Any]) -> Dict[str, Any]:
+        merged = dict(champion)
+        cocpit = self._find_cocpit_match(champion)
+        if not cocpit:
+            return merged
+
+        cocpit_rarities = self._coerce_rarity_list(
+            cocpit.get("available_rarities")
+            or cocpit.get("availableRarities")
+            or cocpit.get("rarities")
+        )
+        base_rarities = self._coerce_rarity_list(
+            merged.get("available_rarities")
+            or merged.get("availableRarities")
+            or merged.get("rarities")
+        )
+        all_rarities = sorted(set(base_rarities + cocpit_rarities))
+        if all_rarities:
+            merged["available_rarities"] = all_rarities
+
+        if not merged.get("ascension_max_by_rarity"):
+            asc = cocpit.get("ascension_max_by_rarity") or cocpit.get("ascensionMaxByRarity")
+            if isinstance(asc, dict):
+                merged["ascension_max_by_rarity"] = asc
+
+        if not merged.get("class_name"):
+            class_name = cocpit.get("class_name") or cocpit.get("className")
+            if class_name:
+                merged["class_name"] = class_name
+
+        if not merged.get("img") and cocpit.get("img"):
+            merged["img"] = cocpit.get("img")
+
+        if not merged.get("release_date"):
+            release_date = cocpit.get("release_date") or cocpit.get("releaseDate") or cocpit.get("releasedAt")
+            if release_date:
+                merged["release_date"] = release_date
+
+        if not merged.get("release_year"):
+            year = self._coerce_release_year(
+                merged.get("release_date")
+                or cocpit.get("release_year")
+                or cocpit.get("releaseYear")
+                or cocpit.get("release_date")
+                or cocpit.get("releaseDate")
+                or cocpit.get("releasedAt")
+            )
+            if year:
+                merged["release_year"] = year
+
+        return merged
+
     # -----------------------------
     # Lookup helpers (unchanged)
     # -----------------------------
@@ -1459,7 +1592,8 @@ class CacheManager:
 
             direct = find_key_for_lookup()
             if direct is not None:
-                return self._merge_champion_overrides(champs[direct])
+                merged = self._merge_champion_overrides(champs[direct])
+                return self._merge_cocpit_champion_metadata(merged)
 
         # fallback to list-based data shape
         if isinstance(champs, list):
@@ -1476,7 +1610,8 @@ class CacheManager:
                         continue
                     cand_text = str(candidate)
                     if cand_text.lower() == lookup or self._normalize_lookup_token(cand_text) == normalized_lookup:
-                        return self._merge_champion_overrides(champ)
+                        merged = self._merge_champion_overrides(champ)
+                        return self._merge_cocpit_champion_metadata(merged)
 
         return None
 
@@ -1512,9 +1647,9 @@ class CacheManager:
         data = self._load_file("champions")
         champs = data.get("champions", {})
         if isinstance(champs, dict):
-            return list(champs.values())
+            return [self._merge_cocpit_champion_metadata(self._merge_champion_overrides(champ)) for champ in champs.values() if isinstance(champ, dict)]
         if isinstance(champs, list):
-            return champs
+            return [self._merge_cocpit_champion_metadata(self._merge_champion_overrides(champ)) for champ in champs if isinstance(champ, dict)]
         return []
 
     def get_all_champions_map(self) -> list:

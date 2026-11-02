@@ -146,6 +146,32 @@ def test_slash_champ_available_lists_rarity_availability_and_release_year():
     assert "Black Bolt" in content
 
 
+def test_slash_champ_available_falls_back_to_cocpit_cache_when_base_has_no_rarity_data():
+    class _CacheWithCocpit(_CacheStub):
+        def __init__(self, champions, cocpit):
+            super().__init__(champions)
+            self._cocpit = list(cocpit)
+
+        def get_all_cocpit_champions(self):
+            return list(self._cocpit)
+
+    class _CoreWithCocpit:
+        def __init__(self, champions, cocpit):
+            self.cache = _CacheWithCocpit(champions, cocpit)
+
+    champions = [{"id": "magneto-house-of-x", "slug": "magneto-house-of-x", "name": "Magneto (House of X)"}]
+    cocpit = [{"id": "magneto-house-of-x", "slug": "magneto-house-of-x", "name": "Magneto (House of X)", "available_rarities": [7], "release_date": "2024-10-23"}]
+    group = _ChampionGroup(core=_CoreWithCocpit(champions, cocpit))
+    interaction = _InteractionStub()
+
+    asyncio.run(_invoke(group.available, group, interaction))
+
+    content = str(interaction.response.calls[0].get("content") or "")
+    assert "Magneto (House of X)" in content
+    assert "7★" in content
+    assert "2024-10-23" in content
+
+
 def test_slash_roster_legacy_commands_removed():
     champion_rows = [
         {"id": "abomination", "slug": "abomination", "name": "Abomination", "tags": ["poison"]},

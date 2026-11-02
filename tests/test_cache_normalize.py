@@ -215,6 +215,66 @@ def test_cache_manager_resolves_cocpit_stats_by_progression_and_name_lookup(tmp_
     assert abilities["core_abilities"][0]["id"] == "venompool_core_0"
 
 
+def test_normalize_cocpit_champions_payload_preserves_release_fields():
+    manager = CacheManager.__new__(CacheManager)
+    payload = [
+        {
+            "id": "magneto-house-of-x",
+            "name": "Magneto (House of X)",
+            "availableRarities": [7, 6, 5],
+            "releaseDate": "2024-10-23",
+        }
+    ]
+
+    normalized = manager.normalize_cocpit_champions_payload(payload)
+
+    assert normalized is not None
+    row = normalized["champions"][0]
+    assert sorted(row["available_rarities"]) == [5, 6, 7]
+    assert row["release_date"] == "2024-10-23"
+    assert row["release_year"] == 2024
+
+
+def test_get_all_champions_enriches_with_cocpit_metadata(tmp_path):
+    manager = CacheManager.__new__(CacheManager)
+    manager.cache_dir = tmp_path
+    manager.metadata = {"versions": {}, "last_sync": None}
+    manager.metadata_file = tmp_path / "metadata.json"
+
+    base = {
+        "champions": {
+            "magneto-house-of-x": {
+                "id": "magneto-house-of-x",
+                "slug": "magneto-house-of-x",
+                "name": "Magneto (House of X)",
+                "class": "mutant",
+            }
+        }
+    }
+    cocpit = {
+        "version": "2026.09.09",
+        "champions": [
+            {
+                "id": "magneto-house-of-x",
+                "slug": "magneto-house-of-x",
+                "name": "Magneto (House of X)",
+                "available_rarities": [7, 6, 5],
+                "release_date": "2024-10-23",
+            }
+        ],
+    }
+
+    (tmp_path / "champions.json").write_text(json.dumps(base), encoding="utf-8")
+    (tmp_path / "cocpit_champions.json").write_text(json.dumps(cocpit), encoding="utf-8")
+
+    champs = manager.get_all_champions()
+
+    assert champs
+    assert champs[0]["available_rarities"] == [5, 6, 7]
+    assert champs[0]["release_date"] == "2024-10-23"
+    assert champs[0]["release_year"] == 2024
+
+
 def test_tierlist_document_validates_sample_payload():
     payload = json.loads(pathlib.Path("data/sample_mcocapp_tierlist.json").read_text(encoding="utf-8"))
     model = MCOCAppTierlistDocument.model_validate(payload)
