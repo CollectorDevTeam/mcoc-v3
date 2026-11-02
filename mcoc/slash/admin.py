@@ -14,8 +14,8 @@ from redbot.core import commands
 from redbot.core import app_commands
 from typing import Optional, Any
 
-from ..common.components.componentsV2 import CDTEmbed, CDTPagesMenu
-from ..common.helpers.admin_status import collect_admin_status_snapshot, build_admin_status_page_specs
+from ..common.components.componentsV2 import CDTEmbed
+from ..common.helpers.admin_status import collect_admin_status_snapshot
 
 log = logging.getLogger("red.mcoc.slash.admin")
 
@@ -69,6 +69,37 @@ class _AdminControlPanelView(discord.ui.View):
         super().__init__(timeout=240)
         self.group = group
         self.requester_id = requester_id
+        self.mode = "status"
+        self.last_action = "Panel loaded."
+
+    def _apply_button_state(self) -> None:
+        self.back_btn.disabled = self.mode == "status"
+        self.confirm_wipe_btn.disabled = self.mode != "confirm_wipe"
+
+    async def _render_status(self, interaction: discord.Interaction) -> None:
+        self.mode = "status"
+        self._apply_button_state()
+        embed = await self.group._build_status_embed(interaction, last_action=self.last_action)
+        await interaction.edit_original_response(content="Collector > MCOC Admin > Status", embed=embed, view=self)
+
+    async def _render_diagnostics(self, interaction: discord.Interaction) -> None:
+        self.mode = "diagnostics"
+        self._apply_button_state()
+        text = await self.group._build_diagnostics_text(interaction)
+        if len(text) > 1800:
+            text = text[:1800] + "\n... [truncated]"
+        content = "Collector > MCOC Admin > Diagnostics\n```text\n" + text + "\n```"
+        await interaction.edit_original_response(content=content, embed=None, view=self)
+
+    async def _render_wipe_confirm(self, interaction: discord.Interaction) -> None:
+        self.mode = "confirm_wipe"
+        self._apply_button_state()
+        message = (
+            "Collector > MCOC Admin > Confirm Wipe\n"
+            "This will delete all cache JSON files and reset metadata. "
+            "Press CONFIRM WIPE CACHE to continue, or Back to cancel."
+        )
+        await interaction.edit_original_response(content=message, embed=None, view=self)
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         if getattr(interaction.user, "id", None) == self.requester_id:
@@ -81,89 +112,60 @@ class _AdminControlPanelView(discord.ui.View):
     @discord.ui.button(label="Refresh", style=discord.ButtonStyle.secondary, row=0)
     async def refresh_btn(self, interaction: discord.Interaction, _button: discord.ui.Button):
         await interaction.response.defer(ephemeral=True)
-        embed = await self.group._build_status_embed(interaction)
-        await _edit_or_followup(interaction, embed=embed, view=self, ephemeral=True)
+        self.last_action = "Refreshed panel status."
+        await self._render_status(interaction)
 
     @discord.ui.button(label="Diagnostics", style=discord.ButtonStyle.primary, row=0)
     async def diagnostics_btn(self, interaction: discord.Interaction, _button: discord.ui.Button):
         await interaction.response.defer(ephemeral=True)
-        embed = await self.group._build_status_embed(interaction)
-        await _edit_or_followup(interaction, embed=embed, view=self, ephemeral=True)
+        self.last_action = "Generated diagnostics snapshot."
+        await self._render_diagnostics(interaction)
 
-        cache = self.group._cache_for(interaction)
-        if cache is None:
-            await interaction.followup.send("Diagnostics unavailable: cache subsystem is not attached.", ephemeral=True)
-            return
-
-        health = getattr(cache, "health_check", None)
-        health_summary = health() if callable(health) else {"ok": True, "issues": [], "details": {}}
-        snapshot = await collect_admin_status_snapshot(self.group._resolve_core(interaction), cache, health_summary)
-        specs = build_admin_status_page_specs(snapshot)
-        color = discord.Color.gold() if bool(health_summary.get("ok", True)) else discord.Color.orange()
-
-        pages = []
-        total_pages = len(specs)
-        for index, spec in enumerate(specs, start=1):
-            detail = CDTEmbed.embed(
-                interaction,
-                title=spec.get("title", "MCOC Diagnostics"),
-                description=spec.get("description", ""),
-                color=color,
-            )
-            try:
-                CDTEmbed.set_footer(interaction, detail, text=f"Page {index} of {total_pages} | Collector | Admin Diagnostics")
-            except Exception:
-                pass
-            pages.append(detail)
-
-        if pages:
-            await interaction.followup.send(embed=pages[0], view=CDTPagesMenu(pages, author=interaction.user), ephemeral=True)
+    @discord.ui.button(label="Back", style=discord.ButtonStyle.secondary, row=0)
+    async def back_btn(self, interaction: discord.Interaction, _button: discord.ui.Button):
+        await interaction.response.defer(ephemeral=True)
+        self.last_action = "Returned to status view."
+        await self._render_status(interaction)
 
     @discord.ui.button(label="Force Sync", style=discord.ButtonStyle.success, row=1)
     async def force_sync_btn(self, interaction: discord.Interaction, _button: discord.ui.Button):
         await interaction.response.defer(ephemeral=True)
         ok, message = await self.group._execute_force_sync(interaction)
-        embed = await self.group._build_status_embed(interaction)
-        await _edit_or_followup(interaction, content=message, embed=embed, view=self, ephemeral=True)
+        self.last_action = message
+        await self._render_status(interaction)
         if not ok:
             log.warning("Admin panel force sync failed: %s", message)
 
     @discord.ui.button(label="Wipe Cache", style=discord.ButtonStyle.danger, row=1)
     async def wipe_cache_btn(self, interaction: discord.Interaction, _button: discord.ui.Button):
-        await interaction.response.send_message(
-            "Confirm full cache wipe? This deletes all cached JSON and requires a new sync.",
-            view=_AdminWipeConfirmView(self.group, self),
-            ephemeral=True,
-        )
-
-
-class _AdminWipeConfirmView(discord.ui.View):
-    def __init__(self, group: "_AdminGroup", panel: _AdminControlPanelView):
-        super().__init__(timeout=90)
-        self.group = group
-        self.panel = panel
-
-    @discord.ui.button(label="YES, WIPE CACHE", style=discord.ButtonStyle.danger)
-    async def yes_btn(self, interaction: discord.Interaction, _button: discord.ui.Button):
         await interaction.response.defer(ephemeral=True)
+        await self._render_wipe_confirm(interaction)
+
+    @discord.ui.button(label="CONFIRM WIPE CACHE", style=discord.ButtonStyle.danger, row=1)
+    async def confirm_wipe_btn(self, interaction: discord.Interaction, _button: discord.ui.Button):
+        await interaction.response.defer(ephemeral=True)
+        if self.mode != "confirm_wipe":
+            return
         cache = self.group._cache_for(interaction)
         if cache is None or not callable(getattr(cache, "wipe_cache", None)):
-            await _edit_or_followup(interaction, content="Cache wipe unavailable: cache subsystem is not attached.", ephemeral=True)
+            self.last_action = "Cache wipe unavailable: cache subsystem is not attached."
+            await self._render_status(interaction)
             return
         try:
             result = cache.wipe_cache()
             removed = int(result.get("removed") or 0) if isinstance(result, dict) else 0
-            message = f"Cache wipe complete. Removed {removed} file(s)."
+            self.last_action = f"Cache wipe complete. Removed {removed} file(s)."
         except Exception as exc:
             log.exception("Cache wipe failed")
-            message = f"Cache wipe failed: {type(exc).__name__}: {exc}"
+            self.last_action = f"Cache wipe failed: {type(exc).__name__}: {exc}"
 
-        embed = await self.group._build_status_embed(interaction)
-        await _edit_or_followup(interaction, content=message, embed=embed, view=self.panel, ephemeral=True)
+        await self._render_status(interaction)
 
-    @discord.ui.button(label="Cancel", style=discord.ButtonStyle.secondary)
-    async def cancel_btn(self, interaction: discord.Interaction, _button: discord.ui.Button):
-        await _edit_or_followup(interaction, content="Cache wipe cancelled.", ephemeral=True)
+    @discord.ui.button(label="Close", style=discord.ButtonStyle.secondary, row=2)
+    async def close_btn(self, interaction: discord.Interaction, _button: discord.ui.Button):
+        await interaction.response.defer(ephemeral=True)
+        self.stop()
+        await interaction.edit_original_response(content="Collector > MCOC Admin\nPanel closed.", embed=None, view=None)
 
 
 class _AdminGroup(app_commands.Group):
@@ -221,7 +223,7 @@ class _AdminGroup(app_commands.Group):
         candidate = core if core is not None else self.core
         return getattr(candidate, "cache", None)
 
-    async def _build_status_embed(self, interaction: discord.Interaction) -> discord.Embed:
+    async def _build_status_embed(self, interaction: discord.Interaction, *, last_action: Optional[str] = None) -> discord.Embed:
         cache = self._cache_for(interaction)
         if cache is None:
             return CDTEmbed.embed(
@@ -250,6 +252,8 @@ class _AdminGroup(app_commands.Group):
             description="Use the buttons below to run diagnostics, force a sync, or wipe cached data.",
             color=discord.Color.gold() if not issues else discord.Color.orange(),
         )
+        if last_action:
+            embed.add_field(name="Last Action", value=last_action, inline=False)
         embed.add_field(name="Last Sync", value=str(last_sync), inline=False)
         embed.add_field(name="API Attached", value="Yes" if api_attached else "No", inline=True)
         embed.add_field(name="Cache Health", value="Healthy" if not issues else "Issues Detected", inline=True)
@@ -271,6 +275,73 @@ class _AdminGroup(app_commands.Group):
         except Exception:
             pass
         return embed
+
+    async def _build_diagnostics_text(self, interaction: discord.Interaction) -> str:
+        cache = self._cache_for(interaction)
+        if cache is None:
+            return "Diagnostics unavailable: cache subsystem is not attached."
+
+        health_fn = getattr(cache, "health_check", None)
+        health = health_fn() if callable(health_fn) else {"ok": True, "issues": [], "details": {}}
+        snapshot = await collect_admin_status_snapshot(self._resolve_core(interaction), cache, health)
+        versions = snapshot.get("versions", {}) or {}
+        details = (health.get("details", {}) if isinstance(health, dict) else {}) or {}
+
+        lines = [
+            "MCOC ADMIN DIAGNOSTICS",
+            f"last_sync: {snapshot.get('last_sync', 'Never')}",
+            f"api_attached: {'yes' if snapshot.get('api_attached') else 'no'}",
+            f"cache_health: {'healthy' if health.get('ok', True) else 'issues_detected'}",
+            "",
+            "versions:",
+            f"  champions: {versions.get('champions')}",
+            f"  cocpit_champions: {versions.get('cocpit_champions')}",
+            f"  cocpit_abilities: {versions.get('cocpit_abilities')}",
+            f"  champstats: {versions.get('champstats')}",
+            "",
+            "counts:",
+            f"  champions: {len(snapshot.get('champions') or [])}",
+            f"  abilities: {len(snapshot.get('abilities') or [])}",
+            f"  tags: {len(snapshot.get('tags') or [])}",
+            f"  immunities: {len(snapshot.get('immunities') or [])}",
+            f"  cocpit_champions: {len(snapshot.get('cocpit_champions') or [])}",
+            f"  cocpit_abilities: {len(snapshot.get('cocpit_abilities_rows') or [])}",
+            f"  champstats: {len(snapshot.get('champstats_rows') or [])}",
+            "",
+            "files:",
+        ]
+
+        for name in sorted(details.keys()):
+            item = details.get(name) or {}
+            lines.append(
+                f"  {name}: exists={bool(item.get('exists'))} valid={bool(item.get('valid'))} count={int(item.get('count') or 0)}"
+            )
+
+        issues = health.get("issues", []) if isinstance(health, dict) else []
+        lines.append("")
+        lines.append("issues:")
+        if issues:
+            for issue in issues:
+                lines.append(f"  - {issue}")
+        else:
+            lines.append("  - none")
+
+        probe = snapshot.get("cocpit_probe", {}) or {}
+        lines.extend(
+            [
+                "",
+                "cocpit_probe:",
+                f"  sample: {probe.get('sample')}",
+                f"  ok: {probe.get('ok')}",
+                f"  sig_sections: {probe.get('sig_sections')}",
+                f"  core_sections: {probe.get('core_sections')}",
+                f"  synergies: {probe.get('synergies')}",
+                f"  base_stats: {probe.get('base_stats')}",
+                f"  error: {probe.get('error')}",
+            ]
+        )
+
+        return "\n".join(lines)
 
     async def _execute_force_sync(self, interaction: discord.Interaction) -> tuple[bool, str]:
         core = self._resolve_core(interaction)
@@ -331,8 +402,9 @@ class _AdminGroup(app_commands.Group):
             return
         await interaction.response.defer(ephemeral=True)
         panel = _AdminControlPanelView(self, requester_id=getattr(interaction.user, "id", 0))
-        embed = await self._build_status_embed(interaction)
-        await _edit_or_followup(interaction, embed=embed, view=panel, ephemeral=True)
+        panel._apply_button_state()
+        embed = await self._build_status_embed(interaction, last_action=panel.last_action)
+        await _edit_or_followup(interaction, content="Collector > MCOC Admin > Status", embed=embed, view=panel, ephemeral=True)
 
     @app_commands.command(name="forcesync", description="Force a full sync from MCOCHUB")
     async def forcesync(self, interaction: discord.Interaction):
