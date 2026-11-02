@@ -12,7 +12,7 @@ import inspect
 import discord
 from redbot.core import commands
 from redbot.core import app_commands
-from typing import Optional
+from typing import Optional, Any
 
 from ..common.components.componentsV2 import CDTEmbed, CDTPagesMenu
 from ..common.helpers.admin_status import collect_admin_status_snapshot, build_admin_status_page_specs
@@ -31,6 +31,54 @@ class _AdminGroup(app_commands.Group):
         self.core = core
         self.config = getattr(core, "config", None)
         self._init_failed = False
+
+    def _resolve_core(self, interaction: Optional[discord.Interaction] = None) -> Optional[Any]:
+        candidates: list[Any] = []
+        if self.core is not None:
+            candidates.append(self.core)
+
+        client = getattr(interaction, "client", None) if interaction else None
+        if client is not None:
+            direct = getattr(client, "mcoc_core", None)
+            if direct is not None:
+                candidates.append(direct)
+            get_cog = getattr(client, "get_cog", None)
+            if callable(get_cog):
+                for name in ("MCOC", "MCOCPrefix", "MCOCSlash"):
+                    cog = get_cog(name)
+                    if cog is None:
+                        continue
+                    candidates.append(cog)
+                    parent = getattr(cog, "parent", None)
+                    if parent is not None:
+                        candidates.append(parent)
+                    core_attr = getattr(cog, "core", None)
+                    if core_attr is not None:
+                        candidates.append(core_attr)
+
+        for candidate in candidates:
+            if candidate is None:
+                continue
+            if callable(getattr(candidate, "sync_data", None)):
+                return candidate
+            cache = getattr(candidate, "cache", None)
+            api = getattr(candidate, "api", None)
+            if cache is not None and api is not None and callable(getattr(cache, "sync", None)):
+                return candidate
+        return None
+
+    async def _run_force_sync(self, core: Any) -> bool:
+        sync_data = getattr(core, "sync_data", None)
+        if callable(sync_data):
+            result = sync_data()
+            return bool(await result) if inspect.isawaitable(result) else bool(result)
+
+        cache = getattr(core, "cache", None)
+        api = getattr(core, "api", None)
+        if cache is not None and api is not None and callable(getattr(cache, "sync", None)):
+            return bool(await cache.sync(api, include_champstats=True))
+
+        return False
 
     async def _is_owner(self, interaction: discord.Interaction) -> bool:
         try:
@@ -102,16 +150,16 @@ class _AdminGroup(app_commands.Group):
         if not await self._is_owner(interaction):
             await interaction.response.send_message("You must be a bot owner to use this command.", ephemeral=True)
             return
-        if not getattr(self.core, "api", None):
+        core = self._resolve_core(interaction)
+        if core is None:
+            await interaction.response.send_message("Sync unavailable: core.sync_data is not configured.", ephemeral=True)
+            return
+
+        if not getattr(core, "api", None):
             await interaction.response.send_message("Cannot sync: API key not set.", ephemeral=True)
             return
         await interaction.response.defer()
-        sync_data = getattr(self.core, "sync_data", None)
-        if not callable(sync_data):
-            await interaction.followup.send("Sync unavailable: core.sync_data is not configured.")
-            return
-        result = sync_data()
-        ok = await result if inspect.isawaitable(result) else bool(result)
+        ok = await self._run_force_sync(core)
         if ok:
             await interaction.followup.send("Sync complete.")
         else:
