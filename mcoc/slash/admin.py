@@ -72,7 +72,7 @@ class _AdminControlPanelView(discord.ui.View):
         self.group = group
         self.requester_id = requester_id
         self.mode = "status"
-        self.last_action = "Panel loaded."
+        self.last_action = "Status panel ready."
         self._sync_running = False
         self._refresh_layout()
 
@@ -498,21 +498,51 @@ class _AdminGroup(app_commands.Group):
             return False, "Sync unavailable: core.sync_data is not configured."
         if not getattr(core, "api", None):
             return False, "Cannot sync: API key not set."
+
         ok = await self._run_force_sync(core)
+        cache = getattr(core, "cache", None)
+
         if ok:
-            return True, "Sync complete."
-        return False, "Sync skipped or failed. Check diagnostics for details."
+            if cache is not None and hasattr(cache, "is_recent"):
+                try:
+                    if cache.is_recent(hours=24):
+                        return True, "Cache is already current; no refresh was required."
+                except Exception:
+                    pass
+            return True, "Sync complete. Cache refreshed successfully."
+
+        # A false result here is not always a hard failure; the cache may already be
+        # fresh and the sync layer intentionally returned a no-op result.
+        if cache is not None and hasattr(cache, "is_recent"):
+            try:
+                if cache.is_recent(hours=24):
+                    return True, "Cache is already current; no refresh was required."
+            except Exception:
+                pass
+        return False, "Sync failed. Check diagnostics for details."
 
     async def _run_force_sync(self, core: Any) -> bool:
         sync_data = getattr(core, "sync_data", None)
         if callable(sync_data):
-            result = sync_data()
-            return bool(await result) if inspect.isawaitable(result) else bool(result)
+            try:
+                result = sync_data()
+                if inspect.isawaitable(result):
+                    result = await result
+                if result is None:
+                    return True
+                return bool(result)
+            except Exception:
+                log.exception("Admin force sync via core.sync_data failed")
+                return False
 
         cache = getattr(core, "cache", None)
         api = getattr(core, "api", None)
         if cache is not None and api is not None and callable(getattr(cache, "sync", None)):
-            return bool(await cache.sync(api, include_champstats=True))
+            try:
+                return bool(await cache.sync(api, include_champstats=True))
+            except Exception:
+                log.exception("Admin force sync via cache.sync failed")
+                return False
 
         return False
 

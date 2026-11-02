@@ -782,6 +782,7 @@ class _AllianceSettingsView(CDTAutoCleanupView):
         can_create = "create" in caps
         self.create_btn.disabled = not can_create
         self.reports_btn.disabled = "reports" not in caps or not has_alliance
+        self.manage_btn.disabled = "settings" not in caps or not has_alliance
         self.settings_btn.disabled = "settings" not in caps or not has_alliance
         self.assign_btn.disabled = "assign" not in caps or not has_alliance
         self.delete_btn.disabled = "delete" not in caps or not has_alliance
@@ -794,7 +795,7 @@ class _AllianceSettingsView(CDTAutoCleanupView):
         if "reports" in caps:
             self.add_item(self.reports_btn)
         if "settings" in caps:
-            self.add_item(self.settings_btn)
+            self.add_item(self.manage_btn)
         if "assign" in caps:
             self.add_item(self.assign_btn)
         if "delete" in caps:
@@ -841,8 +842,8 @@ class _AllianceSettingsView(CDTAutoCleanupView):
             log.exception("Alliance settings REPORTS callback failed")
             await _safe_ephemeral_error(interaction, "Reports workflow failed to open. Please try again.")
 
-    @discord.ui.button(label="SETTINGS", style=discord.ButtonStyle.secondary)
-    async def settings_btn(self, interaction: discord.Interaction, _button: discord.ui.Button):
+    @discord.ui.button(label="MANAGE", style=discord.ButtonStyle.secondary)
+    async def manage_btn(self, interaction: discord.Interaction, _button: discord.ui.Button):
         try:
             guild = getattr(interaction, "guild", None)
             if guild is None:
@@ -873,8 +874,12 @@ class _AllianceSettingsView(CDTAutoCleanupView):
             await _edit_or_send(interaction, content=view.build_summary_text(), view=view)
             await view.bind_to_interaction_response(interaction)
         except Exception:
-            log.exception("Alliance settings SETTINGS callback failed")
+            log.exception("Alliance settings MANAGE callback failed")
             await _safe_ephemeral_error(interaction, "Settings workflow failed to open. Please try again.")
+
+    @discord.ui.button(label="SETTINGS", style=discord.ButtonStyle.secondary)
+    async def settings_btn(self, interaction: discord.Interaction, _button: discord.ui.Button):
+        await self.manage_btn.callback(interaction, _button)
 
     @discord.ui.button(label="ASSIGN ROLE", style=discord.ButtonStyle.secondary)
     async def assign_btn(self, interaction: discord.Interaction, _button: discord.ui.Button):
@@ -1036,6 +1041,10 @@ class _AllianceGroup(app_commands.Group):
             return
         target = user or interaction.user
         await interaction.response.send_message(_build_alliance_profile_text(cfg, guild, target), ephemeral=False)
+
+    @app_commands.command(name="settings", description="Alliance settings and management workflows")
+    async def settings(self, interaction: discord.Interaction):
+        await self._open_workflow(interaction)
 
     @app_commands.command(name="manage", description="Alliance management workflows")
     async def manage(self, interaction: discord.Interaction):
