@@ -204,6 +204,18 @@ def test_slash_roster_rankup_command_removed():
     assert not hasattr(group, "rankup")
 
 
+def test_admin_status_panel_compatibility_hook_exists_and_is_safe():
+    from mcoc.slash.admin import _AdminControlPanelView, _AdminGroup
+
+    group = _AdminGroup(core=None)
+    panel = _AdminControlPanelView(group, requester_id=42)
+
+    panel._apply_button_state()
+
+    assert panel.mode == "status"
+    assert panel.requester_id == 42
+
+
 def test_build_roster_pages_reuses_cached_pages_for_same_roster_state(monkeypatch):
     import mcoc.common.helpers.roster as roster_mod
 

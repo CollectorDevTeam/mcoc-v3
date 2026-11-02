@@ -76,6 +76,15 @@ class _AdminControlPanelView(discord.ui.View):
         self._sync_running = False
         self._refresh_layout()
 
+    def _apply_button_state(self, *args: Any, **kwargs: Any) -> None:
+        """Compatibility shim for older admin-panel callers.
+
+        Older builds invoke this method when opening the status panel. The current
+        implementation keeps the view layout in sync by rebuilding button rows from
+        the active mode, which is the behavior consumers expect.
+        """
+        self._refresh_layout()
+
     def _refresh_layout(self) -> None:
         self.clear_items()
         if self.mode == "status":
