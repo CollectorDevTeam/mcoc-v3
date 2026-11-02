@@ -9,6 +9,8 @@
 #   1.0 2026-09-01  Initial stabilized API header
 import logging
 import inspect
+import asyncio
+import time
 import discord
 from redbot.core import commands
 from redbot.core import app_commands
@@ -71,33 +73,59 @@ class _AdminControlPanelView(discord.ui.View):
         self.requester_id = requester_id
         self.mode = "status"
         self.last_action = "Panel loaded."
+        self._sync_running = False
+        self._refresh_layout()
 
-    def _apply_button_state(self) -> None:
-        self.back_btn.disabled = self.mode == "status"
-        self.confirm_wipe_btn.disabled = self.mode != "confirm_wipe"
+    def _refresh_layout(self) -> None:
+        self.clear_items()
+        if self.mode == "status":
+            self.add_item(self.refresh_btn)
+            self.add_item(self.diagnostics_btn)
+            self.add_item(self.data_map_btn)
+            self.add_item(self.force_sync_btn)
+            self.add_item(self.wipe_cache_btn)
+            self.add_item(self.close_btn)
+            return
+        if self.mode == "confirm_wipe":
+            self.add_item(self.wipe_yes_btn)
+            self.add_item(self.wipe_no_btn)
+            self.add_item(self.back_btn)
+            self.add_item(self.close_btn)
+            return
+        self.add_item(self.back_btn)
+        self.add_item(self.close_btn)
 
     async def _render_status(self, interaction: discord.Interaction) -> None:
         self.mode = "status"
-        self._apply_button_state()
+        self._refresh_layout()
         embed = await self.group._build_status_embed(interaction, last_action=self.last_action)
         await interaction.edit_original_response(content="Collector > MCOC Admin > Status", embed=embed, view=self)
 
     async def _render_diagnostics(self, interaction: discord.Interaction) -> None:
         self.mode = "diagnostics"
-        self._apply_button_state()
+        self._refresh_layout()
         text = await self.group._build_diagnostics_text(interaction)
         if len(text) > 1800:
             text = text[:1800] + "\n... [truncated]"
         content = "Collector > MCOC Admin > Diagnostics\n```text\n" + text + "\n```"
         await interaction.edit_original_response(content=content, embed=None, view=self)
 
+    async def _render_data_map(self, interaction: discord.Interaction) -> None:
+        self.mode = "data_map"
+        self._refresh_layout()
+        text = await self.group._build_data_map_text(interaction)
+        if len(text) > 1800:
+            text = text[:1800] + "\n... [truncated]"
+        content = "Collector > MCOC Admin > Data Map\n```text\n" + text + "\n```"
+        await interaction.edit_original_response(content=content, embed=None, view=self)
+
     async def _render_wipe_confirm(self, interaction: discord.Interaction) -> None:
         self.mode = "confirm_wipe"
-        self._apply_button_state()
+        self._refresh_layout()
         message = (
             "Collector > MCOC Admin > Confirm Wipe\n"
-            "This will delete all cache JSON files and reset metadata. "
-            "Press CONFIRM WIPE CACHE to continue, or Back to cancel."
+            "This will delete all cache JSON files and reset metadata.\n"
+            "Confirm wipe data?"
         )
         await interaction.edit_original_response(content=message, embed=None, view=self)
 
@@ -112,16 +140,22 @@ class _AdminControlPanelView(discord.ui.View):
     @discord.ui.button(label="Refresh", style=discord.ButtonStyle.secondary, row=0)
     async def refresh_btn(self, interaction: discord.Interaction, _button: discord.ui.Button):
         await interaction.response.defer(ephemeral=True)
-        self.last_action = "Refreshed panel status."
+        self.last_action = "Refreshed status snapshot from current cache and metadata."
         await self._render_status(interaction)
 
     @discord.ui.button(label="Diagnostics", style=discord.ButtonStyle.primary, row=0)
     async def diagnostics_btn(self, interaction: discord.Interaction, _button: discord.ui.Button):
         await interaction.response.defer(ephemeral=True)
-        self.last_action = "Generated diagnostics snapshot."
+        self.last_action = "Generated diagnostics snapshot report."
         await self._render_diagnostics(interaction)
 
-    @discord.ui.button(label="Back", style=discord.ButtonStyle.secondary, row=0)
+    @discord.ui.button(label="Data Map", style=discord.ButtonStyle.secondary, row=0)
+    async def data_map_btn(self, interaction: discord.Interaction, _button: discord.ui.Button):
+        await interaction.response.defer(ephemeral=True)
+        self.last_action = "Generated source-to-champion field mapping report."
+        await self._render_data_map(interaction)
+
+    @discord.ui.button(label="Back", style=discord.ButtonStyle.secondary, row=1)
     async def back_btn(self, interaction: discord.Interaction, _button: discord.ui.Button):
         await interaction.response.defer(ephemeral=True)
         self.last_action = "Returned to status view."
@@ -130,7 +164,26 @@ class _AdminControlPanelView(discord.ui.View):
     @discord.ui.button(label="Force Sync", style=discord.ButtonStyle.success, row=1)
     async def force_sync_btn(self, interaction: discord.Interaction, _button: discord.ui.Button):
         await interaction.response.defer(ephemeral=True)
-        ok, message = await self.group._execute_force_sync(interaction)
+        if self._sync_running:
+            self.last_action = "Force sync already running."
+            await self._render_status(interaction)
+            return
+
+        self._sync_running = True
+        started = time.monotonic()
+        spinner = ["|", "/", "-", "\\"]
+        sync_task = asyncio.create_task(self.group._execute_force_sync(interaction))
+        beat = 0
+
+        while not sync_task.done():
+            elapsed = int(time.monotonic() - started)
+            self.last_action = f"Force sync running {spinner[beat % len(spinner)]} heartbeat={beat + 1} elapsed={elapsed}s"
+            await self._render_status(interaction)
+            beat += 1
+            await asyncio.sleep(1.0)
+
+        ok, message = await sync_task
+        self._sync_running = False
         self.last_action = message
         await self._render_status(interaction)
         if not ok:
@@ -141,8 +194,8 @@ class _AdminControlPanelView(discord.ui.View):
         await interaction.response.defer(ephemeral=True)
         await self._render_wipe_confirm(interaction)
 
-    @discord.ui.button(label="CONFIRM WIPE CACHE", style=discord.ButtonStyle.danger, row=1)
-    async def confirm_wipe_btn(self, interaction: discord.Interaction, _button: discord.ui.Button):
+    @discord.ui.button(label="Yes", style=discord.ButtonStyle.danger, row=0)
+    async def wipe_yes_btn(self, interaction: discord.Interaction, _button: discord.ui.Button):
         await interaction.response.defer(ephemeral=True)
         if self.mode != "confirm_wipe":
             return
@@ -158,7 +211,12 @@ class _AdminControlPanelView(discord.ui.View):
         except Exception as exc:
             log.exception("Cache wipe failed")
             self.last_action = f"Cache wipe failed: {type(exc).__name__}: {exc}"
+        await self._render_status(interaction)
 
+    @discord.ui.button(label="No", style=discord.ButtonStyle.secondary, row=0)
+    async def wipe_no_btn(self, interaction: discord.Interaction, _button: discord.ui.Button):
+        await interaction.response.defer(ephemeral=True)
+        self.last_action = "Cache wipe aborted."
         await self._render_status(interaction)
 
     @discord.ui.button(label="Close", style=discord.ButtonStyle.secondary, row=2)
@@ -342,6 +400,88 @@ class _AdminGroup(app_commands.Group):
         )
 
         return "\n".join(lines)
+
+    async def _build_data_map_text(self, interaction: discord.Interaction) -> str:
+        cache = self._cache_for(interaction)
+        if cache is None:
+            return "Data map unavailable: cache subsystem is not attached."
+
+        mapped_lines = [
+            "DATA SOURCE MAPPING REPORT",
+            "",
+            "Cocpit properties -> Champion properties:",
+            "  id -> id",
+            "  name -> name",
+            "  id/name -> slug (normalized lookup token)",
+            "  aliases -> aliases",
+            "  className/class_name -> class_name",
+            "  img -> img",
+            "  availableRarities -> available_rarities",
+            "  ascensionMaxByRarity -> ascension_max_by_rarity",
+            "  releaseDate/releasedAt -> release_date",
+            "  releaseYear/releaseDate/releasedAt -> release_year",
+            "",
+            "mcochub properties -> Champion properties:",
+            "  id -> id",
+            "  name -> name",
+            "  class -> class_name",
+            "  tags -> tags",
+            "  abilities -> abilities + ability_tags",
+            "  immunities -> immunities",
+            "  images/image_url -> images/image_url",
+            "",
+            "mcoc.app properties -> Champion properties:",
+            "  name -> name",
+            "  class/class_name -> class_name",
+            "  tier -> tier",
+            "  tags -> tags",
+            "  inflicts -> abilities (tag-like entries)",
+            "  immunities -> immunities",
+            "",
+            "Cocpit properties -> unmapped/kept external:",
+            "  attackMoves, duelTargets, most synergy internals",
+            "  full core/sig/raw ability payload stays in cocpit_abilities cache",
+            "",
+            "mcochub properties -> unmapped/kept external:",
+            "  source-specific extras not used by champion helpers remain raw",
+            "",
+            "mcoc.app properties -> unmapped/kept external:",
+            "  score, awakened, high_sig, no7star, class_rank",
+            "  document metadata (tier/order/color maps) stored in tierlist cache",
+            "",
+            "None -> Champion properties to be mapped (potential future work):",
+            "  explicit source-of-truth precedence map per field",
+            "  conflict audit fields (when mcochub vs cocpit disagree)",
+            "",
+        ]
+
+        try:
+            champions = cache.get_all_champions() if callable(getattr(cache, "get_all_champions", None)) else []
+            cocpit = cache.get_all_cocpit_champions() if callable(getattr(cache, "get_all_cocpit_champions", None)) else []
+            mapped_lines.append("coverage_snapshot:")
+            mapped_lines.append(f"  champions_total: {len(champions or [])}")
+            mapped_lines.append(f"  cocpit_total: {len(cocpit or [])}")
+
+            release_mapped = 0
+            rarity_mapped = 0
+            class_mapped = 0
+            for champ in champions or []:
+                if not isinstance(champ, dict):
+                    continue
+                if champ.get("release_date") or champ.get("release_year"):
+                    release_mapped += 1
+                if champ.get("available_rarities"):
+                    rarity_mapped += 1
+                if champ.get("class_name"):
+                    class_mapped += 1
+            mapped_lines.append(f"  champions_with_release: {release_mapped}")
+            mapped_lines.append(f"  champions_with_available_rarities: {rarity_mapped}")
+            mapped_lines.append(f"  champions_with_class_name: {class_mapped}")
+        except Exception:
+            mapped_lines.append("coverage_snapshot:")
+            mapped_lines.append("  failed_to_collect_live_coverage: True")
+
+        return "\n".join(mapped_lines)
 
     async def _execute_force_sync(self, interaction: discord.Interaction) -> tuple[bool, str]:
         core = self._resolve_core(interaction)
