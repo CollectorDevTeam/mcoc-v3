@@ -637,6 +637,8 @@ def _champion_filter_tokens(champ: Dict[str, Any]) -> List[str]:
         champ.get("class"),
         champ.get("class_name"),
         champ.get("tier"),
+        champ.get("attack_tier"),
+        champ.get("defense_tier"),
         champ.get("tags"),
         champ.get("abilities"),
         champ.get("immunities"),
@@ -685,7 +687,17 @@ def _champion_matches_filters(champ: Dict[str, Any], filters: Dict[str, Any]) ->
                 return False
 
         requested_tokens: List[str] = []
-        for key in ("tags", "classes", "abilities", "immunities", "inflicts", "tiers", "rarities"):
+        for key in (
+            "tags",
+            "classes",
+            "abilities",
+            "immunities",
+            "inflicts",
+            "tiers",
+            "rarities",
+            "attack_tiers",
+            "defense_tiers",
+        ):
             for value in (filters.get(key) or []):
                 token = str(value).lower().strip()
                 if token:

@@ -8,6 +8,7 @@
 # Changelog:
 #   1.0 2026-09-01  Initial stabilized API header
 import logging
+import re
 from typing import Optional, Any, List
 from redbot.core import commands
 from redbot.core import app_commands
@@ -169,6 +170,121 @@ class _ChampionGroup(app_commands.Group):
                 return str(int(value))
         return ""
 
+    @staticmethod
+    def _extract_scout_section_value(values: Any, section: str) -> Optional[str]:
+        if not isinstance(values, list):
+            return None
+        prefix = f"{section.strip().lower()}:"
+        for value in values:
+            text = str(value or "").strip()
+            if not text:
+                continue
+            lowered = text.lower()
+            if lowered.startswith(prefix):
+                return text.split(":", 1)[1].strip()
+        return None
+
+    @staticmethod
+    def _normalize_scout_awakening(text: Any) -> Optional[str]:
+        raw = str(text or "").strip()
+        if not raw:
+            return None
+        lowered = raw.lower()
+        if "unawakened" in lowered or "not required" in lowered:
+            return "Not required"
+        if lowered.startswith("awaken") or "recommended" in lowered:
+            return "Recommended"
+        return raw.rstrip(".")
+
+    @staticmethod
+    def _parse_scout_rank_summary(text: Any) -> Optional[str]:
+        raw = str(text or "").strip()
+        if not raw:
+            return None
+        lowered = raw.lower()
+        if "low rank-up priority" in lowered:
+            return "Low priority"
+        match = re.search(r"rank\s*(\d+)", raw, re.IGNORECASE)
+        if match:
+            return f"Rank {match.group(1)}"
+        return raw.rstrip(".")
+
+    def _build_scout_sections(self, champion: Any) -> Optional[dict]:
+        if not isinstance(champion, dict):
+            return None
+
+        guide = champion.get("scout_guide") if isinstance(champion.get("scout_guide"), dict) else {}
+
+        attack_tier = str(guide.get("attack_tier") or champion.get("attack_tier") or "").strip().upper()
+        defense_tier = str(guide.get("defense_tier") or champion.get("defense_tier") or "").strip().upper()
+
+        rank_priority = guide.get("rank_priority") if isinstance(guide.get("rank_priority"), list) else []
+        awakening = guide.get("awakening") if isinstance(guide.get("awakening"), list) else []
+        signature_investment = guide.get("signature_investment") if isinstance(guide.get("signature_investment"), list) else []
+
+        attack_rank = self._parse_scout_rank_summary(self._extract_scout_section_value(rank_priority, "attack"))
+        defense_rank = self._parse_scout_rank_summary(self._extract_scout_section_value(rank_priority, "defense"))
+
+        attack_awakening = self._normalize_scout_awakening(
+            guide.get("attack_awakening") or self._extract_scout_section_value(awakening, "attack")
+        )
+        defense_awakening = self._normalize_scout_awakening(
+            guide.get("defense_awakening") or self._extract_scout_section_value(awakening, "defense")
+        )
+
+        attack_sig = str(
+            guide.get("attack_signature_reference")
+            or self._extract_scout_section_value(signature_investment, "attack")
+            or "-"
+        ).strip()
+        defense_sig = str(
+            guide.get("defense_signature_reference")
+            or self._extract_scout_section_value(signature_investment, "defense")
+            or "-"
+        ).strip()
+
+        if not any([attack_tier, defense_tier, attack_rank, defense_rank, attack_awakening, defense_awakening]):
+            return None
+
+        name = str(champion.get("name") or champion.get("title") or champion.get("slug") or champion.get("id") or "Champion").strip()
+        return {
+            "name": name,
+            "attack": {
+                "tier": attack_tier or "-",
+                "rank": attack_rank or "-",
+                "awakening": attack_awakening or "-",
+                "sig": attack_sig or "-",
+            },
+            "defense": {
+                "tier": defense_tier or "-",
+                "rank": defense_rank or "-",
+                "awakening": defense_awakening or "-",
+                "sig": defense_sig or "-",
+            },
+        }
+
+    def _build_scout_summary(self, champion: Any) -> Optional[str]:
+        sections = self._build_scout_sections(champion)
+        if not sections:
+            return None
+
+        lines = [
+            f"**{sections['name']} - Scout Guide**",
+            "",
+            "**Attack**",
+            f"Tier: {sections['attack']['tier']}",
+            f"Rank: {sections['attack']['rank']}",
+            f"Awakening: {sections['attack']['awakening']}",
+            f"Sig target: {sections['attack']['sig']}",
+            "",
+            "**Defense**",
+            f"Tier: {sections['defense']['tier']}",
+            f"Rank: {sections['defense']['rank']}",
+            f"Awakening: {sections['defense']['awakening']}",
+            f"Sig target: {sections['defense']['sig']}",
+        ]
+        return "\n".join(lines)
+
     async def tag_autocomplete(self, interaction, current: str):
         idx = self._index()
         cur = (current or "").lower()
@@ -227,6 +343,62 @@ class _ChampionGroup(app_commands.Group):
         except Exception:
             log.exception("Failed to build champion embed")
             await safe_respond_interaction(interaction, content=champ.get("name", "Unknown"), ephemeral=True)
+
+    @app_commands.command(name="scout", description="Show MCOC Scout attack and defense guidance for a champion")
+    @app_commands.autocomplete(champion=champion_autocomplete)
+    async def scout(self, interaction, champion: str):
+        champ = resolve_champion(self._cache(), champion)
+        if not champ:
+            await safe_respond_interaction(interaction, content=f"Champion `{champion}` not found.", ephemeral=True)
+            return
+
+        sections = self._build_scout_sections(champ)
+        if not sections:
+            await safe_respond_interaction(
+                interaction,
+                content="Scout guide data is not available for that champion yet.",
+                ephemeral=True,
+            )
+            return
+
+        attack = sections["attack"]
+        defense = sections["defense"]
+
+        embed = CDTEmbed.embed(
+            interaction,
+            title=f"{sections['name']} Scout Guide",
+            description="Competitive guidance from MCOC Scout.",
+        )
+        CDTEmbed.add_field(
+            interaction,
+            embed,
+            name="Attack",
+            value=(
+                f"Tier: **{attack['tier']}**\n"
+                f"Rank: **{attack['rank']}**\n"
+                f"Awakening: **{attack['awakening']}**\n"
+                f"Sig target: **{attack['sig']}**"
+            ),
+            inline=False,
+        )
+        CDTEmbed.add_field(
+            interaction,
+            embed,
+            name="Defense",
+            value=(
+                f"Tier: **{defense['tier']}**\n"
+                f"Rank: **{defense['rank']}**\n"
+                f"Awakening: **{defense['awakening']}**\n"
+                f"Sig target: **{defense['sig']}**"
+            ),
+            inline=False,
+        )
+        try:
+            CDTEmbed.set_footer(interaction, embed, text="Source: mcocscout.com")
+        except Exception:
+            pass
+
+        await safe_respond_interaction(interaction, embed=embed)
 
     @app_commands.command(name="available", description="List champions and the rarities they are available at")
     async def available(self, interaction):

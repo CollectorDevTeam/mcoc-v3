@@ -18,6 +18,8 @@ SIG_RE = re.compile(r"s(?P<sig>\d{1,4})\b", re.IGNORECASE)
 ASC_RE = re.compile(r"a(?P<asc>\d)\b", re.IGNORECASE)
 TAG_RE = re.compile(r"#(?P<tag>[a-zA-Z0-9_]+(?:-[a-zA-Z0-9_]+)*)")
 NOT_TAG_RE = re.compile(r"!(?P<tag>[a-zA-Z0-9_]+(?:-[a-zA-Z0-9_]+)*)")
+SCOUT_ATTACK_TIER_RE = re.compile(r"^(?:atk|attack)(?::|=)?(?P<tier>s\+|s|a\+\+|a\+|a|b|c|d|e|f)$", re.IGNORECASE)
+SCOUT_DEFENSE_TIER_RE = re.compile(r"^(?:def|defense)(?::|=)?(?P<tier>s\+|s|a\+\+|a\+|a|b|c|d|e|f)$", re.IGNORECASE)
 
 CLASSES = {"skill", "mutant", "tech", "cosmic", "mystic", "science", "all"}
 
@@ -40,6 +42,25 @@ DEFAULT_RARITY = 7
 DEFAULT_RANK = 1
 DEFAULT_ASCENDED = 0
 DEFAULT_SIG = 0
+
+
+def _normalize_scout_tier(value: str) -> Optional[str]:
+    tier = str(value or "").strip().upper()
+    if not tier:
+        return None
+    mapping = {
+        "A++": "S+",
+        "A+": "S",
+        "A": "A",
+        "B": "B",
+        "C": "C",
+        "D": "D",
+        "E": "E",
+        "F": "F",
+        "S": "S",
+        "S+": "S+",
+    }
+    return mapping.get(tier)
 
 
 def _expand_range_token(tok: str) -> List[int]:
@@ -308,6 +329,8 @@ def parse_hargs(text: str) -> Dict[str, Any]:
       tags List[str]
       not_tags List[str]
       classes List[str]
+    attack_tiers List[str]
+    defense_tiers List[str]
 
     Supports:
       - Quoted multiword champion names
@@ -325,6 +348,8 @@ def parse_hargs(text: str) -> Dict[str, Any]:
             "tags": [],
             "not_tags": [],
             "classes": [],
+            "attack_tiers": [],
+            "defense_tiers": [],
         }
 
     parts = _tokenize_preserving_quotes(text.strip())
@@ -338,6 +363,8 @@ def parse_hargs(text: str) -> Dict[str, Any]:
         "tags": [],
         "not_tags": [],
         "classes": [],
+        "attack_tiers": [],
+        "defense_tiers": [],
     }
 
     for part in parts:
@@ -364,6 +391,20 @@ def parse_hargs(text: str) -> Dict[str, Any]:
         # Class filter (exact token match)
         if lowered in CLASSES:
             result["classes"].append(lowered)
+            continue
+
+        attack_tier_match = SCOUT_ATTACK_TIER_RE.fullmatch(lowered)
+        if attack_tier_match:
+            tier = _normalize_scout_tier(attack_tier_match.group("tier"))
+            if tier:
+                result["attack_tiers"].append(tier)
+            continue
+
+        defense_tier_match = SCOUT_DEFENSE_TIER_RE.fullmatch(lowered)
+        if defense_tier_match:
+            tier = _normalize_scout_tier(defense_tier_match.group("tier"))
+            if tier:
+                result["defense_tiers"].append(tier)
             continue
 
         # Rarity like '5*' or '3-5*' or '5★'
@@ -461,6 +502,8 @@ def parse_hargs(text: str) -> Dict[str, Any]:
     result["tags"] = _uniq([t.lower() for t in result["tags"]])
     result["not_tags"] = _uniq([t.lower() for t in result["not_tags"]])
     result["classes"] = _uniq([c.lower() for c in result["classes"]])
+    result["attack_tiers"] = _uniq([str(t).upper() for t in result["attack_tiers"] if str(t).strip()])
+    result["defense_tiers"] = _uniq([str(t).upper() for t in result["defense_tiers"] if str(t).strip()])
 
     # Champion name normalization: strip quotes if present
     if isinstance(result["champion"], str):

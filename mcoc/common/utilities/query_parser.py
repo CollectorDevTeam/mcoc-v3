@@ -136,6 +136,8 @@ def parse_query(
         "ranks": [],
         "sigs": [],
         "ascended": [],
+        "attack_tiers": [],
+        "defense_tiers": [],
     }
 
     if not text:
@@ -150,6 +152,8 @@ def parse_query(
         filters["ranks"] = list(parsed_filters.get("ranks", []))
         filters["sigs"] = list(parsed_filters.get("sigs", []))
         filters["ascended"] = list(parsed_filters.get("ascended", []))
+        filters["attack_tiers"] = list(parsed_filters.get("attack_tiers", []))
+        filters["defense_tiers"] = list(parsed_filters.get("defense_tiers", []))
         if parsed_filters.get("champion"):
             filters["name"] = parsed_filters.get("champion")
     except Exception:
@@ -177,7 +181,7 @@ def parse_query(
             if filters.get("name") and filters["name"].lower() == lower:
                 filters["name"] = None
 
-    for key in ("tags", "classes", "rarities", "tiers", "ranks", "sigs", "ascended"):
+    for key in ("tags", "classes", "rarities", "tiers", "ranks", "sigs", "ascended", "attack_tiers", "defense_tiers"):
         if key in filters:
             filters[key] = _dedupe_preserve_order(filters[key])
 

@@ -182,7 +182,14 @@ class _RosterListControlsView(CDTAutoCleanupView):
         self.target_user = target_user
         self.base_hargs = base_hargs or ""
         self.parsed_filters = dict(parsed_filters or {})
-        for label, mode in (("AWAKEN", "awaken"), ("RANKUP", "rankup"), ("TIERLIST", "tierlist"), ("CLEAR", "default")):
+        for label, mode in (
+            ("AWAKEN", "awaken"),
+            ("RANKUP", "rankup"),
+            ("MCOC.APP", "mcoc_app"),
+            ("SCOUT ATTACK", "scout_attack"),
+            ("SCOUT DEFENSE", "scout_defense"),
+            ("CLEAR", "default"),
+        ):
             self.add_item(_RosterListModeButton(group, target_user, self.base_hargs, label, mode, parsed_filters=self.parsed_filters))
 
 
@@ -888,7 +895,14 @@ class _RosterGroup(app_commands.Group):
         entries = list(parsed.get("entries") or [])
         if not entries:
             raise ValueError(f"Detected {detected}, but no importable roster entries were found")
-        result = import_roster_entries(self.core, user_id, entries, users=manager)
+
+        result = import_roster_entries(
+            self.core,
+            user_id,
+            entries,
+            users=manager,
+            preserve_existing_ascended=True,
+        )
         imported = int(result.get("imported", 0) or 0)
         errors = list(result.get("errors") or [])
         message = f"Roster import complete. Detected: {detected}. Imported {imported} entries."

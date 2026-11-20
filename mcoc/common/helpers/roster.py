@@ -835,7 +835,14 @@ def parse_roster_entries_from_input(text: str, cache) -> List[Dict[str, Any]]:
     return entries
 
 
-def import_roster_entries(core: Any, user_id: int, entries: List[Dict[str, Any]], *, users: Optional[Any] = None) -> Dict[str, Any]:
+def import_roster_entries(
+    core: Any,
+    user_id: int,
+    entries: List[Dict[str, Any]],
+    *,
+    users: Optional[Any] = None,
+    preserve_existing_ascended: bool = False,
+) -> Dict[str, Any]:
     """Persist canonical roster entries for a user and schedule prestige recomputation."""
     if not entries:
         raise ValueError("No roster entries to import")
@@ -844,17 +851,50 @@ def import_roster_entries(core: Any, user_id: int, entries: List[Dict[str, Any]]
     if manager is None:
         raise ValueError("User data manager unavailable")
 
+    existing_ascended: Dict[Tuple[str, int], int] = {}
+    if preserve_existing_ascended and hasattr(manager, "list_roster"):
+        try:
+            for row in manager.list_roster(user_id) or []:
+                if not isinstance(row, dict):
+                    continue
+                slug = str(row.get("champion") or "").strip().lower()
+                if not slug:
+                    continue
+                try:
+                    rarity = int(row.get("rarity") or row.get("stars") or 0)
+                except Exception:
+                    rarity = 0
+                if rarity <= 0:
+                    continue
+                try:
+                    ascended = int(row.get("ascended") or 0)
+                except Exception:
+                    ascended = 0
+                existing_ascended[(slug, rarity)] = max(0, ascended)
+        except Exception:
+            existing_ascended = {}
+
     imported = 0
     errors: List[str] = []
     for entry in entries:
         try:
+            champ_slug = str(entry.get("champion") or "").strip().lower()
+            rarity = int(entry.get("rarity") or 6)
+            incoming_asc = entry.get("ascended")
+            ascended = int(incoming_asc or 0)
+
+            if preserve_existing_ascended and champ_slug and rarity > 0 and ascended <= 0:
+                preserved = existing_ascended.get((champ_slug, rarity))
+                if preserved is not None:
+                    ascended = preserved
+
             manager.add_champion(
                 user_id,
                 entry["champion"],
-                int(entry.get("rarity") or 6),
+                rarity,
                 int(entry.get("rank") or 1),
                 int(entry.get("sig") or 0),
-                int(entry.get("ascended") or 0),
+                ascended,
                 tags=entry.get("tags") or [],
             )
             imported += 1
@@ -942,6 +982,8 @@ def filter_roster_entries(entries: List[Dict[str, Any]], filters: Dict[str, Any]
     ascended = set(filters.get("ascended") or [])
     tags = [str(t).lower() for t in (filters.get("tags") or [])]
     classes = [c.lower() for c in (filters.get("classes") or [])]
+    attack_tiers = {str(t).upper() for t in (filters.get("attack_tiers") or []) if str(t).strip()}
+    defense_tiers = {str(t).upper() for t in (filters.get("defense_tiers") or []) if str(t).strip()}
     name_filter = (filters.get("name") or "").lower() if filters.get("name") else None
 
     for e in entries:
@@ -993,6 +1035,16 @@ def filter_roster_entries(entries: List[Dict[str, Any]], filters: Dict[str, Any]
             if name_filter:
                 cand = (str(e.get("champion") or "") + " " + str(e.get("raw") or "")).lower()
                 if name_filter not in cand:
+                    continue
+
+            if attack_tiers:
+                entry_attack_tier = str(e.get("attack_tier") or "").upper().strip()
+                if entry_attack_tier not in attack_tiers:
+                    continue
+
+            if defense_tiers:
+                entry_defense_tier = str(e.get("defense_tier") or "").upper().strip()
+                if entry_defense_tier not in defense_tiers:
                     continue
 
             out.append(e)
@@ -2246,6 +2298,20 @@ async def build_roster_pages(core: Any, ctx_or_author: Any, parsed_filters: Opti
                         champ_class = champ_row.get("class") or champ_row.get("class_name")
                         if champ_class:
                             e["class"] = str(champ_class).strip().lower()
+                        if champ_row.get("attack_tier"):
+                            e["attack_tier"] = str(champ_row.get("attack_tier") or "").upper().strip()
+                        if champ_row.get("defense_tier"):
+                            e["defense_tier"] = str(champ_row.get("defense_tier") or "").upper().strip()
+                if cache and e.get("champion") and (not e.get("attack_tier") or not e.get("defense_tier")):
+                    try:
+                        champ_row = get_champion_meta(e.get("champion"))
+                    except Exception:
+                        champ_row = None
+                    if isinstance(champ_row, dict):
+                        if not e.get("attack_tier") and champ_row.get("attack_tier"):
+                            e["attack_tier"] = str(champ_row.get("attack_tier") or "").upper().strip()
+                        if not e.get("defense_tier") and champ_row.get("defense_tier"):
+                            e["defense_tier"] = str(champ_row.get("defense_tier") or "").upper().strip()
                 entries_with_meta.append(e)
             except Exception:
                 continue
@@ -2330,6 +2396,8 @@ async def build_roster_pages(core: Any, ctx_or_author: Any, parsed_filters: Opti
 
         # Sort filtered entries: prestige-aware by default, or tierlist-aware for roster list toggles.
         list_mode = str(parsed.get("list_mode") or parsed.get("sort_mode") or "default").lower()
+        if list_mode == "tierlist":
+            list_mode = "mcoc_app"
         tier_order = {"s+": 0, "s": 1, "a": 2, "b": 3, "c": 4, "d": 5, "e": 6, "f": 7}
         score_by_name = {}
         tier_by_name = {}
@@ -2404,6 +2472,14 @@ async def build_roster_pages(core: Any, ctx_or_author: Any, parsed_filters: Opti
                         entry["score"] = 0.0
 
             entry["_awakened_by_tierlist"] = any(token in awakened_set for token in ordered_keys)
+            if list_mode == "scout_attack":
+                scout_attack_tier = str(entry.get("attack_tier") or "").strip().upper()
+                if scout_attack_tier:
+                    entry["tier"] = scout_attack_tier
+            elif list_mode == "scout_defense":
+                scout_defense_tier = str(entry.get("defense_tier") or "").strip().upper()
+                if scout_defense_tier:
+                    entry["tier"] = scout_defense_tier
 
         def _tier_sort_key(e: Dict[str, Any]):
             tier = str(e.get("tier") or "").strip().upper()
@@ -2412,7 +2488,7 @@ async def build_roster_pages(core: Any, ctx_or_author: Any, parsed_filters: Opti
 
         def _sort_key(e: Dict[str, Any]):
             p = e.get("prestige")
-            if list_mode in {"tierlist", "awaken", "rankup"}:
+            if list_mode in {"mcoc_app", "scout_attack", "scout_defense", "awaken", "rankup"}:
                 return _tier_sort_key(e)
             if isinstance(p, (int, float)):
                 return (0, -float(p), -int(e.get("rarity") or e.get("stars") or 0), int(e.get("rank") or 0), -int(e.get("sig") or 0))
@@ -2485,7 +2561,7 @@ async def build_roster_pages(core: Any, ctx_or_author: Any, parsed_filters: Opti
                 return pages
 
         # Chunk lines into pages for the default roster view; tierlist-driven modes use field-based pages.
-        if list_mode in {"tierlist", "awaken", "rankup"}:
+        if list_mode in {"mcoc_app", "scout_attack", "scout_defense", "awaken", "rankup"}:
             grouped_rows: List[Tuple[str, List[str]]] = []
             seen_tiers = set()
             for tier in ["S+", "S", "A", "B", "C", "D", "E", "F"]:
@@ -2575,16 +2651,20 @@ async def build_roster_pages(core: Any, ctx_or_author: Any, parsed_filters: Opti
                 roster_title = "ROSTER RANK-UP"
             elif list_mode == "awaken":
                 roster_title = "ROSTER AWAKEN"
-            elif list_mode == "tierlist":
-                roster_title = "ROSTER BY TIERS"
+            elif list_mode == "mcoc_app":
+                roster_title = "ROSTER MCOC.APP"
+            elif list_mode == "scout_attack":
+                roster_title = "ROSTER SCOUT ATTACK"
+            elif list_mode == "scout_defense":
+                roster_title = "ROSTER SCOUT DEFENSE"
             else:
                 roster_title = f"Roster ({title_count} champions) [{title_prestige}]"
 
             embed_pages: List[Any] = []
             for i, chunk_fields in enumerate(page_chunks, start=1):
-                footer = f"Page {i} of {len(page_chunks)} | CollectorDevTeam | https://mcoc.app" if list_mode in {"rankup", "awaken", "tierlist"} else f"Page {i} of {len(page_chunks)}{ROSTER_FOOTER}"
+                footer = f"Page {i} of {len(page_chunks)} | CollectorDevTeam | https://mcoc.app" if list_mode in {"rankup", "awaken", "mcoc_app", "scout_attack", "scout_defense"} else f"Page {i} of {len(page_chunks)}{ROSTER_FOOTER}"
                 try:
-                    emb = CDTEmbed.embed(author_for_embed, title=roster_title, url="https://mcoc.app" if list_mode in {"rankup", "awaken", "tierlist"} else None, footer_text=footer)
+                    emb = CDTEmbed.embed(author_for_embed, title=roster_title, url="https://mcoc.app" if list_mode in {"rankup", "awaken", "mcoc_app", "scout_attack", "scout_defense"} else None, footer_text=footer)
                     for field_name, field_lines in chunk_fields:
                         CDTEmbed.add_field(author_for_embed, emb, name=field_name, value="\n".join(field_lines), inline=False)
                     embed_pages.append(emb)
@@ -2619,16 +2699,20 @@ async def build_roster_pages(core: Any, ctx_or_author: Any, parsed_filters: Opti
             roster_title = "ROSTER RANK-UP"
         elif list_mode == "awaken":
             roster_title = "ROSTER AWAKEN"
-        elif list_mode == "tierlist":
-            roster_title = "ROSTER BY TIERS"
+        elif list_mode == "mcoc_app":
+            roster_title = "ROSTER MCOC.APP"
+        elif list_mode == "scout_attack":
+            roster_title = "ROSTER SCOUT ATTACK"
+        elif list_mode == "scout_defense":
+            roster_title = "ROSTER SCOUT DEFENSE"
         else:
             roster_title = f"Roster ({title_count} champions) [{title_prestige}]"
 
         embed_pages: List[Any] = []
         try:
             for i, ptext in enumerate(page_texts):
-                footer = f"Page {i+1} of {len(page_texts)} | CollectorDevTeam | https://mcoc.app" if list_mode in {"rankup", "awaken", "tierlist"} else f"Page {i+1} of {len(page_texts)}{ROSTER_FOOTER}"
-                emb = CDTEmbed.embed(author_for_embed, title=roster_title, description=ptext, url="https://mcoc.app" if list_mode in {"rankup", "awaken", "tierlist"} else None, footer_text=footer)
+                footer = f"Page {i+1} of {len(page_texts)} | CollectorDevTeam | https://mcoc.app" if list_mode in {"rankup", "awaken", "mcoc_app", "scout_attack", "scout_defense"} else f"Page {i+1} of {len(page_texts)}{ROSTER_FOOTER}"
+                emb = CDTEmbed.embed(author_for_embed, title=roster_title, description=ptext, url="https://mcoc.app" if list_mode in {"rankup", "awaken", "mcoc_app", "scout_attack", "scout_defense"} else None, footer_text=footer)
                 try:
                     CDTEmbed.set_footer(author_for_embed, emb, text=footer)
                 except Exception:
