@@ -1249,7 +1249,7 @@ class CacheManager:
     # -----------------------------
     # Public sync method
     # -----------------------------
-    async def sync(self, api, progress: Optional[Callable[[str], Awaitable[None]]] = None, *, include_champstats: bool = True) -> bool:
+    async def sync(self, api, progress: Optional[Callable[[str], Awaitable[None]]] = None, *, include_champstats: bool = True, force: bool = False) -> bool:
         """
         Sync champions/tags/abilities/immunities from API.
         If `progress` is provided, call it with short status strings to update UI.
@@ -1292,7 +1292,7 @@ class CacheManager:
         ]
 
         # If we synced recently, skip full network calls only when core cache artifacts are healthy.
-        if self.is_recent(hours=24) and not core_missing:
+        if not force and self.is_recent(hours=24) and not core_missing:
             await _report("Cache was synced within the last 24 hours; checking Cocpit artifacts before skipping.")
             updated_recent = False
 
@@ -1355,7 +1355,7 @@ class CacheManager:
                 log.exception("Index rebuild failed during short-circuit")
             return updated_recent
 
-        if self.is_recent(hours=24) and core_missing:
+        if not force and self.is_recent(hours=24) and core_missing:
             await _report(
                 "Recent sync timestamp exists, but core cache artifacts are missing or invalid "
                 f"({', '.join(core_missing)}). Forcing full API refresh."

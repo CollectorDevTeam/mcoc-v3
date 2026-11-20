@@ -503,29 +503,15 @@ class _AdminGroup(app_commands.Group):
         cache = getattr(core, "cache", None)
 
         if ok:
-            if cache is not None and hasattr(cache, "is_recent"):
-                try:
-                    if cache.is_recent(hours=24):
-                        return True, "Cache is already current; no refresh was required."
-                except Exception:
-                    pass
-            return True, "Sync complete. Cache refreshed successfully."
+            return True, "Force sync complete. Cache refresh was attempted."
 
-        # A false result here is not always a hard failure; the cache may already be
-        # fresh and the sync layer intentionally returned a no-op result.
-        if cache is not None and hasattr(cache, "is_recent"):
-            try:
-                if cache.is_recent(hours=24):
-                    return True, "Cache is already current; no refresh was required."
-            except Exception:
-                pass
-        return False, "Sync failed. Check diagnostics for details."
+        return False, "Force sync failed. Check diagnostics for details."
 
     async def _run_force_sync(self, core: Any) -> bool:
         sync_data = getattr(core, "sync_data", None)
         if callable(sync_data):
             try:
-                result = sync_data()
+                result = sync_data(include_champstats=True, force=True)
                 if inspect.isawaitable(result):
                     result = await result
                 if result is None:
@@ -539,7 +525,7 @@ class _AdminGroup(app_commands.Group):
         api = getattr(core, "api", None)
         if cache is not None and api is not None and callable(getattr(cache, "sync", None)):
             try:
-                return bool(await cache.sync(api, include_champstats=True))
+                return bool(await cache.sync(api, include_champstats=True, force=True))
             except Exception:
                 log.exception("Admin force sync via cache.sync failed")
                 return False

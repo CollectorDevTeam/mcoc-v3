@@ -161,7 +161,7 @@ class MCOCCommonCore:
         except Exception:
             log.exception("Unexpected error during common core close")
 
-    async def sync_data(self, progress: Optional[Any] = None, *, include_champstats: bool = True) -> bool:
+    async def sync_data(self, progress: Optional[Any] = None, *, include_champstats: bool = True, force: bool = False) -> bool:
         """Synchronize cached data through the cache manager.
 
         Returns False when required subsystems are unavailable.
@@ -174,7 +174,7 @@ class MCOCCommonCore:
             log.warning("sync_data skipped: cache.sync is unavailable")
             return False
         try:
-            result = await sync_fn(self.api, progress=progress, include_champstats=include_champstats)
+            result = await sync_fn(self.api, progress=progress, include_champstats=include_champstats, force=force)
             return bool(result)
         except Exception:
             log.exception("sync_data failed")

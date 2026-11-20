@@ -7,6 +7,7 @@
 # Used-By: None
 # Changelog:
 #   1.0 2026-09-01  Initial stabilized API header
+import importlib
 import logging
 from typing import Any
 from redbot.core import commands
@@ -51,13 +52,19 @@ class MCOCSlash(commands.Cog):
         for module_name, class_name in slash_cogs:
             try:
                 mod = __import__(module_name, fromlist=[class_name])
+                mod = importlib.reload(mod)
                 cog_cls = getattr(mod, class_name, None)
                 if cog_cls is None:
                     log.debug("Slash module %s missing %s; skipping", module_name, class_name)
                     continue
-                if self.bot.get_cog(class_name):
-                    log.debug("Slash cog %s already loaded; skipping", class_name)
-                    continue
+                existing_cog = self.bot.get_cog(class_name)
+                if existing_cog is not None:
+                    try:
+                        result = self.bot.remove_cog(class_name)
+                        if hasattr(result, "__await__"):
+                            await result
+                    except Exception:
+                        log.exception("Failed to unload existing slash cog %s", class_name)
                 try:
                     await self.bot.add_cog(cog_cls(self.bot))
                     log.debug("%s loaded (slash)", class_name)
