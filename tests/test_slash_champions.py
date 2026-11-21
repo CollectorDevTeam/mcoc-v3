@@ -40,6 +40,9 @@ class _InteractionStub:
         self.response.calls.append(dict(kwargs))
         return None
 
+    async def edit_original_response(self, **kwargs):
+        self.response.calls.append(dict(kwargs))
+
 
 class _CacheStub:
     def __init__(self, champions):
@@ -1238,7 +1241,7 @@ def test_slash_roster_export_large_payload_uses_file_attachment(monkeypatch):
     assert captured["args"][0] == "Roster export attached."
 
 
-def test_slash_roster_import_modal_defers_then_follows_up(monkeypatch):
+def test_slash_roster_import_modal_defers_then_edits_original(monkeypatch):
     from mcoc.slash import roster as slash_roster_module
 
     group = _RosterGroup(core=_CoreStub([]))
@@ -1252,12 +1255,12 @@ def test_slash_roster_import_modal_defers_then_follows_up(monkeypatch):
 
     users = _UsersStub()
 
-    async def _fake_followup(message=None, **kwargs):
-        captured["message"] = message
+    async def _fake_edit_original_response(**kwargs):
+        captured["message"] = kwargs.get("content")
         captured["kwargs"] = kwargs
         return None
 
-    interaction.followup = types.SimpleNamespace(send=_fake_followup)
+    interaction.edit_original_response = _fake_edit_original_response
     monkeypatch.setattr(slash_roster_module, "ensure_user_manager", lambda _core: users)
 
     modal = slash_roster_module._RosterDataImportModal(group)

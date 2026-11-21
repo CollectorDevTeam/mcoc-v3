@@ -366,14 +366,14 @@ class _ChampionGroup(app_commands.Group):
 
         champ = resolve_champion(self._cache(), champion)
         if not champ:
-            await interaction.response.edit_original_response(
+            await interaction.edit_original_response(
                 content=f"Champion `{champion}` not found.",
             )
             return
 
         sections = self._build_scout_sections(champ)
         if not sections:
-            await interaction.response.edit_original_response(
+            await interaction.edit_original_response(
                 content="Scout guide data is not available for that champion yet.",
             )
             return
@@ -415,7 +415,7 @@ class _ChampionGroup(app_commands.Group):
         except Exception:
             pass
 
-        await interaction.response.edit_original_response(embed=embed)
+        await interaction.edit_original_response(embed=embed)
 
     @app_commands.command(name="available", description="List champions and the rarities they are available at")
     async def available(self, interaction):
