@@ -24,6 +24,9 @@ class _ResponseStub:
     async def edit_message(self, **kwargs):
         self.calls.append({"edit_message": True, **kwargs})
 
+    async def edit_original_response(self, **kwargs):
+        self.calls.append(dict(kwargs))
+
 
 class _InteractionStub:
     def __init__(self, user_id=42):
@@ -247,6 +250,21 @@ def test_slash_champ_scout_formats_attack_and_defense_sections(monkeypatch):
     assert "Rank: **Rank 2**" in fields["Defense"]
     assert "Awakening: **Not required**" in fields["Defense"]
     assert "Sig target: **Unduped**" in fields["Defense"]
+
+
+def test_slash_champ_autocomplete_falls_back_to_cached_champion_names():
+    champions = [
+        {"id": "medusa", "slug": "medusa", "name": "Medusa"},
+        {"id": "black-tarantula", "slug": "black-tarantula", "name": "Black Tarantula"},
+    ]
+    group = _ChampionGroup(core=_CoreStub(champions))
+    interaction = _InteractionStub()
+
+    choices = asyncio.run(group.champion_autocomplete(interaction, "med"))
+
+    assert len(choices) == 1
+    assert choices[0].name == "Medusa"
+    assert choices[0].value == "medusa"
 
 
 def test_slash_champ_scout_reports_when_data_missing():

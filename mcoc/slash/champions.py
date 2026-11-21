@@ -69,14 +69,26 @@ class _ChampionGroup(app_commands.Group):
             champs = cache.get_all_champions() if cache else []
             matches = []
             for c in champs:
-                name = c.get("name") or ""
-                cid = str(c.get("id") or c.get("slug") or "")
-                if cur in name.lower() or cur in cid.lower():
-                    matches.append(app_commands.Choice(name=name, value=cid))
-                    if len(matches) >= 25:
-                        break
+                if not isinstance(c, dict):
+                    continue
+                name = str(c.get("name") or c.get("title") or c.get("slug") or c.get("id") or "").strip()
+                cid = str(c.get("id") or c.get("slug") or name).strip()
+                if not name or not cid:
+                    continue
+                searchable = " ".join([
+                    name.lower(),
+                    cid.lower(),
+                    str(c.get("slug") or "").lower(),
+                    str(c.get("title") or "").lower(),
+                ])
+                if cur and cur not in searchable:
+                    continue
+                matches.append(app_commands.Choice(name=name[:100], value=cid[:100]))
+                if len(matches) >= 25:
+                    break
             return matches
         except Exception:
+            log.exception("Champion autocomplete fallback failed")
             return []
 
     def _normalize_token(self, value: Any) -> str:
@@ -354,17 +366,15 @@ class _ChampionGroup(app_commands.Group):
 
         champ = resolve_champion(self._cache(), champion)
         if not champ:
-            await interaction.followup.send(
+            await interaction.response.edit_original_response(
                 content=f"Champion `{champion}` not found.",
-                ephemeral=True,
             )
             return
 
         sections = self._build_scout_sections(champ)
         if not sections:
-            await interaction.followup.send(
+            await interaction.response.edit_original_response(
                 content="Scout guide data is not available for that champion yet.",
-                ephemeral=True,
             )
             return
 
@@ -405,7 +415,7 @@ class _ChampionGroup(app_commands.Group):
         except Exception:
             pass
 
-        await interaction.followup.send(embed=embed)
+        await interaction.response.edit_original_response(embed=embed)
 
     @app_commands.command(name="available", description="List champions and the rarities they are available at")
     async def available(self, interaction):
