@@ -34,6 +34,7 @@ class _InteractionStub:
         self.followup = types.SimpleNamespace(send=self._noop_followup)
 
     async def _noop_followup(self, *args, **kwargs):
+        self.response.calls.append(dict(kwargs))
         return None
 
 
@@ -227,7 +228,8 @@ def test_slash_champ_scout_formats_attack_and_defense_sections(monkeypatch):
 
     asyncio.run(_invoke(group.scout, group, interaction, champion="kushala"))
 
-    embed = interaction.response.calls[0].get("embed")
+    assert interaction.response.calls[0].get("defer") is True
+    embed = next((call.get("embed") for call in interaction.response.calls if call.get("embed") is not None), None)
     assert isinstance(embed, dict)
     assert embed["title"] == "Kushala Scout Guide"
     assert "Competitive guidance" in embed["description"]
@@ -254,7 +256,8 @@ def test_slash_champ_scout_reports_when_data_missing():
 
     asyncio.run(_invoke(group.scout, group, interaction, champion="abomination"))
 
-    content = str(interaction.response.calls[0].get("content") or "")
+    assert interaction.response.calls[0].get("defer") is True
+    content = str(next((call.get("content") for call in interaction.response.calls if call.get("content") is not None), "") or "")
     assert "Scout guide data is not available" in content
 
 

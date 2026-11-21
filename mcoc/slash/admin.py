@@ -567,7 +567,6 @@ class _AdminGroup(app_commands.Group):
             return
         await interaction.response.defer(ephemeral=True)
         panel = _AdminControlPanelView(self, requester_id=getattr(interaction.user, "id", 0))
-        panel._apply_button_state()
         embed = await self._build_status_embed(interaction, last_action=panel.last_action)
         await _edit_or_followup(interaction, content="Collector > MCOC Admin > Status", embed=embed, view=panel, ephemeral=True)
 

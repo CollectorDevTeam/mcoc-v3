@@ -347,15 +347,22 @@ class _ChampionGroup(app_commands.Group):
     @app_commands.command(name="scout", description="Show MCOC Scout attack and defense guidance for a champion")
     @app_commands.autocomplete(champion=champion_autocomplete)
     async def scout(self, interaction, champion: str):
+        try:
+            await interaction.response.defer(ephemeral=False)
+        except Exception:
+            log.exception("Failed to defer /champ scout response")
+
         champ = resolve_champion(self._cache(), champion)
         if not champ:
-            await safe_respond_interaction(interaction, content=f"Champion `{champion}` not found.", ephemeral=True)
+            await interaction.followup.send(
+                content=f"Champion `{champion}` not found.",
+                ephemeral=True,
+            )
             return
 
         sections = self._build_scout_sections(champ)
         if not sections:
-            await safe_respond_interaction(
-                interaction,
+            await interaction.followup.send(
                 content="Scout guide data is not available for that champion yet.",
                 ephemeral=True,
             )
@@ -398,7 +405,7 @@ class _ChampionGroup(app_commands.Group):
         except Exception:
             pass
 
-        await safe_respond_interaction(interaction, embed=embed)
+        await interaction.followup.send(embed=embed)
 
     @app_commands.command(name="available", description="List champions and the rarities they are available at")
     async def available(self, interaction):
