@@ -216,6 +216,7 @@ def test_slash_champ_scout_formats_attack_and_defense_sections(monkeypatch):
         return {
             "title": kwargs.get("title", ""),
             "description": kwargs.get("description", ""),
+            "url": kwargs.get("url"),
             "fields": [],
             "footer_text": kwargs.get("footer_text", ""),
         }
@@ -238,6 +239,7 @@ def test_slash_champ_scout_formats_attack_and_defense_sections(monkeypatch):
     embed = next((call.get("embed") for call in interaction.response.calls if call.get("embed") is not None), None)
     assert isinstance(embed, dict)
     assert embed["title"] == "Kushala Scout Guide"
+    assert embed["url"] == "https://mcocscout.com"
     assert "Competitive guidance" in embed["description"]
     assert embed["footer_text"] == "Source: mcocscout.com"
 
@@ -1127,8 +1129,15 @@ def test_slash_roster_list_scout_attack_mode_groups_by_scout_tier(monkeypatch):
     field_names = [field["name"] for field in pages[0]["fields"]]
 
     assert pages[0]["title"] == "ROSTER SCOUT ATTACK"
+    assert pages[0]["url"] == "https://mcocscout.com"
+    assert pages[0]["footer_text"] == "Page 1 of 1 | CollectorDevTeam | https://mcocscout.com"
     assert "S+ TIER" in field_names
     assert "D TIER" in field_names
+
+    defense_pages = asyncio.run(slash_roster_module.build_roster_pages(_CoreWithUsers(), types.SimpleNamespace(id=42), {"list_mode": "scout_defense"}))
+    assert defense_pages[0]["title"] == "ROSTER SCOUT DEFENSE"
+    assert defense_pages[0]["url"] == "https://mcocscout.com"
+    assert defense_pages[0]["footer_text"] == "Page 1 of 1 | CollectorDevTeam | https://mcocscout.com"
 
 
 def test_slash_roster_mcocapp_import_preserves_existing_ascended_level(monkeypatch):

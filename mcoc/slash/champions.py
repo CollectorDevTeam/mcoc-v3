@@ -56,14 +56,9 @@ class _ChampionGroup(app_commands.Group):
 
     # Autocomplete wrappers (prefer index methods, fallback to simple scan)
     async def champion_autocomplete(self, interaction, current: str):
-        idx = self._index()
-        cur = (current or "").lower()
-        if idx and hasattr(idx, "champion_autocomplete"):
-            try:
-                return await idx.champion_autocomplete(interaction, cur)
-            except Exception:
-                log.exception("champion_autocomplete failed in CacheIndex")
-        # fallback: build simple choices
+        cur = str(current or "").strip().lower()
+        # Read the live champion cache directly. CacheIndex autocomplete is optional
+        # and is not available in all bot/runtime versions.
         try:
             cache = self._cache()
             champs = cache.get_all_champions() if cache else []
@@ -385,6 +380,7 @@ class _ChampionGroup(app_commands.Group):
             interaction,
             title=f"{sections['name']} Scout Guide",
             description="Competitive guidance from MCOC Scout.",
+            url="https://mcocscout.com",
         )
         CDTEmbed.add_field(
             interaction,
@@ -415,7 +411,11 @@ class _ChampionGroup(app_commands.Group):
         except Exception:
             pass
 
-        await interaction.edit_original_response(embed=embed)
+        try:
+            await interaction.edit_original_response(embed=embed)
+        except Exception:
+            log.exception("Failed to edit /champ scout response")
+            await safe_respond_interaction(interaction, embed=embed)
 
     @app_commands.command(name="available", description="List champions and the rarities they are available at")
     async def available(self, interaction):
