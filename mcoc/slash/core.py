@@ -9,6 +9,8 @@
 #   1.0 2026-09-01  Initial stabilized API header
 import importlib
 import logging
+import sys
+from pathlib import Path
 from typing import Any
 from redbot.core import commands
 
@@ -51,8 +53,21 @@ class MCOCSlash(commands.Cog):
 
         for module_name, class_name in slash_cogs:
             try:
-                mod = __import__(module_name, fromlist=[class_name])
-                mod = importlib.reload(mod)
+                importlib.invalidate_caches()
+                old_mod = sys.modules.pop(module_name, None)
+                old_file = getattr(old_mod, "__file__", None)
+                if old_file:
+                    source_path = Path(old_file)
+                    pycache_dir = source_path.parent / "__pycache__"
+                    if pycache_dir.is_dir():
+                        stem = source_path.stem
+                        for pyc_path in pycache_dir.glob(f"{stem}.*.pyc"):
+                            try:
+                                pyc_path.unlink()
+                            except Exception:
+                                log.debug("Failed to clear stale bytecode %s", pyc_path)
+
+                mod = importlib.import_module(module_name)
                 cog_cls = getattr(mod, class_name, None)
                 if cog_cls is None:
                     log.debug("Slash module %s missing %s; skipping", module_name, class_name)
