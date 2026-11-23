@@ -1453,8 +1453,10 @@ def test_slash_champ_search_returns_pages(monkeypatch):
     )
 
     assert len(interaction.response.calls) == 1
-    assert interaction.response.calls[0].get("view") is sentinel_view
-
+    assert interaction.response.calls[0].get("view") is None
+    embed = interaction.response.calls[0].get("embed")
+    assert embed is not None
+    assert "Champion Search" in str(getattr(embed, "title", "") or "")
 
 def test_userdata_export_canonicalizes_roster_and_privacy(tmp_path):
     from mcoc.common.helpers.userdata import UserDataManager

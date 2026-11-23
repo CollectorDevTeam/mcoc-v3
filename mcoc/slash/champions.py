@@ -341,13 +341,18 @@ class _ChampionGroup(app_commands.Group):
     @app_commands.command(name="info", description="Show champion information")
     @app_commands.autocomplete(champion=champion_autocomplete)
     async def info(self, interaction, champion: str):
+        started = time.perf_counter()
         champ = resolve_champion(self._cache(), champion)
+        lookup_elapsed = time.perf_counter() - started
         if not champ:
             await safe_respond_interaction(interaction, content=f"Champion `{champion}` not found.", ephemeral=True)
             return
         try:
             embed = CDTEmbed.champion_embed(interaction, champ)
+            embed_elapsed = time.perf_counter() - started - lookup_elapsed
+            send_started = time.perf_counter()
             await safe_respond_interaction(interaction, embed=embed)
+            log.info("Champion info timing: lookup=%.3fs embed=%.3fs send=%.3fs total=%.3fs champion=%s", lookup_elapsed, embed_elapsed, time.perf_counter() - send_started, time.perf_counter() - started, champion)
         except Exception:
             log.exception("Failed to build champion embed")
             await safe_respond_interaction(interaction, content=champ.get("name", "Unknown"), ephemeral=True)
@@ -698,8 +703,11 @@ class _ChampionGroup(app_commands.Group):
         champ_immunity: Optional[str] = None,
         champ_synergy: Optional[str] = None
     ):
+        started = time.perf_counter()
         cache = self._cache()
+        cache_started = time.perf_counter()
         champs = cache.get_all_champions() if cache and hasattr(cache, "get_all_champions") else []
+        cache_elapsed = time.perf_counter() - cache_started
 
         filters = {
             "name": champ_name or None,
@@ -714,6 +722,7 @@ class _ChampionGroup(app_commands.Group):
         synergy_target = resolve_champion(cache, champ_synergy) if champ_synergy else None
         synergy_token = self._normalize_token((synergy_target or {}).get("id") or (synergy_target or {}).get("slug") or champ_synergy)
 
+        filter_started = time.perf_counter()
         results = []
         for champ in champs:
             try:
@@ -741,6 +750,7 @@ class _ChampionGroup(app_commands.Group):
                 results.append(champ)
             except Exception:
                 continue
+        filter_elapsed = time.perf_counter() - filter_started
 
         if not results:
             await safe_respond_interaction(interaction, content="No champions match your search filters.", ephemeral=True)
@@ -761,7 +771,10 @@ class _ChampionGroup(app_commands.Group):
             CDTEmbed.set_footer(interaction, embed, text="Collector | Champion Search")
         except Exception:
             pass
+        send_started = time.perf_counter()
         await safe_respond_interaction(interaction, embed=embed)
+        send_elapsed = time.perf_counter() - send_started
+        log.info("Champion search timing: cache=%.3fs filter=%.3fs send=%.3fs total=%.3fs matches=%d", cache_elapsed, filter_elapsed, send_elapsed, time.perf_counter() - started, len(names))
 
 
     @app_commands.command(name="calcstats", description="Calculate champion stats for a given rarity, rank, sig, and ascension")

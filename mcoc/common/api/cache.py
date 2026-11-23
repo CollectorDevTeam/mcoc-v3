@@ -67,6 +67,7 @@ class CacheManager:
         self.index = CacheIndex(self)
         self._sync_lock = asyncio.Lock()
         self._champion_lookup_cache: Dict[str, Optional[Dict[str, Any]]] = {}
+        self._all_champions_cache: List[Dict[str, Any]] = []
         self._champion_lookup_cache_ready = False
         self._prewarm_champion_lookup_cache()
 
@@ -1831,10 +1832,15 @@ class CacheManager:
     # Lookup helpers (unchanged)
     # -----------------------------
     def _prewarm_champion_lookup_cache(self) -> None:
+        if not hasattr(self, "_champion_lookup_cache"):
+            self._champion_lookup_cache = {}
+        if not hasattr(self, "_all_champions_cache"):
+            self._all_champions_cache = []
         """Build lookup aliases once from cached JSON instead of merging/rereading per command."""
         try:
             champs = self._load_file("champions").get("champions", {})
-            values = champs.values() if isinstance(champs, dict) else champs if isinstance(champs, list) else []
+            values = list(champs.values()) if isinstance(champs, dict) else champs if isinstance(champs, list) else []
+            merged_champions: List[Dict[str, Any]] = []
             for champ in values:
                 if not isinstance(champ, dict):
                     continue
@@ -1844,6 +1850,7 @@ class CacheManager:
                 merged = self._merge_champion_overrides(champ)
                 merged = self._merge_cocpit_champion_metadata(merged)
                 merged = self._merge_scout_champion_metadata(merged)
+                merged_champions.append(merged)
                 seen = set()
                 for candidate in candidates:
                     if candidate is None:
@@ -1856,6 +1863,7 @@ class CacheManager:
                     if normalized and normalized not in seen:
                         seen.add(normalized)
                         self._champion_lookup_cache[normalized] = merged
+            self._all_champions_cache = merged_champions
             self._champion_lookup_cache_ready = True
             log.info("Champion lookup cache prewarmed with %d aliases", len(self._champion_lookup_cache))
         except Exception:
@@ -1863,6 +1871,7 @@ class CacheManager:
 
     def invalidate_champion_lookup_cache(self) -> None:
         self._champion_lookup_cache.clear()
+        self._all_champions_cache = []
         self._champion_lookup_cache_ready = False
         self._prewarm_champion_lookup_cache()
 
@@ -1965,6 +1974,17 @@ class CacheManager:
         return immunities or []
 
     def get_all_champions(self) -> list:
+        if not hasattr(self, "_champion_lookup_cache_ready"):
+            self._champion_lookup_cache_ready = False
+        if not hasattr(self, "_champion_lookup_cache"):
+            self._champion_lookup_cache = {}
+        if not hasattr(self, "_all_champions_cache"):
+            self._all_champions_cache = []
+        if not self._champion_lookup_cache_ready:
+            self._prewarm_champion_lookup_cache()
+        if self._all_champions_cache:
+            return list(self._all_champions_cache)
+
         data = self._load_file("champions")
         champs = data.get("champions", {})
         if isinstance(champs, dict):
