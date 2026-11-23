@@ -14,6 +14,11 @@ import re
 
 ChampionLike = Union[Champion, Mapping[str, Any], None]
 
+ASCENSION_EMOJI = {
+    1: "<:ascension1:1565045477848915988>",
+    2: "<:ascension2:1565045566998708386>",
+}
+
 
 def _normalize_property_key(value: Any) -> str:
     return str(value or "").strip().lower().replace(" ", "_").replace("-", "_")

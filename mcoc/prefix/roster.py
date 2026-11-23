@@ -464,4 +464,3 @@ class RosterPrefix(commands.Cog):
 
 async def setup(bot):
     bot.add_cog(RosterPrefix(bot))
-

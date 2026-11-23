@@ -92,6 +92,14 @@ CLASS_EMOJI: Dict[str, str] = {
 ASCENSION_EMOJI: Dict[int, str] = {
     1: CLASS_EMOJI["ascended"],
     2: CLASS_EMOJI["ascended2"],
+    "all": "<:all2:339511715920084993>",
+    "tech": "<:tech2:339511716197171200>",
+    "skill": "<:skill2:339511716549230592>",
+    "mutant": "<:mutant2:339511716201365514>",
+    "mystic": "<:mystic2:339511716150771712> ",
+    "cosmic": "<:cosmic2:339511716104896512>",
+    "science": "<:science2:339511716029267969>",
+    "ascended": "<:ascend:1137124043506585691>",
 }
 
 @dataclass(frozen=True)

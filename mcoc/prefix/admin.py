@@ -586,7 +586,6 @@ class MCOCAdminPrefix(commands.Cog):
         try:
             await poster.update_section("Overall", "Starting fast sync (champstats skipped)…")
             updated = await parent.cache.sync(parent.api, progress=reporter, include_champstats=False, force=True)
-            
             # Gather sync results for summary
             meta = parent.cache.metadata or {}
             versions = meta.get("versions", {})

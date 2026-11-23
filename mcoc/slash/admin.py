@@ -18,6 +18,13 @@ from typing import Optional, Any
 
 from ..common.components.componentsV2 import CDTEmbed
 from ..common.helpers.admin_status import collect_admin_status_snapshot
+import discord
+from redbot.core import commands
+from redbot.core import app_commands
+from typing import Optional
+
+from ..common.components.componentsV2 import CDTEmbed, CDTPagesMenu
+from ..common.helpers.admin_status import collect_admin_status_snapshot, build_admin_status_page_specs
 
 log = logging.getLogger("red.mcoc.slash.admin")
 
@@ -590,7 +597,6 @@ class _AdminGroup(app_commands.Group):
         panel = _AdminControlPanelView(self, requester_id=getattr(interaction.user, "id", 0))
         embed = await self._build_status_embed(interaction, last_action=panel.last_action)
         await _edit_or_followup(interaction, content="Collector > MCOC Admin > Status", embed=embed, view=panel, ephemeral=True)
-
     @app_commands.command(name="forcesync", description="Force a full sync from MCOCHUB")
     async def forcesync(self, interaction: discord.Interaction):
         if not await self._is_owner(interaction):

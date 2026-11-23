@@ -39,7 +39,7 @@ _ALLIANCE_TYPE_ALIASES = {
     "complex": ALLIANCE_TYPE_ADVANCED,
 }
 
-_CORE_ROLE_KEYS = ["alliance", "officers", "members"]
+_CORE_ROLE_KEYS = ["alliance", "officers", "members", "leader", "managers"]
 _SIMPLE_BG_KEYS = ["bg1", "bg2", "bg3"]
 _ADVANCED_AQ_KEYS = ["aqbg1", "aqbg2", "aqbg3"]
 _ADVANCED_AW_KEYS = ["awbg1", "awbg2", "awbg3"]
