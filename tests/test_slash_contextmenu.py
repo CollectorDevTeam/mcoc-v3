@@ -58,6 +58,22 @@ def test_contextmenu_alliance_manage_has_bg_actions():
     assert "Set Manager" in text
 
 
+def test_contextmenu_alliance_section_is_capability_gated():
+    import inspect
+    import mcoc.slash.contextmenu as contextmenu_module
+
+    init_text = inspect.getsource(contextmenu_module._MCOCAllianceSectionView.__init__)
+    handle_text = inspect.getsource(contextmenu_module._MCOCAllianceSectionView.handle)
+
+    assert "AllianceSlash._is_alliance_member" in init_text
+    assert "if self.user_has_alliance:" in init_text
+    assert "if self.user_has_alliance and self.is_manager:" in init_text
+    assert "_MCOCActionButton(\"REPORTS\"" in init_text
+    assert "_MCOCActionButton(\"SETTINGS\"" in init_text
+    assert "_MCOCActionButton(\"ASSIGN ROLE\"" in init_text
+    assert "if not AllianceSlash._is_alliance_member(interaction.user, guild, cfg)" in handle_text
+
+
 def test_roster_edit_settings_contains_import_export_and_no_data_button():
     import inspect
     import mcoc.slash.roster as roster_module

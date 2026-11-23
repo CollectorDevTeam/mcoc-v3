@@ -404,7 +404,12 @@ class RosterPrefix(commands.Cog):
             payload = await attachment.read()
             text = payload.decode("utf-8-sig", errors="replace")
             entries = Roster.parse_roster_entries_from_input(text, getattr(self.parent, "cache", None))
-            result = Roster.import_roster_entries(self.parent, getattr(ctx.author, "id", None), entries)
+            result = Roster.import_roster_entries(
+                self.parent,
+                getattr(ctx.author, "id", None),
+                entries,
+                preserve_existing_ascended=True,
+            )
         except Exception as exc:
             log.exception("roster_import failed")
             await safe_send_ctx(ctx, f"Failed to import roster CSV: {exc}")
@@ -459,4 +464,3 @@ class RosterPrefix(commands.Cog):
 
 async def setup(bot):
     bot.add_cog(RosterPrefix(bot))
-

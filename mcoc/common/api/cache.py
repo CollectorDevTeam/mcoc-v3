@@ -13,6 +13,7 @@ import hashlib
 import pathlib
 import datetime
 import logging
+import re
 import tempfile
 import os
 import asyncio
@@ -65,6 +66,10 @@ class CacheManager:
         # optional: create index
         self.index = CacheIndex(self)
         self._sync_lock = asyncio.Lock()
+        self._champion_lookup_cache: Dict[str, Optional[Dict[str, Any]]] = {}
+        self._all_champions_cache: List[Dict[str, Any]] = []
+        self._champion_lookup_cache_ready = False
+        self._prewarm_champion_lookup_cache()
 
     # -----------------------------
     # Metadata
@@ -85,6 +90,8 @@ class CacheManager:
                         "champions": None,
                         "cocpit_abilities": None,
                         "cocpit_champions": None,
+                        "scout_catalog": None,
+                        "scout_guides": None,
                         "champions_map": None,
                         "champstats": None,
                         "glossary": None,
@@ -106,6 +113,8 @@ class CacheManager:
                         "champions": None,
                         "cocpit_abilities": None,
                         "cocpit_champions": None,
+                        "scout_catalog": None,
+                        "scout_guides": None,
                         "champions_map": None,
                         "champstats": None,
                         "glossary": None,
@@ -126,6 +135,8 @@ class CacheManager:
                     "champions": None,
                     "cocpit_abilities": None,
                     "cocpit_champions": None,
+                    "scout_catalog": None,
+                    "scout_guides": None,
                     "champions_map": None,
                     "champstats": None,
                     "glossary": None,
@@ -138,6 +149,8 @@ class CacheManager:
             if isinstance(versions, dict):
                 versions.setdefault("cocpit_abilities", None)
                 versions.setdefault("cocpit_champions", None)
+                versions.setdefault("scout_catalog", None)
+                versions.setdefault("scout_guides", None)
             data.setdefault("last_sync", None)
             return data
         except Exception:
@@ -149,6 +162,8 @@ class CacheManager:
                     "champions": None,
                     "cocpit_abilities": None,
                     "cocpit_champions": None,
+                    "scout_catalog": None,
+                    "scout_guides": None,
                     "champions_map": None,
                     "champstats": None,
                     "glossary": None,
@@ -168,6 +183,8 @@ class CacheManager:
                     "champions": None,
                     "cocpit_abilities": None,
                     "cocpit_champions": None,
+                    "scout_catalog": None,
+                    "scout_guides": None,
                     "champions_map": None,
                     "champstats": None,
                     "glossary": None,
@@ -195,6 +212,23 @@ class CacheManager:
     # -----------------------------
     # Recency helper
     # -----------------------------
+    def get_log_diagnostics(self) -> bool:
+        settings = self.metadata.get("settings") if isinstance(self.metadata, dict) else None
+        if not isinstance(settings, dict):
+            return False
+        return bool(settings.get("log_diagnostics", False))
+
+    def set_log_diagnostics(self, enabled: bool) -> bool:
+        if not isinstance(self.metadata, dict):
+            self.metadata = {}
+        settings = self.metadata.setdefault("settings", {})
+        if not isinstance(settings, dict):
+            settings = {}
+            self.metadata["settings"] = settings
+        settings["log_diagnostics"] = bool(enabled)
+        self._save_metadata()
+        return bool(settings["log_diagnostics"])
+
     def is_recent(self, hours: int = 24) -> bool:
         last = self.metadata.get("last_sync")
         if not last:
@@ -649,6 +683,14 @@ class CacheManager:
                 "class_name": data.get("className") or data.get("class_name"),
                 "available_rarities": [int(v) for v in (data.get("availableRarities") or data.get("available_rarities") or []) if str(v).isdigit()],
                 "ascension_max_by_rarity": data.get("ascensionMaxByRarity") or data.get("ascension_max_by_rarity") or {},
+                "release_date": data.get("releaseDate") or data.get("release_date") or data.get("releasedAt"),
+                "release_year": self._coerce_release_year(
+                    data.get("releaseYear")
+                    or data.get("release_year")
+                    or data.get("releaseDate")
+                    or data.get("release_date")
+                    or data.get("releasedAt")
+                ),
             })
 
         if not champions:
@@ -1058,6 +1100,100 @@ class CacheManager:
             "glossary": mapped,
         }
 
+    def normalize_scout_catalog_payload(self, payload: Any) -> Optional[Dict[str, Any]]:
+        if not isinstance(payload, dict):
+            return None
+
+        rows = payload.get("data")
+        if not isinstance(rows, list):
+            return None
+
+        champions: List[Dict[str, Any]] = []
+        for row in rows:
+            if not isinstance(row, dict):
+                continue
+            champ_id = row.get("id")
+            name = str(row.get("name") or "").strip()
+            if champ_id in (None, "") or not name:
+                continue
+            champions.append(
+                {
+                    "scout_id": str(champ_id),
+                    "name": name,
+                    "slug": self._normalize_lookup_token(name),
+                    "tags": [str(tag).strip() for tag in (row.get("tags") or []) if str(tag).strip()],
+                    "release_date": row.get("release_date"),
+                    "release_year": self._coerce_release_year(row.get("release_date")),
+                    "class_name": row.get("class") or row.get("class_name"),
+                    "rarities": self._coerce_rarity_list(row.get("rarities") or []),
+                    "seven_star_available": bool(row.get("seven_star_available", False)),
+                }
+            )
+
+        if not champions:
+            return None
+
+        encounter_only_ids = [str(v) for v in (payload.get("encounter_only_ids") or []) if str(v).strip()]
+        return {
+            "version": self._hash(champions),
+            "updated_at": datetime.datetime.utcnow().isoformat(),
+            "encounter_only_ids": encounter_only_ids,
+            "champions": champions,
+        }
+
+    def normalize_scout_guides_payload(self, payload: Any) -> Optional[Dict[str, Any]]:
+        if not isinstance(payload, dict):
+            return None
+        guides_map = payload.get("guides")
+        if not isinstance(guides_map, dict):
+            return None
+
+        rows: List[Dict[str, Any]] = []
+        for key, raw_guide in guides_map.items():
+            if not isinstance(raw_guide, dict):
+                continue
+            champion_id = raw_guide.get("championId") or key
+            champion_name = str(raw_guide.get("championName") or "").strip()
+            if champion_id in (None, "") or not champion_name:
+                continue
+
+            context = raw_guide.get("context") if isinstance(raw_guide.get("context"), dict) else {}
+            rows.append(
+                {
+                    "scout_id": str(champion_id),
+                    "champion_name": champion_name,
+                    "champion_slug": self._normalize_lookup_token(champion_name),
+                    "attack_tier": self._normalize_scout_tier(context.get("attackTier") or context.get("overallTier")),
+                    "defense_tier": self._normalize_scout_tier(context.get("defenseTier") or context.get("overallTier")),
+                    "attack_signature_reference": context.get("attackSignatureReference") or context.get("overallSignature"),
+                    "defense_signature_reference": context.get("defenseSignatureReference") or context.get("overallSignature"),
+                    "attack_awakening": None,
+                    "defense_awakening": None,
+                    "rank_priority": [str(v).strip() for v in (raw_guide.get("rankPriority") or []) if str(v).strip()],
+                    "awakening": [str(v).strip() for v in (raw_guide.get("awakening") or []) if str(v).strip()],
+                    "signature_investment": [str(v).strip() for v in (raw_guide.get("signatureInvestment") or []) if str(v).strip()],
+                    "status": raw_guide.get("status"),
+                    "reviewed_at": raw_guide.get("reviewedAt"),
+                }
+            )
+
+        if not rows:
+            return None
+
+        for row in rows:
+            for item in row.get("awakening") or []:
+                text = str(item).strip().lower()
+                if text.startswith("attack:"):
+                    row["attack_awakening"] = item.split(":", 1)[1].strip()
+                elif text.startswith("defense:"):
+                    row["defense_awakening"] = item.split(":", 1)[1].strip()
+
+        return {
+            "version": self._hash(rows),
+            "updated_at": payload.get("updatedAt") or datetime.datetime.utcnow().isoformat(),
+            "entries": rows,
+        }
+
 
     # -----------------------------
     # Diff + Save
@@ -1087,6 +1223,10 @@ class CacheManager:
             new_data = self.normalize_champions_map_payload(new_data)
         elif name == "glossary":
             new_data = self.normalize_glossary_payload(new_data)
+        elif name == "scout_catalog":
+            new_data = self.normalize_scout_catalog_payload(new_data)
+        elif name == "scout_guides":
+            new_data = self.normalize_scout_guides_payload(new_data)
 
 
         if not new_data:
@@ -1117,6 +1257,9 @@ class CacheManager:
         except Exception:
             log.exception("Failed to save metadata after updating %s", name)
 
+        if name in {"champions", "cocpit_champions", "cocpit_abilities", "scout_catalog", "scout_guides", "champion_overrides"}:
+            self.invalidate_champion_lookup_cache()
+
         log.info("Updated cache for %s.", name)
 
         # Rebuild index off the event loop
@@ -1130,7 +1273,7 @@ class CacheManager:
     # -----------------------------
     # Public sync method
     # -----------------------------
-    async def sync(self, api, progress: Optional[Callable[[str], Awaitable[None]]] = None, *, include_champstats: bool = True) -> bool:
+    async def sync(self, api, progress: Optional[Callable[[str], Awaitable[None]]] = None, *, include_champstats: bool = True, force: bool = False) -> bool:
         """
         Sync champions/tags/abilities/immunities from API.
         If `progress` is provided, call it with short status strings to update UI.
@@ -1173,7 +1316,7 @@ class CacheManager:
         ]
 
         # If we synced recently, skip full network calls only when core cache artifacts are healthy.
-        if self.is_recent(hours=24) and not core_missing:
+        if not force and self.is_recent(hours=24) and not core_missing:
             await _report("Cache was synced within the last 24 hours; checking Cocpit artifacts before skipping.")
             updated_recent = False
 
@@ -1181,9 +1324,13 @@ class CacheManager:
                 cocpit_champions_payload = self._load_file("cocpit_champions")
                 cocpit_abilities_payload = self._load_file("cocpit_abilities")
                 champstats_payload = self._load_file("champstats")
+                scout_catalog_payload = self._load_file("scout_catalog")
+                scout_guides_payload = self._load_file("scout_guides")
                 cocpit_champions_ok = self._is_valid_cache_file("cocpit_champions", cocpit_champions_payload)
                 cocpit_abilities_ok = self._is_valid_cache_file("cocpit_abilities", cocpit_abilities_payload)
                 champstats_ok = self._is_valid_cache_file("champstats", champstats_payload)
+                scout_catalog_ok = self._is_valid_cache_file("scout_catalog", scout_catalog_payload)
+                scout_guides_ok = self._is_valid_cache_file("scout_guides", scout_guides_payload)
 
                 if (not cocpit_champions_ok) and hasattr(api, "get_cocpit_champion_autocomplete"):
                     await _report("Backfilling missing Cocpit champions cache...")
@@ -1206,6 +1353,20 @@ class CacheManager:
                         updated_recent |= bool(result.get("updated"))
                     except asyncio.TimeoutError:
                         await _report("Cocpit champion stats backfill timed out; leaving existing cache unchanged.")
+
+                if (not scout_catalog_ok) and hasattr(api, "get_scout_champion_catalog"):
+                    await _report("Backfilling missing mcocscout champion catalog cache...")
+                    scout_catalog = await api.get_scout_champion_catalog()
+                    if scout_catalog is not None:
+                        updated_recent |= await self._diff_and_save("scout_catalog", scout_catalog)
+
+                if (not scout_guides_ok) and hasattr(api, "get_scout_champion_guides"):
+                    await _report("Backfilling missing mcocscout champion guides cache...")
+                    scout_guides = await api.get_scout_champion_guides()
+                    if scout_guides is None and hasattr(api, "get_scout_champion_fallback_guides"):
+                        scout_guides = await api.get_scout_champion_fallback_guides()
+                    if scout_guides is not None:
+                        updated_recent |= await self._diff_and_save("scout_guides", scout_guides)
             except Exception:
                 log.exception("Failed to backfill Cocpit artifacts during recent-sync short-circuit")
 
@@ -1218,7 +1379,7 @@ class CacheManager:
                 log.exception("Index rebuild failed during short-circuit")
             return updated_recent
 
-        if self.is_recent(hours=24) and core_missing:
+        if not force and self.is_recent(hours=24) and core_missing:
             await _report(
                 "Recent sync timestamp exists, but core cache artifacts are missing or invalid "
                 f"({', '.join(core_missing)}). Forcing full API refresh."
@@ -1304,6 +1465,27 @@ class CacheManager:
                         await _report("Cocpit champion stats harvest timed out; continuing with remaining sync tasks.")
                 elif not include_champstats:
                     await _report("Skipping Cocpit champion stats harvest for fast sync mode.")
+
+                if hasattr(api, "get_scout_champion_catalog"):
+                    await _report("Fetching mcocscout champion catalog...")
+                    scout_catalog = await api.get_scout_champion_catalog()
+                    if scout_catalog is None:
+                        await _report("mcocscout champion catalog returned no data; keeping existing scout catalog cache.")
+                    else:
+                        await _report("Saving mcocscout champion catalog...")
+                        updated |= await self._diff_and_save("scout_catalog", scout_catalog)
+
+                if hasattr(api, "get_scout_champion_guides"):
+                    await _report("Fetching mcocscout champion guides...")
+                    scout_guides = await api.get_scout_champion_guides()
+                    if scout_guides is None and hasattr(api, "get_scout_champion_fallback_guides"):
+                        await _report("Primary mcocscout champion guides unavailable; trying fallback guides...")
+                        scout_guides = await api.get_scout_champion_fallback_guides()
+                    if scout_guides is None:
+                        await _report("mcocscout champion guides returned no data; keeping existing scout guides cache.")
+                    else:
+                        await _report("Saving mcocscout champion guides...")
+                        updated |= await self._diff_and_save("scout_guides", scout_guides)
 
                 await _report("Fetching glossary...")
                 glossary = await api.get_glossary()
@@ -1419,9 +1601,280 @@ class CacheManager:
             break
         return merged
 
+    @staticmethod
+    def _coerce_release_year(value: Any) -> Optional[int]:
+        if value in (None, ""):
+            return None
+        if isinstance(value, bool):
+            return None
+        if isinstance(value, (int, float)):
+            year = int(value)
+            return year if 1900 <= year <= 9999 else None
+        text = str(value).strip()
+        if not text:
+            return None
+        match = re.search(r"(19|20)\d{2}", text)
+        if not match:
+            return None
+        return int(match.group(0))
+
+    @staticmethod
+    def _normalize_scout_tier(value: Any) -> Optional[str]:
+        if value in (None, ""):
+            return None
+        tier = str(value).strip().upper().replace(" ", "")
+        mapping = {
+            "A++": "S+",
+            "A+": "S",
+            "A": "A",
+            "B": "B",
+            "C": "C",
+            "D": "D",
+            "E": "E",
+            "F": "F",
+            "S+": "S+",
+            "S": "S",
+        }
+        return mapping.get(tier, tier if tier in {"S+", "S", "A", "B", "C", "D", "E", "F"} else None)
+
+    @staticmethod
+    def _coerce_rarity_list(values: Any) -> List[int]:
+        raw: List[Any] = []
+        if values is None:
+            return []
+        if isinstance(values, (list, tuple, set)):
+            raw.extend(values)
+        else:
+            raw.append(values)
+
+        rarities: List[int] = []
+        for value in raw:
+            if isinstance(value, bool):
+                continue
+            if isinstance(value, str):
+                parts = [p for p in re.split(r"[^0-9]+", value) if p]
+                for part in parts:
+                    rarity = int(part)
+                    if 1 <= rarity <= 7 and rarity not in rarities:
+                        rarities.append(rarity)
+                continue
+            if isinstance(value, (int, float)):
+                rarity = int(value)
+                if 1 <= rarity <= 7 and rarity not in rarities:
+                    rarities.append(rarity)
+        return sorted(rarities)
+
+    def _find_cocpit_match(self, champion: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        if not isinstance(champion, dict):
+            return None
+        cocpit_champions = self.get_all_cocpit_champions()
+        if not cocpit_champions:
+            return None
+
+        keys = self._champion_key_candidates(champion)
+        normalized_keys = {self._normalize_lookup_token(k) for k in keys}
+        for cocpit in cocpit_champions:
+            if not isinstance(cocpit, dict):
+                continue
+            candidates = [
+                cocpit.get("id"),
+                cocpit.get("slug"),
+                cocpit.get("name"),
+                *(cocpit.get("aliases") or []),
+            ]
+            for candidate in candidates:
+                if candidate is None:
+                    continue
+                token = str(candidate).strip()
+                if not token:
+                    continue
+                if token.lower() in keys or self._normalize_lookup_token(token) in normalized_keys:
+                    return cocpit
+        return None
+
+    def _merge_cocpit_champion_metadata(self, champion: Dict[str, Any]) -> Dict[str, Any]:
+        merged = dict(champion)
+        cocpit = self._find_cocpit_match(champion)
+        if not cocpit:
+            return merged
+
+        cocpit_rarities = self._coerce_rarity_list(
+            cocpit.get("available_rarities")
+            or cocpit.get("availableRarities")
+            or cocpit.get("rarities")
+        )
+        base_rarities = self._coerce_rarity_list(
+            merged.get("available_rarities")
+            or merged.get("availableRarities")
+            or merged.get("rarities")
+        )
+        all_rarities = sorted(set(base_rarities + cocpit_rarities))
+        if all_rarities:
+            merged["available_rarities"] = all_rarities
+
+        if not merged.get("ascension_max_by_rarity"):
+            asc = cocpit.get("ascension_max_by_rarity") or cocpit.get("ascensionMaxByRarity")
+            if isinstance(asc, dict):
+                merged["ascension_max_by_rarity"] = asc
+
+        if not merged.get("class_name"):
+            class_name = cocpit.get("class_name") or cocpit.get("className")
+            if class_name:
+                merged["class_name"] = class_name
+
+        if not merged.get("img") and cocpit.get("img"):
+            merged["img"] = cocpit.get("img")
+
+        if not merged.get("release_date"):
+            release_date = cocpit.get("release_date") or cocpit.get("releaseDate") or cocpit.get("releasedAt")
+            if release_date:
+                merged["release_date"] = release_date
+
+        if not merged.get("release_year"):
+            year = self._coerce_release_year(
+                merged.get("release_date")
+                or cocpit.get("release_year")
+                or cocpit.get("releaseYear")
+                or cocpit.get("release_date")
+                or cocpit.get("releaseDate")
+                or cocpit.get("releasedAt")
+            )
+            if year:
+                merged["release_year"] = year
+
+        return merged
+
+    def _find_scout_catalog_match(self, champion: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        if not isinstance(champion, dict):
+            return None
+        rows = self.get_all_scout_catalog_champions()
+        if not rows:
+            return None
+
+        keys = self._champion_key_candidates(champion)
+        normalized_keys = {self._normalize_lookup_token(k) for k in keys}
+        for row in rows:
+            if not isinstance(row, dict):
+                continue
+            candidates = [row.get("name"), row.get("slug")]
+            for candidate in candidates:
+                if candidate is None:
+                    continue
+                token = str(candidate).strip()
+                if not token:
+                    continue
+                if token.lower() in keys or self._normalize_lookup_token(token) in normalized_keys:
+                    return row
+        return None
+
+    def _find_scout_guide_match(self, champion: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        if not isinstance(champion, dict):
+            return None
+        guides = self.get_all_scout_guides()
+        if not guides:
+            return None
+
+        keys = self._champion_key_candidates(champion)
+        normalized_keys = {self._normalize_lookup_token(k) for k in keys}
+        for row in guides:
+            if not isinstance(row, dict):
+                continue
+            candidates = [row.get("champion_name"), row.get("champion_slug")]
+            for candidate in candidates:
+                if candidate is None:
+                    continue
+                token = str(candidate).strip()
+                if not token:
+                    continue
+                if token.lower() in keys or self._normalize_lookup_token(token) in normalized_keys:
+                    return row
+        return None
+
+    def _merge_scout_champion_metadata(self, champion: Dict[str, Any]) -> Dict[str, Any]:
+        merged = dict(champion)
+
+        catalog_row = self._find_scout_catalog_match(merged)
+        if catalog_row:
+            scout_tags = [str(tag).strip() for tag in (catalog_row.get("tags") or []) if str(tag).strip()]
+            base_tags = [str(tag).strip() for tag in (merged.get("tags") or []) if str(tag).strip()]
+            if scout_tags:
+                merged["tags"] = sorted(set(base_tags + scout_tags), key=lambda s: s.lower())
+
+            if not merged.get("release_date") and catalog_row.get("release_date"):
+                merged["release_date"] = catalog_row.get("release_date")
+            if not merged.get("release_year") and catalog_row.get("release_year"):
+                merged["release_year"] = catalog_row.get("release_year")
+
+        guide_row = self._find_scout_guide_match(merged)
+        if guide_row:
+            attack_tier = self._normalize_scout_tier(guide_row.get("attack_tier"))
+            defense_tier = self._normalize_scout_tier(guide_row.get("defense_tier"))
+            if attack_tier:
+                merged["attack_tier"] = attack_tier
+            if defense_tier:
+                merged["defense_tier"] = defense_tier
+
+            merged["scout_guide"] = {
+                "attack_tier": attack_tier,
+                "defense_tier": defense_tier,
+                "attack_signature_reference": guide_row.get("attack_signature_reference"),
+                "defense_signature_reference": guide_row.get("defense_signature_reference"),
+                "attack_awakening": guide_row.get("attack_awakening"),
+                "defense_awakening": guide_row.get("defense_awakening"),
+                "rank_priority": guide_row.get("rank_priority") or [],
+                "awakening": guide_row.get("awakening") or [],
+                "signature_investment": guide_row.get("signature_investment") or [],
+            }
+
+        return merged
+
     # -----------------------------
     # Lookup helpers (unchanged)
     # -----------------------------
+    def _prewarm_champion_lookup_cache(self) -> None:
+        if not hasattr(self, "_champion_lookup_cache"):
+            self._champion_lookup_cache = {}
+        if not hasattr(self, "_all_champions_cache"):
+            self._all_champions_cache = []
+        """Build lookup aliases once from cached JSON instead of merging/rereading per command."""
+        try:
+            champs = self._load_file("champions").get("champions", {})
+            values = list(champs.values()) if isinstance(champs, dict) else champs if isinstance(champs, list) else []
+            merged_champions: List[Dict[str, Any]] = []
+            for champ in values:
+                if not isinstance(champ, dict):
+                    continue
+                candidates = [champ.get("id"), champ.get("slug"), champ.get("name"), champ.get("title")]
+                candidates.extend(champ.get("aliases") or [])
+                candidates.append(champ.get("shortname"))
+                merged = self._merge_champion_overrides(champ)
+                merged = self._merge_cocpit_champion_metadata(merged)
+                merged = self._merge_scout_champion_metadata(merged)
+                merged_champions.append(merged)
+                seen = set()
+                for candidate in candidates:
+                    if candidate is None:
+                        continue
+                    key = str(candidate).strip().lower()
+                    normalized = self._normalize_lookup_token(candidate)
+                    if key and key not in seen:
+                        seen.add(key)
+                        self._champion_lookup_cache[key] = merged
+                    if normalized and normalized not in seen:
+                        seen.add(normalized)
+                        self._champion_lookup_cache[normalized] = merged
+            self._all_champions_cache = merged_champions
+            self._champion_lookup_cache_ready = True
+            log.info("Champion lookup cache prewarmed with %d aliases", len(self._champion_lookup_cache))
+        except Exception:
+            log.exception("Failed to prewarm champion lookup cache")
+
+    def invalidate_champion_lookup_cache(self) -> None:
+        self._champion_lookup_cache.clear()
+        self._all_champions_cache = []
+        self._champion_lookup_cache_ready = False
+        self._prewarm_champion_lookup_cache()
+
     def get_champion(self, id_or_name: str) -> Optional[Dict[str, Any]]:
         if id_or_name is None:
             return None
@@ -1432,6 +1885,14 @@ class CacheManager:
 
         lookup = raw.lower()
         normalized_lookup = self._normalize_lookup_token(raw)
+        if not self._champion_lookup_cache_ready:
+            self._prewarm_champion_lookup_cache()
+        cached = self._champion_lookup_cache.get(lookup)
+        if cached is not None:
+            return cached
+        cached = self._champion_lookup_cache.get(normalized_lookup)
+        if cached is not None:
+            return cached
         override_map = self._get_champion_overrides()
         champs = self._load_file("champions").get("champions", {})
 
@@ -1459,7 +1920,9 @@ class CacheManager:
 
             direct = find_key_for_lookup()
             if direct is not None:
-                return self._merge_champion_overrides(champs[direct])
+                merged = self._merge_champion_overrides(champs[direct])
+                merged = self._merge_cocpit_champion_metadata(merged)
+                return self._merge_scout_champion_metadata(merged)
 
         # fallback to list-based data shape
         if isinstance(champs, list):
@@ -1476,7 +1939,9 @@ class CacheManager:
                         continue
                     cand_text = str(candidate)
                     if cand_text.lower() == lookup or self._normalize_lookup_token(cand_text) == normalized_lookup:
-                        return self._merge_champion_overrides(champ)
+                        merged = self._merge_champion_overrides(champ)
+                        merged = self._merge_cocpit_champion_metadata(merged)
+                        return self._merge_scout_champion_metadata(merged)
 
         return None
 
@@ -1509,12 +1974,35 @@ class CacheManager:
         return immunities or []
 
     def get_all_champions(self) -> list:
+        if not hasattr(self, "_champion_lookup_cache_ready"):
+            self._champion_lookup_cache_ready = False
+        if not hasattr(self, "_champion_lookup_cache"):
+            self._champion_lookup_cache = {}
+        if not hasattr(self, "_all_champions_cache"):
+            self._all_champions_cache = []
+        if not self._champion_lookup_cache_ready:
+            self._prewarm_champion_lookup_cache()
+        if self._all_champions_cache:
+            return list(self._all_champions_cache)
+
         data = self._load_file("champions")
         champs = data.get("champions", {})
         if isinstance(champs, dict):
-            return list(champs.values())
+            return [
+                self._merge_scout_champion_metadata(
+                    self._merge_cocpit_champion_metadata(self._merge_champion_overrides(champ))
+                )
+                for champ in champs.values()
+                if isinstance(champ, dict)
+            ]
         if isinstance(champs, list):
-            return champs
+            return [
+                self._merge_scout_champion_metadata(
+                    self._merge_cocpit_champion_metadata(self._merge_champion_overrides(champ))
+                )
+                for champ in champs
+                if isinstance(champ, dict)
+            ]
         return []
 
     def get_all_champions_map(self) -> list:
@@ -1531,6 +2019,20 @@ class CacheManager:
         champs = data.get("champions", []) if isinstance(data, dict) else []
         if isinstance(champs, list):
             return champs
+        return []
+
+    def get_all_scout_catalog_champions(self) -> list:
+        data = self._load_file("scout_catalog")
+        champs = data.get("champions", []) if isinstance(data, dict) else []
+        if isinstance(champs, list):
+            return champs
+        return []
+
+    def get_all_scout_guides(self) -> list:
+        data = self._load_file("scout_guides")
+        rows = data.get("entries", []) if isinstance(data, dict) else []
+        if isinstance(rows, list):
+            return rows
         return []
 
     def get_cocpit_champion(self, id_or_name: str) -> Optional[Dict[str, Any]]:
@@ -1740,6 +2242,8 @@ class CacheManager:
             "champions": "champions",
             "cocpit_champions": "champions",
             "cocpit_abilities": "entries",
+            "scout_catalog": "champions",
+            "scout_guides": "entries",
             "champstats": "entries",
             "abilities": "abilities",
             "tags": "tags",
@@ -1777,6 +2281,14 @@ class CacheManager:
             entries = payload.get("entries")
             return isinstance(entries, list)
 
+        if name == "scout_catalog":
+            champions = payload.get("champions")
+            return isinstance(champions, list)
+
+        if name == "scout_guides":
+            entries = payload.get("entries")
+            return isinstance(entries, list)
+
         if name == "aw":
             aw_payload = payload.get("aw")
             return isinstance(aw_payload, dict)
@@ -1796,6 +2308,8 @@ class CacheManager:
             "champions",
             "cocpit_champions",
             "cocpit_abilities",
+            "scout_catalog",
+            "scout_guides",
             "champstats",
             "abilities",
             "tags",

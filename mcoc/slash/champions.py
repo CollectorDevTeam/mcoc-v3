@@ -8,6 +8,8 @@
 # Changelog:
 #   1.0 2026-09-01  Initial stabilized API header
 import logging
+import re
+import time
 from typing import Optional, Any, List
 from redbot.core import commands
 from redbot.core import app_commands
@@ -55,27 +57,34 @@ class _ChampionGroup(app_commands.Group):
 
     # Autocomplete wrappers (prefer index methods, fallback to simple scan)
     async def champion_autocomplete(self, interaction, current: str):
-        idx = self._index()
-        cur = (current or "").lower()
-        if idx and hasattr(idx, "champion_autocomplete"):
-            try:
-                return await idx.champion_autocomplete(interaction, cur)
-            except Exception:
-                log.exception("champion_autocomplete failed in CacheIndex")
-        # fallback: build simple choices
+        cur = str(current or "").strip().lower()
+        # Read the live champion cache directly. CacheIndex autocomplete is optional
+        # and is not available in all bot/runtime versions.
         try:
             cache = self._cache()
             champs = cache.get_all_champions() if cache else []
             matches = []
             for c in champs:
-                name = c.get("name") or ""
-                cid = str(c.get("id") or c.get("slug") or "")
-                if cur in name.lower() or cur in cid.lower():
-                    matches.append(app_commands.Choice(name=name, value=cid))
-                    if len(matches) >= 25:
-                        break
+                if not isinstance(c, dict):
+                    continue
+                name = str(c.get("name") or c.get("title") or c.get("slug") or c.get("id") or "").strip()
+                cid = str(c.get("id") or c.get("slug") or name).strip()
+                if not name or not cid:
+                    continue
+                searchable = " ".join([
+                    name.lower(),
+                    cid.lower(),
+                    str(c.get("slug") or "").lower(),
+                    str(c.get("title") or "").lower(),
+                ])
+                if cur and cur not in searchable:
+                    continue
+                matches.append(app_commands.Choice(name=name[:100], value=cid[:100]))
+                if len(matches) >= 25:
+                    break
             return matches
         except Exception:
+            log.exception("Champion autocomplete fallback failed")
             return []
 
     def _normalize_token(self, value: Any) -> str:
@@ -113,6 +122,176 @@ class _ChampionGroup(app_commands.Group):
                 seen.add(key)
                 values.append(text)
         return sorted(values)
+
+    @staticmethod
+    def _coerce_rarity_values(champion: Any) -> List[int]:
+        if not isinstance(champion, dict):
+            return []
+
+        raw_values = []
+        for field in ("available_rarities", "availableRarities", "rarities", "rarity", "stars"):
+            value = champion.get(field)
+            if value is None:
+                continue
+            if isinstance(value, (list, tuple, set)):
+                raw_values.extend(value)
+            else:
+                raw_values.append(value)
+
+        rarities: List[int] = []
+        for value in raw_values:
+            if isinstance(value, bool):
+                continue
+            if isinstance(value, str):
+                digits = [segment for segment in value.replace(',', ' ').split() if segment.strip().isdigit()]
+                if not digits:
+                    try:
+                        rarity = int(float(value.strip()))
+                    except ValueError:
+                        continue
+                    digits = [str(rarity)]
+                for token in digits:
+                    rarity = int(token)
+                    if 1 <= rarity <= 7 and rarity not in rarities:
+                        rarities.append(rarity)
+                continue
+            if isinstance(value, (int, float)):
+                rarity = int(value)
+                if 1 <= rarity <= 7 and rarity not in rarities:
+                    rarities.append(rarity)
+
+        return sorted(rarities)
+
+    @staticmethod
+    def _format_release_text(champion: Any) -> str:
+        if not isinstance(champion, dict):
+            return ""
+        for field in ("release_year", "releaseYear", "release_date", "releaseDate"):
+            value = champion.get(field)
+            if value in (None, ""):
+                continue
+            if isinstance(value, str):
+                text = value.strip()
+                if text:
+                    return text
+            elif isinstance(value, (int, float)) and not isinstance(value, bool):
+                return str(int(value))
+        return ""
+
+    @staticmethod
+    def _extract_scout_section_value(values: Any, section: str) -> Optional[str]:
+        if not isinstance(values, list):
+            return None
+        prefix = f"{section.strip().lower()}:"
+        for value in values:
+            text = str(value or "").strip()
+            if not text:
+                continue
+            lowered = text.lower()
+            if lowered.startswith(prefix):
+                return text.split(":", 1)[1].strip()
+        return None
+
+    @staticmethod
+    def _normalize_scout_awakening(text: Any) -> Optional[str]:
+        raw = str(text or "").strip()
+        if not raw:
+            return None
+        lowered = raw.lower()
+        if "unawakened" in lowered or "not required" in lowered:
+            return "Not required"
+        if lowered.startswith("awaken") or "recommended" in lowered:
+            return "Recommended"
+        return raw.rstrip(".")
+
+    @staticmethod
+    def _parse_scout_rank_summary(text: Any) -> Optional[str]:
+        raw = str(text or "").strip()
+        if not raw:
+            return None
+        lowered = raw.lower()
+        if "low rank-up priority" in lowered:
+            return "Low priority"
+        match = re.search(r"rank\s*(\d+)", raw, re.IGNORECASE)
+        if match:
+            return f"Rank {match.group(1)}"
+        return raw.rstrip(".")
+
+    def _build_scout_sections(self, champion: Any) -> Optional[dict]:
+        if not isinstance(champion, dict):
+            return None
+
+        guide = champion.get("scout_guide") if isinstance(champion.get("scout_guide"), dict) else {}
+
+        attack_tier = str(guide.get("attack_tier") or champion.get("attack_tier") or "").strip().upper()
+        defense_tier = str(guide.get("defense_tier") or champion.get("defense_tier") or "").strip().upper()
+
+        rank_priority = guide.get("rank_priority") if isinstance(guide.get("rank_priority"), list) else []
+        awakening = guide.get("awakening") if isinstance(guide.get("awakening"), list) else []
+        signature_investment = guide.get("signature_investment") if isinstance(guide.get("signature_investment"), list) else []
+
+        attack_rank = self._parse_scout_rank_summary(self._extract_scout_section_value(rank_priority, "attack"))
+        defense_rank = self._parse_scout_rank_summary(self._extract_scout_section_value(rank_priority, "defense"))
+
+        attack_awakening = self._normalize_scout_awakening(
+            guide.get("attack_awakening") or self._extract_scout_section_value(awakening, "attack")
+        )
+        defense_awakening = self._normalize_scout_awakening(
+            guide.get("defense_awakening") or self._extract_scout_section_value(awakening, "defense")
+        )
+
+        attack_sig = str(
+            guide.get("attack_signature_reference")
+            or self._extract_scout_section_value(signature_investment, "attack")
+            or "-"
+        ).strip()
+        defense_sig = str(
+            guide.get("defense_signature_reference")
+            or self._extract_scout_section_value(signature_investment, "defense")
+            or "-"
+        ).strip()
+
+        if not any([attack_tier, defense_tier, attack_rank, defense_rank, attack_awakening, defense_awakening]):
+            return None
+
+        name = str(champion.get("name") or champion.get("title") or champion.get("slug") or champion.get("id") or "Champion").strip()
+        return {
+            "name": name,
+            "attack": {
+                "tier": attack_tier or "-",
+                "rank": attack_rank or "-",
+                "awakening": attack_awakening or "-",
+                "sig": attack_sig or "-",
+            },
+            "defense": {
+                "tier": defense_tier or "-",
+                "rank": defense_rank or "-",
+                "awakening": defense_awakening or "-",
+                "sig": defense_sig or "-",
+            },
+        }
+
+    def _build_scout_summary(self, champion: Any) -> Optional[str]:
+        sections = self._build_scout_sections(champion)
+        if not sections:
+            return None
+
+        lines = [
+            f"**{sections['name']} - Scout Guide**",
+            "",
+            "**Attack**",
+            f"Tier: {sections['attack']['tier']}",
+            f"Rank: {sections['attack']['rank']}",
+            f"Awakening: {sections['attack']['awakening']}",
+            f"Sig target: {sections['attack']['sig']}",
+            "",
+            "**Defense**",
+            f"Tier: {sections['defense']['tier']}",
+            f"Rank: {sections['defense']['rank']}",
+            f"Awakening: {sections['defense']['awakening']}",
+            f"Sig target: {sections['defense']['sig']}",
+        ]
+        return "\n".join(lines)
 
     async def tag_autocomplete(self, interaction, current: str):
         idx = self._index()
@@ -162,16 +341,155 @@ class _ChampionGroup(app_commands.Group):
     @app_commands.command(name="info", description="Show champion information")
     @app_commands.autocomplete(champion=champion_autocomplete)
     async def info(self, interaction, champion: str):
+        started = time.perf_counter()
         champ = resolve_champion(self._cache(), champion)
+        lookup_elapsed = time.perf_counter() - started
         if not champ:
             await safe_respond_interaction(interaction, content=f"Champion `{champion}` not found.", ephemeral=True)
             return
         try:
             embed = CDTEmbed.champion_embed(interaction, champ)
+            embed_elapsed = time.perf_counter() - started - lookup_elapsed
+            send_started = time.perf_counter()
             await safe_respond_interaction(interaction, embed=embed)
+            log.info("Champion info timing: lookup=%.3fs embed=%.3fs send=%.3fs total=%.3fs champion=%s", lookup_elapsed, embed_elapsed, time.perf_counter() - send_started, time.perf_counter() - started, champion)
         except Exception:
             log.exception("Failed to build champion embed")
             await safe_respond_interaction(interaction, content=champ.get("name", "Unknown"), ephemeral=True)
+
+    @app_commands.command(name="scout", description="Show MCOC Scout attack and defense guidance for a champion")
+    @app_commands.autocomplete(champion=champion_autocomplete)
+    async def scout(self, interaction, champion: str):
+        started = time.perf_counter()
+        cache_started = time.perf_counter()
+        champ = resolve_champion(self._cache(), champion)
+        cache_elapsed = time.perf_counter() - cache_started
+        if not champ:
+            log.info("Scout timing: lookup=%.3fs not_found=%s", cache_elapsed, champion)
+            await safe_respond_interaction(interaction, content=f"Champion `{champion}` not found.", ephemeral=True)
+            return
+
+        sections = self._build_scout_sections(champ)
+        if not sections:
+            await safe_respond_interaction(
+                interaction,
+                content="Scout guide data is not available for that champion yet.",
+                ephemeral=True,
+            )
+            return
+
+        attack = sections["attack"]
+        defense = sections["defense"]
+
+        embed = CDTEmbed.embed(
+            interaction,
+            title=f"{sections['name']} Scout Guide",
+            description="Competitive guidance from MCOC Scout.",
+            url="https://mcocscout.com",
+        )
+        CDTEmbed.add_field(
+            interaction,
+            embed,
+            name="Attack",
+            value=(
+                f"Tier: **{attack['tier']}**\n"
+                f"Rank: **{attack['rank']}**\n"
+                f"Awakening: **{attack['awakening']}**\n"
+                f"Sig target: **{attack['sig']}**"
+            ),
+            inline=False,
+        )
+        CDTEmbed.add_field(
+            interaction,
+            embed,
+            name="Defense",
+            value=(
+                f"Tier: **{defense['tier']}**\n"
+                f"Rank: **{defense['rank']}**\n"
+                f"Awakening: **{defense['awakening']}**\n"
+                f"Sig target: **{defense['sig']}**"
+            ),
+            inline=False,
+        )
+        try:
+            CDTEmbed.set_footer(interaction, embed, text="Source: mcocscout.com")
+        except Exception:
+            pass
+
+        embed_elapsed = time.perf_counter() - started - cache_elapsed
+        log.info("Scout timing: cache=%.3fs embed=%.3fs total_before_send=%.3fs champion=%s", cache_elapsed, embed_elapsed, time.perf_counter() - started, champion)
+
+        cache = self._cache()
+        log_diagnostics = bool(getattr(cache, "get_log_diagnostics", lambda: False)()) if cache else False
+        if log_diagnostics:
+            try:
+                CDTEmbed.add_field(
+                    interaction,
+                    embed,
+                    name="Diagnostics",
+                    value=(
+                        f"Cache: `{cache_elapsed:.3f}s`\n"
+                        f"Embed: `{embed_elapsed:.3f}s`"
+                    ),
+                    inline=False,
+                )
+            except Exception:
+                log.exception("Failed to add Scout diagnostics field")
+
+        send_started = time.perf_counter()
+        await safe_respond_interaction(interaction, embed=embed)
+        send_elapsed = time.perf_counter() - send_started
+        total_elapsed = time.perf_counter() - started
+        log.info("Scout timing: send=%.3fs total=%.3fs champion=%s", send_elapsed, total_elapsed, champion)
+
+    @app_commands.command(name="available", description="List champions and the rarities they are available at")
+    async def available(self, interaction):
+        cache = self._cache()
+        champions = cache.get_all_champions() if cache and hasattr(cache, "get_all_champions") else []
+        rows = []
+
+        def _collect_rows(items: Any) -> None:
+            for champ in items or []:
+                if not isinstance(champ, dict):
+                    continue
+                rarities = self._coerce_rarity_values(champ)
+                if not rarities:
+                    continue
+                name = str(champ.get("name") or champ.get("title") or champ.get("slug") or champ.get("id") or "Unknown").strip()
+                if not name:
+                    continue
+                rows.append((name, rarities, self._format_release_text(champ)))
+
+        _collect_rows(champions)
+
+        # Fallback to raw Cocpit champions when base champion cache has no availability metadata yet.
+        if not rows and cache and hasattr(cache, "get_all_cocpit_champions"):
+            _collect_rows(cache.get_all_cocpit_champions())
+
+        if not rows:
+            await safe_respond_interaction(interaction, content="No champion availability data is available yet.", ephemeral=True)
+            return
+
+        rows.sort(key=lambda item: item[0].lower())
+        lines = [
+            "```text",
+            f"{'Champion':<24} | {' | '.join(f'{star}★' for star in (7, 6, 5, 4, 3, 2, 1))} | Release",
+            f"{'-' * 24}-|{'-|'.join('-' * 3 for _ in range(7))}|--------",
+        ]
+
+        for name, rarities, release_year in rows[:40]:
+            cells = []
+            for star in (7, 6, 5, 4, 3, 2, 1):
+                cells.append(f"{star}★" if star in rarities else "—")
+            release = f" {release_year}" if release_year else ""
+            lines.append(f"{name:<24} | {' | '.join(cells)} |{release}")
+
+        if len(rows) > 40:
+            lines.append(f"... and {len(rows) - 40} more champions")
+        lines.append("```")
+
+        content = "\n".join(lines)
+        await safe_respond_interaction(interaction, content=content)
 
     @app_commands.command(name="abilities", description="Show champion abilities")
     @app_commands.autocomplete(champion=champion_autocomplete)
@@ -385,9 +703,11 @@ class _ChampionGroup(app_commands.Group):
         champ_immunity: Optional[str] = None,
         champ_synergy: Optional[str] = None
     ):
-        idx = self._index()
+        started = time.perf_counter()
         cache = self._cache()
-        champs = idx.champions if idx and hasattr(idx, "champions") else (cache.get_all_champions() if cache else [])
+        cache_started = time.perf_counter()
+        champs = cache.get_all_champions() if cache and hasattr(cache, "get_all_champions") else []
+        cache_elapsed = time.perf_counter() - cache_started
 
         filters = {
             "name": champ_name or None,
@@ -402,6 +722,7 @@ class _ChampionGroup(app_commands.Group):
         synergy_target = resolve_champion(cache, champ_synergy) if champ_synergy else None
         synergy_token = self._normalize_token((synergy_target or {}).get("id") or (synergy_target or {}).get("slug") or champ_synergy)
 
+        filter_started = time.perf_counter()
         results = []
         for champ in champs:
             try:
@@ -429,18 +750,31 @@ class _ChampionGroup(app_commands.Group):
                 results.append(champ)
             except Exception:
                 continue
+        filter_elapsed = time.perf_counter() - filter_started
 
         if not results:
             await safe_respond_interaction(interaction, content="No champions match your search filters.", ephemeral=True)
             return
 
+        names = [str(champ.get("name") or champ.get("slug") or champ.get("id") or "Unknown") for champ in results]
+        names = list(dict.fromkeys(names))
+        max_names = 100
+        shown = names[:max_names]
+        suffix = f"\n…and {len(names) - max_names} more" if len(names) > max_names else ""
+        embed = CDTEmbed.embed(
+            interaction,
+            title=f"Champion Search — {len(names)} match{'es' if len(names) != 1 else ''}",
+            description=("\n".join(f"• {name}" for name in shown) + suffix),
+            url="https://mcoc.app",
+        )
         try:
-            pages = [CDTEmbed.champion_embed(interaction, champ) for champ in results]
-            pages = add_page_footers(pages)
-            await safe_respond_interaction(interaction, embed=pages[0], view=CDTPagesMenu(pages, author=interaction.user))
+            CDTEmbed.set_footer(interaction, embed, text="Collector | Champion Search")
         except Exception:
-            names = [c.get("name", "Unknown") for c in results][:50]
-            await safe_respond_interaction(interaction, content=f"Matches ({len(results)}): {', '.join(names)}", ephemeral=True)
+            pass
+        send_started = time.perf_counter()
+        await safe_respond_interaction(interaction, embed=embed)
+        send_elapsed = time.perf_counter() - send_started
+        log.info("Champion search timing: cache=%.3fs filter=%.3fs send=%.3fs total=%.3fs matches=%d", cache_elapsed, filter_elapsed, send_elapsed, time.perf_counter() - started, len(names))
 
 
     @app_commands.command(name="calcstats", description="Calculate champion stats for a given rarity, rank, sig, and ascension")

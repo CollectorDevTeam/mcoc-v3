@@ -34,6 +34,9 @@ class MCOCHubAPI:
     COCPIT_CHAMPION_AUTOCOMPLETE_URL = "https://cocpit.org/api/champion-autocomplete"
     COCPIT_CHAMP_STATS_URL = "https://cocpit.org/api/champstats"
     COCPIT_CHAMPIONS_PAGE_URL = "https://cocpit.org/champions"
+    SCOUT_CHAMPION_CATALOG_URL = "https://mcocscout.com/data/champion_catalog.json"
+    SCOUT_CHAMPION_GUIDES_URL = "https://mcocscout.com/data/champion_guides.json"
+    SCOUT_CHAMPION_FALLBACK_GUIDES_URL = "https://mcocscout.com/data/champion_fallback_guides.json"
 
     @staticmethod
     def _extract_cocpit_autocomplete_url_from_html(html: str) -> Optional[str]:
@@ -454,6 +457,18 @@ class MCOCHubAPI:
             "page_size": int(page_size),
         }
         return await self._fetch_public_json(self.COCPIT_CHAMP_STATS_URL, params=params)
+
+    async def get_scout_champion_catalog(self) -> Optional[Any]:
+        log.debug("Fetching champion catalog from mcocscout")
+        return await self._fetch_public_json(self.SCOUT_CHAMPION_CATALOG_URL)
+
+    async def get_scout_champion_guides(self) -> Optional[Any]:
+        log.debug("Fetching champion guides from mcocscout")
+        return await self._fetch_public_json(self.SCOUT_CHAMPION_GUIDES_URL)
+
+    async def get_scout_champion_fallback_guides(self) -> Optional[Any]:
+        log.debug("Fetching fallback champion guides from mcocscout")
+        return await self._fetch_public_json(self.SCOUT_CHAMPION_FALLBACK_GUIDES_URL)
 
     # -----------------------------
     # Cleanup

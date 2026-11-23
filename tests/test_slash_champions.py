@@ -24,6 +24,9 @@ class _ResponseStub:
     async def edit_message(self, **kwargs):
         self.calls.append({"edit_message": True, **kwargs})
 
+    async def edit_original_response(self, **kwargs):
+        self.calls.append(dict(kwargs))
+
 
 class _InteractionStub:
     def __init__(self, user_id=42):
@@ -34,7 +37,11 @@ class _InteractionStub:
         self.followup = types.SimpleNamespace(send=self._noop_followup)
 
     async def _noop_followup(self, *args, **kwargs):
+        self.response.calls.append(dict(kwargs))
         return None
+
+    async def edit_original_response(self, **kwargs):
+        self.response.calls.append(dict(kwargs))
 
 
 class _CacheStub:
@@ -129,6 +136,192 @@ def test_slash_champ_search_has_name_autocomplete(monkeypatch):
     assert hasattr(group, "search")
 
 
+def test_slash_champ_available_lists_rarity_availability_and_release_year():
+    champions = [
+        {"id": "abomination", "slug": "abomination", "name": "Abomination", "available_rarities": [7, 6, 5, 4, 3, 2], "release_year": 2024},
+        {"id": "black-bolt", "slug": "black-bolt", "name": "Black Bolt", "available_rarities": [7, 5]},
+    ]
+    group = _ChampionGroup(core=_CoreStub(champions))
+    interaction = _InteractionStub()
+
+    asyncio.run(_invoke(group.available, group, interaction))
+
+    content = str(interaction.response.calls[0].get("content") or "")
+    assert "Abomination" in content
+    assert "7★" in content
+    assert "2024" in content
+    assert "Black Bolt" in content
+
+
+def test_slash_champ_available_falls_back_to_cocpit_cache_when_base_has_no_rarity_data():
+    class _CacheWithCocpit(_CacheStub):
+        def __init__(self, champions, cocpit):
+            super().__init__(champions)
+            self._cocpit = list(cocpit)
+
+        def get_all_cocpit_champions(self):
+            return list(self._cocpit)
+
+    class _CoreWithCocpit:
+        def __init__(self, champions, cocpit):
+            self.cache = _CacheWithCocpit(champions, cocpit)
+
+    champions = [{"id": "magneto-house-of-x", "slug": "magneto-house-of-x", "name": "Magneto (House of X)"}]
+    cocpit = [{"id": "magneto-house-of-x", "slug": "magneto-house-of-x", "name": "Magneto (House of X)", "available_rarities": [7], "release_date": "2024-10-23"}]
+    group = _ChampionGroup(core=_CoreWithCocpit(champions, cocpit))
+    interaction = _InteractionStub()
+
+    asyncio.run(_invoke(group.available, group, interaction))
+
+    content = str(interaction.response.calls[0].get("content") or "")
+    assert "Magneto (House of X)" in content
+    assert "7★" in content
+    assert "2024-10-23" in content
+
+
+def test_slash_champ_scout_formats_attack_and_defense_sections(monkeypatch):
+    champions = [
+        {
+            "id": "kushala",
+            "slug": "kushala",
+            "name": "Kushala",
+            "attack_tier": "S+",
+            "defense_tier": "C",
+            "scout_guide": {
+                "attack_tier": "S+",
+                "defense_tier": "C",
+                "attack_signature_reference": "Sig 200",
+                "defense_signature_reference": "Unduped",
+                "rank_priority": [
+                    "Attack: Rank 5 recommended (S+ tier).",
+                    "Defense: Rank 2 recommended (C tier).",
+                ],
+                "awakening": [
+                    "Attack: awaken and target Sig 200.",
+                    "Defense: works unawakened.",
+                ],
+                "signature_investment": [
+                    "Attack: target Sig 200.",
+                    "Defense: no signature investment required.",
+                ],
+            },
+        }
+    ]
+    group = _ChampionGroup(core=_CoreStub(champions))
+    interaction = _InteractionStub()
+
+    from mcoc.slash import champions as slash_champions_module
+
+    def _fake_embed(*_args, **kwargs):
+        return {
+            "title": kwargs.get("title", ""),
+            "description": kwargs.get("description", ""),
+            "url": kwargs.get("url"),
+            "fields": [],
+            "footer_text": kwargs.get("footer_text", ""),
+        }
+
+    def _fake_add_field(*_args, **kwargs):
+        emb = _args[1] if len(_args) > 1 else kwargs.get("emb")
+        emb.setdefault("fields", []).append({"name": kwargs.get("name", ""), "value": kwargs.get("value", "")})
+
+    def _fake_set_footer(*_args, **kwargs):
+        emb = _args[1] if len(_args) > 1 else kwargs.get("emb")
+        emb["footer_text"] = kwargs.get("text", "")
+
+    monkeypatch.setattr(slash_champions_module.CDTEmbed, "embed", _fake_embed)
+    monkeypatch.setattr(slash_champions_module.CDTEmbed, "add_field", _fake_add_field)
+    monkeypatch.setattr(slash_champions_module.CDTEmbed, "set_footer", _fake_set_footer)
+
+    asyncio.run(_invoke(group.scout, group, interaction, champion="kushala"))
+
+    embed = next((call.get("embed") for call in interaction.response.calls if call.get("embed") is not None), None)
+    assert isinstance(embed, dict)
+    assert embed["title"] == "Kushala Scout Guide"
+    assert embed["url"] == "https://mcocscout.com"
+    assert "Competitive guidance" in embed["description"]
+    assert embed["footer_text"] == "Source: mcocscout.com"
+
+    fields = {f["name"]: f["value"] for f in embed.get("fields", [])}
+    assert "Attack" in fields
+    assert "Tier: **S+**" in fields["Attack"]
+    assert "Rank: **Rank 5**" in fields["Attack"]
+    assert "Awakening: **Recommended**" in fields["Attack"]
+    assert "Sig target: **Sig 200**" in fields["Attack"]
+
+    assert "Defense" in fields
+    assert "Tier: **C**" in fields["Defense"]
+    assert "Rank: **Rank 2**" in fields["Defense"]
+    assert "Awakening: **Not required**" in fields["Defense"]
+    assert "Sig target: **Unduped**" in fields["Defense"]
+
+
+def test_slash_champ_scout_can_emit_timing_diagnostic(monkeypatch):
+    champions = [{
+        "id": "medusa",
+        "slug": "medusa",
+        "name": "Medusa",
+        "scout_guide": {"attack_tier": "S", "defense_tier": "A"},
+    }]
+    cache = _CacheStub(champions)
+    cache.get_log_diagnostics = lambda: True
+
+    class _TimedCore:
+        def __init__(self, cache_obj):
+            self.cache = cache_obj
+
+    group = _ChampionGroup(core=_TimedCore(cache))
+    interaction = _InteractionStub()
+
+    from mcoc.slash import champions as slash_champions_module
+
+    def _fake_embed(*_args, **kwargs):
+        return {"title": kwargs.get("title", ""), "description": kwargs.get("description", ""), "fields": []}
+
+    def _fake_add_field(*_args, **kwargs):
+        emb = _args[1] if len(_args) > 1 else kwargs.get("emb")
+        if isinstance(emb, dict):
+            emb.setdefault("fields", []).append({"name": kwargs.get("name", ""), "value": kwargs.get("value", "")})
+
+    monkeypatch.setattr(slash_champions_module.CDTEmbed, "embed", _fake_embed)
+    monkeypatch.setattr(slash_champions_module.CDTEmbed, "add_field", _fake_add_field)
+
+    asyncio.run(_invoke(group.scout, group, interaction, champion="medusa"))
+
+    sent_embed = next((call.get("embed") for call in interaction.response.calls if call.get("embed") is not None), None)
+    assert isinstance(sent_embed, dict)
+    fields = {field["name"]: field["value"] for field in sent_embed.get("fields", [])}
+    assert "Diagnostics" in fields
+    assert "Cache:" in fields["Diagnostics"]
+    assert "Embed:" in fields["Diagnostics"]
+
+
+def test_slash_champ_autocomplete_falls_back_to_cached_champion_names():
+    champions = [
+        {"id": "medusa", "slug": "medusa", "name": "Medusa"},
+        {"id": "black-tarantula", "slug": "black-tarantula", "name": "Black Tarantula"},
+    ]
+    group = _ChampionGroup(core=_CoreStub(champions))
+    interaction = _InteractionStub()
+
+    choices = asyncio.run(group.champion_autocomplete(interaction, "med"))
+
+    assert len(choices) == 1
+    assert choices[0].name == "Medusa"
+    assert choices[0].value == "medusa"
+
+
+def test_slash_champ_scout_reports_when_data_missing():
+    champions = [{"id": "abomination", "slug": "abomination", "name": "Abomination"}]
+    group = _ChampionGroup(core=_CoreStub(champions))
+    interaction = _InteractionStub()
+
+    asyncio.run(_invoke(group.scout, group, interaction, champion="abomination"))
+
+    content = str(next((call.get("content") for call in interaction.response.calls if call.get("content") is not None), "") or "")
+    assert "Scout guide data is not available" in content
+
+
 def test_slash_roster_legacy_commands_removed():
     champion_rows = [
         {"id": "abomination", "slug": "abomination", "name": "Abomination", "tags": ["poison"]},
@@ -159,6 +352,18 @@ def test_slash_roster_rankup_command_removed():
     champion_rows = [{"id": "abomination", "slug": "abomination", "name": "Abomination", "class": "science"}]
     group = _RosterGroup(core=_CoreStub(champion_rows))
     assert not hasattr(group, "rankup")
+
+
+def test_admin_status_panel_compatibility_hook_exists_and_is_safe():
+    from mcoc.slash.admin import _AdminControlPanelView, _AdminGroup
+
+    group = _AdminGroup(core=None)
+    panel = _AdminControlPanelView(group, requester_id=42)
+
+    panel._apply_button_state()
+
+    assert panel.mode == "status"
+    assert panel.requester_id == 42
 
 
 def test_build_roster_pages_reuses_cached_pages_for_same_roster_state(monkeypatch):
@@ -646,7 +851,7 @@ def test_slash_roster_rankup_pages_group_by_tier_order(monkeypatch):
     assert "S+ TIER" in field_names
     assert "A TIER" in field_names
     assert "B TIER" in field_names
-    assert "<:cosmic2:" in pages[0]["fields"][0]["value"]
+    assert "<:cosmic:1565096862833319976>" in pages[0]["fields"][0]["value"]
 
 
 def test_slash_roster_awaken_pages_group_by_tier_order(monkeypatch):
@@ -760,7 +965,7 @@ def test_slash_roster_rankup_and_awaken_pages_use_requested_title_and_footer(mon
     assert awaken_pages[0]["footer_text"] == "Page 1 of 1 | CollectorDevTeam | https://mcoc.app"
 
     tierlist_pages = asyncio.run(slash_roster_module.build_roster_pages(group.core, interaction.user, {"list_mode": "tierlist"}))
-    assert tierlist_pages[0]["title"] == "ROSTER BY TIERS"
+    assert tierlist_pages[0]["title"] == "ROSTER MCOC.APP"
     assert tierlist_pages[0]["url"] == "https://mcoc.app"
     assert tierlist_pages[0]["footer_text"] == "Page 1 of 1 | CollectorDevTeam | https://mcoc.app"
 
@@ -797,7 +1002,7 @@ def test_slash_roster_list_view_builds_filter_buttons():
     group = _RosterGroup(core=_CoreStub(champion_rows))
     list_view = slash_roster_module._RosterListControlsView(group, types.SimpleNamespace(id=42, display_name="jjw"), "7*")
     labels = [child.label for child in list_view.children]
-    assert labels == ["AWAKEN", "RANKUP", "TIERLIST", "CLEAR"]
+    assert labels == ["AWAKEN", "RANKUP", "MCOC.APP", "SCOUT ATTACK", "SCOUT DEFENSE", "CLEAR"]
 
 
 def test_slash_roster_list_default_uses_description_and_mode_uses_fields(monkeypatch):
@@ -840,11 +1045,11 @@ def test_slash_roster_list_default_uses_description_and_mode_uses_fields(monkeyp
     interaction.message = types.SimpleNamespace(edit=None)
 
     original = slash_roster_module._RosterListModeButton.callback
-    button = slash_roster_module._RosterListModeButton(group, interaction.user, "", "TIERLIST", "tierlist")
+    button = slash_roster_module._RosterListModeButton(group, interaction.user, "", "MCOC.APP", "mcoc_app")
     asyncio.run(button.callback(interaction))
 
     default_pages = asyncio.run(slash_roster_module.build_roster_pages(group.core, interaction.user, {"list_mode": "default"}))
-    tier_pages = asyncio.run(slash_roster_module.build_roster_pages(group.core, interaction.user, {"list_mode": "tierlist"}))
+    tier_pages = asyncio.run(slash_roster_module.build_roster_pages(group.core, interaction.user, {"list_mode": "mcoc_app"}))
 
     assert default_pages[0].description and not default_pages[0].fields
     assert tier_pages[0].fields and any(field.name == "S+ TIER" for field in tier_pages[0].fields)
@@ -856,7 +1061,7 @@ def test_slash_roster_list_button_mode_sets_list_mode_filter(monkeypatch):
     champion_rows = [{"id": "abomination", "slug": "abomination", "name": "Abomination", "class": "science"}]
     group = _RosterGroup(core=_CoreStub(champion_rows))
     target = types.SimpleNamespace(id=42, display_name="jjw")
-    button = slash_roster_module._RosterListModeButton(group, target, "7*", "TIERLIST", "tierlist")
+    button = slash_roster_module._RosterListModeButton(group, target, "7*", "MCOC.APP", "mcoc_app")
 
     class _DeferredInteraction(_InteractionStub):
         def __init__(self):
@@ -878,7 +1083,7 @@ def test_slash_roster_list_button_mode_sets_list_mode_filter(monkeypatch):
     monkeypatch.setattr(slash_roster_module, "make_roster_pager", _fake_make_roster_pager)
     asyncio.run(button.callback(interaction))
 
-    assert captured["parsed_filters"]["list_mode"] == "tierlist"
+    assert captured["parsed_filters"]["list_mode"] == "mcoc_app"
     assert interaction.response.deferred is True
     assert interaction.original_response
 
@@ -895,7 +1100,7 @@ def test_slash_roster_list_clear_mode_removes_all_filters(monkeypatch):
         "7*",
         "CLEAR",
         "default",
-        parsed_filters={"list_mode": "tierlist", "rarities": [7], "ranks": [2], "classes": ["skill"]},
+        parsed_filters={"list_mode": "mcoc_app", "rarities": [7], "ranks": [2], "classes": ["skill"]},
     )
     interaction = _InteractionStub(user_id=42)
     interaction.message = types.SimpleNamespace(edit=None)
@@ -914,7 +1119,109 @@ def test_slash_roster_list_clear_mode_removes_all_filters(monkeypatch):
     asyncio.run(button.callback(interaction))
 
     assert captured["parsed_filters"] == {}
-    assert "edit_kwargs" in captured
+
+
+def test_slash_roster_list_scout_attack_mode_groups_by_scout_tier(monkeypatch):
+    champion_rows = [
+        {"id": "kushala", "slug": "kushala", "name": "Kushala", "class": "mystic", "attack_tier": "S+", "defense_tier": "C"},
+        {"id": "abomination", "slug": "abomination", "name": "Abomination", "class": "science", "attack_tier": "D", "defense_tier": "C"},
+    ]
+
+    class _CacheWithScout(_CacheStub):
+        def _load_file(self, name):
+            if name == "tierlist":
+                return {"champions": []}
+            return {}
+
+    class _UsersStub:
+        def list_roster(self, _user_id):
+            return [
+                {"champion": "kushala", "rarity": 7, "rank": 2, "sig": 0, "ascended": 0},
+                {"champion": "abomination", "rarity": 7, "rank": 2, "sig": 0, "ascended": 0},
+            ]
+
+    class _CoreWithUsers:
+        def __init__(self):
+            self.cache = _CacheWithScout(champion_rows)
+            self.users = _UsersStub()
+
+    from mcoc.slash import roster as slash_roster_module
+
+    def _fake_embed(*_args, **kwargs):
+        return {
+            "description": kwargs.get("description", ""),
+            "title": kwargs.get("title", ""),
+            "url": kwargs.get("url"),
+            "fields": [],
+            "footer_text": kwargs.get("footer_text", ""),
+        }
+
+    def _fake_add_field(*_args, **kwargs):
+        emb = _args[1] if len(_args) > 1 else kwargs.get("emb")
+        emb.setdefault("fields", []).append({"name": kwargs.get("name", ""), "value": kwargs.get("value", "")})
+
+    monkeypatch.setattr(slash_roster_module.CDTEmbed, "embed", _fake_embed)
+    monkeypatch.setattr(slash_roster_module.CDTEmbed, "add_field", _fake_add_field)
+
+    pages = asyncio.run(slash_roster_module.build_roster_pages(_CoreWithUsers(), types.SimpleNamespace(id=42), {"list_mode": "scout_attack"}))
+    field_names = [field["name"] for field in pages[0]["fields"]]
+
+    assert pages[0]["title"] == "ROSTER SCOUT ATTACK"
+    assert pages[0]["url"] == "https://mcocscout.com"
+    assert pages[0]["footer_text"] == "Page 1 of 1 | CollectorDevTeam | https://mcocscout.com"
+    assert "S+ TIER" in field_names
+    assert "D TIER" in field_names
+
+    defense_pages = asyncio.run(slash_roster_module.build_roster_pages(_CoreWithUsers(), types.SimpleNamespace(id=42), {"list_mode": "scout_defense"}))
+    assert defense_pages[0]["title"] == "ROSTER SCOUT DEFENSE"
+    assert defense_pages[0]["url"] == "https://mcocscout.com"
+    assert defense_pages[0]["footer_text"] == "Page 1 of 1 | CollectorDevTeam | https://mcocscout.com"
+
+
+def test_slash_roster_mcocapp_import_preserves_existing_ascended_level(monkeypatch):
+    from mcoc.slash import roster as slash_roster_module
+
+    champion_rows = [{"id": "colossus", "slug": "colossus", "name": "Colossus", "class": "mutant"}]
+    group = _RosterGroup(core=_CoreStub(champion_rows))
+
+    class _UsersStub:
+        def list_roster(self, _user_id):
+            return [{"champion": "colossus", "rarity": 7, "rank": 2, "sig": 0, "ascended": 1}]
+
+    captured = {}
+
+    def _fake_parse_detected_roster_import(_text, _cache):
+        return {
+            "type": "mcocapp_backup",
+            "entries": [{"champion": "colossus", "rarity": 7, "rank": 4, "sig": 0, "ascended": 0}],
+        }
+
+    def _fake_import_roster_entries(
+        _core,
+        _user_id,
+        entries,
+        *,
+        users=None,
+        preserve_existing_ascended=False,
+    ):
+        captured["entries"] = list(entries)
+        captured["users"] = users
+        captured["preserve_existing_ascended"] = preserve_existing_ascended
+        return {"imported": len(entries), "errors": []}
+
+    monkeypatch.setattr(slash_roster_module, "parse_detected_roster_import", _fake_parse_detected_roster_import)
+    monkeypatch.setattr(slash_roster_module, "import_roster_entries", _fake_import_roster_entries)
+
+    users = _UsersStub()
+    result = asyncio.run(group._run_roster_import(42, "fake-backup-code", users=users))
+
+    assert "Detected: mcocapp_backup" in result
+    assert captured["entries"]
+    assert captured["entries"][0]["champion"] == "colossus"
+    assert captured["entries"][0]["rarity"] == 7
+    assert captured["entries"][0]["rank"] == 4
+    assert captured["entries"][0]["ascended"] == 0
+    assert captured["preserve_existing_ascended"] is True
 
 
 def test_slash_roster_filter_category_view_has_expected_buttons():
@@ -981,7 +1288,7 @@ def test_slash_roster_export_large_payload_uses_file_attachment(monkeypatch):
     assert captured["args"][0] == "Roster export attached."
 
 
-def test_slash_roster_import_modal_defers_then_follows_up(monkeypatch):
+def test_slash_roster_import_modal_defers_then_edits_original(monkeypatch):
     from mcoc.slash import roster as slash_roster_module
 
     group = _RosterGroup(core=_CoreStub([]))
@@ -995,12 +1302,12 @@ def test_slash_roster_import_modal_defers_then_follows_up(monkeypatch):
 
     users = _UsersStub()
 
-    async def _fake_followup(message=None, **kwargs):
-        captured["message"] = message
+    async def _fake_edit_original_response(**kwargs):
+        captured["message"] = kwargs.get("content")
         captured["kwargs"] = kwargs
         return None
 
-    interaction.followup = types.SimpleNamespace(send=_fake_followup)
+    interaction.edit_original_response = _fake_edit_original_response
     monkeypatch.setattr(slash_roster_module, "ensure_user_manager", lambda _core: users)
 
     modal = slash_roster_module._RosterDataImportModal(group)
@@ -1067,6 +1374,36 @@ def test_slash_roster_modal_labels_fit_discord_limit():
             assert 1 <= len(label) <= 45
 
 
+def test_slash_champ_search_uses_merged_cache_champions(monkeypatch):
+    champions = [{
+        "id": "medusa",
+        "slug": "medusa",
+        "name": "Medusa",
+        "class": "cosmic",
+        "tags": ["Bleed", "Counterattack"],
+    }]
+
+    class _CacheWithMergedData:
+        def get_all_champions(self):
+            return champions
+
+    class _Core:
+        def __init__(self):
+            self.cache = _CacheWithMergedData()
+
+    group = _ChampionGroup(core=_Core())
+    interaction = _InteractionStub()
+
+    from mcoc.slash import champions as slash_champions_module
+
+    monkeypatch.setattr(slash_champions_module.CDTEmbed, "champion_embed", lambda *_args, **_kwargs: {"title": "Medusa"})
+
+    asyncio.run(_invoke(group.search, group, interaction, champ_tag="#Bleed"))
+
+    embed_calls = [call for call in interaction.response.calls if call.get("embed") is not None]
+    assert embed_calls
+
+
 def test_slash_champ_search_returns_pages(monkeypatch):
     champions = [
         {
@@ -1116,8 +1453,10 @@ def test_slash_champ_search_returns_pages(monkeypatch):
     )
 
     assert len(interaction.response.calls) == 1
-    assert interaction.response.calls[0].get("view") is sentinel_view
-
+    assert interaction.response.calls[0].get("view") is None
+    embed = interaction.response.calls[0].get("embed")
+    assert embed is not None
+    assert "Champion Search" in str(getattr(embed, "title", "") or "")
 
 def test_userdata_export_canonicalizes_roster_and_privacy(tmp_path):
     from mcoc.common.helpers.userdata import UserDataManager

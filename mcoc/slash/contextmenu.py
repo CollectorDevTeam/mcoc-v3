@@ -37,6 +37,23 @@ async def _edit_or_send(
     ephemeral: bool = True,
 ) -> None:
     response = getattr(interaction, "response", None)
+    try:
+        is_done = bool(response and hasattr(response, "is_done") and response.is_done())
+    except Exception:
+        is_done = False
+    if is_done:
+        try:
+            await interaction.edit_original_response(content=content, embed=embed, view=view)
+            return
+        except Exception:
+            pass
+        if hasattr(interaction, "followup"):
+            try:
+                await interaction.followup.send(content=content, embed=embed, view=view, ephemeral=ephemeral)
+                return
+            except Exception:
+                pass
+
     if getattr(interaction, "message", None) is not None and response and hasattr(response, "edit_message"):
         try:
             await response.edit_message(content=content, embed=embed, view=view)
@@ -44,7 +61,13 @@ async def _edit_or_send(
         except Exception:
             pass
     if response and hasattr(response, "send_message"):
-        await response.send_message(content=content, embed=embed, view=view, ephemeral=ephemeral)
+        try:
+            await response.send_message(content=content, embed=embed, view=view, ephemeral=ephemeral)
+            return
+        except Exception:
+            pass
+    if hasattr(interaction, "followup"):
+        await interaction.followup.send(content=content, embed=embed, view=view, ephemeral=ephemeral)
 
 
 class _MCOCAuthorLockedView(CDTAutoCleanupView):
@@ -107,14 +130,14 @@ class _AllianceManageMemberView(_MCOCAuthorLockedView):
         if action == "remove":
             ok, message = await Alliance.leave_alliance(self.target, guild)
             Alliance.remove_officer_by_id(guild.id, self.target.id)
-            await interaction.response.edit_message(content=message if ok else message, view=self)
+            await _edit_or_send(interaction, content=message if ok else message, view=self)
             return
 
         if action == "members":
             ok, message = await Alliance.join_alliance(self.target, guild, role_key="members")
             if ok:
                 Alliance.remove_officer_by_id(guild.id, self.target.id)
-            await interaction.response.edit_message(content=message, view=self)
+            await _edit_or_send(interaction, content=message, view=self)
             return
 
         cfg = Alliance.get_guild_config(guild.id)
@@ -144,7 +167,7 @@ class _AllianceManageMemberView(_MCOCAuthorLockedView):
         if action != "managers":
             ok, message = await Alliance.join_alliance(self.target, guild, role_key="members")
             if not ok:
-                await interaction.response.edit_message(content=message, view=self)
+                await _edit_or_send(interaction, content=message, view=self)
                 return
 
         cleanup_keys = {"leader", "officers", "bg1", "bg2", "bg3", "aqbg1", "aqbg2", "aqbg3", "awbg1", "awbg2", "awbg3", "managers"}
@@ -164,22 +187,22 @@ class _AllianceManageMemberView(_MCOCAuthorLockedView):
         if action in cleanup_keys:
             role_cfg = (cfg.get("roles") or {}).get(action)
             if not isinstance(role_cfg, dict):
-                await interaction.response.edit_message(content=f"Alliance role key `{action}` is not configured.", view=self)
+                await _edit_or_send(interaction, content=f"Alliance role key `{action}` is not configured.", view=self)
                 return
             role_obj = guild.get_role(role_cfg.get("id"))
             if role_obj is None:
-                await interaction.response.edit_message(content=f"Role for `{action}` is missing on this server.", view=self)
+                await _edit_or_send(interaction, content=f"Role for `{action}` is missing on this server.", view=self)
                 return
             if action in {"bg1", "bg2", "bg3", "aqbg1", "aqbg2", "aqbg3", "awbg1", "awbg2", "awbg3"}:
                 if self.target not in role_obj.members and len(role_obj.members) >= 10:
-                    await interaction.response.edit_message(content=f"Role `{action}` is full (10/10).", view=self)
+                    await _edit_or_send(interaction, content=f"Role `{action}` is full (10/10).", view=self)
                     return
             if role_obj not in self.target.roles:
                 try:
                     await self.target.add_roles(role_obj, reason=f"Alliance context manage: {action}")
                 except Exception:
                     log.exception("Failed to add alliance managed role %s to user %s", action, self.target.id)
-                    await interaction.response.edit_message(content=f"Failed to assign `{action}` to {self.target.mention}.", view=self)
+                    await _edit_or_send(interaction, content=f"Failed to assign `{action}` to {self.target.mention}.", view=self)
                     return
 
         if action in {"officers", "leader"}:
@@ -187,7 +210,7 @@ class _AllianceManageMemberView(_MCOCAuthorLockedView):
         else:
             Alliance.remove_officer_by_id(guild.id, self.target.id)
 
-        await interaction.response.edit_message(content=f"Updated {self.target.mention} role to `{action}`.", view=self)
+        await _edit_or_send(interaction, content=f"Updated {self.target.mention} role to `{action}`.", view=self)
 
 
 class _AllianceMemberRoleButton(discord.ui.Button):
@@ -209,23 +232,27 @@ class _MCOCActionButton(discord.ui.Button):
         self.action = action
 
     async def callback(self, interaction: discord.Interaction):
-        view = self.view
-        if isinstance(view, _MCOCMainView):
-            await view.navigate(interaction, self.action)
-            return
-        if isinstance(view, _MCOCUserSectionView):
-            await view.handle(interaction, self.action)
-            return
-        if isinstance(view, _MCOCRosterSectionView):
-            await view.handle(interaction, self.action)
-            return
-        if isinstance(view, _MCOCAllianceSectionView):
-            await view.handle(interaction, self.action)
-            return
-        if isinstance(view, _MCOCAccountSettingsView):
-            await view.handle(interaction, self.action)
-            return
-        await _edit_or_send(interaction, content="This action is no longer available.")
+        try:
+            view = self.view
+            if isinstance(view, _MCOCMainView):
+                await view.navigate(interaction, self.action)
+                return
+            if isinstance(view, _MCOCUserSectionView):
+                await view.handle(interaction, self.action)
+                return
+            if isinstance(view, _MCOCRosterSectionView):
+                await view.handle(interaction, self.action)
+                return
+            if isinstance(view, _MCOCAllianceSectionView):
+                await view.handle(interaction, self.action)
+                return
+            if isinstance(view, _MCOCAccountSettingsView):
+                await view.handle(interaction, self.action)
+                return
+            await _edit_or_send(interaction, content="This action is no longer available.")
+        except Exception:
+            log.exception("Context menu action callback failed: action=%s", self.action)
+            await _edit_or_send(interaction, content="That action failed. Please try again.", ephemeral=True)
 
 
 class _MCOCBackButton(discord.ui.Button):
@@ -323,7 +350,7 @@ class _MCOCMainView(_MCOCAuthorLockedView):
             return
         if action == "alliance":
             view = _MCOCAllianceSectionView(self.cog, self.actor, self.target)
-            await _edit_or_send(interaction, content=f"MCOC > ALLIANCE for {self.target.mention}", view=view, ephemeral=True)
+            await _edit_or_send(interaction, content=view.build_intro_text(), view=view, ephemeral=True)
             await view.bind_to_interaction_response(interaction)
             return
 
@@ -370,13 +397,54 @@ class _MCOCRosterSectionView(_MCOCSectionViewBase):
 class _MCOCAllianceSectionView(_MCOCSectionViewBase):
     def __init__(self, cog: "ContextMenuSlashCog", actor: discord.Member, target: discord.Member):
         super().__init__(cog, actor, target, timeout=180)
-        self.add_item(_MCOCActionButton("REPORTS", "reports", style=discord.ButtonStyle.primary))
-        self.add_item(_MCOCActionButton("SETTINGS", "settings", style=discord.ButtonStyle.secondary))
-        self.add_item(_MCOCActionButton("ASSIGN ROLE", "assign", style=discord.ButtonStyle.secondary))
-        self.add_item(_MCOCActionButton("PROFILE", "profile", style=discord.ButtonStyle.primary))
+
+        self.guild = getattr(actor, "guild", None)
+        self.cfg = Alliance.get_guild_config(self.guild.id) if self.guild is not None else None
+        self.caps = AllianceSlash._caps_for(actor, self.guild, self.cfg) if self.guild is not None else set()
+        self.has_alliance = bool(self.cfg)
+        self.can_create = bool("create" in self.caps and not self.has_alliance)
+        self.can_reports = bool("reports" in self.caps and self.has_alliance)
+        self.can_settings = bool("settings" in self.caps and self.has_alliance)
+        self.can_assign = bool("assign" in self.caps and self.has_alliance)
+        self.can_delete = bool("delete" in self.caps and self.has_alliance)
+
+        self.clear_items()
+        if self.can_create:
+            self.add_item(_MCOCActionButton("CREATE", "create", style=discord.ButtonStyle.primary))
+        if self.can_reports:
+            self.add_item(_MCOCActionButton("REPORTS", "reports", style=discord.ButtonStyle.primary))
+        if self.can_settings:
+            self.add_item(_MCOCActionButton("SETTINGS", "settings", style=discord.ButtonStyle.secondary))
+        if self.can_assign:
+            self.add_item(_MCOCActionButton("ASSIGN ROLE", "assign", style=discord.ButtonStyle.secondary))
+        if self.can_delete:
+            self.add_item(_MCOCActionButton("DELETE", "delete", style=discord.ButtonStyle.danger))
         self.add_item(_MCOCBackButton())
 
+    def build_intro_text(self) -> str:
+        if self.guild is None:
+            return f"MCOC > ALLIANCE for {self.target.mention}"
+        if not self.cfg and self.can_create:
+            return (
+                f"MCOC > ALLIANCE for {self.target.mention}\n"
+                "No alliance is configured for this server. Use CREATE to set it up."
+            )
+        if not self.cfg:
+            return (
+                f"MCOC > ALLIANCE for {self.target.mention}\n"
+                "No alliance is configured for this server."
+            )
+        if not self.caps:
+            return (
+                f"MCOC > ALLIANCE for {self.target.mention}\n"
+                "You do not have alliance workflow permissions in this server."
+            )
+        return f"MCOC > ALLIANCE for {self.target.mention}"
+
     async def handle(self, interaction: discord.Interaction, action: str):
+        if action == "create":
+            await self.cog._ctx_alliance_create_workflow(interaction)
+            return
         if action == "reports":
             guild = getattr(interaction, "guild", None)
             if guild is None:
@@ -386,8 +454,9 @@ class _MCOCAllianceSectionView(_MCOCSectionViewBase):
             if not cfg:
                 await _edit_or_send(interaction, content="No alliance is configured for this guild.")
                 return
-            if not Alliance.is_alliance_manager(interaction.user, guild):
-                await _edit_or_send(interaction, content="You do not have alliance management permissions.")
+            caps = AllianceSlash._caps_for(interaction.user, guild, cfg)
+            if "reports" not in caps:
+                await _edit_or_send(interaction, content="You do not have permission to view alliance reports.")
                 return
             await self.cog._ctx_alliance_reports_workflow(interaction)
             return
@@ -396,23 +465,45 @@ class _MCOCAllianceSectionView(_MCOCSectionViewBase):
             if guild is None:
                 await _edit_or_send(interaction, content="This action can only be used in a server.")
                 return
-            if not Alliance.is_alliance_manager(interaction.user, guild):
+            cfg = Alliance.get_guild_config(guild.id)
+            if not cfg:
+                await _edit_or_send(interaction, content="No alliance is configured for this guild.")
+                return
+            caps = AllianceSlash._caps_for(interaction.user, guild, cfg)
+            if "settings" not in caps:
                 await _edit_or_send(interaction, content="You do not have alliance management permissions.")
                 return
-            await self.cog._ctx_alliance_settings_manage_workflow(interaction)
+            await self.cog._ctx_alliance_settings_workflow(interaction)
             return
         if action == "assign":
             guild = getattr(interaction, "guild", None)
             if guild is None:
                 await _edit_or_send(interaction, content="This action can only be used in a server.")
                 return
-            if not Alliance.is_alliance_manager(interaction.user, guild):
+            cfg = Alliance.get_guild_config(guild.id)
+            if not cfg:
+                await _edit_or_send(interaction, content="No alliance is configured for this guild.")
+                return
+            caps = AllianceSlash._caps_for(interaction.user, guild, cfg)
+            if "assign" not in caps:
                 await _edit_or_send(interaction, content="You do not have alliance management permissions.")
                 return
             await self.cog._ctx_alliance_manage(interaction, self.target, edit_existing=True)
             return
-        if action == "profile":
-            await self.cog._send_profile(interaction, self.target)
+        if action == "delete":
+            guild = getattr(interaction, "guild", None)
+            if guild is None:
+                await _edit_or_send(interaction, content="This action can only be used in a server.")
+                return
+            cfg = Alliance.get_guild_config(guild.id)
+            if not cfg:
+                await _edit_or_send(interaction, content="No alliance is configured for this guild.")
+                return
+            caps = AllianceSlash._caps_for(interaction.user, guild, cfg)
+            if "delete" not in caps:
+                await _edit_or_send(interaction, content="You do not have permission to delete this alliance.")
+                return
+            await self.cog._ctx_alliance_delete_workflow(interaction)
             return
 
 
@@ -525,6 +616,46 @@ class ContextMenuSlashCog(commands.Cog):
             pager.message = getattr(interaction, "message", None) or await interaction.original_response()
         except Exception:
             pass
+
+    async def _send_alliance_profile(self, interaction: discord.Interaction, actor: discord.Member, target: discord.Member):
+        guild = getattr(interaction, "guild", None)
+        if guild is None:
+            await _edit_or_send(interaction, content="This action can only be used in a server.", ephemeral=True)
+            return
+
+        cfg = Alliance.get_guild_config(guild.id)
+        if not cfg:
+            await _edit_or_send(interaction, content="No alliance is configured for this guild.", ephemeral=True)
+            return
+
+        info = cfg.get("info", {}) or {}
+        alliance_name = str(info.get("name") or guild.name)
+        tag = str(info.get("tag") or "").strip()
+        description = str(info.get("description") or "").strip() or "No alliance description configured."
+        invite_url = str(info.get("invite") or "").strip()
+        founded = str(info.get("founded") or "").strip() or "Unknown"
+
+        title = alliance_name
+        if tag:
+            title = f"{alliance_name} [{tag}]"
+
+        embed = discord.Embed(
+            title=title,
+            description=description,
+            color=discord.Color.blurple(),
+            url=invite_url or None,
+        )
+        embed.add_field(name="Alliance Founded", value=founded, inline=True)
+        embed.add_field(name="Server", value=guild.name, inline=True)
+        if invite_url:
+            embed.add_field(name="Discord Invite", value=invite_url, inline=False)
+
+        view = _MCOCAllianceSectionView(self, actor, target)
+        if invite_url:
+            view.add_item(discord.ui.Button(label="JOIN NOW", style=discord.ButtonStyle.link, url=invite_url, row=3))
+
+        await _edit_or_send(interaction, content="MCOC > ALLIANCE > PROFILE", embed=embed, view=view, ephemeral=True)
+        await view.bind_to_interaction_response(interaction)
 
     async def _ctx_profile(self, interaction: discord.Interaction, user: discord.Member):
         await self._send_profile(interaction, user)
@@ -654,7 +785,7 @@ class ContextMenuSlashCog(commands.Cog):
         await _edit_or_send(interaction, content=f"MCOC > ALLIANCE > REPORTS\n{view.build_menu_text(guild)}", view=view, ephemeral=True)
         await view.bind_to_interaction_response(interaction)
 
-    async def _ctx_alliance_settings_manage_workflow(self, interaction: discord.Interaction):
+    async def _ctx_alliance_create_workflow(self, interaction: discord.Interaction):
         guild = getattr(interaction, "guild", None)
         if guild is None:
             await _edit_or_send(interaction, content="This action can only be used in a server.")
@@ -665,7 +796,40 @@ class ContextMenuSlashCog(commands.Cog):
             return
         cfg = Alliance.get_guild_config(guild.id)
         caps = AllianceSlash._caps_for(interaction.user, guild, cfg)
-        if "manage" not in caps:
+        if "create" not in caps:
+            await _edit_or_send(interaction, content="You do not have permission to create alliance settings.")
+            return
+        if cfg:
+            await _edit_or_send(interaction, content="An alliance is already configured. Use SETTINGS or DELETE.")
+            return
+
+        state = AllianceSlash._AllianceCreateState(
+            guild_id=guild.id,
+            author_id=getattr(interaction.user, "id", 0),
+            name=str(guild.name),
+            type_name=Alliance.ALLIANCE_TYPE_SIMPLE,
+        )
+        detected = AllianceSlash._detect_existing_role_map(guild, state.name, state.type_name)
+        for key in AllianceSlash._required_role_keys(state.type_name):
+            rid = detected.get(key)
+            if rid:
+                state.role_map[key] = rid
+        view = AllianceSlash._AllianceCreateRoleMapView(alliance_cog, state)
+        await _edit_or_send(interaction, content=f"MCOC > ALLIANCE > CREATE\n{view.build_summary_text()}", view=view, ephemeral=True)
+        await view.bind_to_interaction_response(interaction)
+
+    async def _ctx_alliance_settings_workflow(self, interaction: discord.Interaction):
+        guild = getattr(interaction, "guild", None)
+        if guild is None:
+            await _edit_or_send(interaction, content="This action can only be used in a server.")
+            return
+        alliance_cog = self.bot.get_cog("AllianceSlashCog")
+        if alliance_cog is None:
+            await _edit_or_send(interaction, content="Alliance workflow is not available right now.")
+            return
+        cfg = Alliance.get_guild_config(guild.id)
+        caps = AllianceSlash._caps_for(interaction.user, guild, cfg)
+        if "settings" not in caps:
             await _edit_or_send(interaction, content="You do not have alliance management permissions.")
             return
         if not cfg:
@@ -679,6 +843,7 @@ class ContextMenuSlashCog(commands.Cog):
             tag=str(info.get("tag") or ""),
             description=str(info.get("description") or ""),
             invite_url=str(info.get("invite") or ""),
+            interview_channel_id=int(info.get("interview_channel_id")) if str(info.get("interview_channel_id") or "").isdigit() else None,
             type_name=Alliance.normalize_alliance_type(cfg.get("type", Alliance.ALLIANCE_TYPE_SIMPLE)),
             role_map={
                 key: int(role_cfg.get("id"))
@@ -686,7 +851,31 @@ class ContextMenuSlashCog(commands.Cog):
                 if isinstance(role_cfg, dict) and role_cfg.get("id")
             },
         )
-        await interaction.response.send_modal(AllianceSlash._AllianceManageInfoModal(alliance_cog, state))
+        view = AllianceSlash._AllianceManageRoleMapView(alliance_cog, state)
+        await _edit_or_send(interaction, content=f"MCOC > ALLIANCE > SETTINGS\n{view.build_summary_text()}", view=view, ephemeral=True)
+        await view.bind_to_interaction_response(interaction)
+
+    async def _ctx_alliance_delete_workflow(self, interaction: discord.Interaction):
+        guild = getattr(interaction, "guild", None)
+        if guild is None:
+            await _edit_or_send(interaction, content="This action can only be used in a server.")
+            return
+        alliance_cog = self.bot.get_cog("AllianceSlashCog")
+        if alliance_cog is None:
+            await _edit_or_send(interaction, content="Alliance workflow is not available right now.")
+            return
+        cfg = Alliance.get_guild_config(guild.id)
+        caps = AllianceSlash._caps_for(interaction.user, guild, cfg)
+        if not cfg:
+            await _edit_or_send(interaction, content="No alliance is configured for this guild.")
+            return
+        if "delete" not in caps:
+            await _edit_or_send(interaction, content="You do not have permission to delete this alliance.")
+            return
+
+        view = AllianceSlash._AllianceDeleteConfirmView(alliance_cog)
+        await _edit_or_send(interaction, content="MCOC > ALLIANCE > DELETE\nDelete this guild alliance configuration?", view=view, ephemeral=True)
+        await view.bind_to_interaction_response(interaction)
 
     async def _ctx_roster_edit_settings(self, interaction: discord.Interaction, user: discord.Member):
         if user.id != getattr(interaction.user, "id", None):

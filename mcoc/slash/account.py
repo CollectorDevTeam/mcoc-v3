@@ -266,11 +266,11 @@ class _AccountConsentView(CDTAutoCleanupView):
 
         async def _agree_cb(interaction: discord.Interaction):
             _ok, msg = await Account.handle_consent_response(core, interaction, user_id, True)
-            await interaction.response.edit_message(content=msg, view=None)
+            await _edit_or_send(interaction, msg, view=None)
 
         async def _decline_cb(interaction: discord.Interaction):
             _ok, msg = await Account.handle_consent_response(core, interaction, user_id, False)
-            await interaction.response.edit_message(content=msg, view=None)
+            await _edit_or_send(interaction, msg, view=None)
 
         agree_btn.callback = _agree_cb
         decline_btn.callback = _decline_cb
@@ -303,8 +303,9 @@ class _AccountPrivacyView(CDTAutoCleanupView):
                 return
             self.current_mode = mode.lower()
             self._refresh_styles()
-            await interaction.response.edit_message(
-                content=f"Current privacy mode: {self.current_mode}\nChoose your visibility below.",
+            await _edit_or_send(
+                interaction,
+                f"Current privacy mode: {self.current_mode}\nChoose your visibility below.",
                 view=self,
             )
 
@@ -320,7 +321,7 @@ class _AccountPrivacyView(CDTAutoCleanupView):
         async def _delete_cb(interaction: discord.Interaction):
             ok, msg = Account.delete_user_profile(core, user_id)
             if ok:
-                await interaction.response.edit_message(content=msg, view=None)
+                await _edit_or_send(interaction, msg, view=None)
                 return
             await interaction.response.send_message(msg, ephemeral=True)
 

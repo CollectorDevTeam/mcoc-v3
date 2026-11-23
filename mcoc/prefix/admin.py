@@ -585,8 +585,7 @@ class MCOCAdminPrefix(commands.Cog):
 
         try:
             await poster.update_section("Overall", "Starting fast sync (champstats skipped)…")
-            updated = await parent.cache.sync(parent.api, progress=reporter, include_champstats=False)
-            
+            updated = await parent.cache.sync(parent.api, progress=reporter, include_champstats=False, force=True)
             # Gather sync results for summary
             meta = parent.cache.metadata or {}
             versions = meta.get("versions", {})
@@ -902,7 +901,7 @@ class MCOCAdminPrefix(commands.Cog):
                         await poster.update_prestige_line(text)
                     except Exception:
                         log.exception("Prestige reporter failed")
-                await parent.cache.check_update_prestige(parent.api, force=False, progress=prestige_reporter)
+                await parent.cache.check_update_prestige(parent.api, force=True, progress=prestige_reporter)
                 results["prestige"] = "Updated"
                 await poster.update_section("Prestige", "✅ completed")
             except Exception:
