@@ -9,6 +9,7 @@
 #   1.0 2026-09-01  Initial stabilized API header
 import logging
 import re
+import time
 from typing import Optional, Any, List
 from redbot.core import commands
 from redbot.core import app_commands
@@ -354,8 +355,12 @@ class _ChampionGroup(app_commands.Group):
     @app_commands.command(name="scout", description="Show MCOC Scout attack and defense guidance for a champion")
     @app_commands.autocomplete(champion=champion_autocomplete)
     async def scout(self, interaction, champion: str):
+        started = time.perf_counter()
+        cache_started = time.perf_counter()
         champ = resolve_champion(self._cache(), champion)
+        cache_elapsed = time.perf_counter() - cache_started
         if not champ:
+            log.info("Scout timing: lookup=%.3fs not_found=%s", cache_elapsed, champion)
             await safe_respond_interaction(interaction, content=f"Champion `{champion}` not found.", ephemeral=True)
             return
 
@@ -406,7 +411,30 @@ class _ChampionGroup(app_commands.Group):
         except Exception:
             pass
 
+        embed_elapsed = time.perf_counter() - started - cache_elapsed
+        log.info("Scout timing: cache=%.3fs embed=%.3fs total_before_send=%.3fs champion=%s", cache_elapsed, embed_elapsed, time.perf_counter() - started, champion)
+
+        cache = self._cache()
+        log_diagnostics = bool(getattr(cache, "get_log_diagnostics", lambda: False)()) if cache else False
+        if log_diagnostics:
+            try:
+                CDTEmbed.add_field(
+                    interaction,
+                    embed,
+                    name="Diagnostics",
+                    value=(
+                        f"Cache: `{cache_elapsed:.3f}s`\n"
+                        f"Embed: `{embed_elapsed:.3f}s`"
+                    ),
+                    inline=False,
+                )
+            except Exception:
+                log.exception("Failed to add Scout diagnostics field")
+
+        send_started = time.perf_counter()
         await safe_respond_interaction(interaction, embed=embed)
+        send_elapsed = time.perf_counter() - send_started
+        log.info("Scout timing: send=%.3fs champion=%s", send_elapsed, champion)
 
     @app_commands.command(name="available", description="List champions and the rarities they are available at")
     async def available(self, interaction):

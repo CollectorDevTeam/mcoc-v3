@@ -4,6 +4,19 @@ import pathlib
 
 from mcoc.common.api.api import MCOCHubAPI
 from mcoc.common.api.cache import CacheManager
+
+
+def test_cache_log_diagnostics_setting_defaults_false_and_persists(monkeypatch, tmp_path):
+    manager = CacheManager.__new__(CacheManager)
+    manager.metadata = {"settings": {}, "versions": {}, "last_sync": None}
+    manager.cache_dir = tmp_path
+    manager.metadata_file = tmp_path / "metadata.json"
+    monkeypatch.setattr(manager, "_save_metadata", lambda: None)
+
+    assert manager.get_log_diagnostics() is False
+    assert manager.set_log_diagnostics(True) is True
+    assert manager.get_log_diagnostics() is True
+    assert manager.set_log_diagnostics(False) is False
 from mcoc.common.models.mcoc_app.tierlist import MCOCAppTierlistDocument
 
 

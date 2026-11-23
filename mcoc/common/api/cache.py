@@ -66,6 +66,9 @@ class CacheManager:
         # optional: create index
         self.index = CacheIndex(self)
         self._sync_lock = asyncio.Lock()
+        self._champion_lookup_cache: Dict[str, Optional[Dict[str, Any]]] = {}
+        self._champion_lookup_cache_ready = False
+        self._prewarm_champion_lookup_cache()
 
     # -----------------------------
     # Metadata
@@ -208,6 +211,23 @@ class CacheManager:
     # -----------------------------
     # Recency helper
     # -----------------------------
+    def get_log_diagnostics(self) -> bool:
+        settings = self.metadata.get("settings") if isinstance(self.metadata, dict) else None
+        if not isinstance(settings, dict):
+            return False
+        return bool(settings.get("log_diagnostics", False))
+
+    def set_log_diagnostics(self, enabled: bool) -> bool:
+        if not isinstance(self.metadata, dict):
+            self.metadata = {}
+        settings = self.metadata.setdefault("settings", {})
+        if not isinstance(settings, dict):
+            settings = {}
+            self.metadata["settings"] = settings
+        settings["log_diagnostics"] = bool(enabled)
+        self._save_metadata()
+        return bool(settings["log_diagnostics"])
+
     def is_recent(self, hours: int = 24) -> bool:
         last = self.metadata.get("last_sync")
         if not last:
@@ -1236,6 +1256,9 @@ class CacheManager:
         except Exception:
             log.exception("Failed to save metadata after updating %s", name)
 
+        if name in {"champions", "cocpit_champions", "cocpit_abilities", "scout_catalog", "scout_guides", "champion_overrides"}:
+            self.invalidate_champion_lookup_cache()
+
         log.info("Updated cache for %s.", name)
 
         # Rebuild index off the event loop
@@ -1807,6 +1830,42 @@ class CacheManager:
     # -----------------------------
     # Lookup helpers (unchanged)
     # -----------------------------
+    def _prewarm_champion_lookup_cache(self) -> None:
+        """Build lookup aliases once from cached JSON instead of merging/rereading per command."""
+        try:
+            champs = self._load_file("champions").get("champions", {})
+            values = champs.values() if isinstance(champs, dict) else champs if isinstance(champs, list) else []
+            for champ in values:
+                if not isinstance(champ, dict):
+                    continue
+                candidates = [champ.get("id"), champ.get("slug"), champ.get("name"), champ.get("title")]
+                candidates.extend(champ.get("aliases") or [])
+                candidates.append(champ.get("shortname"))
+                merged = self._merge_champion_overrides(champ)
+                merged = self._merge_cocpit_champion_metadata(merged)
+                merged = self._merge_scout_champion_metadata(merged)
+                seen = set()
+                for candidate in candidates:
+                    if candidate is None:
+                        continue
+                    key = str(candidate).strip().lower()
+                    normalized = self._normalize_lookup_token(candidate)
+                    if key and key not in seen:
+                        seen.add(key)
+                        self._champion_lookup_cache[key] = merged
+                    if normalized and normalized not in seen:
+                        seen.add(normalized)
+                        self._champion_lookup_cache[normalized] = merged
+            self._champion_lookup_cache_ready = True
+            log.info("Champion lookup cache prewarmed with %d aliases", len(self._champion_lookup_cache))
+        except Exception:
+            log.exception("Failed to prewarm champion lookup cache")
+
+    def invalidate_champion_lookup_cache(self) -> None:
+        self._champion_lookup_cache.clear()
+        self._champion_lookup_cache_ready = False
+        self._prewarm_champion_lookup_cache()
+
     def get_champion(self, id_or_name: str) -> Optional[Dict[str, Any]]:
         if id_or_name is None:
             return None
@@ -1817,6 +1876,14 @@ class CacheManager:
 
         lookup = raw.lower()
         normalized_lookup = self._normalize_lookup_token(raw)
+        if not self._champion_lookup_cache_ready:
+            self._prewarm_champion_lookup_cache()
+        cached = self._champion_lookup_cache.get(lookup)
+        if cached is not None:
+            return cached
+        cached = self._champion_lookup_cache.get(normalized_lookup)
+        if cached is not None:
+            return cached
         override_map = self._get_champion_overrides()
         champs = self._load_file("champions").get("champions", {})
 

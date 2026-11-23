@@ -88,10 +88,15 @@ class _AdminControlPanelView(discord.ui.View):
     def _refresh_layout(self) -> None:
         self.clear_items()
         if self.mode == "status":
+            cache = self.group._cache_for()
+            enabled = bool(getattr(cache, "get_log_diagnostics", lambda: False)()) if cache else False
+            self.log_diagnostics_btn.label = f"Log Diagnostics: {'ON' if enabled else 'OFF'}"
+            self.log_diagnostics_btn.style = discord.ButtonStyle.success if enabled else discord.ButtonStyle.secondary
             self.add_item(self.refresh_btn)
             self.add_item(self.diagnostics_btn)
             self.add_item(self.data_map_btn)
             self.add_item(self.force_sync_btn)
+            self.add_item(self.log_diagnostics_btn)
             self.add_item(self.wipe_cache_btn)
             self.add_item(self.close_btn)
             return
@@ -197,6 +202,20 @@ class _AdminControlPanelView(discord.ui.View):
         await self._render_status(interaction)
         if not ok:
             log.warning("Admin panel force sync failed: %s", message)
+
+    @discord.ui.button(label="Log Diagnostics: OFF", style=discord.ButtonStyle.secondary, row=1)
+    async def log_diagnostics_btn(self, interaction: discord.Interaction, _button: discord.ui.Button):
+        await interaction.response.defer(ephemeral=True)
+        cache = self.group._cache_for(interaction)
+        if cache is None or not hasattr(cache, "get_log_diagnostics"):
+            self.last_action = "Log diagnostics setting unavailable: cache subsystem is not attached."
+            await self._render_status(interaction)
+            return
+        enabled = not bool(cache.get_log_diagnostics())
+        if hasattr(cache, "set_log_diagnostics"):
+            enabled = bool(cache.set_log_diagnostics(enabled))
+        self.last_action = f"Log diagnostics: {'ON' if enabled else 'OFF'}"
+        await self._render_status(interaction)
 
     @discord.ui.button(label="Wipe Cache", style=discord.ButtonStyle.danger, row=1)
     async def wipe_cache_btn(self, interaction: discord.Interaction, _button: discord.ui.Button):
@@ -325,6 +344,8 @@ class _AdminGroup(app_commands.Group):
         embed.add_field(name="API Attached", value="Yes" if api_attached else "No", inline=True)
         embed.add_field(name="Cache Health", value="Healthy" if not issues else "Issues Detected", inline=True)
         embed.add_field(name="Files Valid", value=f"{healthy_files}/{checked_files}", inline=True)
+        log_diagnostics = bool(getattr(cache, "get_log_diagnostics", lambda: False)())
+        embed.add_field(name="Log Diagnostics", value="ON" if log_diagnostics else "OFF", inline=True)
         embed.add_field(
             name="Key Versions",
             value=(

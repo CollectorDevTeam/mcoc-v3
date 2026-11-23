@@ -256,6 +256,46 @@ def test_slash_champ_scout_formats_attack_and_defense_sections(monkeypatch):
     assert "Sig target: **Unduped**" in fields["Defense"]
 
 
+def test_slash_champ_scout_can_emit_timing_diagnostic(monkeypatch):
+    champions = [{
+        "id": "medusa",
+        "slug": "medusa",
+        "name": "Medusa",
+        "scout_guide": {"attack_tier": "S", "defense_tier": "A"},
+    }]
+    cache = _CacheStub(champions)
+    cache.get_log_diagnostics = lambda: True
+
+    class _TimedCore:
+        def __init__(self, cache_obj):
+            self.cache = cache_obj
+
+    group = _ChampionGroup(core=_TimedCore(cache))
+    interaction = _InteractionStub()
+
+    from mcoc.slash import champions as slash_champions_module
+
+    def _fake_embed(*_args, **kwargs):
+        return {"title": kwargs.get("title", ""), "description": kwargs.get("description", ""), "fields": []}
+
+    def _fake_add_field(*_args, **kwargs):
+        emb = _args[1] if len(_args) > 1 else kwargs.get("emb")
+        if isinstance(emb, dict):
+            emb.setdefault("fields", []).append({"name": kwargs.get("name", ""), "value": kwargs.get("value", "")})
+
+    monkeypatch.setattr(slash_champions_module.CDTEmbed, "embed", _fake_embed)
+    monkeypatch.setattr(slash_champions_module.CDTEmbed, "add_field", _fake_add_field)
+
+    asyncio.run(_invoke(group.scout, group, interaction, champion="medusa"))
+
+    sent_embed = next((call.get("embed") for call in interaction.response.calls if call.get("embed") is not None), None)
+    assert isinstance(sent_embed, dict)
+    fields = {field["name"]: field["value"] for field in sent_embed.get("fields", [])}
+    assert "Diagnostics" in fields
+    assert "Cache:" in fields["Diagnostics"]
+    assert "Embed:" in fields["Diagnostics"]
+
+
 def test_slash_champ_autocomplete_falls_back_to_cached_champion_names():
     champions = [
         {"id": "medusa", "slug": "medusa", "name": "Medusa"},
