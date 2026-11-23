@@ -1374,6 +1374,36 @@ def test_slash_roster_modal_labels_fit_discord_limit():
             assert 1 <= len(label) <= 45
 
 
+def test_slash_champ_search_uses_merged_cache_champions(monkeypatch):
+    champions = [{
+        "id": "medusa",
+        "slug": "medusa",
+        "name": "Medusa",
+        "class": "cosmic",
+        "tags": ["Bleed", "Counterattack"],
+    }]
+
+    class _CacheWithMergedData:
+        def get_all_champions(self):
+            return champions
+
+    class _Core:
+        def __init__(self):
+            self.cache = _CacheWithMergedData()
+
+    group = _ChampionGroup(core=_Core())
+    interaction = _InteractionStub()
+
+    from mcoc.slash import champions as slash_champions_module
+
+    monkeypatch.setattr(slash_champions_module.CDTEmbed, "champion_embed", lambda *_args, **_kwargs: {"title": "Medusa"})
+
+    asyncio.run(_invoke(group.search, group, interaction, champ_tag="#Bleed"))
+
+    embed_calls = [call for call in interaction.response.calls if call.get("embed") is not None]
+    assert embed_calls
+
+
 def test_slash_champ_search_returns_pages(monkeypatch):
     champions = [
         {

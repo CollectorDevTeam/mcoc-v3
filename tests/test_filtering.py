@@ -276,6 +276,7 @@ def test_filters_are_normalized_by_category_for_multi_select_filters():
     assert _champion_matches_filters(champ, {"classes": ["skill"], "tiers": ["S+"]}) is True
     assert _champion_matches_filters(champ, {"tags": ["bleed", "incinerate"]}) is True
     assert _champion_matches_filters(champ, {"abilities": ["incinerate"], "immunities": ["bleed-immunity"]}) is True
+    assert _champion_matches_filters(champ, {"tags": ["#Bleed"]}) is True
     assert _champion_matches_filters(champ, {"classes": ["skill"], "tags": ["science"]}) is False
 
 

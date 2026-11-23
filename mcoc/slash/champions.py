@@ -697,9 +697,8 @@ class _ChampionGroup(app_commands.Group):
         champ_immunity: Optional[str] = None,
         champ_synergy: Optional[str] = None
     ):
-        idx = self._index()
         cache = self._cache()
-        champs = idx.champions if idx and hasattr(idx, "champions") else (cache.get_all_champions() if cache else [])
+        champs = cache.get_all_champions() if cache and hasattr(cache, "get_all_champions") else []
 
         filters = {
             "name": champ_name or None,

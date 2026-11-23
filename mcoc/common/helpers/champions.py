@@ -685,14 +685,54 @@ def _champion_filter_tokens(champ: Dict[str, Any]) -> List[str]:
     return tokens
 
 
+def _bucket_matches_all(bucket: List[str], accepted: List[str]) -> bool:
+    """Require every accepted token to match at least one bucket token; bucket values are OR internally for legacy callers."""
+    if not accepted:
+        return True
+    bucket_tokens = {
+        _normalize_champion_token(str(value).lstrip("# ").strip())
+        for value in bucket
+        if _normalize_champion_token(str(value).lstrip("# ").strip())
+    }
+    for value in accepted:
+        wanted = _normalize_champion_token(str(value).lstrip("# ").strip())
+        if not wanted:
+            continue
+        matched = wanted in bucket_tokens
+        if not matched and len(wanted) > 1:
+            matched = any(
+                candidate.startswith(wanted) or wanted.startswith(candidate)
+                for candidate in bucket_tokens
+                if len(candidate) > 1
+            )
+        if not matched:
+            return False
+    return True
+
+
 def _bucket_matches(bucket: List[str], accepted: List[str]) -> bool:
     """Each bucket uses multi-select OR semantics, while the whole filter set uses AND semantics across buckets."""
     if not accepted:
         return True
-    accepted_tokens = {_normalize_champion_token(value) for value in accepted if _normalize_champion_token(value)}
+    accepted_tokens = {
+        _normalize_champion_token(str(value).lstrip("# ").strip())
+        for value in accepted
+        if _normalize_champion_token(str(value).lstrip("# ").strip())
+    }
+    bucket_tokens = {
+        _normalize_champion_token(str(value).lstrip("# ").strip())
+        for value in bucket
+        if _normalize_champion_token(str(value).lstrip("# ").strip())
+    }
     if not accepted_tokens:
         return True
-    return any(token in {_normalize_champion_token(v) for v in bucket if _normalize_champion_token(v)} for token in accepted_tokens)
+    for wanted in accepted_tokens:
+        if wanted in bucket_tokens:
+            return True
+        if len(wanted) > 1:
+            if any(candidate.startswith(wanted) or wanted.startswith(candidate) for candidate in bucket_tokens if len(candidate) > 1):
+                return True
+    return False
 
 
 def _champion_matches_filters(champ: Dict[str, Any], filters: Dict[str, Any]) -> bool:
@@ -714,49 +754,31 @@ def _champion_matches_filters(champ: Dict[str, Any], filters: Dict[str, Any]) ->
             if name_filter not in name:
                 return False
 
-        requested_tokens: List[str] = []
-        for key in (
-            "tags",
-            "classes",
-            "abilities",
-            "immunities",
-            "inflicts",
-            "tiers",
-            "rarities",
-            "attack_tiers",
-            "defense_tiers",
-        ):
-            for value in (filters.get(key) or []):
-                token = str(value).lower().strip()
-                if token:
-                    requested_tokens.append(token)
+        category_sources = (
+            ("tags", champ.get("tags") or []),
+            ("classes", [champ.get("class"), champ.get("class_name")]),
+            ("abilities", champ.get("abilities") or champ.get("ability") or []),
+            ("immunities", champ.get("immunities") or champ.get("immunity") or []),
+            ("inflicts", champ.get("inflicts") or []),
+            ("attack_tiers", [champ.get("attack_tier")]),
+            ("defense_tiers", [champ.get("defense_tier")]),
+            ("tiers", [champ.get("tier")]),
+            ("rarities", [
+                champ.get("rarity"),
+                champ.get("available_rarities"),
+                champ.get("rarities"),
+            ]),
+        )
 
-        if not requested_tokens:
-            return True
-
-        champion_tokens = _champion_filter_tokens(champ)
-        champion_tokens_norm = {_normalize_champion_token(token) for token in champion_tokens if _normalize_champion_token(token)}
-        for requested in requested_tokens:
-            wanted = _normalize_champion_token(requested)
-            if not wanted:
+        for category, bucket_value in category_sources:
+            accepted = filters.get(category) or []
+            if not accepted:
                 continue
-            matches = False
-            for candidate in champion_tokens_norm:
-                if wanted == candidate:
-                    matches = True
-                    break
-                if len(wanted) > 1 and len(candidate) > 1 and (candidate.startswith(wanted) or wanted.startswith(candidate)):
-                    matches = True
-                    break
-            if not matches:
-                # allow direct class/tier value checks to remain compatible with legacy filters
-                bucket_values = []
-                for key in ("class", "tier"):
-                    value = champ.get(key) or champ.get("class_name") if key == "class" else champ.get(key)
-                    if value is not None:
-                        bucket_values.append(str(value).lower())
-                if wanted and bucket_values and any(wanted == _normalize_champion_token(v) for v in bucket_values):
-                    continue
+            accepted = [str(value).lstrip("# ").strip() for value in accepted if str(value).lstrip("# ").strip()]
+            bucket_values = _iter_champion_filter_values(bucket_value)
+            if category == "tags":
+                bucket_values = _champion_filter_tokens(champ)
+            if not _bucket_matches_all(bucket_values, accepted):
                 return False
 
         return True
