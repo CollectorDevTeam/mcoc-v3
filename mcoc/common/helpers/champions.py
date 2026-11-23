@@ -79,28 +79,56 @@ def resolve_champion(cache: Any, champion_ref: Any) -> Optional[Dict[str, Any]]:
 
 
 async def safe_respond_interaction(interaction: Any, *, content: Optional[str] = None, embed: Optional[Any] = None, view: Optional[Any] = None, ephemeral: bool = False, followup: bool = False) -> None:
-    """Minimal compatibility helper for slash interaction responses."""
+    """Send a slash response without leaving it stuck on a silently swallowed webhook error."""
     if interaction is None:
         return
 
+    response = getattr(interaction, "response", None)
     try:
-        if followup and hasattr(interaction, "followup"):
-            await interaction.followup.send(content=content or "", embed=embed, view=view, ephemeral=ephemeral)
-            return
-
-        if hasattr(interaction, "response") and getattr(interaction, "response", None) is not None:
-            await interaction.response.send_message(content=content or "", embed=embed, view=view, ephemeral=ephemeral)
-            return
-
-        if hasattr(interaction, "followup"):
-            await interaction.followup.send(content=content or "", embed=embed, view=view, ephemeral=ephemeral)
-            return
-
-        if hasattr(interaction, "channel") and hasattr(interaction.channel, "send"):
-            await interaction.channel.send(content=content or "", embed=embed, view=view)
-            return
+        is_done = bool(response.is_done()) if response and hasattr(response, "is_done") else False
     except Exception:
-        log.exception("safe_respond_interaction failed for interaction=%r", interaction)
+        is_done = False
+
+    if followup or is_done:
+        if hasattr(interaction, "edit_original_response"):
+            try:
+                await interaction.edit_original_response(content=content, embed=embed, view=view)
+                return
+            except Exception:
+                log.debug("safe_respond_interaction: edit-original fallback failed", exc_info=True)
+
+        followup_webhook = getattr(interaction, "followup", None)
+        if followup_webhook and hasattr(followup_webhook, "send"):
+            try:
+                await followup_webhook.send(content=content or "", embed=embed, view=view, ephemeral=ephemeral)
+                return
+            except Exception:
+                log.debug("safe_respond_interaction: followup fallback failed", exc_info=True)
+
+    if response and hasattr(response, "send_message"):
+        try:
+            await response.send_message(content=content or "", embed=embed, view=view, ephemeral=ephemeral)
+            return
+        except Exception:
+            log.debug("safe_respond_interaction: direct send failed", exc_info=True)
+
+            if hasattr(interaction, "edit_original_response"):
+                try:
+                    await interaction.edit_original_response(content=content, embed=embed, view=view)
+                    return
+                except Exception:
+                    log.debug("safe_respond_interaction: post-send edit fallback failed", exc_info=True)
+
+            followup_webhook = getattr(interaction, "followup", None)
+            if followup_webhook and hasattr(followup_webhook, "send"):
+                try:
+                    await followup_webhook.send(content=content or "", embed=embed, view=view, ephemeral=ephemeral)
+                    return
+                except Exception:
+                    log.exception("safe_respond_interaction followup failed")
+
+    if hasattr(interaction, "channel") and hasattr(interaction.channel, "send"):
+        await interaction.channel.send(content=content or "", embed=embed, view=view)
 
 
 def lookup_stat(champ: Optional[Mapping[str, Any]], rarity: Any, rank: Any, ascended: Any = 0) -> Optional[Dict[str, Any]]:
