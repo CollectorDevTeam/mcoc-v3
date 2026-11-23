@@ -434,7 +434,8 @@ class _ChampionGroup(app_commands.Group):
         send_started = time.perf_counter()
         await safe_respond_interaction(interaction, embed=embed)
         send_elapsed = time.perf_counter() - send_started
-        log.info("Scout timing: send=%.3fs champion=%s", send_elapsed, champion)
+        total_elapsed = time.perf_counter() - started
+        log.info("Scout timing: send=%.3fs total=%.3fs champion=%s", send_elapsed, total_elapsed, champion)
 
     @app_commands.command(name="available", description="List champions and the rarities they are available at")
     async def available(self, interaction):
@@ -745,13 +746,22 @@ class _ChampionGroup(app_commands.Group):
             await safe_respond_interaction(interaction, content="No champions match your search filters.", ephemeral=True)
             return
 
+        names = [str(champ.get("name") or champ.get("slug") or champ.get("id") or "Unknown") for champ in results]
+        names = list(dict.fromkeys(names))
+        max_names = 100
+        shown = names[:max_names]
+        suffix = f"\n…and {len(names) - max_names} more" if len(names) > max_names else ""
+        embed = CDTEmbed.embed(
+            interaction,
+            title=f"Champion Search — {len(names)} match{'es' if len(names) != 1 else ''}",
+            description=("\n".join(f"• {name}" for name in shown) + suffix),
+            url="https://mcoc.app",
+        )
         try:
-            pages = [CDTEmbed.champion_embed(interaction, champ) for champ in results]
-            pages = add_page_footers(pages)
-            await safe_respond_interaction(interaction, embed=pages[0], view=CDTPagesMenu(pages, author=interaction.user))
+            CDTEmbed.set_footer(interaction, embed, text="Collector | Champion Search")
         except Exception:
-            names = [c.get("name", "Unknown") for c in results][:50]
-            await safe_respond_interaction(interaction, content=f"Matches ({len(results)}): {', '.join(names)}", ephemeral=True)
+            pass
+        await safe_respond_interaction(interaction, embed=embed)
 
 
     @app_commands.command(name="calcstats", description="Calculate champion stats for a given rarity, rank, sig, and ascension")
